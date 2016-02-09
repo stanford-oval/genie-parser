@@ -9,3 +9,4 @@
 (example (utterance "post something on twitter") (targetValue (string "((tt:device.action.post tt:device.twitter) (string something))")))
 (example (utterance "post something in twitter") (targetValue (string "((tt:device.action.post tt:device.twitter) (string something))")))
 (example (utterance "post on twitter") (targetValue (string "(tt:device.action.post tt:device.twitter)")))
+(example (utterance "post something something something on twitter") (targetValue (string "((tt:device.action.post tt:device.twitter) (string \"something something something\"))")))

@@ -2,6 +2,9 @@
 (rule $Param ($StringValue) (IdentityFn))
 (rule $Param (that $StringValue) (SelectFn 0))
 
+(rule $Param ($PHRASE) (NumberFn))
+(rule $Param ($PHRASE) (DateFn))
+
 (rule $Param ($PHRASE) (SimpleLexiconFn (type tt:type.device)))
 
 (rule $Preposition ($TOKEN) (FilterPosTagFn token IN))
@@ -28,5 +31,10 @@
 (rule $ActionVerb ($ActionVerb2) (IdentityFn))
 (rule $ActionVerb ($ActionVerb3) (IdentityFn))
 
+(rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
+
+#(rule $ROOT ($ActionVerb) (lambda x (tt:root.token.action (var x))))
 (rule $ROOT ($ActionVerb) (IdentityFn))
+(rule $ROOT ($Special) (IdentityFn))
+(rule $ROOT ($Param) (lambda x (tt:root.token.value (var x))))
 
