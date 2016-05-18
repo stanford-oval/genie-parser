@@ -88,6 +88,15 @@
     <jar destfile="${libsempre}/sempre-overnight.jar" basedir="${classes}/overnight"/>
   </target>
 
+  <!-- Compile thingpedia -->
+  <target name="thingpedia" depends="init,core,freebase">
+    <echo message="Compiling ${ant.project.name}: thingpedia"/>
+    <mkdir dir="${classes}/thingpedia"/>
+    <javac srcdir="${src}" destdir="${classes}/thingpedia" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
+      <include name="edu/stanford/nlp/sempre/thingpedia/"/>
+    </javac>
+    <jar destfile="${libsempre}/sempre-thingpedia.jar" basedir="${classes}/thingpedia"/>
+  </target>
 
   <!-- Clean up -->
   <target name="clean">
