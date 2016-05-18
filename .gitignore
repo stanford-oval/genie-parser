@@ -21,3 +21,4 @@ semparse.iml
 *.cache
 *.DS_Store
 java.hprof.txt
+/bin/

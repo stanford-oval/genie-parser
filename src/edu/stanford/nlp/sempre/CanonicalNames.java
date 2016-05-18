@@ -34,6 +34,10 @@ public final class CanonicalNames {
   // Unary: fb:domain.type [contains exactly one period]
   // Binary: fb:domain.type.property, <, >, etc.
   public static boolean isUnary(String s) {
+	// HACK: recognize rdf:type as a binary (because it is one)
+	if (s.equals("rdf:type"))
+		return false;
+
     int i = s.indexOf('.');
     if (i == -1) return false;
     i = s.indexOf('.', i + 1);
@@ -42,6 +46,10 @@ public final class CanonicalNames {
   }
 
   public static boolean isBinary(String s) {
+	// HACK: recognize rdf:type as a binary (because it is one)
+	if (s.equals("rdf:type"))
+		return true;
+
     int i = s.indexOf('.');
     if (i == -1) return false;
     i = s.indexOf('.', i + 1);

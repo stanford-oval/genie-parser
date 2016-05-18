@@ -17,6 +17,7 @@ public class Main implements Runnable {
 	@Option
 	public boolean streamapi = false;
 
+	@Override
 	public void run() {
 		Builder builder = new Builder();
 		builder.build();

@@ -291,7 +291,8 @@ public class SparqlExecutor extends Executor {
 
   ////////////////////////////////////////////////////////////
   // Convert a Formula into a SparqlExpr.
-  class Converter {
+  public static class Converter {
+    private final FreebaseInfo fbInfo = FreebaseInfo.getSingleton();
     private int numVars = 0;  // Used to create new Sparql variables
 
     // Unit for each SPARQL variable.
