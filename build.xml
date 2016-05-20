@@ -89,7 +89,7 @@
   </target>
 
   <!-- Compile thingtalk -->
-  <target name="thingtalk" depends="init,core,corenlp,overnight">
+  <target name="thingtalk" depends="init,core,corenlp,freebase,overnight">
     <echo message="Compiling ${ant.project.name}: thingtalk"/>
     <mkdir dir="${classes}/thingtalk"/>
     <javac srcdir="${src}" destdir="${classes}/thingtalk" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
