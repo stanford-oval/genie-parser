@@ -94,8 +94,10 @@ public class StreamAPI {
 					writer.writeStartObject();
 					if (value == null)
 						writer.writeObjectField("answer", null);
-					else
+					else if (value instanceof StringValue)
 						writer.writeObjectField("answer", ((StringValue) value).value);
+					else if (value instanceof ListValue)
+						writer.writeObjectField("answer", ((StringValue) ((ListValue) value).values.get(0)).value);
 					writer.writeEndObject();
 					writer.writeRaw("\n");
 					writer.flush();
