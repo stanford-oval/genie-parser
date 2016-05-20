@@ -84,4 +84,10 @@ public final class ThingTalk {
         json.put("special",((NameValue)spl).id);
         return Collections.singletonList(new StringValue(Json.writeValueAsStringHard(json)));
     }
+
+    public static List<Value> paramTop(List<Value> params) {
+        Map<String,Object> json = new HashMap<String, Object>();
+        json.put("answer",((ParamValue)(params.get(0))).toJSON());
+        return Collections.singletonList(new StringValue(Json.writeValueAsStringHard(json)));
+    }
 }
