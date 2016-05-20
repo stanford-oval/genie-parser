@@ -1,4 +1,4 @@
-package edu.stanford.nlp.sempre.thingpedia;
+package edu.stanford.nlp.sempre.thingtalk;
 
 import java.util.ArrayList;
 import java.util.HashMap;
