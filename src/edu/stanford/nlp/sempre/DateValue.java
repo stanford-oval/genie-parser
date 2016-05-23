@@ -107,7 +107,7 @@ public class DateValue extends Value {
     this.year = Integer.valueOf(tree.child(1).value);
     this.month = Integer.valueOf(tree.child(2).value);
     this.day = Integer.valueOf(tree.child(3).value);
-    if (tree.children.size() > 3) {
+    if (tree.children.size() > 4) {
       this.hour = Integer.valueOf(tree.child(4).value);
       this.minute = Integer.valueOf(tree.child(5).value);
       this.second = Double.valueOf(tree.child(6).value);

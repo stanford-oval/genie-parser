@@ -881,7 +881,7 @@ nil) })
 
 # Generate for all the domains
 addMode('genovernight-wrapper', 'Generate utterances for overnight semantic parsing', lambda { |e| l(
-  './run', '@mode=genovernight', '@gen=1',
+  './run', '@mode=genovernight', '@gen=1', '@pooldir=1',
   sel(nil, {
     'calendar' => let(:domain, 'calendar'),
     'blocks' => let(:domain, 'blocks'),
