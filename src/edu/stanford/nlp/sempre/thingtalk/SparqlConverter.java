@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import edu.stanford.nlp.sempre.Formulas;
 import edu.stanford.nlp.sempre.JoinFormula;
 import edu.stanford.nlp.sempre.LambdaFormula;
 import edu.stanford.nlp.sempre.MarkFormula;
+import edu.stanford.nlp.sempre.Master;
 import edu.stanford.nlp.sempre.MergeFormula;
 import edu.stanford.nlp.sempre.NameValue;
 import edu.stanford.nlp.sempre.NotFormula;
@@ -32,7 +34,9 @@ import edu.stanford.nlp.sempre.freebase.SparqlNot;
 import edu.stanford.nlp.sempre.freebase.SparqlSelect;
 import edu.stanford.nlp.sempre.freebase.SparqlStatement;
 import edu.stanford.nlp.sempre.freebase.SparqlUnion;
+import fig.basic.LogInfo;
 import fig.basic.Ref;
+import fig.exec.Execution;
 
 /**
  * Convert a lambda DCS form to Sparql
@@ -499,5 +503,41 @@ public class SparqlConverter {
 	private VariableFormula newVar() {
 		numVars++;
 		return new VariableFormula("?x" + numVars);
+	}
+
+	public static void main(String[] args) {
+		Execution.run(args, "SparqlConverter", new Runnable() {
+			@Override
+			public void run() {
+				try {
+					while (true) {
+						LogInfo.stdout.print("> ");
+						LogInfo.stdout.flush();
+
+						String line = LogInfo.stdin.readLine();
+						if (line.trim().isEmpty())
+							continue;
+						if (line.startsWith("\\")) {
+							if (line.startsWith("\\q"))
+								return;
+							else
+								LogInfo.stdout.println("Invalid command");
+						} else {
+							try {
+								Formula formula = Formula.fromString(line);
+								SparqlConverter cvt = new SparqlConverter(formula);
+								SparqlSelect query = cvt.getQuery();
+								LogInfo.stdout.println(query);
+							} catch (Exception e) {
+								LogInfo.logs("Error while converting to sparql: %s", e.getMessage());
+							}
+						}
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+					return;
+				}
+			}
+		}, Master.getOptionsParser());
 	}
 }
