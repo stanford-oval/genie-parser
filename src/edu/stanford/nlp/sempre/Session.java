@@ -13,6 +13,7 @@ import java.util.List;
  */
 public class Session {
   public final String id;  // Session id
+	private long lastAccessTime;
   String remoteHost;  // Where we connected from
   String format;  // html or json
   ContextValue context;  // Current context used to create new examples
@@ -20,13 +21,19 @@ public class Session {
 
   public Session(String id) {
     this.id = id;
+	lastAccessTime = System.currentTimeMillis();
     context = new ContextValue(id, DateValue.now(), new ArrayList<ContextValue.Exchange>());
   }
 
   public Example getLastExample() { return lastEx; }
   public String getLastQuery() { return lastEx == null ? null : lastEx.utterance; }
 
+	public long getLastAccessTime() {
+		return lastAccessTime;
+	}
+
   public void updateContext() {
+	lastAccessTime = System.currentTimeMillis();
     context = context.withDate(DateValue.now());
   }
 
@@ -35,7 +42,7 @@ public class Session {
     List<Derivation> derivations = lastEx.getPredDerivations();
     if (derivations.size() > 0) {
       Derivation deriv = derivations.get(0);
-      List<ContextValue.Exchange> newExchanges = new ArrayList<ContextValue.Exchange>();
+      List<ContextValue.Exchange> newExchanges = new ArrayList<>();
       newExchanges.addAll(context.exchanges);
       newExchanges.add(new ContextValue.Exchange(ex.utterance, deriv.formula, deriv.value));
       while (newExchanges.size() > maxExchanges)
@@ -45,7 +52,7 @@ public class Session {
   }
 
   public void updateContextWithNewAnswer(Example ex, Derivation deriv) {
-    List<ContextValue.Exchange> newExchanges = new ArrayList<ContextValue.Exchange>();
+    List<ContextValue.Exchange> newExchanges = new ArrayList<>();
     for (int i = 0; i < context.exchanges.size() - 1; i++)
       newExchanges.add(context.exchanges.get(i));
     newExchanges.add(new ContextValue.Exchange(ex.utterance, deriv.formula, deriv.value));
@@ -53,7 +60,7 @@ public class Session {
   }
 
   public ContextValue getContextExcludingLast() {
-    List<ContextValue.Exchange> newExchanges = new ArrayList<ContextValue.Exchange>();
+    List<ContextValue.Exchange> newExchanges = new ArrayList<>();
     for (int i = 0; i < context.exchanges.size() - 1; i++)
       newExchanges.add(context.exchanges.get(i));
     return context.withNewExchange(newExchanges);
