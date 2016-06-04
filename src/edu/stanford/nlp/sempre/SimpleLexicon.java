@@ -70,6 +70,9 @@ public final class SimpleLexicon {
       int numLines = 0;
       int oldNumEntries = entries.size();
       while ((line = in.readLine()) != null) {
+        if(line.equals("")) {
+          continue;
+        }
         Map<String, Object> map = Json.readMapHard(line);
         numLines++;
 

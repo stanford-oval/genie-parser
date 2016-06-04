@@ -1,0 +1,8 @@
+(example (utterance "if receive tweet on twitter and from is Giovanni then send message on slack with message is new post")
+)
+(example (utterance "if receive message on slack and from_user is Giovanni then share on linkedin with comment is new dm")
+)
+(example (utterance "if get profile from linkedin then send dm on twitter with message is new dm")
+)
+(example (utterance "if receive dm on twitter and from is Xiangyu then update status on slack with presence is away")
+)

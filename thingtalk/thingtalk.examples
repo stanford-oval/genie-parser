@@ -1,82 +1,124 @@
-(example (utterance "number of people that are friends of me")       (targetFormula (call edu.stanford.nlp.sempre.NormalFormExecutor.normalize (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "people that friends of me")                     (targetFormula (call edu.stanford.nlp.sempre.NormalFormExecutor.normalize (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "number of people that are friends of me")       (targetFormula (call edu.stanford.nlp.sempre.NormalFormExecutor.normalize (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "people that friends of me")                     (targetFormula (call edu.stanford.nlp.sempre.NormalFormExecutor.normalize (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#
+#
+## some liberal paraphrases of the questions above
+#(example (utterance "how many friends do I have?") (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "count my friends")            (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "how many are my friends?")    (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "who are my friends?")         (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "who is my friend?")           (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
+#(example (utterance "list my friends")             (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
 
-
-# some liberal paraphrases of the questions above
-(example (utterance "how many friends do I have?") (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "count my friends")            (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "how many are my friends?")    (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value (count (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "who are my friends?")         (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "who is my friend?")           (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-(example (utterance "list my friends")             (targetFormula (call edu.stanford.nlp.sempre.thingpedia.SparqlConverter.executeAndWrap (tt:root.question.value ((reverse foaf:name) (and (rdf:type foaf:Person) (foaf:knows tt:me)))))))
-
-(example (utterance "If receive tweet on twitter then post on twitter text new tweet")
+(example (utterance "if receive tweet on twitter and from is Giovanni then send message on slack with message is new post")
     (targetFormula
         (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
-                tt:twitter.source
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                    tt:twitter.source
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string String) (string is) tt:param.from (string giovanni)
+                )
             )
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
-                    tt:twitter.sink
+                    tt:slack.send
                 )
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
-                    (string "text") (string "String")
-                    (string "new tweet")
+                    (string String) (string is) tt:param.message (string "new post")
                 )
             )
         )
     )
 )
-(example (utterance "If receive dm on twitter then post on twitter text new dm")
+
+(example (utterance "if receive message on slack and from user is Giovanni then share on linkedin with comment is new dm")
     (targetFormula
         (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
-                tt:twitter.direct_message
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                    tt:slack.receive
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string String) (string is) tt:param.from_user (string giovanni)
+                )
             )
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
-                    tt:twitter.sink
+                    tt:linkedin.share
                 )
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
-                    (string "text") (string "String")
-                    (string "new dm")
+                    (string String) (string is) tt:param.comment (string "new dm")
                 )
             )
         )
     )
 )
-(example (utterance "If receive tweet on twitter then send dm on twitter text new tweet")
+
+(example (utterance "if get profile from linkedin then send dm on twitter with message is new dm")
     (targetFormula
         (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
-                tt:twitter.source
+                tt:linkedin.profile
             )
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
                     tt:twitter.send_direct_message
                 )
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
-                    (string "text") (string "String")
-                    (string "new tweet")
+                    (string String) (string is) tt:param.message (string "new dm")
                 )
             )
         )
     )
 )
-(example (utterance "If receive dm on twitter then send dm on twitter text new dm")
+
+(example (utterance "if receive dm on twitter and from is Xiangyu then update status on slack with presence is away")
     (targetFormula
         (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
-                tt:twitter.direct_message
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                    tt:twitter.direct_message
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string String) (string is) tt:param.from (string xiangyu)
+                )
             )
             (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
-                    tt:twitter.send_direct_message
+                    tt:slack.setPresence
                 )
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
-                    (string "text") (string "String")
-                    (string "new dm")
+                    (string String) (string is) tt:param.presence (string away)
+                )
+            )
+        )
+    )
+)
+
+(example (utterance "if receive tweet on twitter and hashtags has Trump and text contains make america great then update status on slack with presence is away")
+    (targetFormula
+        (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
+            (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                    (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                        tt:twitter.source
+                    )
+                    (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                        (string Array) (string contains) tt:param.hashtags (string trump)
+                    )
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string String) (string contains) tt:param.text (string "make america great")
+                )
+            )
+            (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
+                    tt:slack.setPresence
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string String) (string is) tt:param.presence (string away)
                 )
             )
         )

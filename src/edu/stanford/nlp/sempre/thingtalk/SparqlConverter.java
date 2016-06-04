@@ -80,6 +80,7 @@ public class SparqlConverter {
 		SparqlConverter cvt = new SparqlConverter(formula);
 		SparqlSelect query = cvt.getQuery();
 
+		// FIXME: Convert this part to JSON output
 		Formula left = new ValueFormula<>(new NameValue("tt:root.question.value"));
 		Formula right = new ValueFormula<>(new StringValue(query.toString()));
 		JoinFormula jf = new JoinFormula(left, right);

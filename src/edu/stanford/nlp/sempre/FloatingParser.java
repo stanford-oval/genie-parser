@@ -367,11 +367,13 @@ class FloatingParserState extends ParserState {
     if (FloatingParser.opts.printPredictedUtterances) {
       PrintWriter writer = IOUtils.openOutAppendEasy(Execution.getFile("canonical_utterances"));
       PrintWriter fWriter = IOUtils.openOutAppendEasy(Execution.getFile("utterances_formula.tsv"));
+      PrintWriter vWriter = IOUtils.openOutAppendEasy(Execution.getFile("utterances_value.tsv"));
       Derivation.sortByScore(predDerivations);
       for (Derivation deriv: predDerivations) {
         if (deriv.score > -10) {
           writer.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.score));
           fWriter.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.formula.toString()));
+          vWriter.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.value.toString()));
         }
       }
       writer.close();

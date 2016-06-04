@@ -70,12 +70,20 @@ public final class ThingTalk {
         return Collections.singletonList(newAction);
     }
 
-    public static List<Value> paramForm(String name, String tt_type, String value) {
-        ParamValue param = new ParamValue(name, tt_type, value);
+    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, String value) {
+        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, value);
         return Collections.singletonList(param);
     }
-    public static List<Value> paramForm(String name, String tt_type, Value value) {
-        ParamValue param = new ParamValue(name, tt_type, value.toString());
+    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Double value) {
+        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value));
+        return Collections.singletonList(param);
+    }
+    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Value value) {
+        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, value.toString());
+        return Collections.singletonList(param);
+    }
+    public static List<Value> paramForm(String temp_type, String tt_type, String operator, Value tt_arg, Integer value) {
+        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, (String.valueOf(value)+temp_type));
         return Collections.singletonList(param);
     }
 
