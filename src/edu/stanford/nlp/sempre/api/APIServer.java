@@ -3,15 +3,17 @@ package edu.stanford.nlp.sempre.api;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import javax.net.ssl.SSLContext;
+
+import com.sun.net.httpserver.*;
 
 import edu.stanford.nlp.sempre.Master;
+import edu.stanford.nlp.sempre.PosixHelper;
 import edu.stanford.nlp.sempre.Session;
 import fig.basic.LogInfo;
 import fig.basic.Option;
@@ -63,9 +65,13 @@ public class APIServer implements Runnable {
     @Option
     public int port = 8400;
     @Option
+    public int ssl_port = -1;
+    @Option
     public int numThreads = 4;
     @Option
     public int verbose = 1;
+    @Option
+    public String chuid = null;
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es", "zh" });
     @Option
@@ -155,49 +161,89 @@ public class APIServer implements Runnable {
 
   @Override
   public void run() {
-    // Add supported languages
-    for (String tag : opts.languages)
-      addLanguage(tag);
-
-    if (opts.utteranceLogFile != null)
-      new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
-    for (Pair<String, String> pair : opts.onlineLearnFiles)
-      new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
-
     try {
+      // create the server early so we can bind and drop privileges
+    
+      HttpServer server = null;
+      HttpsServer ssl_server = null;
+      if (opts.port >= 0)
+          server = HttpServer.create(new InetSocketAddress(opts.port), 10);
+      if (opts.ssl_port >= 0) {
+          try {
+          SSLContext context = SSLContext.getDefault();
+          ssl_server = HttpsServer.create(new InetSocketAddress(opts.ssl_port), 10);
+          // use default configuration
+          ssl_server.setHttpsConfigurator(new HttpsConfigurator(context));
+        } catch (NoSuchAlgorithmException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      if (server == null && ssl_server == null)
+        throw new RuntimeException("Must specify one of port or ssl_port");
+
+      if (opts.chuid != null)
+        PosixHelper.setuid(opts.chuid);
+
+      // Add supported languages
+      for (String tag : opts.languages)
+        addLanguage(tag);
+
+      // open log files (after we dropped privileges, so the log files are not owned by root)
+      if (opts.utteranceLogFile != null)
+        new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
+      for (Pair<String, String> pair : opts.onlineLearnFiles)
+        new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
+
       for (Pair<String, String> pair : opts.onlineLearnFiles)
         langs.get(pair.getFirst()).exactMatch.load(pair.getSecond());
 
       String hostname = fig.basic.SysInfoUtils.getHostName();
-      HttpServer server = HttpServer.create(new InetSocketAddress(opts.port), 10);
       ExecutorService pool = Executors.newFixedThreadPool(opts.numThreads);
-      server.createContext("/query", new HttpHandler() {
+
+      HttpHandler query = new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
           new QueryExchangeState(APIServer.this, exchange).run();
         }
-      });
-      server.createContext("/learn", new HttpHandler() {
+      };
+      HttpHandler learn = new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
           new OnlineLearnExchangeState(APIServer.this, exchange).run();
         }
-      });
-      server.createContext("/admin/clear-cache", new HttpHandler() {
+      };
+      HttpHandler clearCache = new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
           new ClearCacheExchangeState(APIServer.this, exchange).run();
         }
-      });
-      server.createContext("/admin/reload", new HttpHandler() {
+      };
+      HttpHandler reload = new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
           new ReloadParametersExchangeState(APIServer.this, exchange).run();
         }
-      });
-      server.setExecutor(pool);
-      server.start();
-      LogInfo.logs("Server started at http://%s:%s/sempre", hostname, opts.port);
+      };
+
+      if (server != null) {
+        server.createContext("/query", query);
+        server.createContext("/learn", learn);
+        server.createContext("/admin/clear-cache", clearCache);
+        server.createContext("/admin/reload", reload);
+        server.setExecutor(pool);
+        server.start();
+        LogInfo.logs("Server started at http://%s:%s/", hostname, opts.port);
+      }
+      if (ssl_server != null) {
+        ssl_server.createContext("/query", query);
+        ssl_server.createContext("/learn", learn);
+        ssl_server.createContext("/admin/clear-cache", clearCache);
+        ssl_server.createContext("/admin/reload", reload);
+
+        ssl_server.setExecutor(pool);
+        ssl_server.start();
+        LogInfo.logs("Server started at https://%s:%s/", hostname, opts.ssl_port);
+      }
 
       Timer gcTimer = new Timer(true);
       gcTimer.schedule(new SessionGCTask(), 600000, 600000);

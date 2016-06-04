@@ -22,7 +22,7 @@ DESC="sempre"
 NAME=sempre
 PROC_NAME=java
 DAEMON=/opt/sempre/run_sempre.sh
-DAEMON_ARGS="-APIServer.chuid thingengine -APIServer.port 80"
+DAEMON_ARGS="-APIServer.chuid thingengine -APIServer.port 80 -APIServer.ssl_port 443"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -55,7 +55,7 @@ do_start()
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON \
 		--name $PROC_NAME \
                 --background --make-pidfile \
-		--chdir /opt/sempre \
+		--chdir /opt/sempre -C \
 		-- $DAEMON_ARGS >> /var/log/sempre 2>&1 \
 		|| return 2
 
