@@ -5,7 +5,7 @@
 # derivation that use $StringValue (which is a catch all)
 exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-cp' 'libsempre/*:lib/*' \
-              'edu.stanford.nlp.sempre.APIServer' \
+              'edu.stanford.nlp.sempre.Main' \
               '-LanguageAnalyzer' 'corenlp.CoreNLPAnalyzer' \
               '-Builder.parser' 'BeamParser' \
               '-Builder.executor' 'JavaExecutor' \
@@ -26,4 +26,5 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-Learner.maxTrainIters' '1' \
               '-SimpleLexicon.inPaths' 'thingtalk/thingtalk.lexicon' \
               '-DataSet.inPaths' 'train:thingtalk/thingtalk.examples' \
+              '-Main.interactive' 'true' \
               "$@"
