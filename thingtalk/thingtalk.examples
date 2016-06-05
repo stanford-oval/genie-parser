@@ -106,7 +106,7 @@
                         tt:twitter.source
                     )
                     (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
-                        (string String) (string contains) tt:param.hashtags (string trump)
+                        (string String) (string has) tt:param.hashtags (string trump)
                     )
                 )
                 (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
