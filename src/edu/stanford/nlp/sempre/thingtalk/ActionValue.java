@@ -1,10 +1,13 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import fig.basic.LispTree;
 import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
-import com.google.common.collect.Lists;
-import java.util.*;
+import fig.basic.LispTree;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a thingtalk action

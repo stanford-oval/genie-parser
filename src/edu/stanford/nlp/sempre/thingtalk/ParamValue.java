@@ -1,10 +1,10 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import fig.basic.LispTree;
-import fig.basic.LogInfo;
 import edu.stanford.nlp.sempre.Value;
+import fig.basic.LispTree;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**

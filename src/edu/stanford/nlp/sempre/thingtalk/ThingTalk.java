@@ -1,20 +1,14 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import com.google.common.collect.Lists;
+import edu.stanford.nlp.sempre.Json;
+import edu.stanford.nlp.sempre.NameValue;
+import edu.stanford.nlp.sempre.StringValue;
+import edu.stanford.nlp.sempre.Value;
 
-import fig.basic.*;
-
-import edu.stanford.nlp.sempre.*;
-import edu.stanford.nlp.sempre.thingtalk.ParamValue;
-import edu.stanford.nlp.sempre.thingtalk.TriggerValue;
-import edu.stanford.nlp.sempre.thingtalk.ActionValue;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Functions for supporting thingtalk
