@@ -125,10 +125,26 @@
     )
 )
 
-#(example
-#  (utterance "if nba team gsw has game on sportsradar and is inprogress then notify me with text new game for the warriors")
-#  (original "if nba team has game on sportsradar and watched team alias is gsw and game status is inprogress then notify me with text is new game for the warriors")
-#(targetFormula
-#(call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam tt:sportsradar.nba_team) (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm (string String) (string is) tt:param.watchedTeamAlias (string gsw))) (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm (string String) (string is) tt:param.gameStatus (string inprogress))) (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam tt:builtin.notify) (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm (string String) (string is) tt:param.text (string "new game for the warriors"))))
-#)
-#)
+
+(example (utterance "if humidity changes on nest and value is 20 then set target temperature on nest with value is 15 C")
+    (targetFormula
+        (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt
+            (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam
+                    tt:thermostat.humidity
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string Number) (string is) tt:param.value (number 20)
+                )
+            )
+            (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam
+                    tt:thermostat.set_target_temperature
+                )
+                (call edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm
+                    (string C) (string Measure) (string is) tt:param.value (number 15)
+                )
+            )
+        )
+    )
+)

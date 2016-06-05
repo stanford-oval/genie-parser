@@ -72,6 +72,10 @@ public final class ThingTalk {
         ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value));
         return Collections.singletonList(param);
     }
+    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Integer value) {
+        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value));
+        return Collections.singletonList(param);
+    }
     public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Value value) {
         ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, value.toString());
         return Collections.singletonList(param);

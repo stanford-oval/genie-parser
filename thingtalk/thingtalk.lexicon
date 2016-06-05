@@ -28,6 +28,7 @@
 {"lexeme": "game status", "formula": "tt:param.gameStatus", "type": "tt:type.stringarg"}
 
 {"lexeme": "value", "formula": "tt:param.value", "type": "tt:type.temparg"}
+{"lexeme": "value", "formula": "tt:param.value", "type": "tt:type.numarg"}
 
 {"lexeme": "number", "formula": "tt:param.number", "type": "tt:type.stringarg"}
 
@@ -43,6 +44,7 @@
 {"lexeme":"nba team has game on sportradar", "formula": "tt:sportradar.nba_team", "type": "tt:type.trigger"}
 
 {"lexeme":"temperature changes on nest", "formula": "tt:thermostat.temperature", "type": "tt:type.trigger"}
+{"lexeme":"humidity changes on nest", "formula": "tt:thermostat.humidity", "type": "tt:type.trigger"}
 
 {"lexeme":"every day at", "formula": "tt:builtin.at", "type": "tt:type.trigger"}
 {"lexeme":"every fixed interval", "formula": "tt:builtin.timer", "type": "tt:type.trigger"}
