@@ -68,7 +68,7 @@
 
     (rule $StringArg ($StringArgName is $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "is") (var arg) (var value)))))
     (rule $StringArg ($StringArgName contains $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "contains") (var arg) (var value)))))
-    (rule $ArrayArg ($ArrayArgName has $StringValue) (lambda arg (lambda value (call @paramForm (string "Array") (string "contains") (var arg) (var value)))))
+    (rule $ArrayArg ($ArrayArgName has $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "contains") (var arg) (var value)))))
     (rule $DateArg ($DateArgName is $DateValue) (lambda arg (lambda value (call @paramForm (string "Date") (string "is") (var arg) (var value)))))
     (rule $TimeArg ($TimeArgName is $TimeValue) (lambda arg (lambda value (call @paramForm (string "Time") (string "is") (var arg) (var value)))))
     (rule $BoolArg ($BoolArgName is true) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "true"))))

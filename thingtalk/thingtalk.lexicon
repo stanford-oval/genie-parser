@@ -40,7 +40,7 @@
 
 {"lexeme":"receive message on slack","formula": "tt:slack.receive", "type": "tt:type.trigger"}
 
-{"lexeme":"nba team has game on sportsradar", "formula": "tt:sportsradar.nba_team", "type": "tt:type.trigger"}
+{"lexeme":"nba team has game on sportradar", "formula": "tt:sportradar.nba_team", "type": "tt:type.trigger"}
 
 {"lexeme":"temperature changes on nest", "formula": "tt:thermostat.temperature", "type": "tt:type.trigger"}
 
