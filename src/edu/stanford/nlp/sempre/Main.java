@@ -47,7 +47,7 @@ public class Main implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		LogInfo.writeToStdout = false;
+		LogInfo.writeToStdout = true;
 		Execution.run(args, "Main", new Main(), Master.getOptionsParser());
 	}
 }

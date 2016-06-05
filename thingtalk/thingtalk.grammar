@@ -75,12 +75,12 @@
     (rule $BoolArg ($BoolArgName is false) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "false"))))
     (rule $NumArg ($NumArgName is $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string "is") (var arg) (var value)))))
 
-    (rule $TempArg ($TempArgName is $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Temperature") (string "is") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Temperature") (string "is") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is greater than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Temperature") (string ">") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is greater than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Temperature") (string ">") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is lesser than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Temperature") (string "<") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is lesser than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Temperature") (string "<") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string "is") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string "is") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is greater than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string ">") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is greater than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string ">") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is lesser than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string "<") (var arg) (var value)))))
+    (rule $TempArg ($TempArgName is lesser than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string "<") (var arg) (var value)))))
 
     (rule $Arg ($StringArg) (IdentityFn))
     (rule $Arg ($ArrayArg) (IdentityFn))

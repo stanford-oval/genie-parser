@@ -13,16 +13,23 @@ import java.util.*;
  */
 public class ParamValue extends Value {
     public final String name;
-    // type: "String", "Date", "List", "Number"
+    // type: "String", "Date", "List", "Number", "Measure"
     public final String tt_type;
     public final String operator;
     public final String value;
+    public final String unit; // Present only with Measure
 
     public ParamValue(LispTree tree) {
         this.name = tree.child(1).value;
         this.tt_type = tree.child(2).value;
         this.operator = tree.child(3).value;
         this.value = tree.child(4).value;
+
+        if(this.tt_type.equals("Measure")) {
+            this.unit = tree.child(5).value;
+        } else {
+            this.unit ="";
+        }
     }
 
     public ParamValue(String name, String tt_type, String operator, String value) {
@@ -30,6 +37,16 @@ public class ParamValue extends Value {
         this.tt_type = tt_type;
         this.operator = operator;
         this.value = value;
+        this.unit = "";
+    }
+
+    public ParamValue(String name, String tt_type, String operator, String value, String unit) {
+        this.name = name;
+        this.tt_type = tt_type;
+        this.operator = operator;
+        this.value = value;
+        // FIXME: Check if type is measure
+        this.unit = unit;
     }
 
     public LispTree toLispTree() {
@@ -39,6 +56,9 @@ public class ParamValue extends Value {
         tree.addChild(tt_type);
         tree.addChild(operator);
         tree.addChild(value);
+        if(tt_type.equals("Measure")) {
+            tree.addChild(unit);
+        }
         return tree;
     }
 
@@ -48,6 +68,9 @@ public class ParamValue extends Value {
         json.put("type", tt_type);
         json.put("operator", operator);
         json.put("value", value);
+        if(tt_type.equals("Measure")) {
+            json.put("unit",unit);
+        }
         return json;
     }
 
