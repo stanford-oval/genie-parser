@@ -73,7 +73,10 @@
     (rule $TimeArg ($TimeArgName is $TimeValue) (lambda arg (lambda value (call @paramForm (string "Time") (string "is") (var arg) (var value)))))
     (rule $BoolArg ($BoolArgName is true) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "true"))))
     (rule $BoolArg ($BoolArgName is false) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "false"))))
+
     (rule $NumArg ($NumArgName is $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string "is") (var arg) (var value)))))
+    (rule $NumArg ($NumArgName is greater than $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string ">") (var arg) (var value)))))
+    (rule $NumArg ($NumArgName is lesser than $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string "<") (var arg) (var value)))))
 
     (rule $TempArg ($TempArgName is $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string "is") (var arg) (var value)))))
     (rule $TempArg ($TempArgName is $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string "is") (var arg) (var value)))))
