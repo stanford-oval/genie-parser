@@ -32,6 +32,8 @@
 
     (rule $NumValue (twenty two) (ConstantFn (number 22)))
     (rule $NumValue (50) (ConstantFn (number 50)))
+    (rule $NumValue (80) (ConstantFn (number 80)))
+    (rule $NumValue (20) (ConstantFn (number 20)))
     (rule $NumValue (hundred) (ConstantFn (number 100)))
 
     (rule $PersonValue (Giovanni) (ConstantFn (string "Giovanni")))

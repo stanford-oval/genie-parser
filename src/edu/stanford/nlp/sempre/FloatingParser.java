@@ -1,12 +1,21 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.*;
-import fig.exec.Execution;
+import static fig.basic.LogInfo.logs;
 
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static fig.basic.LogInfo.logs;
+import fig.basic.IOUtils;
+import fig.basic.ListUtils;
+import fig.basic.LogInfo;
+import fig.basic.MapUtils;
+import fig.basic.Option;
+import fig.exec.Execution;
 
 /**
  * A FloatingParser builds Derivations according to a Grammar without having to
@@ -64,7 +73,8 @@ public class FloatingParser extends Parser {
 
   public FloatingParser(Spec spec) { super(spec); }
 
-  public ParserState newParserState(Params params, Example ex, boolean computeExpectedCounts) {
+  @Override
+public ParserState newParserState(Params params, Example ex, boolean computeExpectedCounts) {
     return new FloatingParserState(this, params, ex, computeExpectedCounts);
   }
 }
@@ -373,7 +383,8 @@ class FloatingParserState extends ParserState {
         if (deriv.score > -10) {
           writer.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.score));
           fWriter.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.formula.toString()));
-          vWriter.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.value.toString()));
+					vWriter.println(String.format("%s\t%s", deriv.canonicalUtterance,
+							((StringValue) ((ListValue) deriv.value).values.get(0)).value));
         }
       }
       writer.close();
