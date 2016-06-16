@@ -2,6 +2,9 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Represents a boolean.
  * @author Percy Liang
@@ -17,6 +20,12 @@ public class BooleanValue extends Value {
     tree.addChild("boolean");
     tree.addChild(value + "");
     return tree;
+  }
+
+  public Map<String, Object> toJson() {
+    Map<String, Object> json = new HashMap<String, Object>();
+    json.put("value", value);
+    return json;
   }
 
   @Override public int hashCode() { return Boolean.valueOf(value).hashCode(); }

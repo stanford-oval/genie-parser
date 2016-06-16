@@ -74,6 +74,19 @@ public class ParamValue extends Value {
         return json;
     }
 
+    // TODO: Fix this with values instead of Strings
+    public Map<String,Object> toJson() {
+        Map<String,Object> json = new HashMap<String,Object>();
+        json.put("name", name);
+        json.put("type", tt_type);
+        json.put("operator", operator);
+        json.put("value", value);
+        if(tt_type.equals("Measure")) {
+            json.put("unit",unit);
+        }
+        return json;
+    }
+
     @Override public int hashCode() { return (name.hashCode() ^ operator.hashCode() ^ value.hashCode()); }
     @Override public boolean equals(Object o) {
         if (this == o) return true;

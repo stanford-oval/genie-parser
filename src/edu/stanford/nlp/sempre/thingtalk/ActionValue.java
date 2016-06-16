@@ -59,6 +59,18 @@ public class ActionValue extends Value {
         return json;
     }
 
+    // TODO: Change this to Values than Strings
+    public Map<String, Object> toJson() {
+        Map<String,Object> json = new HashMap<String, Object>();
+        json.put("name", name);
+        List<Object> args = new ArrayList<Object>();
+        json.put("args",args);
+        for(ParamValue param: params) {
+            args.add(param.toJSON());
+        }
+        return json;
+    }
+
     @Override public boolean equals(Object o) {
         if(this == o) return true;
         if(o == null || getClass() != o.getClass()) return false;

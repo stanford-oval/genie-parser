@@ -2,6 +2,9 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by joberant on 1/23/15.
  * Value for representing time
@@ -30,6 +33,12 @@ public class TimeValue extends Value {
     tree.addChild(String.valueOf(hour));
     tree.addChild(String.valueOf(minute));
     return tree;
+  }
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    json.put("hour", hour);
+    json.put("minute", minute);
+    return json;
   }
 
   @Override

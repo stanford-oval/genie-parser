@@ -1,8 +1,10 @@
 package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
+
 import java.util.Calendar;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DateValue extends Value {
   public final int year;
@@ -130,6 +132,17 @@ public class DateValue extends Value {
       tree.addChild(String.valueOf(second));
     }
     return tree;
+  }
+
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    json.put("year", year);
+    json.put("month", month);
+    json.put("day", day);
+    json.put("hour", hour);
+    json.put("minute", minute);
+    json.put("second", second);
+    return json;
   }
 
   @Override public int hashCode() {

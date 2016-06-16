@@ -5,7 +5,9 @@ import fig.basic.LogInfo;
 import fig.basic.StrUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a table (has a header and a list of rows).
@@ -61,6 +63,12 @@ public class TableValue extends Value {
     return tree;
   }
 
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    json.put("header", header);
+    json.put("rows", rows);
+    return json;
+  }
   public void log() {
     LogInfo.begin_track("%s", StrUtils.join(header, "\t"));
     for (List<Value> row : rows)
