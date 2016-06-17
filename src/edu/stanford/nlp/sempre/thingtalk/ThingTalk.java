@@ -61,10 +61,7 @@ public final class ThingTalk {
     public static TriggerValue trigParam(TriggerValue oldTrigger, ParamValue param) {
         // FIXME: Write a copy constructor
         TriggerValue newTrigger = new TriggerValue(oldTrigger.name, oldTrigger.params);
-        //for(Value param: params) {
         newTrigger.add(param);
-        //}
-        //return Collections.singletonList(newTrigger);
         return newTrigger;
     }
 
@@ -77,10 +74,7 @@ public final class ThingTalk {
     }
     public static ActionValue actParam(ActionValue oldAction, ParamValue param) {
         ActionValue newAction = new ActionValue(oldAction.name, oldAction.params);
-        //for(Value param: params) {
         newAction.add(param);
-        //}
-        //return Collections.singletonList(newAction);
         return newAction;
     }
 
