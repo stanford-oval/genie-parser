@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import edu.stanford.nlp.sempre.NameValue;
 import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
@@ -14,22 +15,22 @@ import java.util.Map;
  * @author Rakesh Ramesh
  */
 public class ActionValue extends Value {
-    public final String name;
+    public final NameValue name;
     public final List<ParamValue> params;
 
     public ActionValue(LispTree tree) {
-        this.name = tree.child(1).value;
+        this.name = (NameValue) Values.fromLispTree(tree.child(1));
         this.params = new ArrayList<ParamValue>();
         for(int i=2; i < tree.children.size(); i++) {
             this.params.add(((ParamValue) Values.fromLispTree(tree.child(i))));
         }
     }
-    public ActionValue(String name, List<ParamValue> params) {
+    public ActionValue(NameValue name, List<ParamValue> params) {
         this.name = name;
         this.params = new ArrayList<ParamValue>();
         this.params.addAll(params);
     }
-    public ActionValue(String name) {
+    public ActionValue(NameValue name) {
         this.name = name;
         this.params = new ArrayList<ParamValue>();
     }
@@ -42,31 +43,19 @@ public class ActionValue extends Value {
     public LispTree toLispTree() {
         LispTree tree = LispTree.proto.newList();
         tree.addChild("action");
-        tree.addChild(this.name);
+        tree.addChild(name.toLispTree());
         for(ParamValue param : this.params)
             tree.addChild(param.toLispTree());
         return tree;
     }
 
-    public Map<String, Object> toJSON() {
-        Map<String,Object> json = new HashMap<String, Object>();
-        json.put("name", name);
-        List<Object> args = new ArrayList<Object>();
-        json.put("args",args);
-        for(ParamValue param: params) {
-            args.add(param.toJSON());
-        }
-        return json;
-    }
-
-    // TODO: Change this to Values than Strings
     public Map<String, Object> toJson() {
         Map<String,Object> json = new HashMap<String, Object>();
-        json.put("name", name);
+        json.put("name", name.toJson());
         List<Object> args = new ArrayList<Object>();
         json.put("args",args);
         for(ParamValue param: params) {
-            args.add(param.toJSON());
+            args.add(param.toJson());
         }
         return json;
     }
@@ -75,7 +64,7 @@ public class ActionValue extends Value {
         if(this == o) return true;
         if(o == null || getClass() != o.getClass()) return false;
         ActionValue that = (ActionValue) o;
-        if(name != that.name || !params.equals(that.params)) return false;
+        if(!name.equals(that.name) || !params.equals(that.params)) return false;
         return true;
     }
     @Override public int hashCode() {

@@ -1,18 +1,40 @@
 # JavaExecutor Functions
+(def @stringValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.stringValueCast)
+(def @numValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.numValueCast)
+(def @tempValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.tempValueCast)
+(def @boolValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.boolValueCast)
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
-(def @ifttt edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt)
+
 (def @trigParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam)
 (def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
-(def @paramTop edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramTop)
+
+(def @ifttt edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt)
+(def @jsonOut edu.stanford.nlp.sempre.thingtalk.ThingTalk.jsonOut)
+
+#(def @paramTop edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramTop)
 (def @special edu.stanford.nlp.sempre.thingtalk.ThingTalk.special)
-(def @toSparqlQuestion   edu.stanford.nlp.sempre.thingtalk.SparqlConverter.executeAndWrap)
+#(def @toSparqlQuestion   edu.stanford.nlp.sempre.thingtalk.SparqlConverter.executeAndWrap)
 
 # String -> PHRASE
 (when parse
-    (rule $StringValue ($PHRASE) (IdentityFn) (anchored 1))
     (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
     (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
-    (rule $NumValue ($PHRASE) (NumberFn) (anchored 1))
+
+    # For avoiding polymorphic function excesses
+    (rule $StringParseValue ($PHRASE) (IdentityFn) (anchored 1))
+    (rule $StringValue ($StringParseValue) (lambda string (call @stringValueCast (var string))))
+
+    (rule $NumParseValue ($PHRASE) (NumberFn) (anchored 1))
+    (rule $NumValue ($NumParseValue) (lambda num (call @numValueCast (var num))))
+
+    (rule $TempValue ($NumParseValue c) (lambda num (call @tempValueCast (string "C") (var num))))
+    (rule $TempValue ($NumParseValue f) (lambda num (call @tempValueCast (string "F") (var num))))
+
+    (rule $BoolParseValue (true) (IdentityFn) (anchored 1))
+    (rule $BoolParseValue (false) (IdentityFn) (anchored 1))
+    (rule $BoolValue ($BoolParseValue) (lambda bool (call @boolValueCast (var bool))))
+
+    # FIXME: Integrate this to improve the canonicals
     (rule $PlaceValue ($PHRASE) (FilterNerSpanFn LOCATION) (anchored 1))
     (rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
     (rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
@@ -30,6 +52,9 @@
     (rule $TimeValue (12 noon) (ConstantFn (time 12 0)))
     (rule $TimeValue (6:30am) (ConstantFn (time 6 30)))
 
+    (rule $BoolValue (true) (ConstantFn (boolean "true")))
+    (rule $BoolValue (false) (ConstantFn (boolean "false")))
+
     (rule $NumValue (twenty two) (ConstantFn (number 22)))
     (rule $NumValue (50) (ConstantFn (number 50)))
     (rule $NumValue (hundred) (ConstantFn (number 100)))
@@ -46,7 +71,6 @@
 
 # FIXME: Try to incorporate this somehow
 # Special Parameters -> String | Number | from PERSON | to PERSON | on DATE | at TIME | at PLACE
-#(when (or parse generate)
 #    (rule $Param (on $DateValue) (lambda date (call @paramForm (string "on") (string "Date") (var date))))
 #    (rule $Param (at $TimeValue) (lambda time (call @paramForm (string "at") (string "Time") (var time))))
 #    (rule $Param (at $PlaceValue) (lambda place (call @paramForm (string "at") (string "String") (var place))))
@@ -58,6 +82,8 @@
 # Arg is simple for now
 # Arg -> StringArg | DateArg | TimeArg | BoolArg
 (when (or parse generate)
+
+    # Argument Names
     (rule $StringArgName ($PHRASE) (SimpleLexiconFn (type tt:type.stringarg)))
     (rule $ArrayArgName ($PHRASE) (SimpleLexiconFn (type tt:type.arrayarg)))
     (rule $DateArgName ($PHRASE) (SimpleLexiconFn (type tt:type.datearg)))
@@ -66,25 +92,28 @@
     (rule $NumArgName ($PHRASE) (SimpleLexiconFn (type tt:type.numarg)))
     (rule $TempArgName ($PHRASE) (SimpleLexiconFn (type tt:type.temparg)))
 
-    (rule $StringArg ($StringArgName is $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "is") (var arg) (var value)))))
-    (rule $StringArg ($StringArgName contains $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "contains") (var arg) (var value)))))
-    (rule $ArrayArg ($ArrayArgName has $StringValue) (lambda arg (lambda value (call @paramForm (string "String") (string "has") (var arg) (var value)))))
-    (rule $DateArg ($DateArgName is $DateValue) (lambda arg (lambda value (call @paramForm (string "Date") (string "is") (var arg) (var value)))))
-    (rule $TimeArg ($TimeArgName is $TimeValue) (lambda arg (lambda value (call @paramForm (string "Time") (string "is") (var arg) (var value)))))
-    (rule $BoolArg ($BoolArgName is true) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "true"))))
-    (rule $BoolArg ($BoolArgName is false) (lambda arg (call @paramForm (string "Bool") (string "is") (var arg) (string "false"))))
+    # Operator parsing
+    (rule $Op (is) (ConstantFn (string "is")))
 
-    (rule $NumArg ($NumArgName is $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string "is") (var arg) (var value)))))
-    (rule $NumArg ($NumArgName is greater than $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string ">") (var arg) (var value)))))
-    (rule $NumArg ($NumArgName is lesser than $NumValue) (lambda arg (lambda value (call @paramForm (string "Number") (string "<") (var arg) (var value)))))
+    (rule $StringOp (contains) (ConstantFn (string "contains")))
+    (rule $StringOp (is) (ConstantFn (string "is")))
 
-    (rule $TempArg ($TempArgName is $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string "is") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string "is") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is greater than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string ">") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is greater than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string ">") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is lesser than $NumValue c) (lambda arg (lambda value (call @paramForm (string "C") (string "Measure") (string "<") (var arg) (var value)))))
-    (rule $TempArg ($TempArgName is lesser than $NumValue f) (lambda arg (lambda value (call @paramForm (string "F") (string "Measure") (string "<") (var arg) (var value)))))
+    (rule $NumOp (is) (ConstantFn (string "is")))
+    (rule $NumOp (is greater than) (ConstantFn (string ">")))
+    (rule $NumOp (is lesser than) (ConstantFn (string "<")))
 
+    (rule $ArrayOp (has) (ConstantFn (string "has")))
+
+    # Handling different types
+    (rule $StringArg ($StringArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+    (rule $ArrayArg ($ArrayArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+    (rule $DateArg ($DateArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
+    (rule $TimeArg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+    (rule $BoolArg ($BoolArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+    (rule $NumArg ($NumArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
+    (rule $TempArg ($TempArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
+
+    # Arguments
     (rule $Arg ($StringArg) (IdentityFn))
     (rule $Arg ($ArrayArg) (IdentityFn))
     (rule $Arg ($DateArg) (IdentityFn))
@@ -139,7 +168,7 @@
 
 # Program -> Rule
 (when (or parse generate)
-    (rule $Program ($Rule) (IdentityFn))
+    (rule $Program ($Rule) (lambda rule (call @jsonOut (var rule))))
     # Chaining: Program -> Rule Rule
     # (rule $Program ($Rule $Rule) (MergeFn tt:program))
 )
@@ -155,7 +184,6 @@
 )
 
 (when parse
-    (rule $ROOT ($Arg) (lambda arg (call @paramTop (var arg))))
     (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
 )
 
