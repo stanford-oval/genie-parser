@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-exec java -Dmodules=core,overnight,freebase,thingtalk -Xmx2g \
+exec java -Dmodules=core,overnight,freebase,thingtalk -Xmx8g \
 	-cp libsempre/*:lib/* -ea edu.stanford.nlp.sempre.overnight.GenerationMain \
 	-GenerationMain.varyMaxDepth true \
 	-LanguageAnalyzer corenlp.CoreNLPAnalyzer \
