@@ -6,6 +6,7 @@ import fig.basic.LispTree;
 import fig.basic.LogInfo;
 
 import java.util.Comparator;
+import java.util.Map;
 
 /**
  * Values represent denotations (or partial denotations).
@@ -26,6 +27,7 @@ public abstract class Value {
     return Values.fromLispTree(LispTree.proto.parseFromString(str));
   }
 
+  public abstract Map<String, Object> toJson();
   @Override public abstract boolean equals(Object o);
   @Override public abstract int hashCode();
 

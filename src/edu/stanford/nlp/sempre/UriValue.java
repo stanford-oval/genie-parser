@@ -2,6 +2,9 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UriValue extends Value {
   public final String value;
 
@@ -18,6 +21,11 @@ public class UriValue extends Value {
     tree.addChild("url");
     tree.addChild(value != null ? value : "");
     return tree;
+  }
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    json.put("value", value);
+    return json;
   }
 
   @Override public int hashCode() { return value.hashCode(); }

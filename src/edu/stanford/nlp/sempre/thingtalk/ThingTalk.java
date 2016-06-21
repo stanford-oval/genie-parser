@@ -1,13 +1,8 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.Json;
-import edu.stanford.nlp.sempre.NameValue;
-import edu.stanford.nlp.sempre.StringValue;
-import edu.stanford.nlp.sempre.Value;
+import edu.stanford.nlp.sempre.*;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,84 +11,96 @@ import java.util.Map;
  * @author Rakesh Ramesh
  */
 public final class ThingTalk {
-    public static List<Value> ifttt(List<Value> trigger, List<Value> action) {
-        // TODO: Create rule value
-        // Following is hacky
-        Map<String,Object> json = new HashMap<String,Object>();
-        Map<String,Object> ruleJson = new HashMap<String,Object>();
-        json.put("rule",ruleJson);
-        ruleJson.put("trigger",((TriggerValue) trigger.get(0)).toJSON());
-        ruleJson.put("action",((ActionValue) action.get(0)).toJSON());
 
-        return Collections.singletonList(new StringValue(Json.writeValueAsStringHard(json)));
+    //******************************************************************************************************************
+    // Casting Java built-in types to Sempre Value structures
+    //******************************************************************************************************************
+    public static StringValue stringValueCast(String value) {
+        StringValue stringVal = new StringValue(value);
+        return stringVal;
     }
 
-    public static List<Value> trigParam(Value trigger) {
-        return Collections.singletonList(new TriggerValue(((NameValue) trigger).id));
+    public static NumberValue numValueCast(Integer value) {
+        NumberValue numVal = new NumberValue(value);
+        return numVal;
     }
-    public static List<Value> trigParam(List<Value> trigger, String param) {
-        return trigParam(trigger, Collections.singletonList(new StringValue(param)));
+    public static NumberValue numValueCast(Double value) {
+        NumberValue numVal = new NumberValue(value);
+        return numVal;
     }
-    public static List<Value> trigParam(List<Value> trigger, Value param) {
-        return trigParam(trigger, Collections.singletonList(param));
+
+    public static NumberValue tempValueCast(String unit, Integer value) {
+        NumberValue tempVal = new NumberValue(value, unit);
+        return tempVal;
     }
-    public static List<Value> trigParam(List<Value> trigger, List<Value> params) {
-        TriggerValue oldTrigger = ((TriggerValue) (trigger.get(0)));
+    public static NumberValue tempValueCast(String unit, Double value) {
+        NumberValue tempVal = new NumberValue(value, unit);
+        return tempVal;
+    }
+
+    public static BooleanValue boolValueCast(String value) {
+        BooleanValue boolVal = new BooleanValue(value == "True");
+        return boolVal;
+    }
+
+    //******************************************************************************************************************
+    // Constructing the parameter value structure
+    //******************************************************************************************************************
+    public static ParamValue paramForm(String tt_type, NameValue tt_arg, String operator, Value value) {
+        ParamValue paramVal = new ParamValue(tt_arg, tt_type, operator, value);
+        return paramVal;
+    }
+
+    //******************************************************************************************************************
+    // Constructing the trigger value structure
+    //******************************************************************************************************************
+    public static TriggerValue trigParam(NameValue triggerName) {
+        TriggerValue triggerVal = new TriggerValue(triggerName);
+        return triggerVal;
+    }
+    public static TriggerValue trigParam(TriggerValue oldTrigger, ParamValue param) {
+        // FIXME: Write a copy constructor
         TriggerValue newTrigger = new TriggerValue(oldTrigger.name, oldTrigger.params);
-        for(Value param: params) {
-            newTrigger.add((ParamValue) param);
-        }
-        return Collections.singletonList(newTrigger);
+        newTrigger.add(param);
+        return newTrigger;
     }
 
-    public static List<Value> actParam(Value action) {
-        return Collections.singletonList(new ActionValue(((NameValue) action).id));
+    //******************************************************************************************************************
+    // Constructing the action value structure
+    //******************************************************************************************************************
+    public static ActionValue actParam(NameValue actionName) {
+        ActionValue actionVal = new ActionValue(actionName);
+        return actionVal;
     }
-    public static List<Value> actParam(List<Value> action, String param) {
-        return actParam(action, Collections.singletonList(new StringValue(param)));
-    }
-    public static List<Value> actParam(List<Value> action, Value param) {
-        return actParam(action, Collections.singletonList(param));
-    }
-    public static List<Value> actParam(List<Value> action, List<Value> params) {
-        ActionValue oldAction = ((ActionValue) (action.get(0)));
+    public static ActionValue actParam(ActionValue oldAction, ParamValue param) {
         ActionValue newAction = new ActionValue(oldAction.name, oldAction.params);
-        for(Value param: params) {
-            newAction.add((ParamValue) param);
-        }
-        return Collections.singletonList(newAction);
+        newAction.add(param);
+        return newAction;
     }
 
-    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, String value) {
-        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, value);
-        return Collections.singletonList(param);
-    }
-    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Double value) {
-        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value));
-        return Collections.singletonList(param);
-    }
-    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Integer value) {
-        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value));
-        return Collections.singletonList(param);
-    }
-    public static List<Value> paramForm(String tt_type, String operator, Value tt_arg, Value value) {
-        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, value.toString());
-        return Collections.singletonList(param);
-    }
-    public static List<Value> paramForm(String temp_type, String tt_type, String operator, Value tt_arg, Integer value) {
-        ParamValue param = new ParamValue(((NameValue) tt_arg).id, tt_type, operator, String.valueOf(value), temp_type);
-        return Collections.singletonList(param);
-    }
-
-    public static List<Value> special(Value spl) {
+    //******************************************************************************************************************
+    // Specials handler -- Fragile!! Handle with care
+    //******************************************************************************************************************
+    public static StringValue special(NameValue spl) {
         Map<String,Object> json = new HashMap<String,Object>();
-        json.put("special",((NameValue)spl).id);
-        return Collections.singletonList(new StringValue(Json.writeValueAsStringHard(json)));
+        json.put("special",spl.toJson());
+        return (new StringValue(Json.writeValueAsStringHard(json)));
     }
 
-    public static List<Value> paramTop(List<Value> params) {
-        Map<String,Object> json = new HashMap<String, Object>();
-        json.put("answer",((ParamValue)(params.get(0))).toJSON());
-        return Collections.singletonList(new StringValue(Json.writeValueAsStringHard(json)));
+    //******************************************************************************************************************
+    // Constructing the rule value structure
+    //******************************************************************************************************************
+    public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
+        RuleValue ruleVal = new RuleValue(trigger, action);
+        return ruleVal;
+    }
+
+    //******************************************************************************************************************
+    // Constructing the rule value structure
+    //******************************************************************************************************************
+    public static Value jsonOut(RuleValue rule) {
+        Map<String,Object> json = new HashMap<String,Object>();
+        json.put("rule",rule.toJson());
+        return (new StringValue(Json.writeValueAsStringHard(json)));
     }
 }

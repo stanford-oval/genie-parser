@@ -4,7 +4,9 @@ import fig.basic.LispTree;
 import fig.basic.LogInfo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ListValue extends Value {
   public final List<Value> values;
@@ -28,6 +30,15 @@ public class ListValue extends Value {
   public void log() {
     for (Value value : values)
       LogInfo.logs("%s", value);
+  }
+
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    List<Object> listJson = new ArrayList<Object>();
+    json.put("list", listJson);
+    for(Value value: values)
+      listJson.add(value.toJson());
+    return json;
   }
 
   @Override

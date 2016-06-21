@@ -2,6 +2,8 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
 import fig.basic.LogInfo;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Represents a logical predicate.
@@ -39,6 +41,12 @@ public class NameValue extends Value {
     tree.addChild(id);
     if (description != null) tree.addChild(description);
     return tree;
+  }
+
+  public Map<String, Object> toJson() {
+    Map<String, Object> json = new HashMap<String, Object>();
+    json.put("id", id);
+    return json;
   }
 
   @Override public int hashCode() { return id.hashCode(); }

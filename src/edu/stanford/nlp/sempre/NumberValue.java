@@ -1,7 +1,10 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.LispTree;
 import fig.basic.Fmt;
+import fig.basic.LispTree;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represents a numerical value (optionally comes with a unit).
@@ -37,6 +40,14 @@ public class NumberValue extends Value {
     if (!unit.equals(unitless))
       tree.addChild(unit);
     return tree;
+  }
+
+  public Map<String, Object> toJson() {
+    Map<String, Object> json = new HashMap<String, Object>();
+    json.put("value", value);
+    if(!unit.equals(unitless))
+      json.put("unit", unit);
+    return json;
   }
 
   @Override public int hashCode() { return Double.valueOf(value).hashCode(); }

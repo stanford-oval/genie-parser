@@ -2,6 +2,9 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.LispTree;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * For timeouts, server exceptions, etc.
  *
@@ -44,6 +47,11 @@ public class ErrorValue extends Value {
     tree.addChild("error");
     tree.addChild(type != null ? type : "");
     return tree;
+  }
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    json.put("type", type != null ? type : "");
+    return json;
   }
 
   @Override

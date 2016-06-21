@@ -114,6 +114,21 @@ public class ContextValue extends Value {
     return tree;
   }
 
+  public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<String,Object>();
+    if(user != null)
+      json.put("user", user);
+    if(date != null)
+      json.put("date", date.toJson());
+    if(graph != null)
+      json.put("graph", graph.toLispTree()); // May be buggy!
+    List<Object> exchangeJson = new ArrayList<Object>();
+    json.put("exchange", exchangeJson);
+    for (Exchange e : exchanges)
+      exchangeJson.add(e.toLispTree());
+    return json;
+  }
+
   @Override public int hashCode() {
     int hash = 0x7ed55d16;
     hash = hash * 0xd3a2646c + user.hashCode();

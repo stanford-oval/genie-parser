@@ -1,0 +1,11 @@
+(rule $Device ($TOKEN) (SimpleLexiconFn (type tt:type.device)))
+
+(rule $Help (help) (IdentityFn))
+(rule $Help (help $Device) (IdentityFn))
+
+(rule $Command ($Help) (IdentityFn))
+
+(rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
+
+(rule $ROOT ($Command) (IdentityFn))
+(rule $ROOT ($Special) (IdentityFn))
