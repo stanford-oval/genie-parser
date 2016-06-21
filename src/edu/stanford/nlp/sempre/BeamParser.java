@@ -1,12 +1,24 @@
 package edu.stanford.nlp.sempre;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-import fig.basic.*;
+import fig.basic.IOUtils;
+import fig.basic.IntRef;
+import fig.basic.LogInfo;
+import fig.basic.Option;
+import fig.basic.SetUtils;
+import fig.basic.StopWatchSet;
 import fig.exec.Execution;
-
-import java.util.*;
 
 /**
  * A simple bottom-up chart-based parser that keeps the |beamSize| top
@@ -37,12 +49,14 @@ public class BeamParser extends Parser {
       this.chartFillOut = IOUtils.openOutAppendEasy(Execution.getFile("chartfill"));
   }
 
-  public synchronized void addRule(Rule rule) {
+  @Override
+public synchronized void addRule(Rule rule) {
     if (!rule.isCatUnary())
       trie.add(rule);
   }
 
-  public ParserState newParserState(Params params, Example ex, boolean computeExpectedCounts) {
+  @Override
+public ParserState newParserState(Params params, Example ex, boolean computeExpectedCounts) {
     BeamParserState coarseState = null;
     if (Parser.opts.coarsePrune) {
       LogInfo.begin_track("Parser.coarsePrune");
@@ -80,7 +94,8 @@ class BeamParserState extends ChartParserState {
     this.coarseState = coarseState;
   }
 
-  public void infer() {
+  @Override
+public void infer() {
     if (numTokens == 0)
       return;
 
@@ -139,15 +154,16 @@ class BeamParserState extends ChartParserState {
     try {
       if (mode == Mode.full) {
         StopWatchSet.begin(rule.getSemRepn());
-        DerivationStream results = rule.sem.call(ex,
-            new SemanticFn.CallInfo(rule.lhs, start, end, rule, ImmutableList.copyOf(children)));
-        StopWatchSet.end();
-        while (results.hasNext()) {
-          Derivation newDeriv = results.next();
-          featurizeAndScoreDerivation(newDeriv);
-          addToChart(newDeriv);
-        }
-        return results.estimatedSize();
+				try (DerivationStream results = rule.sem.call(ex,
+						new SemanticFn.CallInfo(rule.lhs, start, end, rule, ImmutableList.copyOf(children)))) {
+					StopWatchSet.end();
+					while (results.hasNext()) {
+						Derivation newDeriv = results.next();
+						featurizeAndScoreDerivation(newDeriv);
+						addToChart(newDeriv);
+					}
+					return results.estimatedSize();
+				}
       } else if (mode == Mode.bool) {
         Derivation deriv = new Derivation.Builder()
             .cat(rule.lhs).start(start).end(end).rule(rule)

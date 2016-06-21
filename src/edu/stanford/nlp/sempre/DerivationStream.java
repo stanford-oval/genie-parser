@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre;
 
+import java.io.Closeable;
 import java.util.Iterator;
 
 /**
@@ -7,7 +8,7 @@ import java.util.Iterator;
  * Use either SingleDerivationStream or MultipleDerivationStream.
  * Created by joberant on 3/14/14.
  */
-public interface DerivationStream extends Iterator<Derivation> {
+public interface DerivationStream extends Iterator<Derivation>, Closeable, AutoCloseable {
   Derivation peek();
   int estimatedSize();
 }

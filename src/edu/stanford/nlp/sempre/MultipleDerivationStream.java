@@ -1,5 +1,7 @@
 package edu.stanford.nlp.sempre;
 
+import java.io.IOException;
+
 // Encapsulates the production of possibly many Derivations.
 // The subclass has to maintain the cursor to keep track of which is coming next.
 public abstract class MultipleDerivationStream implements DerivationStream {
@@ -9,6 +11,11 @@ public abstract class MultipleDerivationStream implements DerivationStream {
   // Override this class: should create a new Derivation.
   // Return null if there are no more.
   public abstract Derivation createDerivation();
+
+	// close does nothing by default
+	@Override
+	public void close() throws IOException {
+	}
 
   @Override public boolean hasNext() {
     if (nextDeriv != null) return true;  // Still one in the queue
