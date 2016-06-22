@@ -1,22 +1,19 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.sql.SQLException;
-
-import edu.stanford.nlp.sempre.Derivation;
-import edu.stanford.nlp.sempre.DerivationStream;
-import edu.stanford.nlp.sempre.Example;
-import edu.stanford.nlp.sempre.FeatureExtractor;
-import edu.stanford.nlp.sempre.FeatureVector;
-import edu.stanford.nlp.sempre.MultipleDerivationStream;
-import edu.stanford.nlp.sempre.SemType;
-import edu.stanford.nlp.sempre.SemanticFn;
+import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
 import fig.basic.Option;
+
+import java.sql.SQLException;
 
 /**
  * Uses the ThingpediaLexicon.
  *
- * Example: (rule $ROOT ($PHRASE) (ThingpediaLexiconFn channel))
+ * Example: (rule $ROOT ($PHRASE) (ThingpediaLexiconFn "channel"))
+ * 			for triggers, actions or queries
+ *
+ * 			(rule $ROOT ($PHRASE) (ThingpediaLexiconFn "app"))
+ * 			for an application
  *
  * @author Giovanni Campagna
  */

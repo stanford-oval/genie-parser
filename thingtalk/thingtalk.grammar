@@ -30,8 +30,8 @@
     (rule $TempValue ($NumParseValue c) (lambda num (call @tempValueCast (string "C") (var num))))
     (rule $TempValue ($NumParseValue f) (lambda num (call @tempValueCast (string "F") (var num))))
 
-    (rule $BoolParseValue (true) (IdentityFn) (anchored 1))
-    (rule $BoolParseValue (false) (IdentityFn) (anchored 1))
+    (rule $BoolParseValue (true) (ConstantFn (string true)) (anchored 1))
+    (rule $BoolParseValue (false) (ConstantFn (string false)) (anchored 1))
     (rule $BoolValue ($BoolParseValue) (lambda bool (call @boolValueCast (var bool))))
 
     # FIXME: Integrate this to improve the canonicals
@@ -111,7 +111,7 @@
     (rule $ArrayArg ($ArrayArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
     (rule $DateArg ($DateArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
     (rule $TimeArg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
-    (rule $BoolArg ($BoolArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+    (rule $BoolArg ($BoolArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Bool") (var arg) (var op) (var value))))))
     (rule $NumArg ($NumArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
     (rule $TempArg ($TempArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
 
@@ -171,6 +171,7 @@
 # Program -> Rule
 (when (or parse generate)
     (rule $Program ($Rule) (lambda rule (call @jsonOut (var rule))))
+    (rule $Program ($Action) (lambda act (call @jsonOut (var act))))
     # Chaining: Program -> Rule Rule
     # (rule $Program ($Rule $Rule) (MergeFn tt:program))
 )

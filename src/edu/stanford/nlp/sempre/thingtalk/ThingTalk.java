@@ -98,9 +98,16 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the rule value structure
     //******************************************************************************************************************
-    public static Value jsonOut(RuleValue rule) {
+    public static Value jsonOut(Value val) {
         Map<String,Object> json = new HashMap<String,Object>();
-        json.put("rule",rule.toJson());
+        String label = "";
+        if(val instanceof RuleValue)
+            label = "rule";
+        else if(val instanceof ActionValue)
+            label = "action";
+        else
+            label = "error"; // FIXME: Error flow
+        json.put(label, val.toJson());
         return (new StringValue(Json.writeValueAsStringHard(json)));
     }
 }
