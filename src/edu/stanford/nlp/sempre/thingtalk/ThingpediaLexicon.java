@@ -1,12 +1,14 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.*;
-import fig.basic.Option;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.*;
 import java.util.Iterator;
+
+import org.apache.commons.dbcp2.BasicDataSource;
+
+import edu.stanford.nlp.sempre.*;
+import fig.basic.Option;
 
 public class ThingpediaLexicon {
 	public static class Options {
@@ -90,7 +92,14 @@ public class ThingpediaLexicon {
 
 	private static final ThingpediaLexicon instance = new ThingpediaLexicon();
 
+	private final BasicDataSource dataSource;
+
 	private ThingpediaLexicon() {
+		dataSource = new BasicDataSource();
+		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
+		dataSource.setUrl(opts.dbUrl);
+		dataSource.setUsername(opts.dbUser);
+		dataSource.setPassword(opts.dbPw);
 	}
 
 	public static ThingpediaLexicon getSingleton() {
@@ -108,8 +117,8 @@ public class ThingpediaLexicon {
 	public static abstract class EntryStream implements Iterator<Entry>, Closeable, AutoCloseable
 	{
 		protected final ResultSet rs;
-		private final Connection con;
 		private final Statement stmt;
+		private final Connection con;
 		private Entry nextEntry;
 
 		public EntryStream(Connection con, Statement stmt, ResultSet rs) {
@@ -189,7 +198,7 @@ public class ThingpediaLexicon {
 			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
 		}
 
-		Connection con = DriverManager.getConnection(opts.dbUrl, opts.dbUser, opts.dbPw);
+		Connection con = dataSource.getConnection();
 		PreparedStatement stmt = con.prepareStatement(query);
 		stmt.setString(1, phrase);
 		
@@ -206,7 +215,7 @@ public class ThingpediaLexicon {
 					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and match canonical against (? in natural language mode)";
 		}
 
-		Connection con = DriverManager.getConnection(opts.dbUrl, opts.dbUser, opts.dbPw);
+		Connection con = dataSource.getConnection();
 		PreparedStatement stmt = con.prepareStatement(query);
 		stmt.setString(1, phrase);
 
