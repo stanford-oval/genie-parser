@@ -131,7 +131,7 @@
 #   ...
 # ActionName -> ... (see lexicon)
 (when (or parse generate)
-    (rule $ActionName ($PHRASE) (SimpleLexiconFn (type tt:type.action)))
+    (rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn channel))
 
     (rule $Action0 ($ActionName) (lambda act (call @actParam (var act))))
     (rule $Action1 ($Action0 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
@@ -150,7 +150,7 @@
 #   ...
 # TriggerName -> ... (see lexicon)
 (when (or parse generate)
-    (rule $TriggerName ($PHRASE) (SimpleLexiconFn (type tt:type.trigger)))
+    (rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn channel))
 
     (rule $Trigger0 ($TriggerName) (lambda trig (call @trigParam (var trig))))
     (rule $Trigger1 ($Trigger0 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))

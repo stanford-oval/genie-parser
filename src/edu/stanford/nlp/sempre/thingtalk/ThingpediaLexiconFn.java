@@ -1,10 +1,18 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.*;
+import java.io.IOException;
+import java.sql.SQLException;
+
+import edu.stanford.nlp.sempre.Derivation;
+import edu.stanford.nlp.sempre.DerivationStream;
+import edu.stanford.nlp.sempre.Example;
+import edu.stanford.nlp.sempre.FeatureExtractor;
+import edu.stanford.nlp.sempre.FeatureVector;
+import edu.stanford.nlp.sempre.MultipleDerivationStream;
+import edu.stanford.nlp.sempre.SemType;
+import edu.stanford.nlp.sempre.SemanticFn;
 import fig.basic.LispTree;
 import fig.basic.Option;
-
-import java.sql.SQLException;
 
 /**
  * Uses the ThingpediaLexicon.
@@ -86,6 +94,10 @@ public class ThingpediaLexiconFn extends SemanticFn {
 			this.phrase = phrase;
 		}
 
+		@Override
+		public void close() throws IOException {
+			entries.close();
+		}
 
 		@Override
 		public Derivation createDerivation() {
@@ -96,7 +108,8 @@ public class ThingpediaLexiconFn extends SemanticFn {
 			FeatureVector features = new FeatureVector();
 			entry.addFeatures(features);
 			Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())
-					.localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).createDerivation();
+					.localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).type(SemType.entityType)
+					.createDerivation();
 
 			// Doesn't generalize, but add it for now, otherwise not separable
 			if (FeatureExtractor.containsDomain("lexAlign"))

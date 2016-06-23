@@ -105,6 +105,14 @@ public class ThingpediaLexicon {
 		return instance;
 	}
 
+	static {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public static abstract class EntryStream implements Iterator<Entry>, Closeable, AutoCloseable
 	{
 		protected final ResultSet rs;
@@ -153,7 +161,9 @@ public class ThingpediaLexicon {
 		@Override
 		public Entry next() {
 			checkNext();
-			return nextEntry;
+			Entry next = nextEntry;
+			nextEntry = null;
+			return next;
 		}
 	}
 
