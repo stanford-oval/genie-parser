@@ -1,11 +1,120 @@
+# JavaExecutor Functions
+(def @stringValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.stringValueCast)
+(def @numValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.numValueCast)
+(def @tempValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.tempValueCast)
+(def @boolValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.boolValueCast)
+(def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
+
+(def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
+
+(def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
+
+(def @jsonOut edu.stanford.nlp.sempre.thingtalk.ThingTalk.jsonOut)
+
+(def @special edu.stanford.nlp.sempre.thingtalk.ThingTalk.special)
+
+# Value Parsing
+(rule $DateValue ($PHRASE) (DateFn) (anchored 1))
+(rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
+
+(rule $StringParseValue ($PHRASE) (IdentityFn) (anchored 1))
+(rule $StringValue ($StringParseValue) (lambda string (call @stringValueCast (var string))))
+
+(rule $NumParseValue ($PHRASE) (NumberFn) (anchored 1))
+(rule $NumValue ($NumParseValue) (lambda num (call @numValueCast (var num))))
+
+(rule $TempValue ($NumParseValue c) (lambda num (call @tempValueCast (string "C") (var num))))
+(rule $TempValue ($NumParseValue f) (lambda num (call @tempValueCast (string "F") (var num))))
+
+(rule $BoolParseValue (true) (IdentityFn) (anchored 1))
+(rule $BoolParseValue (false) (IdentityFn) (anchored 1))
+(rule $BoolValue ($BoolParseValue) (lambda bool (call @boolValueCast (var bool))))
+
+# FIXME: Integrate this to improve the canonicals
+#(rule $PlaceValue ($PHRASE) (FilterNerSpanFn LOCATION) (anchored 1))
+#(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
+#(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
+
+# Argument Names
+(rule $StringArgName ($PHRASE) (SimpleLexiconFn (type tt:type.stringarg)))
+(rule $ArrayArgName ($PHRASE) (SimpleLexiconFn (type tt:type.arrayarg)))
+(rule $DateArgName ($PHRASE) (SimpleLexiconFn (type tt:type.datearg)))
+(rule $TimeArgName ($PHRASE) (SimpleLexiconFn (type tt:type.timearg)))
+(rule $BoolArgName ($PHRASE) (SimpleLexiconFn (type tt:type.boolarg)))
+(rule $NumArgName ($PHRASE) (SimpleLexiconFn (type tt:type.numarg)))
+(rule $TempArgName ($PHRASE) (SimpleLexiconFn (type tt:type.temparg)))
+
+# Operator parsing
+(rule $Op (is) (ConstantFn (string "is")))
+
+(rule $StringOp (contains) (ConstantFn (string "contains")))
+(rule $StringOp (is) (ConstantFn (string "is")))
+
+(rule $NumOp (is) (ConstantFn (string "is")))
+(rule $NumOp (is greater than) (ConstantFn (string ">")))
+(rule $NumOp (is lesser than) (ConstantFn (string "<")))
+
+(rule $ArrayOp (has) (ConstantFn (string "has")))
+
+# Handling different types
+(rule $StringArg ($StringArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+(rule $ArrayArg ($ArrayArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+(rule $DateArg ($DateArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
+(rule $TimeArg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+(rule $BoolArg ($BoolArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+(rule $NumArg ($NumArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
+(rule $TempArg ($TempArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
+
+# Arguments
+(rule $Arg ($StringArg) (IdentityFn))
+(rule $Arg ($ArrayArg) (IdentityFn))
+(rule $Arg ($DateArg) (IdentityFn))
+(rule $Arg ($TimeArg) (IdentityFn))
+(rule $Arg ($BoolArg) (IdentityFn))
+(rule $Arg ($NumArg) (IdentityFn))
+(rule $Arg ($TempArg) (IdentityFn))
+
+# Action Handling
+#(rule $ActionName ($PHRASE) (SimpleLexiconFn (type tt:type.action)))
+(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn channel))
+
+(rule $Action0 ($ActionName) (lambda act (call @actParam (var act))))
+(rule $Action1 ($Action0 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
+(rule $Action2 ($Action1 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
+(rule $Action3 ($Action2 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
+
+(rule $Action ($Action0) (IdentityFn))
+(rule $Action ($Action1) (IdentityFn))
+(rule $Action ($Action2) (IdentityFn))
+(rule $Action ($Action3) (IdentityFn))
+
 (rule $Device ($TOKEN) (SimpleLexiconFn (type tt:type.device)))
 
-(rule $Help (help) (IdentityFn))
+(rule $Help (help) (ConstantFn (string generic)) (anchored 1))
 (rule $Help (help $Device) (IdentityFn))
 
-(rule $Command ($Help) (IdentityFn))
+(rule $Discovery (discover) (ConstantFn (string generic)))
+(rule $Discovery (discover $Device) (IdentityFn))
+
+(rule $Configuration (configure) (ConstantFn (string generic)))
+(rule $Configuration (configure $Device) (IdentityFn))
+
+(rule $Listing (devices) (ConstantFn (string device)))
+(rule $Listing (queries) (ConstantFn (string query)))
+(rule $Listing (commands) (ConstantFn (string command)))
+
+(rule $Information (list) (ConstantFn (string generic)))
+(rule $Information (list $Listing) (IdentityFn))
+
+# Command handling
+(rule $Command ($Help) (lambda value (call @cmdForm (string "help") (var value))))
+(rule $Command ($Discovery) (lambda value (call @cmdForm (string "discover") (var value))))
+(rule $Command ($Action) (lambda value (call @cmdForm (string "action") (var value))))
+(rule $Command ($Information) (lambda value (call @cmdForm (string "list") (var value))))
+(rule $Command ($Configuration) (lambda value (call @cmdForm (string "configure") (var value))))
+#(rule $Command ($Query) (IdentityFn))
 
 (rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
 
-(rule $ROOT ($Command) (IdentityFn))
-(rule $ROOT ($Special) (IdentityFn))
+(rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($Special) (lambda spl (call @special (var spl))))

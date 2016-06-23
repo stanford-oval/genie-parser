@@ -1,10 +1,12 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.LispTree;
-// FIXME: Remove this dependency
+import edu.stanford.nlp.sempre.thingtalk.ActionValue;
+import edu.stanford.nlp.sempre.thingtalk.CommandValue;
 import edu.stanford.nlp.sempre.thingtalk.ParamValue;
 import edu.stanford.nlp.sempre.thingtalk.TriggerValue;
-import edu.stanford.nlp.sempre.thingtalk.ActionValue;
+import fig.basic.LispTree;
+
+// FIXME: Remove this dependency
 
 /**
  * Utilities for Value.
@@ -36,6 +38,7 @@ public final class Values {
     if ("param".equals(type)) return new ParamValue(tree);
     if ("trigger".equals(type)) return new TriggerValue(tree);
     if ("action".equals(type)) return new ActionValue(tree);
+    if ("command".equals(type)) return new CommandValue(tree);
     return null;
   }
 

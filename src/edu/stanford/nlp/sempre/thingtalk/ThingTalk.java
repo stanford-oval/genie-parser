@@ -79,6 +79,18 @@ public final class ThingTalk {
     }
 
     //******************************************************************************************************************
+    // Constructing the command value structure
+    //******************************************************************************************************************
+    public static CommandValue cmdForm(String type, Value val) {
+        CommandValue cmdVal = new CommandValue(type, val);
+        return cmdVal;
+    }
+    public static CommandValue cmdForm(String type, String val) {
+        StringValue strVal = new StringValue(val);
+        CommandValue cmdVal = new CommandValue(type, strVal);
+        return cmdVal;
+    }
+    //******************************************************************************************************************
     // Specials handler -- Fragile!! Handle with care
     //******************************************************************************************************************
     public static StringValue special(NameValue spl) {
@@ -105,6 +117,8 @@ public final class ThingTalk {
             label = "rule";
         else if(val instanceof ActionValue)
             label = "action";
+        else if(val instanceof CommandValue)
+            label = "command";
         else
             label = "error"; // FIXME: Error flow
         json.put(label, val.toJson());

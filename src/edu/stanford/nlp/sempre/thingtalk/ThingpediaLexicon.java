@@ -1,20 +1,12 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import edu.stanford.nlp.sempre.*;
+import fig.basic.Option;
+
 import java.io.Closeable;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Iterator;
-
-import edu.stanford.nlp.sempre.FeatureVector;
-import edu.stanford.nlp.sempre.Formula;
-import edu.stanford.nlp.sempre.NameValue;
-import edu.stanford.nlp.sempre.ValueFormula;
-import fig.basic.Option;
 
 public class ThingpediaLexicon {
 	public static class Options {
@@ -190,7 +182,12 @@ public class ThingpediaLexicon {
 	}
 
 	public EntryStream lookupApp(String phrase) throws SQLException {
-		final String query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
+		String query = "";
+		if(Builder.opts.parser.equals("BeamParser")) {
+			query = "select canonical,owner,appId from app where canonical = ?";
+		} else {
+			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
+		}
 
 		Connection con = DriverManager.getConnection(opts.dbUrl, opts.dbUser, opts.dbPw);
 		PreparedStatement stmt = con.prepareStatement(query);
@@ -200,8 +197,14 @@ public class ThingpediaLexicon {
 	}
 
 	public EntryStream lookupChannel(String phrase) throws SQLException {
-		final String query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
-				+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and match canonical against (? in natural language mode)";
+		String query = "";
+		if(Builder.opts.parser.equals("BeamParser")) {
+			query ="select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and canonical = ?";
+		} else {
+			query ="select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and match canonical against (? in natural language mode)";
+		}
 
 		Connection con = DriverManager.getConnection(opts.dbUrl, opts.dbUser, opts.dbPw);
 		PreparedStatement stmt = con.prepareStatement(query);
