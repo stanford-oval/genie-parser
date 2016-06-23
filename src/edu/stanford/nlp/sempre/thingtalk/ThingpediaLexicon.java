@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 
+import edu.stanford.nlp.sempre.FeatureVector;
 import edu.stanford.nlp.sempre.Formula;
 import edu.stanford.nlp.sempre.NameValue;
 import edu.stanford.nlp.sempre.ValueFormula;
@@ -29,6 +30,11 @@ public class ThingpediaLexicon {
 
 	public static abstract class Entry {
 		public abstract Formula toFormula();
+
+		public abstract String getRawPhrase();
+
+		public void addFeatures(FeatureVector vec) {
+		}
 	}
 
 	private static class AppEntry extends Entry {
@@ -40,6 +46,11 @@ public class ThingpediaLexicon {
 			this.rawPhrase = rawPhrase;
 			this.userId = userId;
 			this.appId = appId;
+		}
+
+		@Override
+		public String getRawPhrase() {
+			return rawPhrase;
 		}
 
 		@Override
@@ -65,13 +76,23 @@ public class ThingpediaLexicon {
 		}
 
 		@Override
+		public String getRawPhrase() {
+			return rawPhrase + " on " + kind;
+		}
+
+		@Override
 		public Formula toFormula() {
 			return new ValueFormula<>(new NameValue("tt:" + kind + "." + name));
 		}
 
 		@Override
 		public String toString() {
-			return "[ " + rawPhrase + " => " + toFormula() + " ]";
+			return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
+		}
+
+		@Override
+		public void addFeatures(FeatureVector vec) {
+			vec.add("kinds", kind);
 		}
 	}
 

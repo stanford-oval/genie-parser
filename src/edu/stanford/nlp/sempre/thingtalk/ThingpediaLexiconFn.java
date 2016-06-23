@@ -94,8 +94,9 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
 			ThingpediaLexicon.Entry entry = entries.next();
 			FeatureVector features = new FeatureVector();
+			entry.addFeatures(features);
 			Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())
-					.localFeatureVector(features).createDerivation();
+					.localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).createDerivation();
 
 			// Doesn't generalize, but add it for now, otherwise not separable
 			if (FeatureExtractor.containsDomain("lexAlign"))
