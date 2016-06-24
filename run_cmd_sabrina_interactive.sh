@@ -29,6 +29,5 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-PPDBModel.ppdbModelPath' 'thingtalk/thingtalk-ppdb.txt' \
               '-ThingpediaLexicon.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
               '-ThingpediaLexicon.dbUser' 'sempre' \
-              '-ThingpediaLexicon.dbPw' 'BicsouWiWihuAkDyhy' \
               '-Main.interactive' 'true' \
               "$@"
