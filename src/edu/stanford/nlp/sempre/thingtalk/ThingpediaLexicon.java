@@ -90,7 +90,7 @@ public class ThingpediaLexicon {
 		}
 	}
 
-	private static final ThingpediaLexicon instance = new ThingpediaLexicon();
+	private static ThingpediaLexicon instance;
 
 	private final BasicDataSource dataSource;
 
@@ -103,6 +103,9 @@ public class ThingpediaLexicon {
 	}
 
 	public static ThingpediaLexicon getSingleton() {
+		if (instance == null)
+			instance = new ThingpediaLexicon();
+
 		return instance;
 	}
 
