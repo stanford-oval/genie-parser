@@ -109,7 +109,6 @@
 # Command handling
 (rule $Command ($Help) (lambda value (call @cmdForm (string "help") (var value))))
 (rule $Command ($Discovery) (lambda value (call @cmdForm (string "discover") (var value))))
-(rule $Command ($Action) (lambda value (call @cmdForm (string "action") (var value))))
 (rule $Command ($Information) (lambda value (call @cmdForm (string "list") (var value))))
 (rule $Command ($Configuration) (lambda value (call @cmdForm (string "configure") (var value))))
 #(rule $Command ($Query) (IdentityFn))
@@ -117,4 +116,5 @@
 (rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
