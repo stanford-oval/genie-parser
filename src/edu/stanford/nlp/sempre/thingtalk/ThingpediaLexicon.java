@@ -8,6 +8,7 @@ import java.util.Iterator;
 import org.apache.commons.dbcp2.BasicDataSource;
 
 import edu.stanford.nlp.sempre.*;
+import fig.basic.LogInfo;
 import fig.basic.Option;
 
 public class ThingpediaLexicon {
@@ -18,6 +19,8 @@ public class ThingpediaLexicon {
 		public String dbUser = "thingengine";
 		@Option
 		public String dbPw = "thingengine";
+		@Option
+		public int verbose = 0;
 	}
 
 	public static Options opts = new Options();
@@ -222,6 +225,9 @@ public class ThingpediaLexicon {
 	}
 
 	public EntryStream lookupApp(String phrase) throws SQLException {
+		if (opts.verbose >= 2)
+			LogInfo.logs("ThingpediaLexicon.lookupApp %s", phrase);
+
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
 			query = "select canonical,owner,appId from app where canonical = ?";
@@ -237,6 +243,9 @@ public class ThingpediaLexicon {
 	}
 
 	public EntryStream lookupKind(String phrase) throws SQLException {
+		if (opts.verbose >= 2)
+			LogInfo.logs("ThingpediaLexicon.lookupKind %s", phrase);
+
 		String query = "select kind from device_schema where kind = ?";
 
 		Connection con = dataSource.getConnection();
@@ -247,6 +256,9 @@ public class ThingpediaLexicon {
 	}
 
 	public EntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
+		if (opts.verbose >= 2)
+			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
+
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
 			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
