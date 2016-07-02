@@ -23,7 +23,7 @@ public class ThingpediaLexicon {
 	public static Options opts = new Options();
 
 	public enum Mode {
-		APP, TRIGGER, ACTION, QUERY;
+		APP, KIND, TRIGGER, ACTION, QUERY;
 	};
 
 	public static abstract class Entry {
@@ -33,12 +33,17 @@ public class ThingpediaLexicon {
 
 		public void addFeatures(FeatureVector vec) {
 		}
+
+		@Override
+		public String toString() {
+			return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
+		}
 	}
 
 	private static class AppEntry extends Entry {
-		public final String rawPhrase;
-		public final long userId;
-		public final String appId;
+		private final String rawPhrase;
+		private final long userId;
+		private final String appId;
 
 		public AppEntry(String rawPhrase, long userId, String appId) {
 			this.rawPhrase = rawPhrase;
@@ -55,17 +60,12 @@ public class ThingpediaLexicon {
 		public Formula toFormula() {
 			return new ValueFormula<>(new NameValue("tt:app." + userId + "." + appId));
 		}
-
-		@Override
-		public String toString() {
-			return "[ " + rawPhrase + " => " + toFormula() + " ]";
-		}
 	}
 
 	private static class ChannelEntry extends Entry {
-		public final String rawPhrase;
-		public final String kind;
-		public final String name;
+		private final String rawPhrase;
+		private final String kind;
+		private final String name;
 
 		public ChannelEntry(String rawPhrase, String kind, String name) {
 			this.rawPhrase = rawPhrase;
@@ -84,13 +84,26 @@ public class ThingpediaLexicon {
 		}
 
 		@Override
-		public String toString() {
-			return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
+		public void addFeatures(FeatureVector vec) {
+			vec.add("kinds", kind);
+		}
+	}
+
+	private static class KindEntry extends Entry {
+		private final String kind;
+
+		public KindEntry(String kind) {
+			this.kind = kind;
 		}
 
 		@Override
-		public void addFeatures(FeatureVector vec) {
-			vec.add("kinds", kind);
+		public String getRawPhrase() {
+			return kind;
+		}
+
+		@Override
+		public Formula toFormula() {
+			return new ValueFormula<>(new NameValue("tt:device." + kind));
 		}
 	}
 
@@ -197,9 +210,20 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	private static class KindEntryStream extends EntryStream {
+		public KindEntryStream(Connection con, Statement stmt, ResultSet rs) {
+			super(con, stmt, rs);
+		}
+
+		@Override
+		protected KindEntry createEntry() throws SQLException {
+			return new KindEntry(rs.getString(1));
+		}
+	}
+
 	public EntryStream lookupApp(String phrase) throws SQLException {
-		String query = "";
-		if(Builder.opts.parser.equals("BeamParser")) {
+		String query;
+		if (Builder.opts.parser.equals("BeamParser")) {
 			query = "select canonical,owner,appId from app where canonical = ?";
 		} else {
 			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
@@ -210,6 +234,16 @@ public class ThingpediaLexicon {
 		stmt.setString(1, phrase);
 		
 		return new AppEntryStream(con, stmt, stmt.executeQuery());
+	}
+
+	public EntryStream lookupKind(String phrase) throws SQLException {
+		String query = "select kind from device_schema where kind = ?";
+
+		Connection con = dataSource.getConnection();
+		PreparedStatement stmt = con.prepareStatement(query);
+		stmt.setString(1, phrase);
+
+		return new KindEntryStream(con, stmt, stmt.executeQuery());
 	}
 
 	public EntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
