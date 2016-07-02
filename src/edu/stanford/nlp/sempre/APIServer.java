@@ -248,10 +248,7 @@ public class APIServer implements Runnable {
 	public void run() {
 		builder.build();
 
-		Dataset dataset = new Dataset();
-		dataset.read();
-
-		Learner learner = new Learner(builder.parser, builder.params, dataset);
+		Learner learner = new Learner(builder.parser, builder.params, builder.dataset);
 		learner.learn();
 
 		try {

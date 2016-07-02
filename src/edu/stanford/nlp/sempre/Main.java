@@ -22,10 +22,7 @@ public class Main implements Runnable {
 		Builder builder = new Builder();
 		builder.build();
 
-		Dataset dataset = new Dataset();
-		dataset.read();
-
-		Learner learner = new Learner(builder.parser, builder.params, dataset);
+		Learner learner = new Learner(builder.parser, builder.params, builder.dataset);
 		learner.learn();
 
 		if (server) {
