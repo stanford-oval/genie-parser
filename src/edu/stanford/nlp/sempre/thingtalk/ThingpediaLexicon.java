@@ -3,7 +3,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.sql.*;
 import java.util.*;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import javax.sql.DataSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,12 +16,6 @@ public class ThingpediaLexicon {
 	public static final long CACHE_AGE = 1000 * 3600 * 1; // cache lexicon lookups for 1 hour
 
 	public static class Options {
-		@Option
-		public String dbUrl = "jdbc:mysql://localhost/thingengine";
-		@Option
-		public String dbUser = "thingengine";
-		@Option
-		public String dbPw = "thingengine";
 		@Option
 		public int verbose = 0;
 	}
@@ -144,10 +138,6 @@ public class ThingpediaLexicon {
 		}
 	}
 
-	private static ThingpediaLexicon instance;
-
-	private final BasicDataSource dataSource;
-
 	private static class LexiconKey {
 		private final Mode mode;
 		private final String query;
@@ -186,30 +176,12 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	private final DataSource dataSource;
 	private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(
 			1024);
 
-	private ThingpediaLexicon() {
-		dataSource = new BasicDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl(opts.dbUrl);
-		dataSource.setUsername(opts.dbUser);
-		dataSource.setPassword(opts.dbPw);
-	}
-
-	public static ThingpediaLexicon getSingleton() {
-		if (instance == null)
-			instance = new ThingpediaLexicon();
-
-		return instance;
-	}
-
-	static {
-		try {
-			Class.forName("com.mysql.jdbc.Driver");
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+	public ThingpediaLexicon() {
+		dataSource = ThingpediaDatabase.getSingleton();
 	}
 
 	public Iterator<Entry> lookupApp(String phrase) throws SQLException {

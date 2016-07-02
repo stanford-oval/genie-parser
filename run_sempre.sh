@@ -25,8 +25,8 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-Learner.maxTrainIters' '1' \
               '-SimpleLexicon.inPaths' 'sabrina/sabrina.lexicon' \
               '-DataSet.inPaths' 'train:sabrina/sabrina.examples' \
-              '-ThingpediaLexicon.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
-              '-ThingpediaLexicon.dbUser' 'sempre' \
+              '-ThingpediaDatabase.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
+              '-ThingpediaDatabase.dbUser' 'sempre' \
               '-BeamParser.executeAllDerivations' 'true' \
               '-FloatingParser.executeAllDerivations' 'true' \
               "$@"

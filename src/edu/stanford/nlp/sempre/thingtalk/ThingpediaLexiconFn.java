@@ -32,7 +32,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	private ThingpediaLexicon.Mode mode;
 
 	public ThingpediaLexiconFn() {
-		lexicon = ThingpediaLexicon.getSingleton();
+		lexicon = new ThingpediaLexicon();
 	}
 
 	@Override
