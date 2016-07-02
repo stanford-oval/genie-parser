@@ -76,7 +76,7 @@
 
 # Action Handling
 #(rule $ActionName ($PHRASE) (SimpleLexiconFn (type tt:type.action)))
-(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn channel))
+(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn action))
 
 (rule $Action0 ($ActionName) (lambda act (call @actParam (var act))))
 (rule $Action1 ($Action0 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))

@@ -22,6 +22,10 @@ public class ThingpediaLexicon {
 
 	public static Options opts = new Options();
 
+	public enum Mode {
+		APP, TRIGGER, ACTION, QUERY;
+	};
+
 	public static abstract class Entry {
 		public abstract Formula toFormula();
 
@@ -208,19 +212,21 @@ public class ThingpediaLexicon {
 		return new AppEntryStream(con, stmt, stmt.executeQuery());
 	}
 
-	public EntryStream lookupChannel(String phrase) throws SQLException {
-		String query = "";
-		if(Builder.opts.parser.equals("BeamParser")) {
-			query ="select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
-					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and canonical = ?";
+	public EntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
+		String query;
+		if (Builder.opts.parser.equals("BeamParser")) {
+			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and canonical = ?";
 		} else {
-			query ="select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
-					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and match canonical against (? in natural language mode)";
+			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and "
+					+ "match canonical against (? in natural language mode)";
 		}
 
 		Connection con = dataSource.getConnection();
 		PreparedStatement stmt = con.prepareStatement(query);
-		stmt.setString(1, phrase);
+		stmt.setString(1, channel_type.name().toLowerCase());
+		stmt.setString(2, phrase);
 
 		return new ChannelEntryStream(con, stmt, stmt.executeQuery());
 	}

@@ -3,14 +3,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import edu.stanford.nlp.sempre.Derivation;
-import edu.stanford.nlp.sempre.DerivationStream;
-import edu.stanford.nlp.sempre.Example;
-import edu.stanford.nlp.sempre.FeatureExtractor;
-import edu.stanford.nlp.sempre.FeatureVector;
-import edu.stanford.nlp.sempre.MultipleDerivationStream;
-import edu.stanford.nlp.sempre.SemType;
-import edu.stanford.nlp.sempre.SemanticFn;
+import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
 import fig.basic.Option;
 
@@ -35,14 +28,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
 	private final ThingpediaLexicon lexicon;
 
-	private enum Mode {
-		APP, CHANNEL;
-	}
-
-	private Mode mode;
-
-	// Only return entries whose type matches this
-	private SemType restrictType = SemType.topType;
+	private ThingpediaLexicon.Mode mode;
 
 	public ThingpediaLexiconFn() {
 		lexicon = ThingpediaLexicon.getSingleton();
@@ -54,12 +40,11 @@ public class ThingpediaLexiconFn extends SemanticFn {
 		String value = tree.child(1).value;
 
 		// mode
-		if (value.equals("app"))
-			this.mode = Mode.APP;
-		else if (value.equals("channel"))
-			this.mode = Mode.CHANNEL;
-		else
-			throw new RuntimeException("Invalid mode for ThingpediaLexiconFn");
+		try {
+			this.mode = ThingpediaLexicon.Mode.valueOf(value.toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new RuntimeException("Invalid mode for ThingpediaLexiconFn", e);
+		}
 	}
 
 	@Override
@@ -67,12 +52,10 @@ public class ThingpediaLexiconFn extends SemanticFn {
 		String phrase = c.childStringValue(0);
 		ThingpediaLexicon.EntryStream entries;
 		try {
-			if (mode == Mode.APP)
+			if (mode == ThingpediaLexicon.Mode.APP)
 				entries = lexicon.lookupApp(phrase);
-			else if (mode == Mode.CHANNEL)
-				entries = lexicon.lookupChannel(phrase);
 			else
-				throw new RuntimeException();
+				entries = lexicon.lookupChannel(phrase, mode);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
