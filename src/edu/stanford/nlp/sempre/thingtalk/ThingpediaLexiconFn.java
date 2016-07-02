@@ -50,7 +50,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	@Override
 	public DerivationStream call(Example ex, Callable c) {
 		String phrase = c.childStringValue(0);
-		ThingpediaLexicon.EntryStream entries;
+		ThingpediaLexicon.AbstractEntryStream entries;
 		try {
 			if (mode == ThingpediaLexicon.Mode.APP)
 				entries = lexicon.lookupApp(phrase);
@@ -68,10 +68,10 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	public class ThingpediaDerivationStream extends MultipleDerivationStream {
 		private Example ex;
 		private Callable callable;
-		private ThingpediaLexicon.EntryStream entries;
+		private ThingpediaLexicon.AbstractEntryStream entries;
 		private String phrase;
 
-		public ThingpediaDerivationStream(Example ex, Callable c, ThingpediaLexicon.EntryStream entries,
+		public ThingpediaDerivationStream(Example ex, Callable c, ThingpediaLexicon.AbstractEntryStream entries,
 				String phrase) {
 			this.ex = ex;
 			this.callable = c;

@@ -137,7 +137,10 @@ public class ThingpediaLexicon {
 		}
 	}
 
-	public static abstract class EntryStream implements Iterator<Entry>, Closeable, AutoCloseable
+	public interface AbstractEntryStream extends Iterator<Entry>, Closeable, AutoCloseable {
+	}
+
+	public static abstract class EntryStream implements AbstractEntryStream
 	{
 		protected final ResultSet rs;
 		private final Statement stmt;
@@ -224,6 +227,25 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	private static class EmptyEntryStream implements AbstractEntryStream {
+		public EmptyEntryStream() {
+		}
+
+		@Override
+		public boolean hasNext() {
+			return false;
+		}
+
+		@Override
+		public Entry next() {
+			return null;
+		}
+
+		@Override
+		public void close() {
+		}
+	}
+
 	public EntryStream lookupApp(String phrase) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupApp %s", phrase);
@@ -255,9 +277,14 @@ public class ThingpediaLexicon {
 		return new KindEntryStream(con, stmt, stmt.executeQuery());
 	}
 
-	public EntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
+	public AbstractEntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
+		String[] tokens = phrase.split(" ");
+		if (tokens.length < 3 || tokens.length > 7)
+			return new EmptyEntryStream();
+		if (!"on".equals(tokens[tokens.length - 2]))
+			return new EmptyEntryStream();
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
