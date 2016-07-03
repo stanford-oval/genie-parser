@@ -25,22 +25,24 @@ public class ThingpediaDataset extends AbstractDataset {
 		List<Example> examples = getOrCreateGroup("train");
 		
 		try (Connection con = dataSource.getConnection()) {
-			Statement stmt = con.createStatement();
-			ResultSet set = stmt.executeQuery(QUERY);
+			try (Statement stmt = con.createStatement()) {
+				try (ResultSet set = stmt.executeQuery(QUERY)) {
 			
-			while (set.next()) {
-				int id = set.getInt(1);
-				String utterance = set.getString(2);
-				String targetJson = set.getString(3);
-				Value targetValue = new StringValue(targetJson);
+					while (set.next() && examples.size() < maxExamples) {
+						int id = set.getInt(1);
+						String utterance = set.getString(2);
+						String targetJson = set.getString(3);
+						Value targetValue = new StringValue(targetJson);
 				
-				Example ex = new Example.Builder()
-						.setId(Integer.toString(id))
-						.setUtterance(utterance)
-						.setTargetValue(targetValue)
-						.createExample();
+						Example ex = new Example.Builder()
+								.setId(Integer.toString(id))
+								.setUtterance(utterance)
+								.setTargetValue(targetValue)
+								.createExample();
 				
-				addOneExample(ex, maxExamples, examples);
+						addOneExample(ex, maxExamples, examples);
+					}
+				}
 			}
 		} catch (SQLException e) {
 			throw new IOException(e);
