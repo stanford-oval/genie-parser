@@ -289,11 +289,12 @@ public class ThingpediaLexicon {
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
 			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
-					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and canonical = ?";
+					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? "
+					+ " and canonical = ? and ds.kind_type <> 'primary'";
 		} else {
 			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
 					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and "
-					+ "match canonical against (? in natural language mode)";
+					+ "match canonical against (? in natural language mode) and ds.kind_type <> 'primary'";
 		}
 
 		Connection con = dataSource.getConnection();
