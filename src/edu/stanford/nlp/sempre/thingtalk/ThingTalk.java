@@ -1,9 +1,9 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.*;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import edu.stanford.nlp.sempre.*;
 
 /**
  * Functions for supporting thingtalk
@@ -94,7 +94,7 @@ public final class ThingTalk {
     // Specials handler -- Fragile!! Handle with care
     //******************************************************************************************************************
     public static StringValue special(NameValue spl) {
-        Map<String,Object> json = new HashMap<String,Object>();
+        Map<String,Object> json = new HashMap<>();
         json.put("special",spl.toJson());
         return (new StringValue(Json.writeValueAsStringHard(json)));
     }
@@ -111,14 +111,16 @@ public final class ThingTalk {
     // Constructing the rule value structure
     //******************************************************************************************************************
     public static Value jsonOut(Value val) {
-        Map<String,Object> json = new HashMap<String,Object>();
+        Map<String,Object> json = new HashMap<>();
         String label = "";
-        if(val instanceof RuleValue)
-            label = "rule";
-        else if(val instanceof ActionValue)
-            label = "action";
-        else if(val instanceof CommandValue)
-            label = "command";
+		if (val instanceof RuleValue)
+			label = "rule";
+		else if (val instanceof ActionValue)
+			label = "action";
+		else if (val instanceof CommandValue)
+			label = "command";
+		else if (val instanceof TriggerValue)
+			label = "trigger";
         else
             label = "error"; // FIXME: Error flow
         json.put(label, val.toJson());

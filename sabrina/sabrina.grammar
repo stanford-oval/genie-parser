@@ -5,6 +5,7 @@
 (def @boolValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.boolValueCast)
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
+(def @trigParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam)
 (def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
@@ -75,7 +76,6 @@
 (rule $Arg ($TempArg) (IdentityFn))
 
 # Action Handling
-#(rule $ActionName ($PHRASE) (SimpleLexiconFn (type tt:type.action)))
 (rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn action))
 
 (rule $Action0 ($ActionName) (lambda act (call @actParam (var act))))
@@ -87,6 +87,20 @@
 (rule $Action ($Action1) (IdentityFn))
 (rule $Action ($Action2) (IdentityFn))
 (rule $Action ($Action3) (IdentityFn))
+
+(rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn trigger))
+
+(rule $Trigger0 ($TriggerName) (lambda trig (call @trigParam (var trig))))
+(rule $Trigger1 ($Trigger0 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
+(rule $Trigger2 ($Trigger1 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
+(rule $Trigger3 ($Trigger2 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
+
+(rule $Trigger ($Trigger0) (IdentityFn))
+(rule $Trigger ($Trigger1) (IdentityFn))
+(rule $Trigger ($Trigger2) (IdentityFn))
+(rule $Trigger ($Trigger3) (IdentityFn))
+
+(rule $Notify (monitor if $Trigger) (IdentityFn))
 
 (rule $Device ($TOKEN) (SimpleLexiconFn (type tt:type.device)))
 
@@ -117,4 +131,5 @@
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
