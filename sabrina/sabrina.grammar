@@ -6,6 +6,7 @@
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
 (def @trigParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam)
+(def @queryParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.queryParam)
 (def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
@@ -100,6 +101,18 @@
 (rule $Trigger ($Trigger2) (IdentityFn))
 (rule $Trigger ($Trigger3) (IdentityFn))
 
+(rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn query))
+
+(rule $Query0 ($QueryName) (lambda query (call @queryParam (var query))))
+(rule $Query1 ($Query0 and $Arg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
+(rule $Query2 ($Query1 and $Arg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
+(rule $Query3 ($Query2 and $Arg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
+
+(rule $Query ($Query0) (IdentityFn))
+(rule $Query ($Query1) (IdentityFn))
+(rule $Query ($Query2) (IdentityFn))
+(rule $Query ($Query3) (IdentityFn))
+
 (rule $Notify (monitor if $Trigger) (IdentityFn))
 
 (rule $Device ($TOKEN) (SimpleLexiconFn (type tt:type.device)))
@@ -125,11 +138,11 @@
 (rule $Command ($Discovery) (lambda value (call @cmdForm (string "discover") (var value))))
 (rule $Command ($Information) (lambda value (call @cmdForm (string "list") (var value))))
 (rule $Command ($Configuration) (lambda value (call @cmdForm (string "configure") (var value))))
-#(rule $Command ($Query) (IdentityFn))
 
 (rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($Query) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

@@ -65,6 +65,21 @@ public final class ThingTalk {
         return newTrigger;
     }
 
+	//******************************************************************************************************************
+	// Constructing the query value structure
+	//******************************************************************************************************************
+	public static QueryValue queryParam(NameValue queryName) {
+		QueryValue queryVal = new QueryValue(queryName);
+		return queryVal;
+	}
+
+	public static QueryValue queryParam(QueryValue oldQuery, ParamValue param) {
+		// FIXME: Write a copy constructor
+		QueryValue newQuery = oldQuery.clone();
+		newQuery.add(param);
+		return newQuery;
+	}
+
     //******************************************************************************************************************
     // Constructing the action value structure
     //******************************************************************************************************************
@@ -121,6 +136,8 @@ public final class ThingTalk {
 			label = "command";
 		else if (val instanceof TriggerValue)
 			label = "trigger";
+		else if (val instanceof QueryValue)
+			label = "query";
         else
             label = "error"; // FIXME: Error flow
         json.put(label, val.toJson());
