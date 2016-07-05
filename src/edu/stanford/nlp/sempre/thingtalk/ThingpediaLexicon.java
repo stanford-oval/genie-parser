@@ -312,6 +312,16 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	// a list of words that appear often in our examples (and thus are frequent queries to
+	// the lexicon), but are not useful to lookup canonical forms
+	// with FloatingParser, if the lookup word is in this array, we just return no
+	// derivations
+	private static final String[] IGNORED_WORDS = { "in", "on", "a", "to", "with", "and",
+			"me", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
+	static {
+		Arrays.sort(IGNORED_WORDS);
+	}
+
 	public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
@@ -324,6 +334,8 @@ public class ThingpediaLexicon {
 				return Collections.emptyIterator();
 		} else {
 			if (tokens.length > 1)
+				return Collections.emptyIterator();
+			if (Arrays.binarySearch(IGNORED_WORDS, tokens[0]) >= 0)
 				return Collections.emptyIterator();
 		}
 

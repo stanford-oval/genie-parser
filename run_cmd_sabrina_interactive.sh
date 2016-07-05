@@ -22,7 +22,7 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               'match' 'ppdb' 'skip-bigram' 'root' 'alignment' 'lexical' \
               'root_lexical' \
               '-FloatingParser.maxDepth' '12' \
-              '-Parser.beamSize' '40' \
+              '-Parser.beamSize' '20' \
               '-Learner.maxTrainIters' '1' \
               '-SimpleLexicon.inPaths' 'sabrina/sabrina.lexicon' \
               '-wordAlignmentPath' 'thingtalk/thingtalk.word_alignments.berkeley' \
