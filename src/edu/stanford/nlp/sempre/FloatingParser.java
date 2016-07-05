@@ -381,7 +381,7 @@ class FloatingParserState extends ParserState {
           writer.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.score));
           fWriter.println(String.format("%s\t%s", deriv.canonicalUtterance, deriv.formula.toString()));
 					vWriter.println(String.format("%s\t%s", deriv.canonicalUtterance,
-							((StringValue) ((ListValue) deriv.value).values.get(0)).value));
+							((StringValue) (deriv.value)).value));
         }
       }
       writer.close();
