@@ -48,12 +48,14 @@ public class ThingpediaLexicon {
 		private final String argname;
 		private final String kind;
 		private final String type;
+		private final String channelName;
 
-		public ParamEntry(String rawPhrase, String argname, String kind, String type) {
+		public ParamEntry(String rawPhrase, String argname, String type, String kind, String channelName) {
 			this.rawPhrase = rawPhrase;
 			this.argname = argname;
-			this.kind = kind;
 			this.type = type;
+			this.kind = kind;
+			this.channelName = channelName;
 		}
 
 		@Override
@@ -63,7 +65,8 @@ public class ThingpediaLexicon {
 
 		@Override
 		public Formula toFormula() {
-			return new ValueFormula<>(new ParamNameValue(argname, kind, type));
+			return new ValueFormula<>(
+					new ParamNameValue(argname, type, new NameValue("tt:" + kind + "." + channelName)));
 		}
 	}
 
@@ -258,7 +261,7 @@ public class ThingpediaLexicon {
 
 		@Override
 		protected ParamEntry createEntry() throws SQLException {
-			return new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4));
+			return new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
 		}
 	}
 
@@ -323,13 +326,13 @@ public class ThingpediaLexicon {
 			if (tokens.length > 4)
 				return new EmptyEntryStream();
 
-			query = "select canonical, argname, kind, argtype from device_schema_arguments join device_schema "
+			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
 					+ "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary'";
 		} else {
 			if (tokens.length > 1)
 				return new EmptyEntryStream();
 
-			query = "select canonical, argname, kind, argtype from device_schema_arguments join device_schema "
+			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
 					+ "on schema_id = id and version = approved_version and match canonical against (? in natural language "
 					+ "mode) and kind_type <> 'primary'";
 		}

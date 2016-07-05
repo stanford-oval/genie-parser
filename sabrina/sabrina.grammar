@@ -85,10 +85,14 @@
 (rule $Action2 ($Action1 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
 (rule $Action3 ($Action2 with $Arg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
 
-(rule $Action ($Action0) (IdentityFn))
-(rule $Action ($Action1) (IdentityFn))
-(rule $Action ($Action2) (IdentityFn))
-(rule $Action ($Action3) (IdentityFn))
+(rule $Action ($Action0) (thingtalk.FilterInvalidInvocationFn))
+(rule $Action ($Action1) (thingtalk.FilterInvalidInvocationFn))
+(rule $Action ($Action2) (thingtalk.FilterInvalidInvocationFn))
+(rule $Action ($Action3) (thingtalk.FilterInvalidInvocationFn))
+#(rule $Action ($Action0) (IdentityFn))
+#(rule $Action ($Action1) (IdentityFn))
+#(rule $Action ($Action2) (IdentityFn))
+#(rule $Action ($Action3) (IdentityFn))
 
 (rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn trigger))
 
@@ -97,10 +101,14 @@
 (rule $Trigger2 ($Trigger1 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
 (rule $Trigger3 ($Trigger2 and $Arg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
 
-(rule $Trigger ($Trigger0) (IdentityFn))
-(rule $Trigger ($Trigger1) (IdentityFn))
-(rule $Trigger ($Trigger2) (IdentityFn))
-(rule $Trigger ($Trigger3) (IdentityFn))
+(rule $Trigger ($Trigger0) (thingtalk.FilterInvalidInvocationFn))
+(rule $Trigger ($Trigger1) (thingtalk.FilterInvalidInvocationFn))
+(rule $Trigger ($Trigger2) (thingtalk.FilterInvalidInvocationFn))
+(rule $Trigger ($Trigger3) (thingtalk.FilterInvalidInvocationFn))
+#(rule $Trigger ($Trigger0) (IdentityFn))
+#(rule $Trigger ($Trigger1) (IdentityFn))
+#(rule $Trigger ($Trigger2) (IdentityFn))
+#(rule $Trigger ($Trigger3) (IdentityFn))
 
 (rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn query))
 
@@ -109,10 +117,14 @@
 (rule $Query2 ($Query1 and $Arg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
 (rule $Query3 ($Query2 and $Arg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
 
-(rule $Query ($Query0) (IdentityFn))
-(rule $Query ($Query1) (IdentityFn))
-(rule $Query ($Query2) (IdentityFn))
-(rule $Query ($Query3) (IdentityFn))
+(rule $Query ($Query0) (thingtalk.FilterInvalidInvocationFn))
+(rule $Query ($Query1) (thingtalk.FilterInvalidInvocationFn))
+(rule $Query ($Query2) (thingtalk.FilterInvalidInvocationFn))
+(rule $Query ($Query3) (thingtalk.FilterInvalidInvocationFn))
+#(rule $Query ($Query0) (IdentityFn))
+#(rule $Query ($Query1) (IdentityFn))
+#(rule $Query ($Query2) (IdentityFn))
+#(rule $Query ($Query3) (IdentityFn))
 
 (rule $Notify (monitor if $Trigger) (IdentityFn))
 

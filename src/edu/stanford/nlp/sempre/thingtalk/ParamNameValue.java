@@ -3,7 +3,9 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.stanford.nlp.sempre.NameValue;
 import edu.stanford.nlp.sempre.Value;
+import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
 
 /**
@@ -14,18 +16,18 @@ import fig.basic.LispTree;
  */
 public class ParamNameValue extends Value {
 	public final String argname;
-	public final String kind;
 	public final String type;
+	public final NameValue forChannel;
 
 	public ParamNameValue(LispTree tree) {
 		this.argname = tree.child(1).value;
-		this.kind = tree.child(2).value;
-		this.type = tree.child(3).value;
+		this.type = tree.child(2).value;
+		this.forChannel = (NameValue) Values.fromLispTree(tree.child(3));
 	}
 
-	public ParamNameValue(String argname, String kind, String type) {
+	public ParamNameValue(String argname, String type, NameValue forChannel) {
 		this.argname = argname;
-		this.kind = kind;
+		this.forChannel = forChannel;
 		this.type = type;
 	}
 
@@ -34,8 +36,8 @@ public class ParamNameValue extends Value {
 		LispTree tree = LispTree.proto.newList();
 		tree.addChild("paramname");
 		tree.addChild(argname);
-		tree.addChild(kind);
 		tree.addChild(type);
+		tree.addChild(forChannel.toLispTree());
 		return tree;
 	}
 
@@ -54,7 +56,7 @@ public class ParamNameValue extends Value {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((argname == null) ? 0 : argname.hashCode());
-		result = prime * result + ((kind == null) ? 0 : kind.hashCode());
+		result = prime * result + ((forChannel == null) ? 0 : forChannel.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
@@ -73,10 +75,10 @@ public class ParamNameValue extends Value {
 				return false;
 		} else if (!argname.equals(other.argname))
 			return false;
-		if (kind == null) {
-			if (other.kind != null)
+		if (forChannel == null) {
+			if (other.forChannel != null)
 				return false;
-		} else if (!kind.equals(other.kind))
+		} else if (!forChannel.equals(other.forChannel))
 			return false;
 		if (type == null) {
 			if (other.type != null)
