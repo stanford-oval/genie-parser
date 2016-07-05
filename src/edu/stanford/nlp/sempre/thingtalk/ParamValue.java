@@ -1,12 +1,11 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.NameValue;
+import java.util.HashMap;
+import java.util.Map;
+
 import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
-
-import java.util.HashMap;
-import java.util.Map;
 
 
 /**
@@ -14,7 +13,7 @@ import java.util.Map;
  * @author Rakesh Ramesh
  */
 public class ParamValue extends Value {
-    public final NameValue name;
+	public final ParamNameValue name;
 
     // type: "String", "Date", "List", "Number", "Measure"
     public final String tt_type;
@@ -23,20 +22,21 @@ public class ParamValue extends Value {
     public final Value value;
 
     public ParamValue(LispTree tree) {
-        this.name = (NameValue) Values.fromLispTree(tree.child(1));
+		this.name = (ParamNameValue) Values.fromLispTree(tree.child(1));
         this.tt_type = tree.child(2).value;
         this.operator = tree.child(3).value;
         this.value = Values.fromLispTree(tree.child(4));
     }
 
-    public ParamValue(NameValue name, String tt_type, String operator, Value value) {
+	public ParamValue(ParamNameValue name, String tt_type, String operator, Value value) {
         this.name = name;
         this.tt_type = tt_type;
         this.operator = operator;
         this.value = value;
     }
 
-    public LispTree toLispTree() {
+    @Override
+	public LispTree toLispTree() {
         LispTree tree = LispTree.proto.newList();
         tree.addChild("param");
         tree.addChild(name.toLispTree());
@@ -46,8 +46,9 @@ public class ParamValue extends Value {
         return tree;
     }
 
-    public Map<String,Object> toJson() {
-        Map<String,Object> json = new HashMap<String,Object>();
+    @Override
+	public Map<String,Object> toJson() {
+        Map<String,Object> json = new HashMap<>();
         json.put("name", name.toJson());
         json.put("type", tt_type);
         json.put("operator", operator);

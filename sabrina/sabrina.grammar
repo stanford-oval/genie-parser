@@ -38,13 +38,7 @@
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
 # Argument Names
-(rule $StringArgName ($PHRASE) (SimpleLexiconFn (type tt:type.stringarg)))
-(rule $ArrayArgName ($PHRASE) (SimpleLexiconFn (type tt:type.arrayarg)))
-(rule $DateArgName ($PHRASE) (SimpleLexiconFn (type tt:type.datearg)))
-(rule $TimeArgName ($PHRASE) (SimpleLexiconFn (type tt:type.timearg)))
-(rule $BoolArgName ($PHRASE) (SimpleLexiconFn (type tt:type.boolarg)))
-(rule $NumArgName ($PHRASE) (SimpleLexiconFn (type tt:type.numarg)))
-(rule $TempArgName ($PHRASE) (SimpleLexiconFn (type tt:type.temparg)))
+(rule $ArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param))
 
 # Operator parsing
 (rule $Op (is) (ConstantFn (string "is")))
@@ -59,13 +53,13 @@
 (rule $ArrayOp (has) (ConstantFn (string "has")))
 
 # Handling different types
-(rule $StringArg ($StringArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
-(rule $ArrayArg ($ArrayArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
-(rule $DateArg ($DateArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
-(rule $TimeArg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
-(rule $BoolArg ($BoolArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
-(rule $NumArg ($NumArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
-(rule $TempArg ($TempArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
+(rule $StringArg ($ArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+(rule $ArrayArg ($ArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
+(rule $DateArg ($ArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
+(rule $TimeArg ($ArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+(rule $BoolArg ($ArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+(rule $NumArg ($ArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
+(rule $TempArg ($ArgNames $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
 
 # Arguments
 (rule $Arg ($StringArg) (IdentityFn))
@@ -115,7 +109,7 @@
 
 (rule $Notify (monitor if $Trigger) (IdentityFn))
 
-(rule $Device ($TOKEN) (SimpleLexiconFn (type tt:type.device)))
+(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind))
 
 (rule $Help (help) (ConstantFn (string generic)) (anchored 1))
 (rule $Help (help $Device) (IdentityFn))

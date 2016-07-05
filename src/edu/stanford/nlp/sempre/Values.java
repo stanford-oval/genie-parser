@@ -1,9 +1,6 @@
 package edu.stanford.nlp.sempre;
 
-import edu.stanford.nlp.sempre.thingtalk.ActionValue;
-import edu.stanford.nlp.sempre.thingtalk.CommandValue;
-import edu.stanford.nlp.sempre.thingtalk.ParamValue;
-import edu.stanford.nlp.sempre.thingtalk.TriggerValue;
+import edu.stanford.nlp.sempre.thingtalk.*;
 import fig.basic.LispTree;
 
 // FIXME: Remove this dependency
@@ -36,6 +33,8 @@ public final class Values {
     if ("time".equals(type)) return new TimeValue(tree);
     // ThingTalk values
     if ("param".equals(type)) return new ParamValue(tree);
+		if ("paramname".equals(type))
+			return new ParamNameValue(tree);
     if ("trigger".equals(type)) return new TriggerValue(tree);
     if ("action".equals(type)) return new ActionValue(tree);
     if ("command".equals(type)) return new CommandValue(tree);

@@ -46,7 +46,7 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the parameter value structure
     //******************************************************************************************************************
-    public static ParamValue paramForm(String tt_type, NameValue tt_arg, String operator, Value value) {
+	public static ParamValue paramForm(String tt_type, ParamNameValue tt_arg, String operator, Value value) {
         ParamValue paramVal = new ParamValue(tt_arg, tt_type, operator, value);
         return paramVal;
     }
