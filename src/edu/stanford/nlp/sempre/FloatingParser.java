@@ -4,18 +4,9 @@ import static fig.basic.LogInfo.logs;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import fig.basic.IOUtils;
-import fig.basic.ListUtils;
-import fig.basic.LogInfo;
-import fig.basic.MapUtils;
-import fig.basic.Option;
+import fig.basic.*;
 import fig.exec.Execution;
 
 /**
@@ -395,6 +386,7 @@ class FloatingParserState extends ParserState {
       }
       writer.close();
       fWriter.close();
+			vWriter.close();
     }
 
     LogInfo.end_track();
