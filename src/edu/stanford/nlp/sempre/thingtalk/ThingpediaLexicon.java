@@ -112,7 +112,7 @@ public class ThingpediaLexicon {
 
 		@Override
 		public String getRawPhrase() {
-			return rawPhrase + " on " + kind;
+			return rawPhrase;
 		}
 
 		@Override
