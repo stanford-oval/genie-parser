@@ -62,13 +62,20 @@
 (rule $TempArg ($ArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
 
 # Arguments
-(rule $Arg ($StringArg) (IdentityFn))
-(rule $Arg ($ArrayArg) (IdentityFn))
-(rule $Arg ($DateArg) (IdentityFn))
-(rule $Arg ($TimeArg) (IdentityFn))
-(rule $Arg ($BoolArg) (IdentityFn))
-(rule $Arg ($NumArg) (IdentityFn))
-(rule $Arg ($TempArg) (IdentityFn))
+(rule $Arg ($StringArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($ArrayArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($DateArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($TimeArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($BoolArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($NumArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($TempArg) (thingtalk.FilterInvalidArgFn))
+#(rule $Arg ($StringArg) (IdentityFn))
+#(rule $Arg ($ArrayArg) (IdentityFn))
+#(rule $Arg ($DateArg) (IdentityFn))
+#(rule $Arg ($TimeArg) (IdentityFn))
+#(rule $Arg ($BoolArg) (IdentityFn))
+#(rule $Arg ($NumArg) (IdentityFn))
+#(rule $Arg ($TempArg) (IdentityFn))
 
 # Action Handling
 (rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn action))

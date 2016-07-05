@@ -13,9 +13,9 @@ import fig.basic.LispTree;
  * @author Giovanni Campagna
  */
 public class ParamNameValue extends Value {
-	private final String argname;
-	private final String kind;
-	private final String type;
+	public final String argname;
+	public final String kind;
+	public final String type;
 
 	public ParamNameValue(LispTree tree) {
 		this.argname = tree.child(1).value;

@@ -1,23 +1,11 @@
 package edu.stanford.nlp.sempre;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-import fig.basic.IOUtils;
-import fig.basic.IntRef;
-import fig.basic.LogInfo;
-import fig.basic.Option;
-import fig.basic.SetUtils;
-import fig.basic.StopWatchSet;
+import fig.basic.*;
 import fig.exec.Execution;
 
 /**
@@ -33,6 +21,8 @@ import fig.exec.Execution;
 public class BeamParser extends Parser {
   public static class Options {
     @Option public int maxNewTreesPerSpan = Integer.MAX_VALUE;
+		@Option(gloss = "Whether to always execute the derivation")
+		public boolean executeAllDerivations = false;
   }
   public static Options opts = new Options();
 
@@ -159,6 +149,11 @@ public void infer() {
 					StopWatchSet.end();
 					while (results.hasNext()) {
 						Derivation newDeriv = results.next();
+
+						// make sure we execute
+						if (BeamParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
+							newDeriv.ensureExecuted(parser.executor, ex.context);
+
 						featurizeAndScoreDerivation(newDeriv);
 						addToChart(newDeriv);
 					}
