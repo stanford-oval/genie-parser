@@ -14,7 +14,7 @@ public class ThingpediaDataset extends AbstractDataset {
 
 	private static final String CANONICAL_QUERY = "select dsc.canonical, ds.kind, dsc.name, dsc.channel_type, dsc.argnames,dsc.types "
 			+ "from device_schema_channels dsc join device_schema ds on ds.id = dsc.schema_id and dsc.version = ds.developer_version "
-			+ "where canonical is not null and channel_type = 'action' and ds.kind_type <> 'primary'";
+			+ "where canonical is not null and ds.kind_type <> 'primary'";
 	private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base";
 
 	public ThingpediaDataset() {
@@ -34,8 +34,21 @@ public class ThingpediaDataset extends AbstractDataset {
 					String channelType = set.getString(4);
 					List<String> argnames = Json.readValueHard(set.getString(5), typeRef);
 					List<String> argtypes = Json.readValueHard(set.getString(6), typeRef);
-					ActionValue actionValue = ThingTalk.actParam(new ChannelNameValue(kind, name, argnames, argtypes));
-					Value targetValue = ThingTalk.jsonOut(actionValue);
+					Value inner;
+					switch (channelType) {
+					case "action":
+						inner = ThingTalk.actParam(new ChannelNameValue(kind, name, argnames, argtypes));
+						break;
+					case "trigger":
+						inner = ThingTalk.trigParam(new ChannelNameValue(kind, name, argnames, argtypes));
+						break;
+					case "query":
+						inner = ThingTalk.queryParam(new ChannelNameValue(kind, name, argnames, argtypes));
+						break;
+					default:
+						throw new RuntimeException("Invalid channel type " + channelType);
+					}
+					Value targetValue = ThingTalk.jsonOut(inner);
 
 					Example ex = new Example.Builder()
 							.setId("canonical_" + kind + "_" + name)

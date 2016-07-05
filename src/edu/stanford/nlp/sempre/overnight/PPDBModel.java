@@ -1,13 +1,10 @@
 package edu.stanford.nlp.sempre.overnight;
 
-import fig.basic.IOUtils;
-import fig.basic.LogInfo;
-import fig.basic.MapUtils;
-import fig.basic.Option;
-import edu.stanford.nlp.sempre.*;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import edu.stanford.nlp.sempre.LanguageInfo;
+import fig.basic.*;
 
 /**
  * PPDBModel extracts and scores paraphrasing featues from derivations.
