@@ -315,11 +315,15 @@ public class ThingpediaLexicon {
 	public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
+
+		String[] tokens = phrase.split(" ");
 		if (Builder.opts.parser.equals("BeamParser")) {
-			String[] tokens = phrase.split(" ");
 			if (tokens.length < 3 || tokens.length > 7)
 				return Collections.emptyIterator();
 			if (!"on".equals(tokens[tokens.length - 2]))
+				return Collections.emptyIterator();
+		} else {
+			if (tokens.length > 1)
 				return Collections.emptyIterator();
 		}
 
