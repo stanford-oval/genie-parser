@@ -60,7 +60,7 @@ public final class ThingTalk {
     }
     public static TriggerValue trigParam(TriggerValue oldTrigger, ParamValue param) {
         // FIXME: Write a copy constructor
-        TriggerValue newTrigger = new TriggerValue(oldTrigger.name, oldTrigger.params);
+		TriggerValue newTrigger = (TriggerValue) oldTrigger.clone();
         newTrigger.add(param);
         return newTrigger;
     }
@@ -75,7 +75,7 @@ public final class ThingTalk {
 
 	public static QueryValue queryParam(QueryValue oldQuery, ParamValue param) {
 		// FIXME: Write a copy constructor
-		QueryValue newQuery = oldQuery.clone();
+		QueryValue newQuery = (QueryValue) oldQuery.clone();
 		newQuery.add(param);
 		return newQuery;
 	}
@@ -88,7 +88,7 @@ public final class ThingTalk {
         return actionVal;
     }
     public static ActionValue actParam(ActionValue oldAction, ParamValue param) {
-        ActionValue newAction = new ActionValue(oldAction.name, oldAction.params);
+		ActionValue newAction = (ActionValue) oldAction.clone();
         newAction.add(param);
         return newAction;
     }
