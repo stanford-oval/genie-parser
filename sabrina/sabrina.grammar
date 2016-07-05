@@ -57,9 +57,9 @@
 (rule $ArrayArg ($ArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (string "String") (var arg) (var op) (var value))))))
 (rule $DateArg ($ArgName $Op $DateValue) (lambda arg (lambda value (lambda op (call @paramForm (string "Date") (var arg) (var op) (var value))))))
 (rule $TimeArg ($ArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
-(rule $BoolArg ($ArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Time") (var arg) (var op) (var value))))))
+(rule $BoolArg ($ArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Bool") (var arg) (var op) (var value))))))
 (rule $NumArg ($ArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
-(rule $TempArg ($ArgNames $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
+(rule $TempArg ($ArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
 
 # Arguments
 (rule $Arg ($StringArg) (IdentityFn))

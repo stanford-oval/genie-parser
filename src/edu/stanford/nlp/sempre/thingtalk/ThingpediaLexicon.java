@@ -317,12 +317,22 @@ public class ThingpediaLexicon {
 			LogInfo.logs("ThingpediaLexicon.lookupParam %s", phrase);
 
 		String[] tokens = phrase.split(" ");
-		if (tokens.length > 1)
-			return new EmptyEntryStream();
 
-		String query = "select canonical, argname, kind, argtype from device_schema_arguments join device_schema "
-				+ "on schema_id = id and version = approved_version and match canonical against (? in natural language "
-				+ "mode) and kind_type <> 'primary'";
+		String query;
+		if (Builder.opts.parser.equals("BeamParser")) {
+			if (tokens.length > 4)
+				return new EmptyEntryStream();
+
+			query = "select canonical, argname, kind, argtype from device_schema_arguments join device_schema "
+					+ "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary'";
+		} else {
+			if (tokens.length > 1)
+				return new EmptyEntryStream();
+
+			query = "select canonical, argname, kind, argtype from device_schema_arguments join device_schema "
+					+ "on schema_id = id and version = approved_version and match canonical against (? in natural language "
+					+ "mode) and kind_type <> 'primary'";
+		}
 
 		Connection con = dataSource.getConnection();
 		PreparedStatement stmt = con.prepareStatement(query);
