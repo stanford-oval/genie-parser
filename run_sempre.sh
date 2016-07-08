@@ -9,7 +9,7 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-LanguageAnalyzer' 'corenlp.CoreNLPAnalyzer' \
               '-Builder.parser' 'BeamParser' \
               '-Builder.executor' 'JavaExecutor' \
-              '-Grammar.inPaths' 'thingtalk/thingtalk.grammar' \
+              '-Grammar.inPaths' 'sabrina/sabrina.grammar' \
               '-Grammar.tags' 'parse' '+Grammar.tags' 'general' \
               '-FeatureExtractor.featureDomains' 'denotation' 'rule' \
               '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' \
@@ -20,12 +20,12 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-DerivationPruner.pruningComputer' 'overnight.OvernightDerivationPruningComputer' \
               '-FloatingParser.maxDepth' '12' \
               '-Parser.beamSize' '9' \
-              '-wordAlignmentPath' 'thingtalk/thingtalk.word_alignments.berkeley' \
-              '-phraseAlignmentPath' 'thingtalk/thingtalk.phrase_alignments' \
-              '-PPDBModel.ppdbModelPath' 'thingtalk/thingtalk-ppdb.txt' \
+              '-wordAlignmentPath' 'sabrina/sabrina.word_alignments.berkeley' \
+              '-phraseAlignmentPath' 'sabrina/sabrina.phrase_alignments' \
+              '-PPDBModel.ppdbModelPath' 'sabrina/sabrina-ppdb.txt' \
               '-Learner.maxTrainIters' '1' \
-              '-SimpleLexicon.inPaths' 'thingtalk/thingtalk.lexicon' \
-              '-DataSet.inPaths' 'train:thingtalk/thingtalk.examples' \
+              '-SimpleLexicon.inPaths' 'sabrina/sabrina.lexicon' \
+              '-DataSet.inPaths' 'train:sabrina/sabrina.examples' \
               '-ThingpediaLexicon.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
               '-ThingpediaLexicon.dbUser' 'sempre' \
               '-BeamParser.executeAllDerivations' 'true' \
