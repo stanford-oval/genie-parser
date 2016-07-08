@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -117,6 +118,15 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the rule value structure
     //******************************************************************************************************************
+	public static RuleValue timeRule(DateValue time, ActionValue action) {
+		ParamNameValue timeName = new ParamNameValue("time", "String", new NameValue("tt:builtin.at"));
+		ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
+		TriggerValue timeTrigger = new TriggerValue(new NameValue("tt:builtin.at"),
+				Collections.singletonList(timeParam));
+
+		return new RuleValue(timeTrigger, action);
+	}
+
     public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
         RuleValue ruleVal = new RuleValue(trigger, action);
         return ruleVal;

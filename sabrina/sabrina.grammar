@@ -9,6 +9,8 @@
 (def @queryParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.queryParam)
 (def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
 
+(def @timeRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeRule)
+
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
 
 (def @jsonOut edu.stanford.nlp.sempre.thingtalk.ThingTalk.jsonOut)
@@ -128,6 +130,8 @@
 
 (rule $Notify (monitor if $Trigger) (IdentityFn))
 
+(rule $TimeRule (every day at $TimeValue $Action) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind))
 
 (rule $Help (help) (ConstantFn (string generic)) (anchored 1))
@@ -158,4 +162,5 @@
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Query) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($TimeRule) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
