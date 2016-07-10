@@ -130,7 +130,9 @@
 
 (rule $Notify (monitor if $Trigger) (IdentityFn))
 
-(rule $TimeRule (every day at $TimeValue $Action) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+(rule $ActionOrQuery ($Action) (IdentityFn))
+(rule $ActionOrQuery ($Query) (IdentityFn))
+(rule $TimeRule (every day at $TimeValue $ActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind))
 

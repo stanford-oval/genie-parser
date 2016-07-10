@@ -118,19 +118,29 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the rule value structure
     //******************************************************************************************************************
-	public static RuleValue timeRule(DateValue time, ActionValue action) {
+	public static RuleValue timeRule(DateValue time, Value action) {
 		ParamNameValue timeName = new ParamNameValue("time", "String", new NameValue("tt:builtin.at"));
 		ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
 		TriggerValue timeTrigger = new TriggerValue(new NameValue("tt:builtin.at"),
 				Collections.singletonList(timeParam));
 
-		return new RuleValue(timeTrigger, action);
+		if (action instanceof QueryValue)
+			return new RuleValue(timeTrigger, (QueryValue) action, null);
+		else if (action instanceof ActionValue)
+			return new RuleValue(timeTrigger, null, (ActionValue) action);
+		else
+			throw new RuntimeException();
 	}
 
     public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
-        RuleValue ruleVal = new RuleValue(trigger, action);
+		RuleValue ruleVal = new RuleValue(trigger, null, action);
         return ruleVal;
     }
+
+	public static RuleValue ifttt(TriggerValue trigger, QueryValue action) {
+		RuleValue ruleVal = new RuleValue(trigger, action, null);
+		return ruleVal;
+	}
 
     //******************************************************************************************************************
     // Constructing the rule value structure

@@ -1,11 +1,11 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Represents a thingtalk rule.
@@ -13,40 +13,76 @@ import java.util.Map;
  */
 public class RuleValue extends Value {
     public final TriggerValue trigger;
+	public final QueryValue query;
     public final ActionValue action;
 
-    public RuleValue(TriggerValue trigger, ActionValue action) {
+	public RuleValue(TriggerValue trigger, QueryValue query, ActionValue action) {
         this.trigger = trigger;
+		this.query = query;
         this.action = action;
     }
     public RuleValue(LispTree tree) {
         this.trigger = (TriggerValue) Values.fromLispTree(tree.child(1));
-        this.action = (ActionValue) Values.fromLispTree(tree.child(2));
+		this.query = (QueryValue) Values.fromLispTree(tree.child(2));
+		this.action = (ActionValue) Values.fromLispTree(tree.child(3));
     }
 
-    public LispTree toLispTree() {
+    @Override
+	public LispTree toLispTree() {
         LispTree tree = LispTree.proto.newList();
         tree.addChild("rule");
         tree.addChild(trigger.toLispTree());
+		tree.addChild(query.toLispTree());
         tree.addChild(action.toLispTree());
         return tree;
     }
 
-    public Map<String,Object> toJson() {
-        Map<String,Object> json = new HashMap<String,Object>();
+    @Override
+	public Map<String,Object> toJson() {
+        Map<String,Object> json = new HashMap<>();
         json.put("trigger", trigger.toJson());
-        json.put("action", action.toJson());
+		if (query != null)
+			json.put("query", query.toJson());
+		if (action != null)
+			json.put("action", action.toJson());
         return json;
     }
 
-    @Override public boolean equals(Object o) {
-        if(this == o) return true;
-        if(o == null || getClass() != o.getClass()) return false;
-        RuleValue that = (RuleValue) o;
-        if(!trigger.equals(that.trigger) || !action.equals(that.action)) return false;
-        return true;
-    }
-    @Override public int hashCode() {
-        return trigger.hashCode() ^ action.hashCode();
-    }
+	// Generated with Eclipse 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((action == null) ? 0 : action.hashCode());
+		result = prime * result + ((query == null) ? 0 : query.hashCode());
+		result = prime * result + ((trigger == null) ? 0 : trigger.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RuleValue other = (RuleValue) obj;
+		if (action == null) {
+			if (other.action != null)
+				return false;
+		} else if (!action.equals(other.action))
+			return false;
+		if (query == null) {
+			if (other.query != null)
+				return false;
+		} else if (!query.equals(other.query))
+			return false;
+		if (trigger == null) {
+			if (other.trigger != null)
+				return false;
+		} else if (!trigger.equals(other.trigger))
+			return false;
+		return true;
+	}
 }
