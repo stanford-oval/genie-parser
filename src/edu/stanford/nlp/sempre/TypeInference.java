@@ -1,8 +1,8 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.*;
-
 import java.util.*;
+
+import fig.basic.*;
 
 /**
  * Performs type inference: given a Formula, return a SemType.
@@ -47,7 +47,7 @@ public final class TypeInference {
   }
   private static void initCallTypeInfo() {
     if (callTypeInfos != null) return;
-    callTypeInfos = new HashMap<String, CallTypeInfo>();
+    callTypeInfos = new HashMap<>();
     addCallTypeInfo(new CallTypeInfo("Math.cos", ListUtils.newList(SemType.floatType), SemType.floatType));
     addCallTypeInfo(new CallTypeInfo(".concat", ListUtils.newList(SemType.stringType, SemType.stringType), SemType.stringType));
     addCallTypeInfo(new CallTypeInfo(".length", ListUtils.newList(SemType.stringType), SemType.intType));
@@ -76,7 +76,7 @@ public final class TypeInference {
     public Env(TypeLookup typeLookup) { this(ImmutableAssocList.emptyList, typeLookup); }
 
     public Env addVar(String var) {
-      return new Env(list.prepend(var, new Ref<SemType>(SemType.topType)), typeLookup);
+      return new Env(list.prepend(var, new Ref<>(SemType.topType)), typeLookup);
     }
     public SemType updateType(String var, SemType type) {
       Ref<SemType> ref = list.get(var);
@@ -136,6 +136,8 @@ public final class TypeInference {
       else if (value instanceof StringValue) return check(type.meet(SemType.stringType));
       else if (value instanceof DateValue) return check(type.meet(SemType.dateType));
       else if (value instanceof TimeValue) return check(type.meet(SemType.timeType));
+			else if (value instanceof BooleanValue)
+				return check(type.meet(SemType.booleanType));
       else if (value instanceof NameValue) {
         String id = ((NameValue) value).id;
 

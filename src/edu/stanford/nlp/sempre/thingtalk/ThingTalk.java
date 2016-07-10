@@ -38,8 +38,8 @@ public final class ThingTalk {
         return tempVal;
     }
 
-    public static BooleanValue boolValueCast(String value) {
-        BooleanValue boolVal = new BooleanValue(value == "True");
+	public static BooleanValue boolValueCast(Boolean value) {
+		BooleanValue boolVal = new BooleanValue(value);
         return boolVal;
     }
 

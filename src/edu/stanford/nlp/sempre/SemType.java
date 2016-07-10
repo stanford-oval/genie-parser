@@ -1,11 +1,11 @@
 package edu.stanford.nlp.sempre;
 
+import java.util.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import fig.basic.LispTree;
-
-import java.util.*;
 
 /**
  * A simple type system for Formulas.  SemType represents a union over base
@@ -105,6 +105,7 @@ public abstract class SemType {
   public static final SemType timeType = new AtomicSemType(CanonicalNames.TIME);
   public static final SemType numberType = new AtomicSemType(CanonicalNames.NUMBER);
   public static final SemType numberOrDateType = new UnionSemType(numberType, dateType);
+	public static final SemType booleanType = new AtomicSemType(CanonicalNames.BOOLEAN);
   public static final SemType entityType = new AtomicSemType(CanonicalNames.ENTITY);
   public static final SemType anyType = new AtomicSemType(CanonicalNames.ANY);
 

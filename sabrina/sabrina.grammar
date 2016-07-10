@@ -30,8 +30,8 @@
 (rule $TempValue ($NumParseValue c) (lambda num (call @tempValueCast (string "C") (var num))))
 (rule $TempValue ($NumParseValue f) (lambda num (call @tempValueCast (string "F") (var num))))
 
-(rule $BoolParseValue (true) (IdentityFn) (anchored 1))
-(rule $BoolParseValue (false) (IdentityFn) (anchored 1))
+(rule $BoolParseValue (true) (ConstantFn (boolean true)))
+(rule $BoolParseValue (false) (ConstantFn (boolean false)))
 (rule $BoolValue ($BoolParseValue) (lambda bool (call @boolValueCast (var bool))))
 
 # FIXME: Integrate this to improve the canonicals
