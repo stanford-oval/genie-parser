@@ -30,11 +30,12 @@ public final class ThingTalk {
         return numVal;
     }
 
-    public static NumberValue tempValueCast(String unit, Integer value) {
+	public static NumberValue measureValueCast(String unit, Integer value) {
         NumberValue tempVal = new NumberValue(value, unit);
         return tempVal;
     }
-    public static NumberValue tempValueCast(String unit, Double value) {
+
+	public static NumberValue measureValueCast(String unit, Double value) {
         NumberValue tempVal = new NumberValue(value, unit);
         return tempVal;
     }
@@ -122,6 +123,20 @@ public final class ThingTalk {
 		ParamNameValue timeName = new ParamNameValue("time", "String", new NameValue("tt:builtin.at"));
 		ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
 		TriggerValue timeTrigger = new TriggerValue(new NameValue("tt:builtin.at"),
+				Collections.singletonList(timeParam));
+
+		if (action instanceof QueryValue)
+			return new RuleValue(timeTrigger, (QueryValue) action, null);
+		else if (action instanceof ActionValue)
+			return new RuleValue(timeTrigger, null, (ActionValue) action);
+		else
+			throw new RuntimeException();
+	}
+
+	public static RuleValue timeSpanRule(NumberValue time, Value action) {
+		ParamNameValue timeName = new ParamNameValue("interval", "Measure(s)", new NameValue("tt:builtin.timer"));
+		ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
+		TriggerValue timeTrigger = new TriggerValue(new NameValue("tt:builtin.timer"),
 				Collections.singletonList(timeParam));
 
 		if (action instanceof QueryValue)
