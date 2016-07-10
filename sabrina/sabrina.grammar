@@ -11,6 +11,8 @@
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
 
+(def @ansForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.ansForm)
+
 (def @jsonOut edu.stanford.nlp.sempre.thingtalk.ThingTalk.jsonOut)
 
 (def @special edu.stanford.nlp.sempre.thingtalk.ThingTalk.special)
@@ -154,8 +156,22 @@
 
 (rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
 
+# Answer handling
+# NOTE 1: string answers are handled by putting Sabrina in "raw" mode
+# which bypasses sempre
+# DO NOT put $Answer -> $StringValue here, it would catch everything and confuse the parser
+# NOTE 2: boolean answers are matched to yes/no, which are specials
+# but you still need to handle them here to match synonyms of true/false like on/off
+# that should not be learned as synonyms of yes/no
+(rule $Answer ($DateValue) (lambda value (call @ansForm (string "Date") (var value))))
+(rule $Answer ($TimeValue) (lambda value (call @ansForm (string "Time") (var value))))
+(rule $Answer ($NumValue) (lambda value (call @ansForm (string "Number") (var value))))
+(rule $Answer ($TempValue) (lambda value (call @ansForm (string "Measure") (var value))))
+(rule $Answer ($BoolValue) (lambda value (call @ansForm (string "Bool") (var value))))
+
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Query) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($Answer) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

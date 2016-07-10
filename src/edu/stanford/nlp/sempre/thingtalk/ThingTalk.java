@@ -105,6 +105,14 @@ public final class ThingTalk {
         CommandValue cmdVal = new CommandValue(type, strVal);
         return cmdVal;
     }
+
+	//******************************************************************************************************************
+	// Answers
+	//******************************************************************************************************************
+	public static ParamValue ansForm(String type, Value val) {
+		return new ParamValue(new ParamNameValue("answer", type, null), type, "is", val);
+	}
+
     //******************************************************************************************************************
     // Specials handler -- Fragile!! Handle with care
     //******************************************************************************************************************
@@ -138,6 +146,8 @@ public final class ThingTalk {
 			label = "trigger";
 		else if (val instanceof QueryValue)
 			label = "query";
+		else if (val instanceof ParamValue)
+			label = "answer";
         else
             label = "error"; // FIXME: Error flow
         json.put(label, val.toJson());
