@@ -2,28 +2,13 @@ package edu.stanford.nlp.sempre;
 
 import static fig.basic.LogInfo.logs;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpCookie;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.*;
 
 import fig.basic.LogInfo;
 import fig.basic.Option;
@@ -42,6 +27,7 @@ public class APIServer implements Runnable {
 	public static Options opts = new Options();
 
 	private final Map<String, Session> sessionMap = new HashMap<>();
+	private final QueryCache cache = new QueryCache(256);
 	private final Builder builder;
 
 	private class Handler implements HttpHandler {
@@ -81,7 +67,8 @@ public class APIServer implements Runnable {
 					try {
 						String key = URLDecoder.decode(kv[0], "UTF-8");
 						String value = URLDecoder.decode(kv[1], "UTF-8");
-						logs("%s => %s", key, value);
+						if (opts.verbose >= 5)
+							logs("%s => %s", key, value);
 						reqParams.put(key, value);
 					} catch (UnsupportedEncodingException e) {
 						throw new RuntimeException(e);
@@ -173,27 +160,31 @@ public class APIServer implements Runnable {
 		}
 
 		private void handleQuery(String sessionId) throws IOException {
-			logs("handleQuery");
-			Session session = getSession(sessionId);
-			synchronized (session) {
-				handleQueryForSession(session);
-			}
-		}
-
-		private void handleQueryForSession(Session session) throws IOException {
-			session.remoteHost = remoteHost;
-
 			String query = reqParams.get("q");
-			logs("Server.handleQuery %s: %s", session.id, query);
 
-			// Handle the request
-			List<Derivation> derivations = null;
 			int exitStatus;
+			List<Derivation> derivations = null;
 			Exception error = null;
 
 			try {
 				if (query != null) {
-					derivations = handleUtterance(session, query);
+					// try from cache
+					derivations = cache.hit(query);
+					if (opts.verbose >= 3) {
+						if (derivations != null)
+							logs("cache hit");
+						else
+							logs("cache miss");
+					}
+
+					if (derivations == null) {
+						Session session = getSession(sessionId);
+						synchronized (session) {
+							session.remoteHost = remoteHost;
+							derivations = handleUtterance(session, query);
+						}
+						cache.store(query, derivations);
+					}
 					exitStatus = 200;
 				} else {
 					exitStatus = 400;
@@ -202,6 +193,7 @@ public class APIServer implements Runnable {
 			} catch (Exception e) {
 				exitStatus = 500;
 				error = e;
+				e.printStackTrace();
 			}
 
 			// Print header
