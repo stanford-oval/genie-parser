@@ -1,7 +1,9 @@
 package edu.stanford.nlp.sempre;
 
 import java.util.*;
-import fig.basic.*;
+
+import edu.stanford.nlp.sempre.Derivation.Cacheability;
+import fig.basic.LispTree;
 
 /**
  * Produces predicates (like LexiconFn) but do it from the logical forms
@@ -37,9 +39,10 @@ public class ContextFn extends SemanticFn {
   // then you would say specify (forbidden (-> type.something type.any))
   // and all subtypes of (-> type.any type.any) would be permissible
   // except the forbidden one(s).
-  private Set<SemType> forbiddenTypes = new HashSet<SemType>();
+  private Set<SemType> forbiddenTypes = new HashSet<>();
 
-  public void init(LispTree tree) {
+  @Override
+public void init(LispTree tree) {
     super.init(tree);
     for (int i = 1; i < tree.children.size(); i++) {
       LispTree arg = tree.child(i);
@@ -55,16 +58,18 @@ public class ContextFn extends SemanticFn {
     }
   }
 
-  public DerivationStream call(final Example ex, final Callable c) {
+  @Override
+public DerivationStream call(final Example ex, final Callable c) {
     return new MultipleDerivationStream() {
       int index = 0;
       List<Formula> formulas;
 
-      public Derivation createDerivation() {
+      @Override
+	public Derivation createDerivation() {
         if (ex.context == null) return null;
 
         if (formulas == null) {
-          formulas = new ArrayList<Formula>();
+          formulas = new ArrayList<>();
           for (int i = ex.context.exchanges.size() - 1; i >= 0; i--) {
             ContextValue.Exchange e = ex.context.exchanges.get(i);
             extractFormulas(e.formula.toLispTree());
@@ -80,6 +85,7 @@ public class ContextFn extends SemanticFn {
                 .withCallable(c)
                 .formula(formula)
                 .type(TypeInference.inferType(formula))
+						.meetCache(Cacheability.CONTEXT_DEPENDENT)
                 .createDerivation();
       }
 

@@ -1,12 +1,13 @@
 package edu.stanford.nlp.sempre;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
-import fig.basic.LispTree;
-import fig.basic.LogInfo;
-
 import java.util.Comparator;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+import fig.basic.LispTree;
+import fig.basic.LogInfo;
 
 /**
  * Values represent denotations (or partial denotations).
@@ -14,12 +15,14 @@ import java.util.Map;
  * @author Percy Liang
  */
 public abstract class Value {
+
   public abstract LispTree toLispTree();
 
   // Print using LogInfo.
   public void log() { LogInfo.logs("%s", toString()); }
 
-  @JsonValue
+  @Override
+@JsonValue
   public String toString() { return toLispTree().toString(); }
 
   @JsonCreator

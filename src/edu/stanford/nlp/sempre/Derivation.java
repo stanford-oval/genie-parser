@@ -1,8 +1,8 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.*;
-
 import java.util.*;
+
+import fig.basic.*;
 
 /**
  * A Derivation corresponds to the production of a (partial) logical form
@@ -27,6 +27,17 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     @Option(gloss = "When executing, show formulae (for debugging)")
     public boolean showExecutions = false;
   }
+
+	public enum Cacheability {
+		CACHEABLE, // derivation is deterministically derived from utterance and does not use the context or lexicon
+		LEXICON_DEPENDENT, // derivation is deterministically derived from utterance and some external lexicon (not SimpleLexicon)
+		CONTEXT_DEPENDENT, // derivation is deterministically derived from utterance, lexicon, and context
+		NON_DETERMINISTIC; // derivation is non deterministic (eg uses randomness or depends on current time)
+
+		public Cacheability meet(Cacheability other) {
+			return this.compareTo(other) > 0 ? this : other;
+		}
+	}
 
   public static Options opts = new Options();
 
@@ -53,6 +64,11 @@ public class Derivation implements SemanticFn.Callable, HasScore {
 
   public final Formula formula; // Logical form produced by this derivation
   public final SemType type; // Type corresponding to that logical form
+
+	// Cacheability of this derivation (ie, will replaying the derivation later
+	// give the same value?)
+	// This depends on the semantic function used, not on the executor
+	public final Cacheability cache;
 
   //// Fields produced by feature extractor, evaluation, etc.
 
@@ -116,12 +132,19 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     private double compatibility = Double.NaN;
     private double prob = Double.NaN;
     private String canonicalUtterance = "";
+		private Cacheability cache = Cacheability.CACHEABLE;
 
     public Builder cat(String cat) { this.cat = cat; return this; }
     public Builder start(int start) { this.start = start; return this; }
     public Builder end(int end) { this.end = end; return this; }
     public Builder rule(Rule rule) { this.rule = rule; return this; }
-    public Builder children(List<Derivation> children) { this.children = children; return this; }
+
+		public Builder children(List<Derivation> children) {
+			this.children = children;
+			for (Derivation child : children)
+				this.meetCache(child.cache);
+			return this;
+		}
     public Builder formula(Formula formula) { this.formula = formula; return this; }
     public Builder type(SemType type) { this.type = type; return this; }
     public Builder localFeatureVector(FeatureVector localFeatureVector) { this.localFeatureVector = localFeatureVector; return this; }
@@ -131,6 +154,11 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     public Builder compatibility(double compatibility) { this.compatibility = compatibility; return this; }
     public Builder prob(double prob) { this.prob = prob; return this; }
     public Builder canonicalUtterance(String canonicalUtterance) { this.canonicalUtterance = canonicalUtterance; return this; }
+
+		public Builder meetCache(Cacheability cache) {
+			this.cache = this.cache.meet(cache);
+			return this;
+		}
 
     public Builder withStringFormulaFrom(String value) {
       this.formula = new ValueFormula<>(new StringValue(value));
@@ -148,7 +176,7 @@ public class Derivation implements SemanticFn.Callable, HasScore {
       this.start = c.getStart();
       this.end = c.getEnd();
       this.rule = c.getRule();
-      this.children = c.getChildren();
+			this.children(c.getChildren());
       return this;
     }
 
@@ -156,13 +184,13 @@ public class Derivation implements SemanticFn.Callable, HasScore {
       return new Derivation(
           cat, start, end, rule, children, formula, type,
           localFeatureVector, score, value, executorStats, compatibility, prob,
-          canonicalUtterance);
+					canonicalUtterance, cache);
     }
   }
 
   Derivation(String cat, int start, int end, Rule rule, List<Derivation> children, Formula formula, SemType type,
       FeatureVector localFeatureVector, double score, Value value, Evaluation executorStats, double compatibility, double prob,
-      String canonicalUtterance) {
+			String canonicalUtterance, Cacheability cache) {
     this.cat = cat;
     this.start = start;
     this.end = end;
@@ -177,29 +205,38 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     this.compatibility = compatibility;
     this.prob = prob;
     this.canonicalUtterance = canonicalUtterance;
+		this.cache = cache;
     this.creationIndex = numCreated++;
   }
 
   public Formula getFormula() { return formula; }
-  public double getScore() { return score; }
+  @Override
+public double getScore() { return score; }
   public double getProb() { return prob; }
   public double getCompatibility() { return compatibility; }
-  public List<Derivation> getChildren() { return children; }
+  @Override
+public List<Derivation> getChildren() { return children; }
   public Value getValue() { return value; }
 
   public boolean isFeaturizedAndScored() { return !Double.isNaN(score); }
   public boolean isExecuted() { return value != null; }
   public int getMaxBeamPosition() { return maxBeamPosition; }
-  public String getCat() { return cat; }
-  public int getStart() { return start; }
-  public int getEnd() { return end; }
+  @Override
+public String getCat() { return cat; }
+  @Override
+public int getStart() { return start; }
+  @Override
+public int getEnd() { return end; }
   public boolean containsIndex(int i) { return i < end && i >= start; }
-  public Rule getRule() { return rule; }
+  @Override
+public Rule getRule() { return rule; }
   public Evaluation getExecutorStats() { return executorStats; }
   public FeatureVector getLocalFeatureVector() { return localFeatureVector; }
 
-  public Derivation child(int i) { return children.get(i); }
-  public String childStringValue(int i) {
+  @Override
+public Derivation child(int i) { return children.get(i); }
+  @Override
+public String childStringValue(int i) {
     return Formulas.getString(children.get(i).formula);
   }
 
@@ -330,7 +367,8 @@ public class Derivation implements SemanticFn.Callable, HasScore {
   public String startEndString(List<String> tokens) {
     return start + ":" + end + (start == -1 ? "" : tokens.subList(start, end));
   }
-  public String toString() { return toLispTree().toString(); }
+  @Override
+public String toString() { return toLispTree().toString(); }
 
   public void incrementLocalFeatureVector(double factor, Map<String, Double> map) {
     localFeatureVector.increment(factor, map, AllFeatureMatcher.matcher);
@@ -369,7 +407,7 @@ public class Derivation implements SemanticFn.Callable, HasScore {
 
   public void addLocalChoice(String choice) {
     if (localChoices == null)
-      localChoices = new ArrayList<String>();
+      localChoices = new ArrayList<>();
     localChoices.add(choice);
   }
 
@@ -412,7 +450,7 @@ public class Derivation implements SemanticFn.Callable, HasScore {
 
   // for debugging
   public void printDerivationRecursively() {
-    LogInfo.logs("Deriv: %s(%s,%s) %s", cat, start, end, formula);
+		LogInfo.logs("Deriv: %s(%s,%s) %s", cat, start, end, formula);
     for (int i = 0; i < children.size(); i++) {
       LogInfo.begin_track("child %s:", i);
       children.get(i).printDerivationRecursively();
@@ -438,7 +476,7 @@ public class Derivation implements SemanticFn.Callable, HasScore {
   public Map<String, Object> getTempState() {
     // Create the tempState if it doesn't exist.
     if (tempState == null)
-      tempState = new HashMap<String, Object>();
+      tempState = new HashMap<>();
     return tempState;
   }
   public void clearTempState() {

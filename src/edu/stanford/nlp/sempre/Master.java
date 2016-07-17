@@ -1,15 +1,16 @@
 package edu.stanford.nlp.sempre;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import fig.basic.*;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.*;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
+import fig.basic.*;
 
 /**
  * A Master manages multiple sessions. Currently, they all share the same model,
@@ -257,6 +258,7 @@ public class Master {
       deriv.value.log();
       LogInfo.end_track();
     }
+		LogInfo.logs("Derivation is %s", deriv.cache);
   }
 
   private void handleCommand(Session session, String line, Response response) {
@@ -417,7 +419,7 @@ public class Master {
     // All options are assumed to be of the form <class>opts.
     // Read the module-classes.txt file, which specifies which classes are
     // associated with each module.
-    List<Object> args = new ArrayList<Object>();
+    List<Object> args = new ArrayList<>();
     for (String line : IOUtils.readLinesHard("module-classes.txt")) {
 
       // Example: core edu.stanford.nlp.sempre.Grammar

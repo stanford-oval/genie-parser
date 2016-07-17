@@ -1,12 +1,15 @@
 package edu.stanford.nlp.sempre;
 
+import edu.stanford.nlp.sempre.Derivation.Cacheability;
+
 /**
  * Maps a string to a Date.
  *
  * @author Percy Liang
  */
 public class DateFn extends SemanticFn {
-  public DerivationStream call(final Example ex, final Callable c) {
+  @Override
+public DerivationStream call(final Example ex, final Callable c) {
     return new SingleDerivationStream() {
       @Override
       public Derivation createDerivation() {
@@ -20,6 +23,8 @@ public class DateFn extends SemanticFn {
                 .withCallable(c)
                 .formula(new ValueFormula<>(dateValue))
                 .type(SemType.dateType)
+						.meetCache(
+								value.equals("PRESENT_REF") ? Cacheability.NON_DETERMINISTIC : Cacheability.CACHEABLE)
                 .createDerivation();
       }
     };

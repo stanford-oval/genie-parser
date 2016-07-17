@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.Derivation.Cacheability;
 import fig.basic.LispTree;
 import fig.basic.Option;
 
@@ -96,6 +97,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 			entry.addFeatures(features);
 			Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())
 					.localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).type(SemType.entityType)
+					.meetCache(Cacheability.LEXICON_DEPENDENT)
 					.createDerivation();
 
 			// Doesn't generalize, but add it for now, otherwise not separable
