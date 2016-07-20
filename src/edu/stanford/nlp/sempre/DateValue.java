@@ -1,10 +1,11 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.LispTree;
-
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+
+import fig.basic.LispTree;
 
 public class DateValue extends Value {
   public final int year;
@@ -14,11 +15,16 @@ public class DateValue extends Value {
   public final int minute;
   public final double second;
 
+	private static final Pattern PATTERN = Pattern
+			.compile("([0-9X]{4})?(-[0-9X]{2})?(-[0-9X]{2})?(T[0-9X]{2}:[0-9X]{2}(:[0-9X]{2}(\\.[0-9]+)?)?)?Z?");
+
   // Format: YYYY-MM-DD (from Freebase).
   // Return null if it's not a valid date string.
   public static DateValue parseDateValue(String dateStr) {
     if (dateStr.equals("PRESENT_REF")) return now();
-    if (dateStr.startsWith("OFFSET")) return null;
+
+		if (!PATTERN.matcher(dateStr).matches())
+			return null;
 
     // We don't handle the following things:
     //   - "30 A.D" since its value is "+0030"
@@ -120,7 +126,8 @@ public class DateValue extends Value {
     }
   }
 
-  public LispTree toLispTree() {
+  @Override
+public LispTree toLispTree() {
     LispTree tree = LispTree.proto.newList();
     tree.addChild("date");
     tree.addChild(String.valueOf(year));
@@ -134,8 +141,9 @@ public class DateValue extends Value {
     return tree;
   }
 
-  public Map<String,Object> toJson() {
-    Map<String,Object> json = new HashMap<String,Object>();
+  @Override
+public Map<String,Object> toJson() {
+    Map<String,Object> json = new HashMap<>();
     json.put("year", year);
     json.put("month", month);
     json.put("day", day);
