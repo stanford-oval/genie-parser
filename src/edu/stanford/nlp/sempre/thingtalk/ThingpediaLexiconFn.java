@@ -1,7 +1,7 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
 
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.Derivation.Cacheability;
@@ -51,7 +51,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	@Override
 	public DerivationStream call(Example ex, Callable c) {
 		String phrase = c.childStringValue(0);
-		ThingpediaLexicon.AbstractEntryStream entries;
+		Iterator<ThingpediaLexicon.Entry> entries;
 		try {
 			if (mode == ThingpediaLexicon.Mode.APP)
 				entries = lexicon.lookupApp(phrase);
@@ -71,20 +71,15 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	public class ThingpediaDerivationStream extends MultipleDerivationStream {
 		private Example ex;
 		private Callable callable;
-		private ThingpediaLexicon.AbstractEntryStream entries;
+		private Iterator<ThingpediaLexicon.Entry> entries;
 		private String phrase;
 
-		public ThingpediaDerivationStream(Example ex, Callable c, ThingpediaLexicon.AbstractEntryStream entries,
+		public ThingpediaDerivationStream(Example ex, Callable c, Iterator<ThingpediaLexicon.Entry> entries,
 				String phrase) {
 			this.ex = ex;
 			this.callable = c;
 			this.entries = entries;
 			this.phrase = phrase;
-		}
-
-		@Override
-		public void close() throws IOException {
-			entries.close();
 		}
 
 		@Override

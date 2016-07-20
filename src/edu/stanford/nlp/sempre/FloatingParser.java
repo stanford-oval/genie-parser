@@ -2,7 +2,6 @@ package edu.stanford.nlp.sempre;
 
 import static fig.basic.LogInfo.logs;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
@@ -146,26 +145,25 @@ class FloatingParserState extends ParserState {
       }
     }
 
-		try (DerivationStream results = rule.sem.call(ex,
-				new SemanticFn.CallInfo(rule.lhs, start, end, rule, children))) {
-			while (results.hasNext()) {
-				Derivation newDeriv = results.next();
-				newDeriv.canonicalUtterance = canonicalUtterance;
+		DerivationStream results = rule.sem.call(ex,
+				new SemanticFn.CallInfo(rule.lhs, start, end, rule, children));
+		while (results.hasNext()) {
+			Derivation newDeriv = results.next();
+			newDeriv.canonicalUtterance = canonicalUtterance;
 
-				// make sure we execute
-				if (FloatingParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
-					newDeriv.ensureExecuted(parser.executor, ex.context);
+			// make sure we execute
+			if (FloatingParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
+				newDeriv.ensureExecuted(parser.executor, ex.context);
 
-				if (pruner.isPruned(newDeriv))
-					continue;
-				// Avoid repetitive floating cells
-				addToChart(cell(rule.lhs, start, end, depth), newDeriv);
-				if (depth == -1) // In addition, anchored cells become floating
-									// at level 0
-					addToChart(floatingCell(rule.lhs, 0), newDeriv);
+			if (pruner.isPruned(newDeriv))
+				continue;
+			// Avoid repetitive floating cells
+			addToChart(cell(rule.lhs, start, end, depth), newDeriv);
+			if (depth == -1) {
+				// In addition, anchored cells become floating
+				// at level 0
+				addToChart(floatingCell(rule.lhs, 0), newDeriv);
 			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
   }
 

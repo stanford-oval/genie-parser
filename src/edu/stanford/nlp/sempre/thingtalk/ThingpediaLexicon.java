@@ -1,9 +1,7 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.sql.*;
-import java.util.Iterator;
+import java.util.*;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
@@ -12,6 +10,8 @@ import fig.basic.LogInfo;
 import fig.basic.Option;
 
 public class ThingpediaLexicon {
+	public static final long CACHE_AGE = 1000 * 3600 * 1; // cache lexicon lookups for 1 hour
+
 	public static class Options {
 		@Option
 		public String dbUrl = "jdbc:mysql://localhost/thingengine";
@@ -141,6 +141,47 @@ public class ThingpediaLexicon {
 
 	private final BasicDataSource dataSource;
 
+	private static class LexiconKey {
+		private final Mode mode;
+		private final String query;
+
+		public LexiconKey(Mode mode, String query) {
+			this.mode = mode;
+			this.query = query;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((mode == null) ? 0 : mode.hashCode());
+			result = prime * result + ((query == null) ? 0 : query.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			LexiconKey other = (LexiconKey) obj;
+			if (mode != other.mode)
+				return false;
+			if (query == null) {
+				if (other.query != null)
+					return false;
+			} else if (!query.equals(other.query))
+				return false;
+			return true;
+		}
+	}
+
+	private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(
+			1024);
+
 	private ThingpediaLexicon() {
 		dataSource = new BasicDataSource();
 		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
@@ -164,129 +205,18 @@ public class ThingpediaLexicon {
 		}
 	}
 
-	public interface AbstractEntryStream extends Iterator<Entry>, Closeable, AutoCloseable {
-	}
-
-	public static abstract class EntryStream implements AbstractEntryStream
-	{
-		protected final ResultSet rs;
-		private final Statement stmt;
-		private final Connection con;
-		private Entry nextEntry;
-
-		public EntryStream(Connection con, Statement stmt, ResultSet rs) {
-			this.con = con;
-			this.stmt = stmt;
-			this.rs = rs;
-			nextEntry = null;
-		}
-
-		@Override
-		public void close() throws IOException {
-			try {
-				con.close();
-				stmt.close();
-				rs.close();
-			} catch (SQLException e) {
-				throw new IOException(e);
-			}
-		}
-
-		protected abstract Entry createEntry() throws SQLException;
-
-		private void checkNext() {
-			try {
-			if (nextEntry != null)
-				return;
-			if (!rs.next())
-				return;
-			nextEntry = createEntry();
-			} catch(SQLException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		@Override
-		public boolean hasNext() {
-			checkNext();
-			return nextEntry != null;
-		}
-
-		@Override
-		public Entry next() {
-			checkNext();
-			Entry next = nextEntry;
-			nextEntry = null;
-			return next;
-		}
-	}
-
-	private static class AppEntryStream extends EntryStream {
-		public AppEntryStream(Connection con, Statement stmt, ResultSet rs) {
-			super(con, stmt, rs);
-		}
-
-		@Override
-		protected AppEntry createEntry() throws SQLException {
-			return new AppEntry(rs.getString(1), rs.getLong(2), rs.getString(3));
-		}
-	}
-
-	private static class ChannelEntryStream extends EntryStream {
-		public ChannelEntryStream(Connection con, Statement stmt, ResultSet rs) {
-			super(con, stmt, rs);
-		}
-
-		@Override
-		protected ChannelEntry createEntry() throws SQLException {
-			return new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3));
-		}
-	}
-
-	private static class KindEntryStream extends EntryStream {
-		public KindEntryStream(Connection con, Statement stmt, ResultSet rs) {
-			super(con, stmt, rs);
-		}
-
-		@Override
-		protected KindEntry createEntry() throws SQLException {
-			return new KindEntry(rs.getString(1));
-		}
-	}
-
-	private static class ParamEntryStream extends EntryStream {
-		public ParamEntryStream(Connection con, Statement stmt, ResultSet rs) {
-			super(con, stmt, rs);
-		}
-
-		@Override
-		protected ParamEntry createEntry() throws SQLException {
-			return new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
-		}
-	}
-
-	private static class EmptyEntryStream implements AbstractEntryStream {
-		public EmptyEntryStream() {
-		}
-
-		@Override
-		public boolean hasNext() {
-			return false;
-		}
-
-		@Override
-		public Entry next() {
-			return null;
-		}
-
-		@Override
-		public void close() {
-		}
-	}
-
-	public AbstractEntryStream lookupApp(String phrase) throws SQLException {
+	public Iterator<Entry> lookupApp(String phrase) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupApp %s", phrase);
+		
+		List<Entry> entries = cache.hit(new LexiconKey(Mode.APP, phrase));
+		if (entries != null) {
+			if (opts.verbose >= 3)
+				LogInfo.logs("ThingpediaLexicon cacheHit");
+			return entries.iterator();
+		}
+		if (opts.verbose >= 3)
+			LogInfo.logs("ThingpediaLexicon cacheMiss");
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
@@ -295,63 +225,130 @@ public class ThingpediaLexicon {
 			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
 		}
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement stmt = con.prepareStatement(query);
-		stmt.setString(1, phrase);
-		
-		return new AppEntryStream(con, stmt, stmt.executeQuery());
+		long now = System.currentTimeMillis();
+
+		try (Connection con = dataSource.getConnection()) {
+			try (PreparedStatement stmt = con.prepareStatement(query)) {
+				stmt.setString(1, phrase);
+
+				entries = new LinkedList<>();
+				try (ResultSet rs = stmt.executeQuery()) {
+					while (rs.next())
+						entries.add(new AppEntry(rs.getString(1), rs.getLong(2), rs.getString(3)));
+				} catch (SQLException e) {
+					if (opts.verbose > 0)
+						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
+				}
+				cache.store(new LexiconKey(Mode.APP, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
+				return entries.iterator();
+			}
+		}
 	}
 
-	public AbstractEntryStream lookupKind(String phrase) throws SQLException {
+	public Iterator<Entry> lookupKind(String phrase) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupKind %s", phrase);
 
+		List<Entry> entries = cache.hit(new LexiconKey(Mode.KIND, phrase));
+		if (entries != null) {
+			if (opts.verbose >= 3)
+				LogInfo.logs("ThingpediaLexicon cacheHit");
+			return entries.iterator();
+		}
+		if (opts.verbose >= 3)
+			LogInfo.logs("ThingpediaLexicon cacheMiss");
+
 		String query = "select kind from device_schema where kind = ?";
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement stmt = con.prepareStatement(query);
-		stmt.setString(1, phrase);
+		long now = System.currentTimeMillis();
 
-		return new KindEntryStream(con, stmt, stmt.executeQuery());
+		try (Connection con = dataSource.getConnection()) {
+			try (PreparedStatement stmt = con.prepareStatement(query)) {
+				stmt.setString(1, phrase);
+
+				entries = new LinkedList<>();
+				try (ResultSet rs = stmt.executeQuery()) {
+					while (rs.next())
+						entries.add(new KindEntry(rs.getString(1)));
+				} catch (SQLException e) {
+					if (opts.verbose > 0)
+						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
+				}
+				cache.store(new LexiconKey(Mode.KIND, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
+				return entries.iterator();
+			}
+		}
 	}
 
-	public AbstractEntryStream lookupParam(String phrase) throws SQLException {
+	public Iterator<Entry> lookupParam(String phrase) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupParam %s", phrase);
-
+		
 		String[] tokens = phrase.split(" ");
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
 			if (tokens.length > 4)
-				return new EmptyEntryStream();
+				return Collections.emptyIterator();
 
 			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
 					+ "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary'";
 		} else {
 			if (tokens.length > 1)
-				return new EmptyEntryStream();
+				return Collections.emptyIterator();
 
 			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
 					+ "on schema_id = id and version = approved_version and match canonical against (? in natural language "
 					+ "mode) and kind_type <> 'primary'";
 		}
+		
+		List<Entry> entries = cache.hit(new LexiconKey(Mode.PARAM, phrase));
+		if (entries != null) {
+			if (opts.verbose >= 3)
+				LogInfo.logs("ThingpediaLexicon cacheHit");
+			return entries.iterator();
+		}
+		if (opts.verbose >= 3)
+			LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement stmt = con.prepareStatement(query);
-		stmt.setString(1, phrase);
+		long now = System.currentTimeMillis();
 
-		return new ParamEntryStream(con, stmt, stmt.executeQuery());
+		try (Connection con = dataSource.getConnection()) {
+			try (PreparedStatement stmt = con.prepareStatement(query)) {
+				stmt.setString(1, phrase);
+
+				entries = new LinkedList<>();
+				try (ResultSet rs = stmt.executeQuery()) {
+					while (rs.next())
+						entries.add(new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+								rs.getString(5)));
+				} catch (SQLException e) {
+					if (opts.verbose > 0)
+						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
+				}
+				cache.store(new LexiconKey(Mode.PARAM, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
+				return entries.iterator();
+			}
+		}
 	}
 
-	public AbstractEntryStream lookupChannel(String phrase, Mode channel_type) throws SQLException {
+	public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
 		String[] tokens = phrase.split(" ");
 		if (tokens.length < 3 || tokens.length > 7)
-			return new EmptyEntryStream();
+			return Collections.emptyIterator();
 		if (!"on".equals(tokens[tokens.length - 2]))
-			return new EmptyEntryStream();
+			return Collections.emptyIterator();
+
+		List<Entry> entries = cache.hit(new LexiconKey(channel_type, phrase));
+		if (entries != null) {
+			if (opts.verbose >= 3)
+				LogInfo.logs("ThingpediaLexicon cacheHit");
+			return entries.iterator();
+		}
+		if (opts.verbose >= 3)
+			LogInfo.logs("ThingpediaLexicon cacheMiss");
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
@@ -364,11 +361,25 @@ public class ThingpediaLexicon {
 					+ "match canonical against (? in natural language mode) and ds.kind_type <> 'primary'";
 		}
 
-		Connection con = dataSource.getConnection();
-		PreparedStatement stmt = con.prepareStatement(query);
-		stmt.setString(1, channel_type.name().toLowerCase());
-		stmt.setString(2, phrase);
+		long now = System.currentTimeMillis();
 
-		return new ChannelEntryStream(con, stmt, stmt.executeQuery());
+		try (Connection con = dataSource.getConnection()) {
+			try (PreparedStatement stmt = con.prepareStatement(query)) {
+				stmt.setString(1, channel_type.toString().toLowerCase());
+				stmt.setString(2, phrase);
+
+				entries = new LinkedList<>();
+				try (ResultSet rs = stmt.executeQuery()) {
+					while (rs.next())
+						entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3)));
+				} catch (SQLException e) {
+					if (opts.verbose > 0)
+						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
+				}
+				cache.store(new LexiconKey(channel_type, phrase), Collections.unmodifiableList(entries),
+						now + CACHE_AGE);
+				return entries.iterator();
+			}
+		}
 	}
 }

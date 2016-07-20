@@ -144,21 +144,20 @@ public void infer() {
     try {
       if (mode == Mode.full) {
         StopWatchSet.begin(rule.getSemRepn());
-				try (DerivationStream results = rule.sem.call(ex,
-						new SemanticFn.CallInfo(rule.lhs, start, end, rule, ImmutableList.copyOf(children)))) {
-					StopWatchSet.end();
-					while (results.hasNext()) {
-						Derivation newDeriv = results.next();
+				DerivationStream results = rule.sem.call(ex,
+						new SemanticFn.CallInfo(rule.lhs, start, end, rule, ImmutableList.copyOf(children)));
+				StopWatchSet.end();
+				while (results.hasNext()) {
+					Derivation newDeriv = results.next();
 
-						// make sure we execute
-						if (BeamParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
-							newDeriv.ensureExecuted(parser.executor, ex.context);
+					// make sure we execute
+					if (BeamParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
+						newDeriv.ensureExecuted(parser.executor, ex.context);
 
-						featurizeAndScoreDerivation(newDeriv);
-						addToChart(newDeriv);
-					}
-					return results.estimatedSize();
+					featurizeAndScoreDerivation(newDeriv);
+					addToChart(newDeriv);
 				}
+				return results.estimatedSize();
       } else if (mode == Mode.bool) {
         Derivation deriv = new Derivation.Builder()
             .cat(rule.lhs).start(start).end(end).rule(rule)

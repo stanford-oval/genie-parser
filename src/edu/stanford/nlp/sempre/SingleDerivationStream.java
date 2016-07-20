@@ -11,11 +11,6 @@ public abstract class SingleDerivationStream implements DerivationStream {
   // Return null if there is none.
   public abstract Derivation createDerivation();
 
-	// close does nothing by default
-	@Override
-	public void close() {
-	}
-
   @Override public boolean hasNext() {
     if (nextDeriv != null) return true;  // Still one in the queue
     if (consumed) return false;          // No more
