@@ -38,6 +38,8 @@ public final class Values {
     if ("trigger".equals(type)) return new TriggerValue(tree);
     if ("action".equals(type)) return new ActionValue(tree);
     if ("command".equals(type)) return new CommandValue(tree);
+		if ("location".equals(type))
+			return new LocationValue(tree);
     return null;
   }
 

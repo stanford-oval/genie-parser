@@ -34,8 +34,12 @@
 (rule $BoolParseValue (false) (ConstantFn (boolean false)))
 (rule $BoolValue ($BoolParseValue) (lambda bool (call @boolValueCast (var bool))))
 
+(rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn))
+(rule $LocationValue (here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
+(rule $LocationValue (at home) (ConstantFn (location rel_home -1 -1) fb:type.any))
+(rule $LocationValue (at work) (ConstantFn (location rel_work -1 -1) fb:type.any))
+
 # FIXME: Integrate this to improve the canonicals
-#(rule $PlaceValue ($PHRASE) (FilterNerSpanFn LOCATION) (anchored 1))
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
@@ -62,6 +66,7 @@
 (rule $BoolArg ($ArgName $Op $BoolValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Bool") (var arg) (var op) (var value))))))
 (rule $NumArg ($ArgName $NumOp $NumValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Number") (var arg) (var op) (var value))))))
 (rule $TempArg ($ArgName $NumOp $TempValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Measure") (var arg) (var op) (var value))))))
+(rule $LocationArg ($ArgName $Op $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (string "Location") (var arg) (var op) (var value))))))
 
 # Arguments
 (rule $Arg ($StringArg) (thingtalk.FilterInvalidArgFn))
@@ -71,6 +76,7 @@
 (rule $Arg ($BoolArg) (thingtalk.FilterInvalidArgFn))
 (rule $Arg ($NumArg) (thingtalk.FilterInvalidArgFn))
 (rule $Arg ($TempArg) (thingtalk.FilterInvalidArgFn))
+(rule $Arg ($LocationArg) (thingtalk.FilterInvalidArgFn))
 #(rule $Arg ($StringArg) (IdentityFn))
 #(rule $Arg ($ArrayArg) (IdentityFn))
 #(rule $Arg ($DateArg) (IdentityFn))
@@ -168,6 +174,7 @@
 (rule $Answer ($NumValue) (lambda value (call @ansForm (string "Number") (var value))))
 (rule $Answer ($TempValue) (lambda value (call @ansForm (string "Measure") (var value))))
 (rule $Answer ($BoolValue) (lambda value (call @ansForm (string "Bool") (var value))))
+(rule $Answer ($LocationValue) (lambda value (call @ansForm (string "Location") (var value))))
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
