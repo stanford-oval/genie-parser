@@ -12,42 +12,16 @@ import edu.stanford.nlp.sempre.*;
  */
 public final class ThingTalk {
 
-    //******************************************************************************************************************
-    // Casting Java built-in types to Sempre Value structures
-    //******************************************************************************************************************
-    public static StringValue stringValueCast(String value) {
-        StringValue stringVal = new StringValue(value);
-        return stringVal;
-    }
-
-    public static NumberValue numValueCast(Integer value) {
-        NumberValue numVal = new NumberValue(value);
-        return numVal;
-    }
-    public static NumberValue numValueCast(Double value) {
-        NumberValue numVal = new NumberValue(value);
-        return numVal;
-    }
-
-    public static NumberValue tempValueCast(String unit, Integer value) {
-        NumberValue tempVal = new NumberValue(value, unit);
-        return tempVal;
-    }
-    public static NumberValue tempValueCast(String unit, Double value) {
-        NumberValue tempVal = new NumberValue(value, unit);
-        return tempVal;
-    }
-
-	public static BooleanValue boolValueCast(Boolean value) {
-		BooleanValue boolVal = new BooleanValue(value);
-        return boolVal;
-    }
+	public static NumberValue tempValueCast(StringValue unit, NumberValue number) {
+		NumberValue tempVal = new NumberValue(number.value, unit.value);
+		return tempVal;
+	}
 
     //******************************************************************************************************************
     // Constructing the parameter value structure
     //******************************************************************************************************************
-	public static ParamValue paramForm(String tt_type, ParamNameValue tt_arg, String operator, Value value) {
-        ParamValue paramVal = new ParamValue(tt_arg, tt_type, operator, value);
+	public static ParamValue paramForm(StringValue tt_type, ParamNameValue tt_arg, StringValue operator, Value value) {
+		ParamValue paramVal = new ParamValue(tt_arg, tt_type.value, operator.value, value);
         return paramVal;
     }
 
@@ -96,21 +70,16 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the command value structure
     //******************************************************************************************************************
-    public static CommandValue cmdForm(String type, Value val) {
-        CommandValue cmdVal = new CommandValue(type, val);
-        return cmdVal;
-    }
-    public static CommandValue cmdForm(String type, String val) {
-        StringValue strVal = new StringValue(val);
-        CommandValue cmdVal = new CommandValue(type, strVal);
+	public static CommandValue cmdForm(StringValue type, Value val) {
+		CommandValue cmdVal = new CommandValue(type.value, val);
         return cmdVal;
     }
 
 	//******************************************************************************************************************
 	// Answers
 	//******************************************************************************************************************
-	public static ParamValue ansForm(String type, Value val) {
-		return new ParamValue(new ParamNameValue("answer", type), type, "is", val);
+	public static ParamValue ansForm(StringValue type, Value val) {
+		return new ParamValue(new ParamNameValue("answer", type.value), type.value, "is", val);
 	}
 
     //******************************************************************************************************************

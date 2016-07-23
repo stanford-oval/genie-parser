@@ -9,6 +9,7 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-LanguageAnalyzer' 'corenlp.CoreNLPAnalyzer' \
               '-Builder.parser' 'BeamParser' \
               '-Builder.executor' 'JavaExecutor' \
+              '-JavaExecutor.unpackValues' 'false' \
               '-Grammar.inPaths' 'thingtalk/thingtalk.grammar' \
               '-Grammar.tags' 'parse' '+Grammar.tags' 'general' \
               '-FeatureExtractor.featureDomains' 'denotation' 'rule' \

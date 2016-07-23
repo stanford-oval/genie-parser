@@ -7,7 +7,7 @@ exec java -Dmodules=core,overnight,freebase,thingtalk -Xmx8g \
 	-LanguageAnalyzer corenlp.CoreNLPAnalyzer \
 	-execDir genthingtalk.out -overwriteExecDir -addToView 0 \
 	-JoinFn.typeInference true -JoinFn.specializedTypeCheck false \
-	-JavaExecutor.convertNumberValues false -JavaExecutor.printStackTrace false \
+	-JavaExecutor.unpackValues false -JavaExecutor.printStackTrace false \
 	-Grammar.inPaths thingtalk/thingtalk.grammar \
 	-initialization "denotation :: error,-1000" "denotation :: empty,-100" "paraphrase :: size,+0.01" "denotation :: value_in_formula,-100" \
 	-FeatureExtractor.featureComputers overnight.OvernightFeatureComputer -OvernightFeatureComputer.featureDomains  \

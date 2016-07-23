@@ -12,6 +12,7 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-LanguageAnalyzer' 'corenlp.CoreNLPAnalyzer' \
               '-Builder.parser' 'BeamParser' \
               '-Builder.executor' 'JavaExecutor' \
+              '-JavaExecutor.unpackValues' 'false' \
               '-Grammar.inPaths' 'sabrina/sabrina.grammar' \
               '-FeatureExtractor.featureDomains' 'denotation' 'rule' \
               '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' \
