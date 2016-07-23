@@ -35,6 +35,8 @@ public final class Values {
     if ("param".equals(type)) return new ParamValue(tree);
 		if ("paramname".equals(type))
 			return new ParamNameValue(tree);
+		if ("channel".equals(type))
+			return new ChannelNameValue(tree);
     if ("trigger".equals(type)) return new TriggerValue(tree);
     if ("action".equals(type)) return new ActionValue(tree);
     if ("command".equals(type)) return new CommandValue(tree);

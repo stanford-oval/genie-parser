@@ -9,7 +9,7 @@ public class FilterInvalidInvocationFn extends SemanticFn {
 
 		ParametricValue pv = (ParametricValue) value;
 		for (ParamValue param : pv.params) {
-			if (!param.name.forChannel.equals(pv.name))
+			if (!param.name.type.equals(pv.name.getArgType(param.name.argname)))
 				return false;
 		}
 

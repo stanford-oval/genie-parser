@@ -2,7 +2,6 @@ package edu.stanford.nlp.sempre.thingtalk;
 
 import java.util.List;
 
-import edu.stanford.nlp.sempre.NameValue;
 import fig.basic.LispTree;
 
 /**
@@ -13,10 +12,12 @@ public class ActionValue extends ParametricValue {
     public ActionValue(LispTree tree) {
 		super(tree);
     }
-    public ActionValue(NameValue name, List<ParamValue> params) {
+
+	public ActionValue(ChannelNameValue name, List<ParamValue> params) {
 		super(name, params);
     }
-    public ActionValue(NameValue name) {
+
+	public ActionValue(ChannelNameValue name) {
 		super(name);
     }
 

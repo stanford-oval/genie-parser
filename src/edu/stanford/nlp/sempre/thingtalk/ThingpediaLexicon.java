@@ -5,6 +5,9 @@ import java.util.*;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
 import fig.basic.Option;
@@ -46,16 +49,12 @@ public class ThingpediaLexicon {
 	private static class ParamEntry extends Entry {
 		private final String rawPhrase;
 		private final String argname;
-		private final String kind;
 		private final String type;
-		private final String channelName;
 
-		public ParamEntry(String rawPhrase, String argname, String type, String kind, String channelName) {
+		public ParamEntry(String rawPhrase, String argname, String type) {
 			this.rawPhrase = rawPhrase;
 			this.argname = argname;
 			this.type = type;
-			this.kind = kind;
-			this.channelName = channelName;
 		}
 
 		@Override
@@ -66,7 +65,7 @@ public class ThingpediaLexicon {
 		@Override
 		public Formula toFormula() {
 			return new ValueFormula<>(
-					new ParamNameValue(argname, type, new NameValue("tt:" + kind + "." + channelName)));
+					new ParamNameValue(argname, type));
 		}
 	}
 
@@ -96,11 +95,19 @@ public class ThingpediaLexicon {
 		private final String rawPhrase;
 		private final String kind;
 		private final String name;
+		private final List<String> argnames;
+		private final List<String> argtypes;
 
-		public ChannelEntry(String rawPhrase, String kind, String name) {
+		public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argtypes)
+				throws JsonProcessingException {
 			this.rawPhrase = rawPhrase;
 			this.kind = kind;
 			this.name = name;
+
+			TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
+			};
+			this.argnames = Json.readValueHard(argnames, typeRef);
+			this.argtypes = Json.readValueHard(argtypes, typeRef);
 		}
 
 		@Override
@@ -110,7 +117,7 @@ public class ThingpediaLexicon {
 
 		@Override
 		public Formula toFormula() {
-			return new ValueFormula<>(new NameValue("tt:" + kind + "." + name));
+			return new ValueFormula<>(new ChannelNameValue(kind, name, argnames, argtypes));
 		}
 
 		@Override
@@ -220,9 +227,10 @@ public class ThingpediaLexicon {
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
-			query = "select canonical,owner,appId from app where canonical = ?";
+			query = "select canonical,owner,appId from app where canonical = ? limit " + Parser.opts.beamSize;
 		} else {
-			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode)";
+			query = "select canonical,owner,appId from app where match canonical against (? in natural language mode) limit "
+					+ Parser.opts.beamSize;
 		}
 
 		long now = System.currentTimeMillis();
@@ -258,7 +266,7 @@ public class ThingpediaLexicon {
 		if (opts.verbose >= 3)
 			LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-		String query = "select kind from device_schema where kind = ?";
+		String query = "select kind from device_schema where kind = ? limit " + Parser.opts.beamSize;
 
 		long now = System.currentTimeMillis();
 
@@ -291,15 +299,16 @@ public class ThingpediaLexicon {
 			if (tokens.length > 4)
 				return Collections.emptyIterator();
 
-			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
-					+ "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary'";
+			query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
+					+ "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary' "
+					+ "limit " + Parser.opts.beamSize;
 		} else {
 			if (tokens.length > 1)
 				return Collections.emptyIterator();
 
-			query = "select canonical, argname, argtype, kind, channel_name from device_schema_arguments join device_schema "
+			query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
 					+ "on schema_id = id and version = approved_version and match canonical against (? in natural language "
-					+ "mode) and kind_type <> 'primary'";
+					+ "mode) and kind_type <> 'primary' limit " + Parser.opts.beamSize;
 		}
 		
 		List<Entry> entries = cache.hit(new LexiconKey(Mode.PARAM, phrase));
@@ -320,8 +329,7 @@ public class ThingpediaLexicon {
 				entries = new LinkedList<>();
 				try (ResultSet rs = stmt.executeQuery()) {
 					while (rs.next())
-						entries.add(new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-								rs.getString(5)));
+						entries.add(new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3)));
 				} catch (SQLException e) {
 					if (opts.verbose > 0)
 						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
@@ -352,13 +360,14 @@ public class ThingpediaLexicon {
 
 		String query;
 		if (Builder.opts.parser.equals("BeamParser")) {
-			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+			query = "select dsc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds "
 					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? "
-					+ " and canonical = ? and ds.kind_type <> 'primary'";
+					+ " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
 		} else {
-			query = "select dsc.canonical,ds.kind,dsc.name from device_schema_channels dsc, device_schema ds "
+			query = "select dsc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds "
 					+ " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and "
-					+ "match canonical against (? in natural language mode) and ds.kind_type <> 'primary'";
+					+ "match canonical against (? in natural language mode) and ds.kind_type <> 'primary' limit "
+					+ Parser.opts.beamSize;
 		}
 
 		long now = System.currentTimeMillis();
@@ -371,10 +380,11 @@ public class ThingpediaLexicon {
 				entries = new LinkedList<>();
 				try (ResultSet rs = stmt.executeQuery()) {
 					while (rs.next())
-						entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3)));
-				} catch (SQLException e) {
+						entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
+								rs.getString(4), rs.getString(5)));
+				} catch (SQLException | JsonProcessingException e) {
 					if (opts.verbose > 0)
-						LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
+						LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
 				}
 				cache.store(new LexiconKey(channel_type, phrase), Collections.unmodifiableList(entries),
 						now + CACHE_AGE);

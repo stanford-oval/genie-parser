@@ -2,7 +2,6 @@ package edu.stanford.nlp.sempre.thingtalk;
 
 import java.util.*;
 
-import edu.stanford.nlp.sempre.NameValue;
 import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
@@ -14,24 +13,24 @@ import fig.basic.LispTree;
  * @author Rakesh Ramesh & Giovanni Campagna
  */
 public abstract class ParametricValue extends Value implements Cloneable {
-	public final NameValue name;
+	public final ChannelNameValue name;
 	public final List<ParamValue> params;
 
 	public ParametricValue(LispTree tree) {
-		this.name = (NameValue) Values.fromLispTree(tree.child(1));
+		this.name = (ChannelNameValue) Values.fromLispTree(tree.child(1));
 		this.params = new ArrayList<>();
 		for (int i = 2; i < tree.children.size(); i++) {
 			this.params.add(((ParamValue) Values.fromLispTree(tree.child(i))));
 		}
 	}
 
-	public ParametricValue(NameValue name, List<ParamValue> params) {
+	public ParametricValue(ChannelNameValue name, List<ParamValue> params) {
 		this.name = name;
 		this.params = new ArrayList<>();
 		this.params.addAll(params);
 	}
 
-	public ParametricValue(NameValue name) {
+	public ParametricValue(ChannelNameValue name) {
 		this.name = name;
 		this.params = new ArrayList<>();
 	}

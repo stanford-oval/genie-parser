@@ -54,7 +54,7 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the trigger value structure
     //******************************************************************************************************************
-    public static TriggerValue trigParam(NameValue triggerName) {
+	public static TriggerValue trigParam(ChannelNameValue triggerName) {
         TriggerValue triggerVal = new TriggerValue(triggerName);
         return triggerVal;
     }
@@ -68,7 +68,7 @@ public final class ThingTalk {
 	//******************************************************************************************************************
 	// Constructing the query value structure
 	//******************************************************************************************************************
-	public static QueryValue queryParam(NameValue queryName) {
+	public static QueryValue queryParam(ChannelNameValue queryName) {
 		QueryValue queryVal = new QueryValue(queryName);
 		return queryVal;
 	}
@@ -83,7 +83,7 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the action value structure
     //******************************************************************************************************************
-    public static ActionValue actParam(NameValue actionName) {
+	public static ActionValue actParam(ChannelNameValue actionName) {
         ActionValue actionVal = new ActionValue(actionName);
         return actionVal;
     }
@@ -110,7 +110,7 @@ public final class ThingTalk {
 	// Answers
 	//******************************************************************************************************************
 	public static ParamValue ansForm(String type, Value val) {
-		return new ParamValue(new ParamNameValue("answer", type, null), type, "is", val);
+		return new ParamValue(new ParamNameValue("answer", type), type, "is", val);
 	}
 
     //******************************************************************************************************************
