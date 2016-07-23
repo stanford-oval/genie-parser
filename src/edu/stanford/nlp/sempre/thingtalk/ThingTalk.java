@@ -25,6 +25,27 @@ public final class ThingTalk {
         return paramVal;
     }
 
+	private static String typeFromValue(Value value) {
+		if (value instanceof NumberValue && ((NumberValue) value).unit == null)
+			return "Number";
+		else if (value instanceof NumberValue)
+			return "Measure";
+		else if (value instanceof StringValue)
+			return "String";
+		else if (value instanceof TimeValue)
+			return "Time";
+		else if (value instanceof DateValue)
+			return "Date";
+		else if (value instanceof BooleanValue)
+			return "Boolean";
+		else
+			throw new RuntimeException("Unexpected value " + value);
+	}
+
+	public static ParamValue paramForm(ParamNameValue tt_arg, StringValue operator, Value value) {
+		return new ParamValue(tt_arg, typeFromValue(value), operator.value, value);
+	}
+
     //******************************************************************************************************************
     // Constructing the trigger value structure
     //******************************************************************************************************************
@@ -80,6 +101,12 @@ public final class ThingTalk {
 	//******************************************************************************************************************
 	public static ParamValue ansForm(StringValue type, Value val) {
 		return new ParamValue(new ParamNameValue("answer", type.value), type.value, "is", val);
+	}
+
+	public static ParamValue ansForm(Value val) {
+		// we don't need to give a type to ParamNameValue because we're not letting this
+		// paramvalue through FilterInvalidArgFn
+		return new ParamValue(new ParamNameValue("answer", null), typeFromValue(val), "is", val);
 	}
 
     //******************************************************************************************************************

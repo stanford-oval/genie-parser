@@ -31,12 +31,39 @@ public class FilterInvalidArgFn extends SemanticFn {
 		return false;
 	}
 
+	private static boolean typeOkArray(String have, String argtype) {
+		if (!argtype.startsWith("Array("))
+			return false;
+
+		// remove initial Array( and final )
+		String eltype = argtype.substring("Array(".length(), argtype.length() - 1);
+		return typeOk(have, eltype);
+	}
+
+	private static boolean operatorOk(String type, String operator) {
+		switch (operator) {
+		case "is":
+			return true;
+		case "contains":
+			return type.equals("String");
+		case ">":
+		case "<":
+			return type.equals("Number") || type.equals("Measure");
+		default:
+			throw new RuntimeException("Unexpected operator " + operator);
+		}
+	}
+
 	private static boolean valueOk(Value value) {
 		if (!(value instanceof ParamValue))
 			return true;
 
 		ParamValue pv = (ParamValue) value;
-		return typeOk(pv.tt_type, pv.name.type);
+
+		if (pv.operator.equals("has"))
+			return typeOkArray(pv.tt_type, pv.name.type);
+		return typeOk(pv.tt_type, pv.name.type) &&
+				operatorOk(pv.tt_type, pv.operator);
 	}
 
 	@Override
