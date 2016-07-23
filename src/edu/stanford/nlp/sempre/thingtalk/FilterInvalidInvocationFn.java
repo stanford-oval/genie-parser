@@ -3,13 +3,26 @@ package edu.stanford.nlp.sempre.thingtalk;
 import edu.stanford.nlp.sempre.*;
 
 public class FilterInvalidInvocationFn extends SemanticFn {
+	private static boolean operatorOk(String operator, boolean isAction) {
+		if (isAction)
+			return operator.equals("is");
+		else
+			return true;
+	}
+
+	private static boolean paramTypeOk(ParamNameValue param, ChannelNameValue channel) {
+		return param.type.equals(channel.getArgType(param.argname));
+	}
+
 	private static boolean valueOk(Value value) {
 		if (!(value instanceof ParametricValue))
 			return true;
 
+		boolean isAction = value instanceof ActionValue;
+
 		ParametricValue pv = (ParametricValue) value;
 		for (ParamValue param : pv.params) {
-			if (!param.name.type.equals(pv.name.getArgType(param.name.argname)))
+			if (!paramTypeOk(param.name, pv.name) || !operatorOk(param.operator, isAction))
 				return false;
 		}
 
