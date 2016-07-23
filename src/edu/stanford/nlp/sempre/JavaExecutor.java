@@ -1,17 +1,15 @@
 package edu.stanford.nlp.sempre;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import fig.basic.MapUtils;
-import fig.basic.Option;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import fig.basic.MapUtils;
+import fig.basic.Option;
 
 /**
  * JavaExecutor takes a Formula which is composed recursively of CallFormulas,
@@ -22,8 +20,9 @@ import java.util.Map;
 public class JavaExecutor extends Executor {
   public static class Options {
     @Option(gloss = "Whether to convert NumberValue to int/double") public boolean convertNumberValues = true;
+    @Option(gloss = "Whether to unpack ValueFormulas to values") public boolean unpackValues = true;
     @Option(gloss = "Print stack trace on exception") public boolean printStackTrace = false;
-  }
+	}
   public static Options opts = new Options();
 
   private static JavaExecutor defaultExecutor = new JavaExecutor();
@@ -102,7 +101,7 @@ public class JavaExecutor extends Executor {
 
     // Apply func to each element of |list| and return the resulting list.
     public static List<Object> map(List<Object> list, LambdaFormula func) {
-      List<Object> newList = new ArrayList<Object>();
+      List<Object> newList = new ArrayList<>();
       for (Object elem : list) {
         Object newElem = apply(func, elem);
         newList.add(newElem);
@@ -122,7 +121,7 @@ public class JavaExecutor extends Executor {
 
     // Return elements x of |list| such that func(x) is true.
     public static List<Object> select(List<Object> list, LambdaFormula func) {
-      List<Object> newList = new ArrayList<Object>();
+      List<Object> newList = new ArrayList<>();
       for (Object elem : list) {
         Object test = apply(func, elem);
         if ((Boolean) test)
@@ -133,25 +132,26 @@ public class JavaExecutor extends Executor {
 
     private static Object apply(LambdaFormula func, Object x) {
       // Apply the function func to x.  In order to do that, need to convert x into a value.
-      Formula formula = Formulas.lambdaApply(func, new ValueFormula<Value>(toValue(x)));
+      Formula formula = Formulas.lambdaApply(func, new ValueFormula<>(toValue(x)));
       return defaultExecutor.processFormula(formula);
     }
     private static Object apply(LambdaFormula func, Object x, Object y) {
       // Apply the function func to x and y.  In order to do that, need to convert x into a value.
-      Formula formula = Formulas.lambdaApply(func, new ValueFormula<Value>(toValue(x)));
-      formula = Formulas.lambdaApply((LambdaFormula) formula, new ValueFormula<Value>(toValue(y)));
+      Formula formula = Formulas.lambdaApply(func, new ValueFormula<>(toValue(x)));
+      formula = Formulas.lambdaApply((LambdaFormula) formula, new ValueFormula<>(toValue(y)));
       return defaultExecutor.processFormula(formula);
     }
 
     public static List<Integer> range(int start, int end) {
-      List<Integer> result = new ArrayList<Integer>();
+      List<Integer> result = new ArrayList<>();
       for (int i = start; i < end; i++)
         result.add(i);
       return result;
     }
   }
 
-  public Response execute(Formula formula, ContextValue context) {
+  @Override
+public Response execute(Formula formula, ContextValue context) {
     // We can do beta reduction here since macro substitution preserves the
     // denotation (unlike for lambda DCS).
     formula = Formulas.betaReduction(formula);
@@ -166,8 +166,14 @@ public class JavaExecutor extends Executor {
   }
 
   private Object processFormula(Formula formula) {
-    if (formula instanceof ValueFormula)  // Unpack value and convert to object (e.g., for ints)
-      return toObject(((ValueFormula) formula).value);
+		if (formula instanceof ValueFormula<?>) {
+			// Unpack value and convert to object (e.g., for ints)
+			Value value = ((ValueFormula<?>) formula).value;
+			if (opts.unpackValues)
+				return toObject(value);
+			else
+				return value;
+		}
 
     if (formula instanceof CallFormula) {  // Invoke the function.
       //LogInfo.logs("formula=%s", formula);
