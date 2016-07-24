@@ -1,10 +1,12 @@
 package edu.stanford.nlp.sempre.overnight;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import edu.stanford.nlp.sempre.LanguageInfo;
-import fig.basic.*;
+import fig.basic.IOUtils;
+import fig.basic.LogInfo;
+import fig.basic.Option;
 
 /**
  * PPDBModel extracts and scores paraphrasing featues from derivations.
@@ -26,7 +28,9 @@ public final class PPDBModel {
 
   public static PPDBModel model;
 
-  Map<String, Map<String, Double>> table;
+	// we use TreeSet instead of HashSet because this will grow very big
+	// (gbs of data) and HashSet has poor memory consumption at large sizes
+	private final Set<StringPair> table = new HashSet<>();
 
   // We should only have one paraphrase model
   public static PPDBModel getSingleton() {
@@ -37,15 +41,49 @@ public final class PPDBModel {
   }
 
   private PPDBModel() {
-    table = loadPPDBModel(opts.ppdbModelPath);
+		loadPPDBModel(opts.ppdbModelPath);
   }
+
+	private static class StringPair {
+		private final String one;
+		private final String two;
+
+		public StringPair(String one, String two) {
+			this.one = one;
+			this.two = two;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + one.hashCode();
+			result = prime * result + two.hashCode();
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			StringPair other = (StringPair) obj;
+			if (!one.equals(other.one))
+				return false;
+			if (!two.equals(other.two))
+				return false;
+			return true;
+		}
+	}
 
   /**
    * Loading ppdb model from file
    */
-  private Map<String, Map<String, Double>> loadPPDBModel(String path) {
+	private void loadPPDBModel(String path) {
     LogInfo.begin_track("Loading ppdb model");
-    Map<String, Map<String, Double>> res = new HashMap<>();
     for (String line: IOUtils.readLinesHard(path)) {
       if (opts.ppdb) {
         String[] tokens = line.split("\\|\\|\\|");
@@ -54,34 +92,20 @@ public final class PPDBModel {
         String stemmedFirst = LanguageInfo.LanguageUtils.stem(first);
         String stemmedSecond = LanguageInfo.LanguageUtils.stem(second);
 
-        putParaphraseEntry(res, first, second);
+				table.add(new StringPair(first, second));
         if ((!stemmedFirst.equals(first) || !stemmedSecond.equals(second)) &&
                 !stemmedFirst.equals(stemmedSecond))
-          putParaphraseEntry(res, stemmedFirst, stemmedSecond);
+					table.add(new StringPair(stemmedFirst, stemmedSecond));
       } else {
         String[] tokens = line.split("\t");
-        MapUtils.putIfAbsent(res, tokens[0], new HashMap<>());
-        for (String token : tokens)
-          LogInfo.logs("%s", token);
-        res.get(tokens[0]).put(tokens[1], 1.0);
+				table.add(new StringPair(tokens[0], tokens[1]));
       }
     }
-    LogInfo.logs("ParaphraseUtils.loadPhraseTable: number of entries=%s", res.size());
+		LogInfo.logs("ParaphraseUtils.loadPhraseTable: number of entries=%s", table.size());
     LogInfo.end_track();
-    return res;
   }
 
-  private void putParaphraseEntry(Map<String, Map<String, Double>> res, String first, String second) {
-    MapUtils.putIfAbsent(res, first, new HashMap<>());
-    res.get(first).put(second, 1.0);
-  }
-
-  public boolean containsKey(String key) {
-    return table.containsKey(key);
-  }
-
-  public Double get(String key, String token) {
-    if (!table.containsKey(key) || !table.get(key).containsKey(token)) return 0.0;
-    return table.get(key).get(token);
+	public double get(String key, String token) {
+		return table.contains(new StringPair(key, token)) ? 1.0 : 0.0;
   }
 }
