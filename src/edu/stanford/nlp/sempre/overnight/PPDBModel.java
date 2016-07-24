@@ -1,10 +1,12 @@
 package edu.stanford.nlp.sempre.overnight;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.sempre.LanguageInfo;
-import fig.basic.IOUtils;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
@@ -84,23 +86,31 @@ public final class PPDBModel {
    */
 	private void loadPPDBModel(String path) {
     LogInfo.begin_track("Loading ppdb model");
-    for (String line: IOUtils.readLinesHard(path)) {
-      if (opts.ppdb) {
-        String[] tokens = line.split("\\|\\|\\|");
-        String first = tokens[1].trim();
-        String second = tokens[2].trim();
-        String stemmedFirst = LanguageInfo.LanguageUtils.stem(first);
-        String stemmedSecond = LanguageInfo.LanguageUtils.stem(second);
 
-				table.add(new StringPair(first, second));
-        if ((!stemmedFirst.equals(first) || !stemmedSecond.equals(second)) &&
-                !stemmedFirst.equals(stemmedSecond))
-					table.add(new StringPair(stemmedFirst, stemmedSecond));
-      } else {
-        String[] tokens = line.split("\t");
-				table.add(new StringPair(tokens[0], tokens[1]));
-      }
-    }
+		try (BufferedReader reader = IOUtils.getBufferedFileReader(path)) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.length() == 0)
+					continue;
+				if (opts.ppdb) {
+					String[] tokens = line.split("\\|\\|\\|");
+					String first = tokens[1].trim();
+					String second = tokens[2].trim();
+					String stemmedFirst = LanguageInfo.LanguageUtils.stem(first);
+					String stemmedSecond = LanguageInfo.LanguageUtils.stem(second);
+
+					table.add(new StringPair(first, second));
+					if ((!stemmedFirst.equals(first) || !stemmedSecond.equals(second)) &&
+							!stemmedFirst.equals(stemmedSecond))
+						table.add(new StringPair(stemmedFirst, stemmedSecond));
+				} else {
+					String[] tokens = line.split("\t");
+					table.add(new StringPair(tokens[0], tokens[1]));
+				}
+			}
+		} catch (IOException e) {
+			LogInfo.logs("IOException loading ppdb model: %s", e.getMessage());
+		}
 		LogInfo.logs("ParaphraseUtils.loadPhraseTable: number of entries=%s", table.size());
     LogInfo.end_track();
   }
