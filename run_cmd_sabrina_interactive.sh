@@ -18,9 +18,7 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' \
               '-OvernightFeatureComputer.featureDomains' \
               'match' 'ppdb' 'skip-bigram' 'root' 'alignment' 'lexical' \
-              'root_lexical' 'lf' 'coarsePrune' \
-              '-OvernightDerivationPruningComputer.applyHardConstraints' \
-              '-DerivationPruner.pruningComputer' 'overnight.OvernightDerivationPruningComputer' \
+              'root_lexical' 'coarsePrune' \
               '-FloatingParser.maxDepth' '12' \
               '-Parser.beamSize' '9' \
               '-Learner.maxTrainIters' '1' \
