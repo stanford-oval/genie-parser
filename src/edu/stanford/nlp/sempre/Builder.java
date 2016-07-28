@@ -38,14 +38,35 @@ public class Builder {
     buildUnspecified();
   }
 
-  public void buildUnspecified() {
-    // Grammar
-    if (grammar == null) {
-      grammar = new Grammar();
-      grammar.read();
-      grammar.write();
-    }
+	public void buildForLanguage(String languageTag) {
+		grammar = null;
+		executor = null;
+		valueEvaluator = null;
+		extractor = null;
+		parser = null;
+		params = null;
 
+		if (grammar == null) {
+			grammar = new Grammar();
+			grammar.readForLanguage(languageTag);
+			// don't write out the grammar for a non-default language
+		}
+
+		buildLanguageAgnostic();
+	}
+
+  public void buildUnspecified() {
+		// Grammar
+		if (grammar == null) {
+			grammar = new Grammar();
+			grammar.read();
+			grammar.write();
+		}
+
+		buildLanguageAgnostic();
+	}
+
+	private void buildLanguageAgnostic() {
     // Executor
     if (executor == null)
       executor = (Executor) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.executor));

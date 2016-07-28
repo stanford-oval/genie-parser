@@ -1,14 +1,15 @@
 package edu.stanford.nlp.sempre;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import fig.basic.*;
-import fig.exec.Execution;
-
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.*;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import fig.basic.*;
+import fig.exec.Execution;
 
 /**
  * The grammar is a set of rules of the form:
@@ -30,12 +31,19 @@ import java.util.*;
 public class Grammar {
   public static class Options {
     @Option public List<String> inPaths = new ArrayList<>();
+		@Option
+		public ArrayList<Pair<String, String>> languageInPaths = new ArrayList<>();
     @Option(gloss = "Variables which are used to interpret the grammar file")
     public List<String> tags = new ArrayList<>();
     @Option public boolean binarizeRules = true;
   }
 
   public static Options opts = new Options();
+
+	// The language of this grammar, eg English or Italian
+	// This is represented as POSIX locale code (eg en_US, es or it_IT.utf8@euro),
+	// which is mostly similar to what java.lang.Locale uses
+	private String languageTag;
 
   // All the rules in the grammar.  Each parser can read these and transform
   // them however the parser wishes.
@@ -61,6 +69,16 @@ public class Grammar {
       readOnePath(path, Sets.newHashSet(opts.tags));
     verifyValid();
   }
+
+	public void readForLanguage(String languageTag) {
+		this.languageTag = languageTag;
+
+		for (Pair<String, String> file : opts.languageInPaths) {
+			if (file.getFirst().equals(languageTag))
+				readOnePath(file.getSecond(), Sets.newHashSet(opts.tags));
+		}
+		verifyValid();
+	}
 
   private void verifyValid() {
     // Make sure that all the categories which are used are actually defined.
