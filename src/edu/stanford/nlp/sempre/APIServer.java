@@ -26,9 +26,26 @@ public class APIServer implements Runnable {
 
 	public static Options opts = new Options();
 
-	private final Map<String, Session> sessionMap = new HashMap<>();
-	private final QueryCache cache = new QueryCache(256);
-	private final Builder builder;
+	private static class LanguageContext {
+		public final Parser parser;
+		public final Params params;
+		public final QueryCache cache = new QueryCache(256);
+
+		public LanguageContext() {
+			Builder builder = new Builder();
+			builder.build();
+			parser = builder.parser;
+			params = builder.params;
+		}
+
+		public void learn() {
+			Dataset dataset = new Dataset();
+			dataset.read();
+
+			Learner learner = new Learner(parser, params, dataset);
+			learner.learn();
+		}
+	}
 
 	private class Handler implements HttpHandler {
 		@Override
@@ -40,6 +57,9 @@ public class APIServer implements Runnable {
 			}
 		}
 	}
+
+	private final Map<String, Session> sessionMap = new HashMap<>();
+	private final Map<String, LanguageContext> langs = new HashMap<>();
 
 	private class ExchangeState {
 		static private final int MAX_ITEMS = 5;
@@ -141,7 +161,7 @@ public class APIServer implements Runnable {
 			return Json.writeValueAsStringHard(json);
 		}
 
-		private List<Derivation> handleUtterance(Session session, String query) {
+		private List<Derivation> handleUtterance(Session session, LanguageContext language, String query) {
 			session.updateContext();
 
 			// Create example
@@ -154,12 +174,28 @@ public class APIServer implements Runnable {
 			ex.preprocess();
 
 			// Parse!
-			builder.parser.parse(builder.params, ex, false);
+			language.parser.parse(language.params, ex, false);
 
 			return ex.getPredDerivations();
 		}
 
 		private void handleQuery(String sessionId) throws IOException {
+			String localeTag = reqParams.get("locale");
+			LanguageContext language = null;
+
+			if (localeTag != null) {
+				String[] splitTag = localeTag.split("[_\\.\\-]");
+				// try with language and country
+				if (splitTag.length >= 2)
+					language = langs.get(splitTag[0] + "_" + splitTag[1]);
+				if (language == null && splitTag.length >= 1)
+					language = langs.get(splitTag[0]);
+			}
+			// fallback to english if the language is not recognized or
+			// locale was not specified
+			if (language == null)
+				language = langs.get("en");
+
 			String query = reqParams.get("q");
 
 			int exitStatus;
@@ -169,7 +205,7 @@ public class APIServer implements Runnable {
 			try {
 				if (query != null) {
 					// try from cache
-					derivations = cache.hit(query);
+					derivations = language.cache.hit(query);
 					if (opts.verbose >= 3) {
 						if (derivations != null)
 							logs("cache hit");
@@ -180,10 +216,13 @@ public class APIServer implements Runnable {
 					if (derivations == null) {
 						Session session = getSession(sessionId);
 						synchronized (session) {
+							if (session.lang != null && !session.lang.equals(localeTag))
+								throw new IllegalArgumentException("Cannot change the language of an existing session");
+							session.lang = localeTag;
 							session.remoteHost = remoteHost;
-							derivations = handleUtterance(session, query);
+							derivations = handleUtterance(session, language, query);
 						}
-						cache.store(query, derivations);
+						language.cache.store(query, derivations);
 					}
 					exitStatus = 200;
 				} else {
@@ -216,10 +255,6 @@ public class APIServer implements Runnable {
 		}
 	}
 
-	public APIServer() {
-		builder = new Builder();
-	}
-
 	private synchronized Session getSession(String sessionId) {
 		if (sessionMap.containsKey(sessionId)) {
 			return sessionMap.get(sessionId);
@@ -243,16 +278,17 @@ public class APIServer implements Runnable {
 			}
 		}
 	}
+	
+	private void addLanguage(String tag) {
+		LanguageContext language = new LanguageContext();
+		language.learn();
+		langs.put(tag, language);
+	}
 
 	@Override
 	public void run() {
-		builder.build();
-
-		Dataset dataset = new Dataset();
-		dataset.read();
-
-		Learner learner = new Learner(builder.parser, builder.params, dataset);
-		learner.learn();
+		// Add supported languages
+		addLanguage("en");
 
 		try {
 			String hostname = fig.basic.SysInfoUtils.getHostName();
