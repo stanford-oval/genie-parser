@@ -53,6 +53,20 @@ public class Aligner {
     normalize(threshold);
   }
 
+	public void heuristicTsvAlign(String exampleFile, int threshold) {
+		model.clear();
+		for (String line : IOUtils.readLines(exampleFile)) {
+			String[] phrases = line.split("\t");
+			String utterance = phrases[0];
+			String original = phrases[1];
+			String[] utteranceTokens = utterance.split("\\s+");
+			String[] originalTokens = original.split("\\s+");
+
+			align(utteranceTokens, originalTokens);
+		}
+		normalize(threshold);
+	}
+
   public void saveModel(String out) throws IOException {
     PrintWriter writer = IOUtils.getPrintWriter(out);
     for (String source: model.keySet()) {
@@ -134,6 +148,8 @@ public class Aligner {
       aligner.heuristicAlign(args[0], threshold);
     else if (args[2].equals("berkeley"))
       aligner.berkeleyAlign(args[0], threshold);
+		else if (args[2].equals("heuristic-tsv"))
+			aligner.heuristicTsvAlign(args[0], threshold);
     else throw new RuntimeException("bad alignment mode: " + args[2]);
     try {
       aligner.saveModel(args[1]);
