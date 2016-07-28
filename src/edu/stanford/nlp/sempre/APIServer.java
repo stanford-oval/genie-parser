@@ -31,9 +31,9 @@ public class APIServer implements Runnable {
 		public final Params params;
 		public final QueryCache cache = new QueryCache(256);
 
-		public LanguageContext() {
+		public LanguageContext(String tag) {
 			Builder builder = new Builder();
-			builder.build();
+			builder.buildForLanguage(tag);
 			parser = builder.parser;
 			params = builder.params;
 		}
@@ -280,7 +280,7 @@ public class APIServer implements Runnable {
 	}
 	
 	private void addLanguage(String tag) {
-		LanguageContext language = new LanguageContext();
+		LanguageContext language = new LanguageContext(tag);
 		language.learn();
 		langs.put(tag, language);
 	}
@@ -289,6 +289,7 @@ public class APIServer implements Runnable {
 	public void run() {
 		// Add supported languages
 		addLanguage("en");
+		addLanguage("it");
 
 		try {
 			String hostname = fig.basic.SysInfoUtils.getHostName();
