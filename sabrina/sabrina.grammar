@@ -36,6 +36,8 @@
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
 (rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
 (rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
+# work around someweirdness in the corenlp tokenizer
+(rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
 (rule $Value ($DateValue) (IdentityFn))
 (rule $Value ($TimeValue) (IdentityFn))
 (rule $Value ($NumberValue) (IdentityFn))

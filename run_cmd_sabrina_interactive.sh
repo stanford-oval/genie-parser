@@ -22,15 +22,18 @@ exec java -Xmx12G -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               'root_lexical' \
               '-ThingTalkFeatureComputer.featureDomains' 'anchorBoundaries' \
               '-FloatingParser.maxDepth' '12' \
+              '-FloatingParser.useAnchorsOnce' \
               '-Parser.beamSize' '20' \
               '-Learner.maxTrainIters' '1' \
               '-SimpleLexicon.inPaths' 'sabrina/sabrina.lexicon' \
               '-wordAlignmentPath' 'sabrina/sabrina.word_alignments.berkeley' \
               '-phraseAlignmentPath' 'sabrina/sabrina.phrase_alignments' \
               '-PPDBModel.ppdbModelPath' 'sabrina/sabrina-ppdb.txt' \
+              '-PPDBModel.ppdb' 'false' \
               '-ThingpediaDatabase.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
               '-ThingpediaDatabase.dbUser' 'sempre' \
               '-Main.interactive' 'true' \
               '-BeamParser.executeAllDerivations' 'true' \
               '-FloatingParser.executeAllDerivations' 'true' \
+              '-Parser.printAllPredictions' \
               "$@"
