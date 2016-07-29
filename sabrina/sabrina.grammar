@@ -25,13 +25,13 @@
 (rule $NumberValue ($NumValue) (IdentityFn))
 (rule $TemperatureValue ($NumValue c) (lambda num (call @measureValueCast (string "C") (var num))))
 (rule $TemperatureValue ($NumValue f) (lambda num (call @measureValueCast (string "F") (var num))))
-(rule $TimeIntervalValue ($NumParseValue s) (lambda num (call @measureValueCast (string "s") (var num))))
-(rule $TimeIntervalValue ($NumParseValue min) (lambda num (call @measureValueCast (string "min") (var num))))
-(rule $TimeIntervalValue ($NumParseValue h) (lambda num (call @measureValueCast (string "h") (var num))))
-(rule $TimeIntervalValue ($NumParseValue day) (lambda num (call @measureValueCast (string "day") (var num))))
-(rule $TimeIntervalValue ($NumParseValue week) (lambda num (call @measureValueCast (string "week") (var num))))
-(rule $TimeIntervalValue ($NumParseValue month) (lambda num (call @measureValueCast (string "mon") (var num))))
-(rule $TimeIntervalValue ($NumParseValue year) (lambda num (call @measureValueCast (string "year") (var num))))
+(rule $TimeIntervalValue ($NumValue s) (lambda num (call @measureValueCast (string "s") (var num))))
+(rule $TimeIntervalValue ($NumValue min) (lambda num (call @measureValueCast (string "min") (var num))))
+(rule $TimeIntervalValue ($NumValue h) (lambda num (call @measureValueCast (string "h") (var num))))
+(rule $TimeIntervalValue ($NumValue day) (lambda num (call @measureValueCast (string "day") (var num))))
+(rule $TimeIntervalValue ($NumValue week) (lambda num (call @measureValueCast (string "week") (var num))))
+(rule $TimeIntervalValue ($NumValue month) (lambda num (call @measureValueCast (string "mon") (var num))))
+(rule $TimeIntervalValue ($NumValue year) (lambda num (call @measureValueCast (string "year") (var num))))
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
 (rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
@@ -43,7 +43,7 @@
 (rule $Value ($BooleanValue) (IdentityFn))
 (rule $Value ($StringValue) (IdentityFn))
 
-(rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn))
+(rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn) (anchored 1))
 (rule $LocationValue (here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue (at home) (ConstantFn (location rel_home -1 -1) fb:type.any))
 (rule $LocationValue (at work) (ConstantFn (location rel_work -1 -1) fb:type.any))
@@ -60,6 +60,7 @@
 (rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(C)"))
 (rule $TimeIntervalArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(ms)"))
 (rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Boolean))
+(rule $LocationArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Location))
 
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser

@@ -43,7 +43,9 @@ public final class ThingTalk {
 		else if (value instanceof DateValue)
 			return "Date";
 		else if (value instanceof BooleanValue)
-			return "Boolean";
+      return "Bool";
+    else if (value instanceof LocationValue)
+      return "Location";
 		else
 			throw new RuntimeException("Unexpected value " + value);
 	}
