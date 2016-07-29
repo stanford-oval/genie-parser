@@ -6,9 +6,11 @@
 (def @has has)
 (def @is_greater_than (is greater than))
 (def @is_less_than (is less than))
+
 (def @with with)
 (def @and and)
 (def @monitor_if (monitor if))
+
 (def @help help)
 (def @discover discover)
 (def @configure configure)
@@ -16,5 +18,13 @@
 (def @queries queries)
 (def @commands commands)
 (def @list list)
+
+(def @yes yes)
+(def @no no)
+(def @hello hello)
+(def @thanks thanks)
+(def @sorry sorry)
+(def @cool cool)
+(def @never_mind (never mind))
 
 (include "./sabrina.grammar")

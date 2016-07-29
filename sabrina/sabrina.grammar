@@ -128,7 +128,22 @@
 (rule $Command ($Information) (lambda value (call @cmdForm (string "list") (var value))))
 (rule $Command ($Configuration) (lambda value (call @cmdForm (string "configure") (var value))))
 
-(rule $Special ($PHRASE) (SimpleLexiconFn (type tt:type.special)))
+# special handling
+# this used to be in SimpleLexicon but we moved it here for two reasons:
+# 1) FloatingParser and SimpleLexicon do not like each other, meaning that you need
+# to use the exact words in the lexicon for FloatingParser to parse properly (regardless of
+# paraphrases)
+# 2) It's easier to translate like this, and we don't need to teach SimpleLexicon
+# about language tags
+(rule $Special (@yes) (ConstantFn tt:root.special.yes))
+(rule $Special (@no) (ConstantFn tt:root.special.no))
+(rule $Special (@hello) (ConstantFn tt:root.special.hello))
+(rule $Special (@thanks) (ConstantFn tt:root.special.thankyou))
+(rule $Special (@sorry) (ConstantFn tt:root.special.sorry))
+(rule $Special (@cool) (ConstantFn tt:root.special.cool))
+(rule $Special @never_mind (ConstantFn tt:root.special.nevermind))
+# this is a literal, it is not translated
+(rule $Special (debug) (ConstantFn tt:root.special.debug))
 
 # Answer handling
 # NOTE 1: string answers are handled by putting Sabrina in "raw" mode
