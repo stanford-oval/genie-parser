@@ -1,5 +1,7 @@
 package edu.stanford.nlp.sempre;
 
+import java.io.IOException;
+
 import com.google.common.base.Strings;
 
 import fig.basic.Option;
@@ -17,6 +19,8 @@ public class Builder {
     @Option public String executor = "JavaExecutor";
     @Option public String valueEvaluator = "ExactValueEvaluator";
     @Option public String parser = "BeamParser";
+		@Option
+		public String dataset = "Dataset";
   }
 
   public static Options opts = new Options();
@@ -27,6 +31,7 @@ public class Builder {
   public FeatureExtractor extractor;
   public Parser parser;
   public Params params;
+	public AbstractDataset dataset;
 
   public void build() {
     grammar = null;
@@ -89,6 +94,16 @@ public class Builder {
       if (!Strings.isNullOrEmpty(opts.inParamsPath))
         params.read(opts.inParamsPath);
     }
+
+		// Dataset
+		if (dataset == null) {
+			dataset = (AbstractDataset) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.dataset));
+			try {
+				dataset.read();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
   }
 
   public static Parser buildParser(Parser.Spec spec) {

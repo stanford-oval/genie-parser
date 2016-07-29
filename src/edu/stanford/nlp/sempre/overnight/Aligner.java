@@ -1,18 +1,19 @@
 package edu.stanford.nlp.sempre.overnight;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import com.google.common.base.Joiner;
+
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.stats.Counters;
 import fig.basic.LispTree;
 import fig.basic.MapUtils;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * Word-aligns original utterances with their paraphrases
@@ -51,6 +52,20 @@ public class Aligner {
     }
     normalize(threshold);
   }
+
+	public void heuristicTsvAlign(String exampleFile, int threshold) {
+		model.clear();
+		for (String line : IOUtils.readLines(exampleFile)) {
+			String[] phrases = line.split("\t");
+			String utterance = phrases[0];
+			String original = phrases[1];
+			String[] utteranceTokens = utterance.split("\\s+");
+			String[] originalTokens = original.split("\\s+");
+
+			align(utteranceTokens, originalTokens);
+		}
+		normalize(threshold);
+	}
 
   public void saveModel(String out) throws IOException {
     PrintWriter writer = IOUtils.getPrintWriter(out);
@@ -133,6 +148,8 @@ public class Aligner {
       aligner.heuristicAlign(args[0], threshold);
     else if (args[2].equals("berkeley"))
       aligner.berkeleyAlign(args[0], threshold);
+		else if (args[2].equals("heuristic-tsv"))
+			aligner.heuristicTsvAlign(args[0], threshold);
     else throw new RuntimeException("bad alignment mode: " + args[2]);
     try {
       aligner.saveModel(args[1]);

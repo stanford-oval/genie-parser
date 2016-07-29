@@ -26,8 +26,8 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-SimpleLexicon.inPaths' 'thingtalk/thingtalk.lexicon' \
               '-DataSet.inPaths' 'train:thingtalk/thingtalk.examples' \
               '-Main.interactive' 'true' \
-              '-ThingpediaLexicon.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
-              '-ThingpediaLexicon.dbUser' 'sempre' \
+              '-ThingpediaDatabase.dbUrl' 'jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine' \
+              '-ThingpediaDatabase.dbUser' 'sempre' \
               '-BeamParser.executeAllDerivations' 'true' \
               '-FloatingParser.executeAllDerivations' 'true' \
               "$@"

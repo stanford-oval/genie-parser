@@ -3,7 +3,8 @@ package edu.stanford.nlp.sempre.tables.serialize;
 import java.util.*;
 
 import edu.stanford.nlp.sempre.*;
-import fig.basic.*;
+import fig.basic.LispTree;
+import fig.basic.LogInfo;
 
 public class LoadedExampleList implements List<Example> {
   private final String path;

@@ -33,7 +33,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
   private String filter;
 
 	public ThingpediaLexiconFn() {
-		lexicon = ThingpediaLexicon.getSingleton();
+		lexicon = new ThingpediaLexicon();
 	}
 
 	@Override

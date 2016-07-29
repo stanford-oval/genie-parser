@@ -33,6 +33,7 @@ public class APIServer implements Runnable {
 		public final Parser parser;
 		public final Params params;
 		public final LanguageAnalyzer analyzer;
+    public AbstractDataset dataset;
 		public final QueryCache cache = new QueryCache(256);
 
 		public LanguageContext(String tag) {
@@ -40,15 +41,15 @@ public class APIServer implements Runnable {
 			builder.buildForLanguage(tag);
 			parser = builder.parser;
 			params = builder.params;
+      dataset = builder.dataset;
 			analyzer = new CoreNLPAnalyzer(tag);
 		}
 
 		public void learn() {
-			Dataset dataset = new Dataset();
-			dataset.read();
-
 			Learner learner = new Learner(parser, params, dataset);
 			learner.learn();
+
+      dataset = null;
 		}
 	}
 

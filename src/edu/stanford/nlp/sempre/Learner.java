@@ -1,15 +1,13 @@
 package edu.stanford.nlp.sempre;
 
+import java.io.PrintWriter;
+import java.util.*;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
+
 import fig.basic.*;
 import fig.exec.Execution;
-
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * The main learning loop.  Goes over a dataset multiple times, calling the
@@ -50,11 +48,11 @@ public class Learner {
 
   private Parser parser;
   private final Params params;
-  private final Dataset dataset;
+	private final AbstractDataset dataset;
   private final PrintWriter eventsOut;  // For printing a machine-readable log
   private final List<SemanticFn> semFuncsToUpdate;
 
-  public Learner(Parser parser, Params params, Dataset dataset) {
+	public Learner(Parser parser, Params params, AbstractDataset dataset) {
     this.parser = parser;
     this.params = params;
     this.dataset = dataset;

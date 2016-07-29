@@ -1,10 +1,13 @@
 package edu.stanford.nlp.sempre.tables.serialize;
 
-import java.io.*;
+import java.io.File;
 import java.util.*;
 
-import edu.stanford.nlp.sempre.*;
-import fig.basic.*;
+import edu.stanford.nlp.sempre.Dataset;
+import edu.stanford.nlp.sempre.Example;
+import fig.basic.LogInfo;
+import fig.basic.Option;
+import fig.basic.Pair;
 
 public class SerializedDataset extends Dataset {
   public static class Options {
@@ -15,7 +18,8 @@ public class SerializedDataset extends Dataset {
 
   private final Map<String, String> availableGroups = new LinkedHashMap<>();
 
-  public void read() {
+  @Override
+public void read() {
     LogInfo.begin_track_printAll("Dataset.read");
     if (Dataset.opts.trainFrac != 1)
       LogInfo.warnings("Dataset.opts.trainfrac is ignored!");
@@ -42,17 +46,11 @@ public class SerializedDataset extends Dataset {
     LogInfo.end_track();
   }
 
-  private static int getMaxExamplesForGroup(String group) {
-    int maxExamples = Integer.MAX_VALUE;
-    for (Pair<String, Integer> maxPair : Dataset.opts.maxExamples)
-      if (maxPair.getFirst().equals(group))
-        maxExamples = maxPair.getSecond();
-    return maxExamples;
-  }
+  @Override
+public Set<String> groups() { return availableGroups.keySet(); }
 
-  public Set<String> groups() { return availableGroups.keySet(); }
-
-  public List<Example> examples(String group) {
+  @Override
+public List<Example> examples(String group) {
     return new LoadedExampleList(availableGroups.get(group), getMaxExamplesForGroup(group));
   }
 

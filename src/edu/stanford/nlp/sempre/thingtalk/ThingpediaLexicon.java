@@ -3,7 +3,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.sql.*;
 import java.util.*;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import javax.sql.DataSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,12 +16,6 @@ public class ThingpediaLexicon {
 	public static final long CACHE_AGE = 1000 * 3600 * 1; // cache lexicon lookups for 1 hour
 
 	public static class Options {
-		@Option
-		public String dbUrl = "jdbc:mysql://localhost/thingengine";
-		@Option
-		public String dbUser = "thingengine";
-		@Option
-		public String dbPw = "thingengine";
 		@Option
 		public int verbose = 0;
 	}
@@ -153,10 +147,6 @@ public class ThingpediaLexicon {
 		}
 	}
 
-	private static ThingpediaLexicon instance;
-
-	private final BasicDataSource dataSource;
-
 	private static class LexiconKey {
 		private final Mode mode;
 		private final String query;
@@ -195,30 +185,12 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	private final DataSource dataSource;
 	private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(
 			1024);
 
-	private ThingpediaLexicon() {
-		dataSource = new BasicDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl(opts.dbUrl);
-		dataSource.setUsername(opts.dbUser);
-		dataSource.setPassword(opts.dbPw);
-	}
-
-	public static ThingpediaLexicon getSingleton() {
-		if (instance == null)
-			instance = new ThingpediaLexicon();
-
-		return instance;
-	}
-
-	static {
-		try {
-			Class.forName("com.mysql.jdbc.Driver");
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+	public ThingpediaLexicon() {
+		dataSource = ThingpediaDatabase.getSingleton();
 	}
 
 	public Iterator<Entry> lookupApp(String phrase) throws SQLException {
@@ -349,14 +321,32 @@ public class ThingpediaLexicon {
 		}
 	}
 
+	// a list of words that appear often in our examples (and thus are frequent queries to
+	// the lexicon), but are not useful to lookup canonical forms
+	// with FloatingParser, if the lookup word is in this array, we just return no
+	// derivations
+	private static final String[] IGNORED_WORDS = { "in", "on", "a", "to", "with", "and",
+			"me", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
+	static {
+		Arrays.sort(IGNORED_WORDS);
+	}
+
 	public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {
 		if (opts.verbose >= 2)
 			LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
+
 		String[] tokens = phrase.split(" ");
-		if (tokens.length < 3 || tokens.length > 7)
-			return Collections.emptyIterator();
-		if (!"on".equals(tokens[tokens.length - 2]))
-			return Collections.emptyIterator();
+		if (Builder.opts.parser.equals("BeamParser")) {
+			if (tokens.length < 3 || tokens.length > 7)
+				return Collections.emptyIterator();
+			if (!"on".equals(tokens[tokens.length - 2]))
+				return Collections.emptyIterator();
+		} else {
+			if (tokens.length > 1)
+				return Collections.emptyIterator();
+			if (Arrays.binarySearch(IGNORED_WORDS, tokens[0]) >= 0)
+				return Collections.emptyIterator();
+		}
 
 		List<Entry> entries = cache.hit(new LexiconKey(channel_type, phrase));
 		if (entries != null) {
