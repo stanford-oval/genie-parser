@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.*;
 
+import edu.stanford.nlp.sempre.corenlp.CoreNLPAnalyzer;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 import fig.exec.Execution;
@@ -22,6 +23,8 @@ public class APIServer implements Runnable {
 		public int numThreads = 4;
 		@Option
 		public int verbose = 1;
+    @Option
+    public List<String> languages = Arrays.asList(new String[] { "en", "it" });
 	}
 
 	public static Options opts = new Options();
@@ -29,6 +32,7 @@ public class APIServer implements Runnable {
 	private static class LanguageContext {
 		public final Parser parser;
 		public final Params params;
+		public final LanguageAnalyzer analyzer;
 		public final QueryCache cache = new QueryCache(256);
 
 		public LanguageContext(String tag) {
@@ -36,6 +40,7 @@ public class APIServer implements Runnable {
 			builder.buildForLanguage(tag);
 			parser = builder.parser;
 			params = builder.params;
+			analyzer = new CoreNLPAnalyzer(tag);
 		}
 
 		public void learn() {
@@ -171,7 +176,7 @@ public class APIServer implements Runnable {
 			b.setContext(session.context);
 			Example ex = b.createExample();
 
-			ex.preprocess();
+      ex.preprocess(language.analyzer);
 
 			// Parse!
 			language.parser.parse(language.params, ex, false);
@@ -288,8 +293,8 @@ public class APIServer implements Runnable {
 	@Override
 	public void run() {
 		// Add supported languages
-		addLanguage("en");
-		addLanguage("it");
+    for (String tag : opts.languages)
+      addLanguage(tag);
 
 		try {
 			String hostname = fig.basic.SysInfoUtils.getHostName();

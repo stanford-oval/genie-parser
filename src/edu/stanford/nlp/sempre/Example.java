@@ -1,16 +1,14 @@
 package edu.stanford.nlp.sempre;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.*;
+
+import com.fasterxml.jackson.annotation.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+
 import fig.basic.Evaluation;
 import fig.basic.LispTree;
 import fig.basic.LogInfo;
-
-import java.util.*;
 
 /**
  * An example corresponds roughly to an input-output pair, the basic unit which
@@ -174,8 +172,12 @@ public class Example {
   }
 
   public void preprocess() {
-    this.languageInfo = LanguageAnalyzer.getSingleton().analyze(this.utterance);
-    this.targetValue = TargetValuePreprocessor.getSingleton().preprocess(this.targetValue);
+		this.preprocess(LanguageAnalyzer.getSingleton());
+	}
+
+	public void preprocess(LanguageAnalyzer analyzer) {
+		this.languageInfo = analyzer.analyze(this.utterance);
+		this.targetValue = TargetValuePreprocessor.getSingleton().preprocess(this.targetValue);
   }
 
   public void log() {
@@ -293,7 +295,7 @@ public class Example {
   public Map<String, Object> getTempState() {
     // Create the tempState if it doesn't exist.
     if (tempState == null)
-      tempState = new HashMap<String, Object>();
+      tempState = new HashMap<>();
     return tempState;
   }
   public void clearTempState() {

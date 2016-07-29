@@ -1,25 +1,28 @@
 package edu.stanford.nlp.sempre.corenlp;
 
-import edu.stanford.nlp.sempre.*;
-import edu.stanford.nlp.sempre.LanguageInfo.DependencyEdge;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
 import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
 import edu.stanford.nlp.semgraph.SemanticGraphEdge;
+import edu.stanford.nlp.sempre.LanguageAnalyzer;
+import edu.stanford.nlp.sempre.LanguageInfo;
+import edu.stanford.nlp.sempre.LanguageInfo.DependencyEdge;
 import edu.stanford.nlp.util.CoreMap;
-
-import com.google.common.collect.Lists;
-import com.google.common.base.Joiner;
-
-import fig.basic.*;
-
-import java.io.*;
-import java.util.*;
+import fig.basic.LogInfo;
+import fig.basic.Option;
 
 /**
  * CoreNLPAnalyzer uses Stanford CoreNLP pipeline to analyze an input string utterance
@@ -34,6 +37,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
+
+    @Option(gloss = "What language to use (as a two letter tag)")
+    public String languageTag = "en";
   }
 
   public static Options opts = new Options();
@@ -43,26 +49,73 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   // "have"
   // Need to update TextToTextMatcher
   private static final String[] AUX_VERB_ARR = new String[] {"is", "are", "was",
-    "were", "am", "be", "been", "will", "shall", "have", "has", "had",
-    "would", "could", "should", "do", "does", "did", "can", "may", "might",
-    "must", "seem"};
-  private static final Set<String> AUX_VERBS = new HashSet<String>(Arrays.asList(AUX_VERB_ARR));
+      "were", "am", "be", "been", "will", "shall", "have", "has", "had",
+      "would", "could", "should", "do", "does", "did", "can", "may", "might",
+      "must", "seem" };
+  private static final Set<String> AUX_VERBS = new HashSet<>(Arrays.asList(AUX_VERB_ARR));
   private static final String AUX_VERB_TAG = "VBD-AUX";
 
-  public static StanfordCoreNLP pipeline = null;
+  private final String languageTag;
+  private final StanfordCoreNLP pipeline;
 
-  public static void initModels() {
-    if (pipeline != null) return;
+  public CoreNLPAnalyzer() {
+    this(opts.languageTag);
+  }
+
+  public CoreNLPAnalyzer(String languageTag) {
+    this.languageTag = languageTag;
+
     Properties props = new Properties();
-    props.put("annotators", Joiner.on(',').join(opts.annotators));
-    if (opts.caseSensitive) {
-      props.put("pos.model", "edu/stanford/nlp/models/pos-tagger/english-bidirectional/english-bidirectional-distsim.tagger");
-      props.put("ner.model", "edu/stanford/nlp/models/ner/english.all.3class.distsim.crf.ser.gz,edu/stanford/nlp/models/ner/english.conll.4class.distsim.crf.ser.gz");
-    } else {
-      props.put("pos.model", "edu/stanford/nlp/models/pos-tagger/english-caseless-left3words-distsim.tagger");
-      props.put("ner.model", "edu/stanford/nlp/models/ner/english.all.3class.caseless.distsim.crf.ser.gz,edu/stanford/nlp/models/ner/english.conll.4class.caseless.distsim.crf.ser.gz");
+    
+    switch (languageTag) {
+    case "en":
+    case "en_US":
+      if (opts.caseSensitive) {
+        props.put("pos.model",
+            "edu/stanford/nlp/models/pos-tagger/english-left3words/english-left3words-distsim.tagger");
+        props.put("ner.model",
+            "edu/stanford/nlp/models/ner/english.all.3class.distsim.crf.ser.gz,edu/stanford/nlp/models/ner/english.conll.4class.distsim.crf.ser.gz");
+      } else {
+        props.put("pos.model", "edu/stanford/nlp/models/pos-tagger/english-caseless-left3words-distsim.tagger");
+        props.put("ner.model",
+            "edu/stanford/nlp/models/ner/english.all.3class.caseless.distsim.crf.ser.gz,edu/stanford/nlp/models/ner/english.conll.4class.caseless.distsim.crf.ser.gz");
+      }
+      break;
+
+    case "de":
+      loadResource("StanfordCoreNLP-german.properties", props);
+      if (!opts.caseSensitive) {
+        props.put("pos.model", "edu/stanford/nlp/models/pos-tagger/german/german-fast-caseless.tagger");
+      }
+      break;
+
+    case "fr":
+      loadResource("StanfordCoreNLP-french.properties", props);
+      break;
+
+    case "zh":
+      loadResource("StanfordCoreNLP-chinese.properties", props);
+      break;
+
+    case "es":
+      loadResource("StanfordCoreNLP-spanish.properties", props);
+      break;
+
+    default:
+      LogInfo.logs("Unrecognized language %s, analysis will not work!", languageTag);
     }
+
+    props.put("annotators", Joiner.on(',').join(opts.annotators));
+
     pipeline = new StanfordCoreNLP(props);
+  }
+
+  private static void loadResource(String name, Properties into) {
+    try {
+      into.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(name));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   // Stanford tokenizer doesn't break hyphens.
@@ -77,6 +130,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     return buf.toString();
   }
 
+  @Override
   public LanguageInfo analyze(String utterance) {
     LanguageInfo languageInfo = new LanguageInfo();
 
@@ -93,7 +147,6 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     utterance = breakHyphens(utterance);
 
     // Run Stanford CoreNLP
-    initModels();
     Annotation annotation = pipeline.process(utterance);
 
     for (CoreLabel token : annotation.get(CoreAnnotations.TokensAnnotation.class)) {
@@ -104,10 +157,12 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       } else {
         languageInfo.tokens.add(word);
       }
-      languageInfo.posTags.add(
-          AUX_VERBS.contains(wordLower) ?
-              AUX_VERB_TAG :
-                token.get(PartOfSpeechAnnotation.class));
+      if (languageTag.equals("en")) {
+        languageInfo.posTags.add(
+            AUX_VERBS.contains(wordLower) ? AUX_VERB_TAG : token.get(PartOfSpeechAnnotation.class));
+      } else {
+        languageInfo.posTags.add(token.get(PartOfSpeechAnnotation.class));
+      }
       languageInfo.nerTags.add(token.get(NamedEntityTagAnnotation.class));
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
       languageInfo.nerValues.add(token.get(NormalizedNamedEntityTagAnnotation.class));
@@ -121,9 +176,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
       // Iterate over all tokens and their dependencies
       for (int sourceTokenIndex = sentenceBegin;
-           sourceTokenIndex < sentence.get(CoreAnnotations.TokenEndAnnotation.class);
-           sourceTokenIndex++) {
-        final ArrayList<DependencyEdge> outgoing = new ArrayList<DependencyEdge>();
+          sourceTokenIndex < sentence.get(CoreAnnotations.TokenEndAnnotation.class); sourceTokenIndex++) {
+        final ArrayList<DependencyEdge> outgoing = new ArrayList<>();
         languageInfo.dependencyChildren.add(outgoing);
         IndexedWord node = ccDeps.getNodeByIndexSafe(sourceTokenIndex - sentenceBegin + 1);  // + 1 for ROOT
         if (node != null) {
