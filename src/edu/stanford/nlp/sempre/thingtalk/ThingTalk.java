@@ -26,11 +26,16 @@ public final class ThingTalk {
         return paramVal;
     }
 
+  private static String typeFromNumber(NumberValue value) {
+    if (value.unit == null || value.unit.equals(NumberValue.unitless))
+      return "Number";
+    else
+      return "Measure";
+  }
+
 	private static String typeFromValue(Value value) {
-		if (value instanceof NumberValue && ((NumberValue) value).unit == null)
-			return "Number";
-		else if (value instanceof NumberValue)
-			return "Measure";
+    if (value instanceof NumberValue)
+      return typeFromNumber((NumberValue) value);
 		else if (value instanceof StringValue)
 			return "String";
 		else if (value instanceof TimeValue)
