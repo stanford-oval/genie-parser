@@ -15,10 +15,11 @@ exec java -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-JavaExecutor.unpackValues' 'false' \
               '-Grammar.inPaths' 'sabrina/sabrina.en.grammar' \
               '-FeatureExtractor.featureDomains' 'denotation' 'rule' \
-              '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' \
+              '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' 'thingtalk.ThingTalkFeatureComputer' \
               '-OvernightFeatureComputer.featureDomains' \
               'match' 'ppdb' 'skip-bigram' 'root' 'alignment' 'lexical' \
               'root_lexical' \
+              '-ThingTalkFeatureComputer.featureDomains' 'anchorBoundaries' \
               '-FloatingParser.maxDepth' '12' \
               '-Parser.beamSize' '9' \
               '-Learner.maxTrainIters' '1' \

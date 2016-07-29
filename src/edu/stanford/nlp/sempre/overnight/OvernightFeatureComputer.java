@@ -1,15 +1,13 @@
 package edu.stanford.nlp.sempre.overnight;
 
+import java.util.*;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import edu.stanford.nlp.io.IOUtils;
-import fig.basic.BipartiteMatcher;
-import fig.basic.LogInfo;
-import fig.basic.MapUtils;
-import fig.basic.Option;
-import edu.stanford.nlp.sempre.*;
 
-import java.util.*;
+import edu.stanford.nlp.io.IOUtils;
+import edu.stanford.nlp.sempre.*;
+import fig.basic.*;
 
 /**
  * Define features on the input utterance and a partial canonical utterance.
@@ -567,6 +565,8 @@ public class OvernightFeatureComputer implements FeatureComputer {
 
   // Return the "complexity" of the given derivation.
   private static int derivationSize(Derivation deriv) {
+    if (deriv.rule.isAnchored())
+      return 1;
     int sum = 0;
     if (opts.countIntermediate || !(deriv.rule.lhs.contains("Intermediate"))) sum++;
     if (deriv.children != null) {
