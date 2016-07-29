@@ -30,6 +30,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	private final ThingpediaLexicon lexicon;
 
 	private ThingpediaLexicon.Mode mode;
+  private String filter;
 
 	public ThingpediaLexiconFn() {
 		lexicon = ThingpediaLexicon.getSingleton();
@@ -39,6 +40,9 @@ public class ThingpediaLexiconFn extends SemanticFn {
 	public void init(LispTree tree) {
 		super.init(tree);
 		String value = tree.child(1).value;
+
+    if (tree.children.size() > 2)
+      filter = tree.child(2).value;
 
 		// mode
 		try {
@@ -88,6 +92,17 @@ public class ThingpediaLexiconFn extends SemanticFn {
 				return null;
 
 			ThingpediaLexicon.Entry entry = entries.next();
+      while (filter != null && !entry.applyFilter(filter)) {
+        if (entries.hasNext()) {
+          entry = entries.next();
+        } else {
+          entry = null;
+          break;
+        }
+      }
+      if (entry == null)
+        return null;
+
 			FeatureVector features = new FeatureVector();
 			entry.addFeatures(features);
 			Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())

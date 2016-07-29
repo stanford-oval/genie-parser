@@ -40,6 +40,10 @@ public class ThingpediaLexicon {
 		public void addFeatures(FeatureVector vec) {
 		}
 
+    public boolean applyFilter(Object filter) {
+      return true;
+    }
+
 		@Override
 		public String toString() {
 			return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
@@ -61,6 +65,11 @@ public class ThingpediaLexicon {
 		public String getRawPhrase() {
 			return rawPhrase;
 		}
+
+    @Override
+    public boolean applyFilter(Object filter) {
+      return type.equals(filter);
+    }
 
 		@Override
 		public Formula toFormula() {

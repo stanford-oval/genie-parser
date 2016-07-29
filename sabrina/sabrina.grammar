@@ -17,15 +17,21 @@
 
 # Value Parsing
 (rule $NumValue ($PHRASE) (NumberFn) (anchored 1))
-(rule $ValueNoString ($PHRASE) (DateFn) (anchored 1))
-(rule $ValueNoString ($PHRASE) (TimeFn) (anchored 1))
-(rule $ValueNoString ($NumValue) (IdentityFn))
-(rule $ValueNoString ($NumValue c) (lambda num (call @tempValueCast (string "C") (var num))))
-(rule $ValueNoString ($NumValue f) (lambda num (call @tempValueCast (string "F") (var num))))
-(rule $ValueNoString (@true) (ConstantFn (boolean true)))
-(rule $ValueNoString (@false) (ConstantFn (boolean false)))
-(rule $Value ($ValueNoString) (IdentityFn))
-(rule $Value ($PHRASE) (IdentityFn) (anchored 1))
+(rule $DateValue ($PHRASE) (DateFn) (anchored 1))
+(rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
+(rule $NumberValue ($NumValue) (IdentityFn))
+(rule $TemperatureValue ($NumValue c) (lambda num (call @tempValueCast (string "C") (var num))))
+(rule $TemperatureValue ($NumValue f) (lambda num (call @tempValueCast (string "F") (var num))))
+(rule $BooleanValue (@true) (ConstantFn (boolean true)))
+(rule $BooleanValue (@false) (ConstantFn (boolean false)))
+(rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
+(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
+(rule $Value ($DateValue) (IdentityFn))
+(rule $Value ($TimeValue) (IdentityFn))
+(rule $Value ($NumberValue) (IdentityFn))
+(rule $Value ($TemperatureValue) (IdentityFn))
+(rule $Value ($BooleanValue) (IdentityFn))
+(rule $Value ($StringValue) (IdentityFn))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PlaceValue ($PHRASE) (FilterNerSpanFn LOCATION) (anchored 1))
@@ -33,7 +39,12 @@
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
 # Argument Names
-(rule $ArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param))
+(rule $StringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
+(rule $DateArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Date))
+(rule $TimeArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
+(rule $NumberArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Number))
+(rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(C)"))
+(rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Boolean))
 
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
@@ -49,7 +60,12 @@
 (rule $Op @is_less_than (ConstantFn (string "<")))
 
 # Arguments
-(rule $Arg ($ArgName $Op $Value) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($StringArgName $Op $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($DateArgName $Op $DateValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($NumberArgName $Op $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TemperatureArgName $Op $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($BooleanArgName $Op $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
 
 # Action Handling
@@ -152,7 +168,11 @@
 # NOTE 2: boolean answers are matched to yes/no, which are specials
 # but you still need to handle them here to match synonyms of true/false like on/off
 # that should not be learned as synonyms of yes/no
-(rule $Answer ($ValueNoString) (lambda value (call @ansForm (string "Date") (var value))))
+(rule $Answer ($DateValue) (lambda value (call @ansForm (var value))))
+(rule $Answer ($TimeValue) (lambda value (call @ansForm (var value))))
+(rule $Answer ($NumberValue) (lambda value (call @ansForm (var value))))
+(rule $Answer ($TemperatureValue) (lambda value (call @ansForm (var value))))
+(rule $Answer ($BooleanValue) (lambda value (call @ansForm (var value))))
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Action) (lambda cmd (call @jsonOut (var cmd))))
