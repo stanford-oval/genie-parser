@@ -33,8 +33,12 @@
 (rule $Value ($BooleanValue) (IdentityFn))
 (rule $Value ($StringValue) (IdentityFn))
 
+(rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn))
+(rule $LocationValue (here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
+(rule $LocationValue (at home) (ConstantFn (location rel_home -1 -1) fb:type.any))
+(rule $LocationValue (at work) (ConstantFn (location rel_work -1 -1) fb:type.any))
+
 # FIXME: Integrate this to improve the canonicals
-#(rule $PlaceValue ($PHRASE) (FilterNerSpanFn LOCATION) (anchored 1))
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
@@ -66,6 +70,7 @@
 (rule $Arg ($NumberArgName $Op $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($TemperatureArgName $Op $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($BooleanArgName $Op $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($LocationArgName $Op $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
 
 # Action Handling
@@ -140,6 +145,7 @@
 (rule $Answer ($NumberValue) (lambda value (call @ansForm (var value))))
 (rule $Answer ($TemperatureValue) (lambda value (call @ansForm (var value))))
 (rule $Answer ($BooleanValue) (lambda value (call @ansForm (var value))))
+(rule $Answer ($LocationValue) (lambda value (call @ansForm (var value))))
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($ValidAction) (lambda cmd (call @jsonOut (var cmd))))
