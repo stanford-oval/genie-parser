@@ -20,78 +20,78 @@ import fig.basic.Option;
  * @author Giovanni Campagna
  */
 public class ThingpediaLexiconFn extends SemanticFn {
-	public static class Options {
-		@Option(gloss = "Verbosity level")
-		public int verbose = 0;
-	}
+  public static class Options {
+    @Option(gloss = "Verbosity level")
+    public int verbose = 0;
+  }
 
-	public static Options opts = new Options();
+  public static Options opts = new Options();
 
-	private final ThingpediaLexicon lexicon;
+  private final ThingpediaLexicon lexicon;
 
-	private ThingpediaLexicon.Mode mode;
+  private ThingpediaLexicon.Mode mode;
   private String filter;
 
-	public ThingpediaLexiconFn() {
-		lexicon = new ThingpediaLexicon();
-	}
+  public ThingpediaLexiconFn() {
+    lexicon = new ThingpediaLexicon();
+  }
 
-	@Override
-	public void init(LispTree tree) {
-		super.init(tree);
-		String value = tree.child(1).value;
+  @Override
+  public void init(LispTree tree) {
+    super.init(tree);
+    String value = tree.child(1).value;
 
     if (tree.children.size() > 2)
       filter = tree.child(2).value;
 
-		// mode
-		try {
-			this.mode = ThingpediaLexicon.Mode.valueOf(value.toUpperCase());
-		} catch (IllegalArgumentException e) {
-			throw new RuntimeException("Invalid mode for ThingpediaLexiconFn", e);
-		}
-	}
+    // mode
+    try {
+      this.mode = ThingpediaLexicon.Mode.valueOf(value.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new RuntimeException("Invalid mode for ThingpediaLexiconFn", e);
+    }
+  }
 
-	@Override
-	public DerivationStream call(Example ex, Callable c) {
-		String phrase = c.childStringValue(0);
-		Iterator<ThingpediaLexicon.Entry> entries;
-		try {
-			if (mode == ThingpediaLexicon.Mode.APP)
-				entries = lexicon.lookupApp(phrase);
-			else if (mode == ThingpediaLexicon.Mode.KIND)
-				entries = lexicon.lookupKind(phrase);
-			else if (mode == ThingpediaLexicon.Mode.PARAM)
-				entries = lexicon.lookupParam(phrase);
-			else
-				entries = lexicon.lookupChannel(phrase, mode);
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
+  @Override
+  public DerivationStream call(Example ex, Callable c) {
+    String phrase = c.childStringValue(0);
+    Iterator<ThingpediaLexicon.Entry> entries;
+    try {
+      if (mode == ThingpediaLexicon.Mode.APP)
+        entries = lexicon.lookupApp(phrase);
+      else if (mode == ThingpediaLexicon.Mode.KIND)
+        entries = lexicon.lookupKind(phrase);
+      else if (mode == ThingpediaLexicon.Mode.PARAM)
+        entries = lexicon.lookupParam(phrase);
+      else
+        entries = lexicon.lookupChannel(phrase, mode);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
 
-		return new ThingpediaDerivationStream(ex, c, entries, phrase);
-	}
+    return new ThingpediaDerivationStream(ex, c, entries, phrase);
+  }
 
-	public class ThingpediaDerivationStream extends MultipleDerivationStream {
-		private Example ex;
-		private Callable callable;
-		private Iterator<ThingpediaLexicon.Entry> entries;
-		private String phrase;
+  public class ThingpediaDerivationStream extends MultipleDerivationStream {
+    private Example ex;
+    private Callable callable;
+    private Iterator<ThingpediaLexicon.Entry> entries;
+    private String phrase;
 
-		public ThingpediaDerivationStream(Example ex, Callable c, Iterator<ThingpediaLexicon.Entry> entries,
-				String phrase) {
-			this.ex = ex;
-			this.callable = c;
-			this.entries = entries;
-			this.phrase = phrase;
-		}
+    public ThingpediaDerivationStream(Example ex, Callable c, Iterator<ThingpediaLexicon.Entry> entries,
+        String phrase) {
+      this.ex = ex;
+      this.callable = c;
+      this.entries = entries;
+      this.phrase = phrase;
+    }
 
-		@Override
-		public Derivation createDerivation() {
-			if (!entries.hasNext())
-				return null;
+    @Override
+    public Derivation createDerivation() {
+      if (!entries.hasNext())
+        return null;
 
-			ThingpediaLexicon.Entry entry = entries.next();
+      ThingpediaLexicon.Entry entry = entries.next();
       while (filter != null && !entry.applyFilter(filter)) {
         if (entries.hasNext()) {
           entry = entries.next();
@@ -103,22 +103,22 @@ public class ThingpediaLexiconFn extends SemanticFn {
       if (entry == null)
         return null;
 
-			FeatureVector features = new FeatureVector();
-			entry.addFeatures(features);
-			Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())
-					.localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).type(SemType.entityType)
-					.meetCache(Cacheability.LEXICON_DEPENDENT)
-					.createDerivation();
+      FeatureVector features = new FeatureVector();
+      entry.addFeatures(features);
+      Derivation deriv = new Derivation.Builder().withCallable(callable).formula(entry.toFormula())
+          .localFeatureVector(features).canonicalUtterance(entry.getRawPhrase()).type(SemType.entityType)
+          .meetCache(Cacheability.LEXICON_DEPENDENT)
+          .createDerivation();
 
-			// Doesn't generalize, but add it for now, otherwise not separable
-			if (FeatureExtractor.containsDomain("lexAlign"))
-				deriv.addFeature("lexAlign", phrase + " --- " + entry.toFormula());
+      // Doesn't generalize, but add it for now, otherwise not separable
+      if (FeatureExtractor.containsDomain("lexAlign"))
+        deriv.addFeature("lexAlign", phrase + " --- " + entry.toFormula());
 
-			if (SemanticFn.opts.trackLocalChoices)
-				deriv.addLocalChoice("SimpleLexiconFn " + deriv.startEndString(ex.getTokens()) + " " + entry);
+      if (SemanticFn.opts.trackLocalChoices)
+        deriv.addLocalChoice("SimpleLexiconFn " + deriv.startEndString(ex.getTokens()) + " " + entry);
 
-			return deriv;
-		}
-	}
+      return deriv;
+    }
+  }
 
 }
