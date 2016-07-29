@@ -1,8 +1,6 @@
 package edu.stanford.nlp.sempre.corenlp;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 import com.google.common.base.Joiner;
@@ -107,12 +105,18 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     props.put("annotators", Joiner.on(',').join(opts.annotators));
 
+    // force the numeric classifiers on, even if the props file would say otherwise
+    // this is to make sure we can understands at least numbers in number form
+    props.put("ner.applyNumericClassifiers", "true");
+    props.put("ner.useSUTime", "true");
+
     pipeline = new StanfordCoreNLP(props);
   }
 
   private static void loadResource(String name, Properties into) {
     try {
-      into.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(name));
+      InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(name);
+      into.load(stream);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

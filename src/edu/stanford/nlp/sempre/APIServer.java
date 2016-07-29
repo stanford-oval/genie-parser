@@ -24,7 +24,7 @@ public class APIServer implements Runnable {
 		@Option
 		public int verbose = 1;
     @Option
-    public List<String> languages = Arrays.asList(new String[] { "en", "it" });
+    public List<String> languages = Arrays.asList(new String[] { "en", "it", "es" });
 	}
 
 	public static Options opts = new Options();

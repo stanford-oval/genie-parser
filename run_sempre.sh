@@ -10,7 +10,7 @@ exec java -ea '-Dmodules=core,corenlp,overnight,freebase,thingtalk' \
               '-Builder.parser' 'BeamParser' \
               '-Builder.executor' 'JavaExecutor' \
               '-JavaExecutor.unpackValues' 'false' \
-              '-Grammar.languageInPaths' 'en:sabrina/sabrina.en.grammar' 'it:sabrina/sabrina.it.grammar' \
+              '-Grammar.languageInPaths' 'en:sabrina/sabrina.en.grammar' 'it:sabrina/sabrina.it.grammar' 'es:sabrina/sabrina.es.grammar' \
               '-Grammar.tags' 'parse' '+Grammar.tags' 'general' \
               '-FeatureExtractor.featureDomains' 'denotation' 'rule' \
               '-FeatureExtractor.featureComputers' 'overnight.OvernightFeatureComputer' \

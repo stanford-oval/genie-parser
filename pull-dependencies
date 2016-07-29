@@ -127,7 +127,7 @@ addModule('corenlp-chinese', 'Stanford CoreNLP Chinese models', lambda {
 })
 
 addModule('corenlp-german', 'Stanford CoreNLP German models', lambda {
-  pullAfs('stanford-german-corenlp-2016-01-19-models.jar')
+  pullAfs('stanford-german-2016-01-19-models.jar')
 })
 
 addModule('corenlp-french', 'Stanford CoreNLP French models', lambda {
@@ -135,7 +135,7 @@ addModule('corenlp-french', 'Stanford CoreNLP French models', lambda {
 })
 
 addModule('corenlp-spanish', 'Stanford CoreNLP Spanish models', lambda {
-  pullAfs('stanford-spanish-corenlp-2016-01-19-models.jar')
+  pullAfs('stanford-spanish-corenlp-2015-10-14-models.jar')
 })
 
 addModule('freebase', 'Freebase: need to construct Freebase schemas', lambda {
