@@ -112,14 +112,30 @@ addModule('core', 'Core utilities (need to compile)', lambda {
 })
 
 addModule('corenlp', 'Stanford CoreNLP (code and modules)', lambda {
-  pull('/u/nlp/data/semparse/resources/stanford-corenlp-full-2013-06-20.zip', '', {:symlink => true})
-  if not File.exists?('lib/stanford-corenlp-full-2013-06-20')
-    system "cd lib && unzip stanford-corenlp-full-2013-06-20.zip" or exit 1
+  pullAfs('stanford-corenlp-full-2015-12-09.zip', '', {:symlink => true})
+  if not File.exists?('lib/stanford-corenlp-full-2015-12-09')
+    system "cd lib && unzip stanford-corenlp-full-2015-12-09.zip" or exit 1
   end
-  ['stanford-corenlp-3.2.0.jar', 'stanford-corenlp-3.2.0-models.jar', 'joda-time.jar', 'jollyday.jar'].each { |file|
-    system "ln -sfv stanford-corenlp-full-2013-06-20/#{file} lib" or exit 1
+  ['stanford-corenlp-3.6.0.jar', 'stanford-corenlp-3.6.0-models.jar', 'joda-time.jar', 'jollyday.jar', 'ejml-0.23.jar', 'javax.json.jar', 'protobuf.jar', 'slf4j-api.jar', 'slf4j-simple.jar', 'xom.jar'].each { |file|
+    system "ln -sfv stanford-corenlp-full-2015-12-09/#{file} lib" or exit 1
   }
-  pull('/u/nlp/data/semparse/resources/stanford-corenlp-caseless-2013-06-07-models.jar', '', {:symlink => true})
+  pullAfs('stanford-corenlp-caseless-2015-04-20-models.jar', '', {:symlink => true})
+})
+
+addModule('corenlp-chinese', 'Stanford CoreNLP Chinese models', lambda {
+  pullAfs('stanford-chinese-corenlp-2016-01-19-models.jar')
+})
+
+addModule('corenlp-german', 'Stanford CoreNLP German models', lambda {
+  pullAfs('stanford-german-corenlp-2016-01-19-models.jar')
+})
+
+addModule('corenlp-french', 'Stanford CoreNLP French models', lambda {
+  pullAfs('stanford-french-corenlp-2016-01-14-models.jar')
+})
+
+addModule('corenlp-spanish', 'Stanford CoreNLP Spanish models', lambda {
+  pullAfs('stanford-spanish-corenlp-2016-01-19-models.jar')
 })
 
 addModule('freebase', 'Freebase: need to construct Freebase schemas', lambda {
