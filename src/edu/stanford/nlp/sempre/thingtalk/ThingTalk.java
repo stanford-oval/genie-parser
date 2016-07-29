@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +13,7 @@ import edu.stanford.nlp.sempre.*;
  */
 public final class ThingTalk {
 
-	public static NumberValue tempValueCast(StringValue unit, NumberValue number) {
+  public static NumberValue measureValueCast(StringValue unit, NumberValue number) {
 		NumberValue tempVal = new NumberValue(number.value, unit.value);
 		return tempVal;
 	}
@@ -121,10 +122,45 @@ public final class ThingTalk {
     //******************************************************************************************************************
     // Constructing the rule value structure
     //******************************************************************************************************************
+	public static RuleValue timeRule(DateValue time, Value action) {
+    ParamNameValue timeName = new ParamNameValue("time", "String");
+		ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
+    TriggerValue timeTrigger = new TriggerValue(
+        new ChannelNameValue("builtin", "at", Collections.singletonList("time"), Collections.singletonList("String")),
+				Collections.singletonList(timeParam));
+
+		if (action instanceof QueryValue)
+			return new RuleValue(timeTrigger, (QueryValue) action, null);
+		else if (action instanceof ActionValue)
+			return new RuleValue(timeTrigger, null, (ActionValue) action);
+		else
+			throw new RuntimeException();
+	}
+
+	public static RuleValue timeSpanRule(NumberValue time, Value action) {
+    ParamNameValue timeName = new ParamNameValue("interval", "Measure(ms)");
+		ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
+    TriggerValue timeTrigger = new TriggerValue(new ChannelNameValue("builtin", "timer",
+        Collections.singletonList("interval"), Collections.singletonList("Measure(ms)")),
+				Collections.singletonList(timeParam));
+
+		if (action instanceof QueryValue)
+			return new RuleValue(timeTrigger, (QueryValue) action, null);
+		else if (action instanceof ActionValue)
+			return new RuleValue(timeTrigger, null, (ActionValue) action);
+		else
+			throw new RuntimeException();
+	}
+
     public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
-        RuleValue ruleVal = new RuleValue(trigger, action);
+		RuleValue ruleVal = new RuleValue(trigger, null, action);
         return ruleVal;
     }
+
+	public static RuleValue ifttt(TriggerValue trigger, QueryValue action) {
+		RuleValue ruleVal = new RuleValue(trigger, action, null);
+		return ruleVal;
+	}
 
     //******************************************************************************************************************
     // Constructing the rule value structure

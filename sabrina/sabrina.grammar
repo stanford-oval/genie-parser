@@ -1,11 +1,14 @@
 # JavaExecutor Functions
-(def @tempValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.tempValueCast)
+(def @measureValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.measureValueCast)
 
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
 (def @trigParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam)
 (def @queryParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.queryParam)
 (def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
+
+(def @timeRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeRule)
+(def @timeSpanRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeSpanRule)
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
 
@@ -20,8 +23,15 @@
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
 (rule $NumberValue ($NumValue) (IdentityFn))
-(rule $TemperatureValue ($NumValue c) (lambda num (call @tempValueCast (string "C") (var num))))
-(rule $TemperatureValue ($NumValue f) (lambda num (call @tempValueCast (string "F") (var num))))
+(rule $TemperatureValue ($NumValue c) (lambda num (call @measureValueCast (string "C") (var num))))
+(rule $TemperatureValue ($NumValue f) (lambda num (call @measureValueCast (string "F") (var num))))
+(rule $TimeIntervalValue ($NumParseValue s) (lambda num (call @measureValueCast (string "s") (var num))))
+(rule $TimeIntervalValue ($NumParseValue min) (lambda num (call @measureValueCast (string "min") (var num))))
+(rule $TimeIntervalValue ($NumParseValue h) (lambda num (call @measureValueCast (string "h") (var num))))
+(rule $TimeIntervalValue ($NumParseValue day) (lambda num (call @measureValueCast (string "day") (var num))))
+(rule $TimeIntervalValue ($NumParseValue week) (lambda num (call @measureValueCast (string "week") (var num))))
+(rule $TimeIntervalValue ($NumParseValue month) (lambda num (call @measureValueCast (string "mon") (var num))))
+(rule $TimeIntervalValue ($NumParseValue year) (lambda num (call @measureValueCast (string "year") (var num))))
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
 (rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
@@ -48,6 +58,7 @@
 (rule $TimeArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
 (rule $NumberArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Number))
 (rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(C)"))
+(rule $TimeIntervalArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(ms)"))
 (rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Boolean))
 
 # operators
@@ -69,6 +80,7 @@
 (rule $Arg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($NumberArgName $Op $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($TemperatureArgName $Op $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TimeIntervalArgName $Op $TimeIntervalValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($BooleanArgName $Op $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $Arg ($LocationArgName $Op $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
@@ -91,6 +103,11 @@
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
 (rule $Notify ($MonitorIf $ValidTrigger) (SelectFn 1))
+
+(rule $ActionOrQuery ($Action) (IdentityFn))
+(rule $ActionOrQuery ($Query) (IdentityFn))
+(rule $TimeRule (every day at $TimeValue $ActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+(rule $TimeRule (every $TimeIntervalValue $ActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind))
 
@@ -152,4 +169,5 @@
 (rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($ValidQuery) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Answer) (lambda cmd (call @jsonOut (var cmd))))
+(rule $ROOT ($TimeRule) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
