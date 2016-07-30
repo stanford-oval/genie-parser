@@ -85,25 +85,24 @@
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
 # must see all the rules to generate all the ops
-# also make sure that at most $BeamSize branches belong to this
-# category - that way FloatingParser will generate all of them
-# and it will be equivalent to writing down all combinations in
-# $Arg
-(rule $Op (@is) (ConstantFn (string is)))
-(rule $Op (@contains) (ConstantFn (string contains)))
-(rule $Op (@has) (ConstantFn (string has)))
-(rule $Op @is_greater_than (ConstantFn (string ">")))
-(rule $Op @is_less_than (ConstantFn (string "<")))
+(rule $GenericOp (@is) (ConstantFn (string is)))
+(rule $StringOp (@is) (ConstantFn (string is)))
+(rule $StringOp (@contains) (ConstantFn (string contains)))
+(rule $NumericOp (@is) (ConstantFn (string is)))
+(rule $NumericOp @is_greater_than (ConstantFn (string ">")))
+(rule $NumericOp @is_less_than (ConstantFn (string "<")))
+(rule $ArrayOp (@has) (ConstantFn (string has)))
 
 # Arguments
-(rule $Arg ($StringArgName $Op $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($DateArgName $Op $DateValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TimeArgName $Op $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($NumberArgName $Op $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TemperatureArgName $Op $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TimeIntervalArgName $Op $TimeIntervalValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($BooleanArgName $Op $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($LocationArgName $Op $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($StringArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($DateArgName $GenericOp $DateValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TimeArgName $GenericOp $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($NumberArgName $NumericOp $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TemperatureArgName $NumericOp $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($TimeIntervalArgName $NumericOp $TimeIntervalValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($BooleanArgName $GenericOp $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($LocationArgName $GenericOp $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
+(rule $Arg ($ArrayStringArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
 (rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
 
 # Action Handling
