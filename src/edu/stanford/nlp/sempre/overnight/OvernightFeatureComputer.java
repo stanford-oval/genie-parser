@@ -528,18 +528,7 @@ public class OvernightFeatureComputer implements FeatureComputer {
   // Return the set of tokens (partial canonical utterance) produced by the
   // derivation.
   public static List<String> extractTokens(Example ex, Derivation deriv, List<String> tokens) {
-    int childIndex = 0;
-    if (deriv.rule.rhs != null) {
-      for (String p : deriv.rule.rhs)
-        if (Rule.isCat(p))
-          extractTokens(ex, deriv.children.get(childIndex++), tokens);
-        else
-          tokens.add(p);
-
-    } else if (deriv.start != -1 && deriv.end != -1) {
-      for (int i = deriv.start; i < deriv.end; i++)
-        tokens.add(ex.token(i));
-    }
+    tokens.addAll(Arrays.asList(deriv.canonicalUtterance.split("\\s+")));
     return tokens;
   }
 
