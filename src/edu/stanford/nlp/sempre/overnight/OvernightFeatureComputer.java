@@ -74,7 +74,7 @@ public class OvernightFeatureComputer implements FeatureComputer {
     // derivation, but we can only specify the local feature vector.  So to
     // make things cancel out, we subtract out the unwanted feature vectors of
     // descendents.
-    subtractDescendentsFeatures(deriv, deriv);
+    //subtractDescendentsFeatures(deriv, deriv);
 
     deriv.addFeature("paraphrase", "size", derivationSize(deriv));
     extractRootFeatures(ex, deriv);
