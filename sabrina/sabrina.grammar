@@ -55,14 +55,32 @@
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
 # Argument Names
-(rule $StringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
-(rule $DateArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Date))
-(rule $TimeArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
-(rule $NumberArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Number))
-(rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(C)"))
-(rule $TimeIntervalArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(ms)"))
-(rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Boolean))
-(rule $LocationArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Location))
+(when floatingargs
+    # what this rule maps to is just a placeholder: ThingpediaLexiconFn recognizes
+    # when it is called in floating mode, and generates all possible parameters
+    # furthermore, the lexicon entries have their canonical already specified so
+    # arg just disappears
+	(rule $StringArgName (arg) (thingtalk.ThingpediaLexiconFn param String floating))
+	(rule $DateArgName (arg) (thingtalk.ThingpediaLexiconFn param Date floating))
+	(rule $TimeArgName (arg) (thingtalk.ThingpediaLexiconFn param String floating))
+	(rule $NumberArgName (arg) (thingtalk.ThingpediaLexiconFn param Number floating))
+	(rule $TemperatureArgName (arg) (thingtalk.ThingpediaLexiconFn param "Measure(C)" floating))
+	(rule $TimeIntervalArgName (arg) (thingtalk.ThingpediaLexiconFn param "Measure(ms)" floating))
+	(rule $BooleanArgName (arg) (thingtalk.ThingpediaLexiconFn param Boolean floating))
+	(rule $LocationArgName (arg) (thingtalk.ThingpediaLexiconFn param Location floating))
+	(rule $ArrayStringArgName (arg) (thingtalk.ThingpediaLexiconFn param "Array(String)" floating))
+)
+(when (not floatingargs)
+	(rule $StringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
+	(rule $DateArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Date))
+	(rule $TimeArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param String))
+	(rule $NumberArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Number))
+	(rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(C)"))
+	(rule $TimeIntervalArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Measure(ms)"))
+	(rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Boolean))
+	(rule $LocationArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param Location))
+	(rule $ArrayStringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn param "Array(String)"))
+)
 
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
@@ -112,7 +130,7 @@
 (rule $TimeRule (every day at $TimeValue $ActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
 (rule $TimeRule (every $TimeIntervalValue $ActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 
-(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind))
+(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind) (anchored 1))
 
 (rule $Help (@help) (ConstantFn (string generic)) (anchored 1))
 (rule $Help (@help $Device) (IdentityFn))

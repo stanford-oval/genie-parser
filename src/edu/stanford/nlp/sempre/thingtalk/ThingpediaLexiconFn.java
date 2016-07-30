@@ -31,6 +31,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
   private ThingpediaLexicon.Mode mode;
   private String filter;
+  private boolean floating = false;
 
   public ThingpediaLexiconFn() {
     lexicon = new ThingpediaLexicon();
@@ -43,6 +44,8 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
     if (tree.children.size() > 2)
       filter = tree.child(2).value;
+    if (tree.children.size() > 3 && tree.child(3).value.equals("floating"))
+      floating = true;
 
     // mode
     try {
@@ -54,7 +57,11 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
   @Override
   public DerivationStream call(Example ex, Callable c) {
-    String phrase = c.childStringValue(0);
+    String phrase;
+    if (!floating)
+      phrase = c.childStringValue(0);
+    else
+      phrase = null;
     Iterator<ThingpediaLexicon.Entry> entries;
     try {
       if (mode == ThingpediaLexicon.Mode.APP)
