@@ -21,7 +21,7 @@ exec java -Xmx12G -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-OvernightFeatureComputer.featureDomains' \
               'match' 'ppdb' 'skip-bigram' 'skip-ppdb' 'root' 'alignment' 'lexical' \
               'root_lexical' \
-              '-ThingTalkFeatureComputer.featureDomains' 'anchorBoundaries' \
+              '-ThingTalkFeatureComputer.featureDomains' 'anchorBoundaries' 'code' 'paramVerbAlign' \
               '-FloatingParser.maxDepth' '12' \
               '-FloatingParser.useAnchorsOnce' \
               '-Parser.beamSize' '20' \
