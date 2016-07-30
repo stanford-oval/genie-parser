@@ -12,6 +12,7 @@ exec java -Xmx12G -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-LanguageAnalyzer' 'corenlp.CoreNLPAnalyzer' \
               '-Builder.parser' 'FloatingParser' \
               '-Builder.executor' 'JavaExecutor' \
+              '-Builder.valueEvaluator' 'thingtalk.JsonValueEvaluator' \
               '-JavaExecutor.unpackValues' 'false' \
               '-Builder.dataset' 'thingtalk.ThingpediaDataset' \
               '-Grammar.inPaths' 'sabrina/sabrina.en.grammar' \
