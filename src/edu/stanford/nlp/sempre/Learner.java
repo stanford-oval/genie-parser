@@ -43,6 +43,9 @@ public class Learner {
     public boolean updateWeights = true;
     @Option(gloss = "whether to check gradient")
     public boolean checkGradient = false;
+
+    @Option(gloss = "whether to reduce the scoring noise at each iteration (see Parser.derivationScoreNoise)")
+    public boolean reduceParserScoreNoise = false;
   }
   public static Options opts = new Options();
 
@@ -102,9 +105,13 @@ public class Learner {
       for (String group : dataset.groups())
         meanEvaluations.put(group, new Evaluation());
 
+      boolean lastIter = (iter == numIters);
+      // set scoring noise to 0 on last iteration (which is not training)
+      if (lastIter && opts.reduceParserScoreNoise)
+        Parser.opts.derivationScoreNoise = 0;
+
       // Test and train
       for (String group : dataset.groups()) {
-        boolean lastIter = (iter == numIters);
         boolean updateWeights = opts.updateWeights && group.equals("train") && !lastIter;  // Don't train on last iteration
         Evaluation eval = processExamples(
                 iter,
@@ -122,6 +129,9 @@ public class Learner {
         params.write(path);
         Utils.systemHard("ln -sf params." + iter + " " + Execution.getFile("params"));
       }
+
+      if (!lastIter && opts.reduceParserScoreNoise)
+        Parser.opts.derivationScoreNoise /= 1.5;
 
       LogInfo.end_track();
     }

@@ -25,7 +25,9 @@ exec java -Xmx12G -ea '-Dmodules=core,overnight,freebase,thingtalk' \
               '-FloatingParser.maxDepth' '12' \
               '-FloatingParser.useAnchorsOnce' \
               '-Parser.beamSize' '20' \
-              '-Learner.maxTrainIters' '1' \
+              '-Learner.maxTrainIters' '3' \
+              '-Learner.reduceParserScoreNoise' \
+              '-Parser.derivationScoreNoise' '4' \
               '-SimpleLexicon.inPaths' 'sabrina/sabrina.lexicon' \
               '-wordAlignmentPath' 'sabrina/sabrina.word_alignments.berkeley' \
               '-phraseAlignmentPath' 'sabrina/sabrina.phrase_alignments' \
