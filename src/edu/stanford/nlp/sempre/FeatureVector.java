@@ -1,10 +1,11 @@
 package edu.stanford.nlp.sempre;
 
+import java.util.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import fig.basic.*;
 
-import java.util.*;
+import fig.basic.*;
 
 /**
  * A FeatureVector represents a mapping from feature (string) to value
@@ -38,6 +39,40 @@ public class FeatureVector {
   public FeatureVector(int numOfDenseFeatures) {
     denseFeatures = new double[numOfDenseFeatures];
     Arrays.fill(denseFeatures, 0d);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("[");
+    if (indicatorFeatures != null) {
+      for (String indicator : indicatorFeatures) {
+        builder.append(indicator);
+        builder.append(" = ");
+        builder.append(1.0);
+        builder.append(", ");
+      }
+    }
+    if (generalFeatures != null) {
+      for (Pair<String, Double> general : generalFeatures) {
+        builder.append(general.getFirst());
+        builder.append(" = ");
+        builder.append(general.getSecond());
+        builder.append(", ");
+      }
+    }
+    if (denseFeatures != null) {
+      for (int i = 0; i < denseFeatures.length; i++) {
+        if (denseFeatures[i] == 0)
+          continue;
+        builder.append(DENSE_NAME + "_" + i);
+        builder.append(" = ");
+        builder.append(denseFeatures[i]);
+        builder.append(", ");
+      }
+    }
+    builder.append("]");
+    return builder.toString();
   }
 
   private static String toFeature(String domain, String name) { return domain + " :: " + name; }
@@ -179,7 +214,7 @@ public class FeatureVector {
 
   @JsonValue
   public Map<String, Double> toMap() {
-    HashMap<String, Double> map = new HashMap<String, Double>();
+    HashMap<String, Double> map = new HashMap<>();
     increment(1, map);
     if (denseFeatures != null) {
       for (int i = 0; i < denseFeatures.length; ++i) {
@@ -237,7 +272,7 @@ public class FeatureVector {
   }
 
   public static void logFeatureWeights(String prefix, Map<String, Double> features, Params params) {
-    List<Map.Entry<String, Double>> entries = new ArrayList<Map.Entry<String, Double>>();
+    List<Map.Entry<String, Double>> entries = new ArrayList<>();
     double sumValue = 0;
     for (Map.Entry<String, Double> entry : features.entrySet()) {
       String feature = entry.getKey();
@@ -245,7 +280,7 @@ public class FeatureVector {
       double value = entry.getValue() * params.getWeight(feature);
       if (opts.ignoreZeroWeight && value == 0) continue;
       sumValue += value;
-      entries.add(new java.util.AbstractMap.SimpleEntry<String, Double>(feature, value));
+      entries.add(new java.util.AbstractMap.SimpleEntry<>(feature, value));
     }
     Collections.sort(entries, new ValueComparator<String, Double>(false));
     LogInfo.begin_track_printAll("%s features [sum = %s] (format is feature value * weight)", prefix, Fmt.D(sumValue));
