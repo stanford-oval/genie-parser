@@ -125,10 +125,10 @@
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
 (rule $Notify ($MonitorIf $ValidTrigger) (SelectFn 1))
 
-(rule $ActionOrQuery ($Action) (IdentityFn))
-(rule $ActionOrQuery ($Query) (IdentityFn))
-(rule $TimeRule (every day at $TimeValue $ActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
-(rule $TimeRule (every $TimeIntervalValue $ActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+(rule $ValidActionOrQuery ($ValidAction) (IdentityFn))
+(rule $ValidActionOrQuery ($ValidQuery) (IdentityFn))
+(rule $TimeRule (every day at $TimeValue $ValidActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+(rule $TimeRule (every $TimeIntervalValue $ValidActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn kind) (anchored 1))
 
