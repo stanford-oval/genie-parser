@@ -35,8 +35,14 @@
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
 (rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
-(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
+(when floatingstrings
+	(rule $StringValue (`` $StrValue '') (IdentityFn))
+)
+(when not floatingstrings
+	(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
+)
 # work around someweirdness in the corenlp tokenizer
+# this is always anchored because it deals with explicitly added quotes
 (rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
 (rule $Value ($DateValue) (IdentityFn))
 (rule $Value ($TimeValue) (IdentityFn))
@@ -106,17 +112,32 @@
 (rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
 
 # Action Handling
-(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn action))
+(when floatingnames
+	(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn action))
+)
+(when (not floatingnames)
+	(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn action))
+)
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
 (rule $Action ($Action @with $ValidArg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
 (rule $ValidAction ($Action) (thingtalk.FilterInvalidInvocationFn))
 
-(rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn trigger))
+(when floatingnames
+	(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn trigger))
+)
+(when (not floatingnames)
+	(rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn trigger))
+)
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
 (rule $Trigger ($Trigger @and $ValidArg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
 (rule $ValidTrigger ($Trigger) (thingtalk.FilterInvalidInvocationFn))
 
-(rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn query))
+(when floatingnames
+	(rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn query))
+)
+(when (not floatingnames)
+	(rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn query))
+)
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
 (rule $Query ($Query and $ValidArg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
 (rule $ValidQuery ($Query) (thingtalk.FilterInvalidInvocationFn))
