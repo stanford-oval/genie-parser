@@ -3,7 +3,10 @@ package edu.stanford.nlp.sempre;
 import static fig.basic.LogInfo.logs;
 
 import java.io.*;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,17 +47,6 @@ public class APIServer implements Runnable {
     }
   }
 
-  private class Handler implements HttpHandler {
-    @Override
-    public void handle(HttpExchange exchange) {
-      try {
-        new ExchangeState(exchange);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
   private final Map<String, Session> sessionMap = new HashMap<>();
   private final Map<String, LanguageContext> langs = new HashMap<>();
 
@@ -62,13 +54,11 @@ public class APIServer implements Runnable {
     static private final int MAX_ITEMS = 5;
 
     // Input
-    private HttpExchange exchange;
-    private Map<String, String> reqParams = new HashMap<>();
-    private String remoteHost;
-
-    // For header
-    private HttpCookie cookie;
-    private boolean isNewSession;
+    private final HttpExchange exchange;
+    private final Map<String, String> reqParams = new HashMap<>();
+    private final String remoteHost;
+    private final boolean isNewSession;
+    private final String sessionId;
 
     public ExchangeState(HttpExchange exchange) throws IOException {
       this.exchange = exchange;
@@ -93,27 +83,18 @@ public class APIServer implements Runnable {
         }
       }
 
-      String cookieStr = exchange.getRequestHeaders().getFirst("Cookie");
-      if (cookieStr != null) {  // Cookie already exists
-        cookie = HttpCookie.parse(cookieStr).get(0);
+      if (reqParams.containsKey("sessionId")) {
+        sessionId = reqParams.get("sessionId");
         isNewSession = false;
       } else {
-        cookie = new HttpCookie("sessionId", SecureIdentifiers.getId());
-        isNewSession = true;  // Create a new cookie
+        sessionId = SecureIdentifiers.getId();
+        isNewSession = true;
       }
 
-      String sessionId = null;
-      if (cookie != null)
-        sessionId = cookie.getValue();
       if (opts.verbose >= 2)
         LogInfo.logs("GET %s from %s (%ssessionId=%s)", uri, remoteHost, isNewSession ? "new " : "", sessionId);
 
-      String uriPath = uri.getPath();
-      if (uriPath.equals("/query")) {
-        handleQuery(sessionId);
-      } else {
-        exchange.sendResponseHeaders(404, 0);
-      }
+      handleQuery();
 
       exchange.close();
     }
@@ -121,14 +102,14 @@ public class APIServer implements Runnable {
     private void setHeaders(int status) throws IOException {
       Headers headers = exchange.getResponseHeaders();
       headers.set("Content-Type", "application/json;charset=utf8");
-      if (isNewSession && cookie != null)
-        headers.set("Set-Cookie", cookie.toString());
+      headers.set("Access-Control-Allow-Origin", "*");
       exchange.sendResponseHeaders(status, 0);
     }
 
     private String makeJson(List<Derivation> response) {
       Map<String, Object> json = new HashMap<>();
       List<Object> items = new ArrayList<>();
+      json.put("sessionId", sessionId);
       json.put("candidates", items);
 
       int nItems = MAX_ITEMS;
@@ -155,6 +136,7 @@ public class APIServer implements Runnable {
 
     private String makeJson(Exception e) {
       Map<String, Object> json = new HashMap<>();
+      json.put("sessionId", sessionId);
       json.put("error", e.getMessage());
       return Json.writeValueAsStringHard(json);
     }
@@ -177,7 +159,7 @@ public class APIServer implements Runnable {
       return ex.getPredDerivations();
     }
 
-    private void handleQuery(String sessionId) throws IOException {
+    private void handleQuery() throws IOException {
       String localeTag = reqParams.get("locale");
       LanguageContext language = null;
 
@@ -236,7 +218,7 @@ public class APIServer implements Runnable {
       // Print header
       setHeaders(exitStatus);
       // Print body
-      PrintWriter out = new PrintWriter(new OutputStreamWriter(exchange.getResponseBody()));
+      PrintWriter out = new PrintWriter(new OutputStreamWriter(exchange.getResponseBody(), Charset.forName("UTF-8")));
       if (error != null)
         out.println(makeJson(error));
       else
@@ -292,7 +274,16 @@ public class APIServer implements Runnable {
       String hostname = fig.basic.SysInfoUtils.getHostName();
       HttpServer server = HttpServer.create(new InetSocketAddress(opts.port), 10);
       ExecutorService pool = Executors.newFixedThreadPool(opts.numThreads);
-      server.createContext("/", new Handler());
+      server.createContext("/query", new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          try {
+            new ExchangeState(exchange);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      });
       server.setExecutor(pool);
       server.start();
       LogInfo.logs("Server started at http://%s:%s/sempre", hostname, opts.port);
