@@ -1,3 +1,5 @@
+(def @language_tag en)
+
 (def @true true)
 (def @false false)
 

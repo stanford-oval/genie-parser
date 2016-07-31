@@ -1,3 +1,5 @@
+(def @language_tag it)
+
 (def @true vero)
 (def @false falso)
 

@@ -186,11 +186,13 @@ public class ThingpediaLexicon {
   }
 
   private final DataSource dataSource;
+  private final String languageTag;
   private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(
       1024);
 
-  public ThingpediaLexicon() {
+  public ThingpediaLexicon(String languageTag) {
     dataSource = ThingpediaDatabase.getSingleton();
+    this.languageTag = languageTag;
   }
 
   public Iterator<Entry> lookupApp(String phrase) throws SQLException {

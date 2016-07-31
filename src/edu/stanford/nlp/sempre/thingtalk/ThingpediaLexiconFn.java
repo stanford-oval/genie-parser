@@ -27,32 +27,34 @@ public class ThingpediaLexiconFn extends SemanticFn {
 
   public static Options opts = new Options();
 
-  private final ThingpediaLexicon lexicon;
+  private ThingpediaLexicon lexicon;
 
   private ThingpediaLexicon.Mode mode;
   private String filter;
   private boolean floating = false;
 
   public ThingpediaLexiconFn() {
-    lexicon = new ThingpediaLexicon();
   }
 
   @Override
   public void init(LispTree tree) {
     super.init(tree);
-    String value = tree.child(1).value;
 
-    if (tree.children.size() > 2)
-      filter = tree.child(2).value;
-    if (tree.children.size() > 3 && tree.child(3).value.equals("floating"))
-      floating = true;
+    String languageTag = tree.child(1).value;
+    lexicon = new ThingpediaLexicon(languageTag);
 
+    String mode = tree.child(2).value;
     // mode
     try {
-      this.mode = ThingpediaLexicon.Mode.valueOf(value.toUpperCase());
+      this.mode = ThingpediaLexicon.Mode.valueOf(mode.toUpperCase());
     } catch (IllegalArgumentException e) {
       throw new RuntimeException("Invalid mode for ThingpediaLexiconFn", e);
     }
+
+    if (tree.children.size() > 3)
+      filter = tree.child(3).value;
+    if (tree.children.size() > 4 && tree.child(4).value.equals("floating"))
+      floating = true;
   }
 
   @Override
