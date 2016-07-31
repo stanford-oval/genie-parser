@@ -22,3 +22,7 @@ semparse.iml
 *.DS_Store
 java.hprof.txt
 /bin/
+
+sabrina/sabrina.canonicals.tsv
+sabrina/sabrina.*.params
+sabrina/sabrina.word_alignments.berkeley.source
