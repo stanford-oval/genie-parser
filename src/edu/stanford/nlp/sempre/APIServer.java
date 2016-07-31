@@ -28,6 +28,8 @@ public class APIServer implements Runnable {
     public int verbose = 1;
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es" });
+    @Option
+    public String accessToken = null;
   }
 
   public static Options opts = new Options();
@@ -50,63 +52,146 @@ public class APIServer implements Runnable {
   private final Map<String, Session> sessionMap = new HashMap<>();
   private final Map<String, LanguageContext> langs = new HashMap<>();
 
-  private class ExchangeState {
-    static private final int MAX_ITEMS = 5;
+  private static abstract class AbstractHttpExchangeState {
+    protected final HttpExchange exchange;
+    protected final Map<String, String> reqParams;
+    protected final String remoteHost;
 
-    // Input
-    private final HttpExchange exchange;
-    private final Map<String, String> reqParams = new HashMap<>();
-    private final String remoteHost;
-    private final boolean isNewSession;
-    private final String sessionId;
-
-    public ExchangeState(HttpExchange exchange) throws IOException {
+    public AbstractHttpExchangeState(HttpExchange exchange) {
       this.exchange = exchange;
-
       URI uri = exchange.getRequestURI();
       this.remoteHost = exchange.getRemoteAddress().toString();
 
-      // Don't use uri.getQuery: it can't distinguish between '+' and '-'
-      String[] tokens = uri.toString().split("\\?");
-      if (tokens.length == 2) {
-        for (String s : tokens[1].split("&")) {
-          String[] kv = s.split("=", 2);
-          try {
-            String key = URLDecoder.decode(kv[0], "UTF-8");
-            String value = URLDecoder.decode(kv[1], "UTF-8");
-            if (opts.verbose >= 5)
-              logs("%s => %s", key, value);
-            reqParams.put(key, value);
-          } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-          }
+      reqParams = parseQuery(uri.getRawQuery());
+
+      if (opts.verbose >= 2)
+        LogInfo.logs("GET %s from %s", uri, remoteHost);
+    }
+
+    private static Map<String, String> parseQuery(String rawQuery) {
+      if (rawQuery == null || rawQuery.length() == 0)
+        return Collections.emptyMap();
+
+      Map<String, String> ret = new HashMap<>();
+      for (String s : rawQuery.split("[&;]")) {
+        String[] kv = s.split("=", 2);
+        try {
+          String key = URLDecoder.decode(kv[0], "UTF-8");
+          String value = URLDecoder.decode(kv[1], "UTF-8");
+          if (opts.verbose >= 5)
+            logs("%s => %s", key, value);
+          ret.put(key, value);
+        } catch (UnsupportedEncodingException e) {
+          throw new RuntimeException(e);
         }
       }
 
-      if (reqParams.containsKey("sessionId")) {
-        sessionId = reqParams.get("sessionId");
-        isNewSession = false;
-      } else {
-        sessionId = SecureIdentifiers.getId();
-        isNewSession = true;
-      }
-
-      if (opts.verbose >= 2)
-        LogInfo.logs("GET %s from %s (%ssessionId=%s)", uri, remoteHost, isNewSession ? "new " : "", sessionId);
-
-      handleQuery();
-
-      exchange.close();
+      return ret;
     }
 
-    private void setHeaders(int status) throws IOException {
+    protected void returnError(int status, Exception e) throws IOException {
+      Map<String, Object> json = new HashMap<>();
+      json.put("error", e.getMessage());
+      returnJson(status, json);
+    }
+
+    protected void returnJson(int status, Map<String, Object> json) throws IOException {
       Headers headers = exchange.getResponseHeaders();
       headers.set("Content-Type", "application/json;charset=utf8");
       headers.set("Access-Control-Allow-Origin", "*");
       exchange.sendResponseHeaders(status, 0);
+
+      PrintWriter out = new PrintWriter(new OutputStreamWriter(exchange.getResponseBody(), Charset.forName("UTF-8")));
+      out.println(Json.writeValueAsStringHard(json));
+      out.close();
     }
 
-    private String makeJson(List<Derivation> response) {
+    protected void returnOk(String ok) throws IOException {
+      Map<String, Object> json = new HashMap<>();
+      json.put("result", ok);
+      returnJson(200, json);
+    }
+
+    protected abstract void doHandle() throws IOException;
+
+    public void run() {
+      try {
+        doHandle();
+      } catch (IOException e) {
+        e.printStackTrace();
+      } finally {
+        exchange.close();
+      }
+    }
+  }
+
+  private abstract class AdminHttpExchangeState extends AbstractHttpExchangeState {
+    public AdminHttpExchangeState(HttpExchange exchange) {
+      super(exchange);
+    }
+
+    protected boolean checkCredentials() throws IOException {
+      if (opts.accessToken == null || !opts.accessToken.equals(reqParams.get("accessToken"))) {
+        if (opts.verbose >= 2)
+          LogInfo.logs("Invalid access token to admin endpoint");
+        returnError(403, new SecurityException("Invalid access token"));
+        return false;
+      }
+      return true;
+    }
+  }
+
+  private class ClearCacheExchangeState extends AdminHttpExchangeState {
+    public ClearCacheExchangeState(HttpExchange exchange) {
+      super(exchange);
+    }
+
+    @Override
+    protected void doHandle() throws IOException {
+      if (!checkCredentials())
+        return;
+
+      try {
+        String lang = reqParams.get("locale");
+        if (lang == null) {
+          returnError(400, new IllegalArgumentException("locale argument missing"));
+          return;
+        }
+
+        String utterance = reqParams.get("q");
+
+        if (utterance != null) {
+          if (opts.verbose >= 3)
+            LogInfo.logs("Removing %s (locale = %s) from query cache", utterance, lang);
+          langs.get(lang).cache.clear(utterance);
+        } else {
+          if (opts.verbose >= 3)
+            LogInfo.logs("Clearing query cache for locale = %s", lang);
+          langs.get(lang).cache.clear();
+        }
+
+        returnOk("Cache cleared");
+      } catch (Exception e) {
+        returnError(400, e);
+      }
+    }
+  }
+
+  private class ExchangeState extends AbstractHttpExchangeState {
+    static private final int MAX_ITEMS = 5;
+
+    private final String sessionId;
+
+    public ExchangeState(HttpExchange exchange) {
+      super(exchange);
+
+      if (reqParams.containsKey("sessionId"))
+        sessionId = reqParams.get("sessionId");
+      else
+        sessionId = SecureIdentifiers.getId();
+    }
+
+    private Map<String, Object> makeJson(List<Derivation> response) {
       Map<String, Object> json = new HashMap<>();
       List<Object> items = new ArrayList<>();
       json.put("sessionId", sessionId);
@@ -131,14 +216,14 @@ public class APIServer implements Runnable {
         items.add(item);
       }
 
-      return Json.writeValueAsStringHard(json);
+      return json;
     }
 
-    private String makeJson(Exception e) {
+    private Map<String, Object> makeJson(Exception e) {
       Map<String, Object> json = new HashMap<>();
       json.put("sessionId", sessionId);
       json.put("error", e.getMessage());
-      return Json.writeValueAsStringHard(json);
+      return json;
     }
 
     private List<Derivation> handleUtterance(Session session, LanguageContext language, String query) {
@@ -159,7 +244,8 @@ public class APIServer implements Runnable {
       return ex.getPredDerivations();
     }
 
-    private void handleQuery() throws IOException {
+    @Override
+    protected void doHandle() throws IOException {
       String localeTag = reqParams.get("locale");
       LanguageContext language = null;
 
@@ -215,16 +301,10 @@ public class APIServer implements Runnable {
         e.printStackTrace();
       }
 
-      // Print header
-      setHeaders(exitStatus);
-      // Print body
-      PrintWriter out = new PrintWriter(new OutputStreamWriter(exchange.getResponseBody(), Charset.forName("UTF-8")));
       if (error != null)
-        out.println(makeJson(error));
+        returnJson(exitStatus, makeJson(error));
       else
-        out.println(makeJson(derivations));
-
-      out.close();
+        returnJson(exitStatus, makeJson(derivations));
     }
   }
 
@@ -277,11 +357,13 @@ public class APIServer implements Runnable {
       server.createContext("/query", new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
-          try {
-            new ExchangeState(exchange);
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
+          new ExchangeState(exchange).run();
+        }
+      });
+      server.createContext("/admin/clear-cache", new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          new ClearCacheExchangeState(exchange).run();
         }
       });
       server.setExecutor(pool);

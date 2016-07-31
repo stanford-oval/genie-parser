@@ -57,6 +57,27 @@ public class GenericObjectCache<K, V> {
 		return null;
 	}
 
+  public void clear() {
+    for (ListBucket<K, V> bucket : buckets) {
+      synchronized (bucket) {
+        bucket.clear();
+      }
+    }
+  }
+
+  public void clear(K key) {
+    ListBucket<K, V> bucket = getBucket(key);
+
+    synchronized (bucket) {
+      Iterator<SoftReference<CacheItem<K, V>>> it = bucket.iterator();
+      while (it.hasNext()) {
+        CacheItem<K, V> other = it.next().get();
+        if (other == null || other.key.equals(key))
+          it.remove();
+      }
+    }
+  }
+
 	public void store(K key, V value, long expires) {
 		if (expires == 0) // ignore if not cacheable
 			return;
