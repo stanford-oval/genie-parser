@@ -20,21 +20,19 @@ exec java -Xmx12G -ea -Dmodules=core,overnight,freebase,thingtalk \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code paramVerbAlign \
-              -FloatingParser.maxDepth 12 \
+              -FloatingParser.maxDepth 8 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 20 \
+              -Parser.beamSize 40 \
               -Learner.maxTrainIters 3 \
               -Learner.reduceParserScoreNoise \
               -Parser.derivationScoreNoise 4 \
-              -SimpleLexicon.inPaths sabrina/sabrina.lexicon \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \
               -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
               -ThingpediaDatabase.dbUser sempre \
-              -Main.interactive true \
               -BeamParser.executeAllDerivations true \
               -FloatingParser.executeAllDerivations true \
-              -Parser.printAllPredictions \
+              -Main.interactive true \
               "$@"
