@@ -1,7 +1,9 @@
-package edu.stanford.nlp.sempre;
+package edu.stanford.nlp.sempre.api;
 
 import java.util.List;
 
+import edu.stanford.nlp.sempre.Derivation;
+import edu.stanford.nlp.sempre.GenericObjectCache;
 import edu.stanford.nlp.sempre.Derivation.Cacheability;
 
 public class QueryCache extends GenericObjectCache<String, List<Derivation>> {

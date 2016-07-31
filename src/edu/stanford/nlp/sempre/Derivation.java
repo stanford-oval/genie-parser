@@ -78,7 +78,7 @@ public class Derivation implements SemanticFn.Callable, HasScore {
 
   // Information for scoring
   private final FeatureVector localFeatureVector;  // Features
-  double score = Double.NaN;  // Weighted combination of features
+  public double score = Double.NaN;  // Weighted combination of features
 
   // Used during parsing (by FeatureExtractor, SemanticFn) to cache arbitrary
   // computation across different sub-Derivations.

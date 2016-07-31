@@ -13,12 +13,12 @@ import java.util.List;
  */
 public class Session {
   public final String id;  // Session id
-	private long lastAccessTime;
-	String lang; // the language we're parsing against (eg en_US or zh_TW)
-  String remoteHost;  // Where we connected from
+  private long lastAccessTime;
+  public String lang; // the language we're parsing against (eg en_US or zh_TW)
+  public String remoteHost;  // Where we connected from
   String format;  // html or json
-  ContextValue context;  // Current context used to create new examples
-  Example lastEx;  // Last example that we processed
+  public ContextValue context;  // Current context used to create new examples
+  public Example lastEx;  // Last example that we processed
 
   public Session(String id) {
     this.id = id;

@@ -98,6 +98,16 @@
     <jar destfile="${libsempre}/sempre-thingtalk.jar" basedir="${classes}/thingtalk"/>
   </target>
 
+  <!-- Compile api -->
+  <target name="api" depends="init,core">
+    <echo message="Compiling ${ant.project.name}: api"/>
+    <mkdir dir="${classes}/api"/>
+    <javac srcdir="${src}" destdir="${classes}/api" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
+      <include name="edu/stanford/nlp/sempre/api/"/>
+    </javac>
+    <jar destfile="${libsempre}/sempre-api.jar" basedir="${classes}/api"/>
+  </target>
+
   <!-- Clean up -->
   <target name="clean">
     <delete includeemptydirs="true" quiet="true">
