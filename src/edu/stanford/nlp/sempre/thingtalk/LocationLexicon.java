@@ -73,7 +73,7 @@ public class LocationLexicon {
     this.languageTag = languageTag;
   }
 
-  public static LocationLexicon getForLanguage(String languageTag) {
+  public synchronized static LocationLexicon getForLanguage(String languageTag) {
     LocationLexicon instance = instances.get(languageTag);
     if (instance == null) {
       instance = new LocationLexicon(languageTag);

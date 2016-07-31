@@ -185,14 +185,23 @@ public class ThingpediaLexicon {
     }
   }
 
+  private static final Map<String, ThingpediaLexicon> instances = new HashMap<>();
+  private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(1024);
   private final DataSource dataSource;
   private final String languageTag;
-  private final GenericObjectCache<LexiconKey, List<Entry>> cache = new GenericObjectCache<>(
-      1024);
 
-  public ThingpediaLexicon(String languageTag) {
+  private ThingpediaLexicon(String languageTag) {
     dataSource = ThingpediaDatabase.getSingleton();
     this.languageTag = languageTag;
+  }
+
+  public synchronized static ThingpediaLexicon getForLanguage(String languageTag) {
+    ThingpediaLexicon instance = instances.get(languageTag);
+    if (instance == null) {
+      instance = new ThingpediaLexicon(languageTag);
+      instances.put(languageTag, instance);
+    }
+    return instance;
   }
 
   public Iterator<Entry> lookupApp(String phrase) throws SQLException {

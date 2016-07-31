@@ -41,7 +41,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
     super.init(tree);
 
     String languageTag = tree.child(1).value;
-    lexicon = new ThingpediaLexicon(languageTag);
+    lexicon = ThingpediaLexicon.getForLanguage(languageTag);
 
     String mode = tree.child(2).value;
     // mode
