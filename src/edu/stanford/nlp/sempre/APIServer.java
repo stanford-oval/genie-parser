@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -50,7 +51,7 @@ public class APIServer implements Runnable {
   }
 
   private final Map<String, Session> sessionMap = new HashMap<>();
-  private final Map<String, LanguageContext> langs = new HashMap<>();
+  private final Map<String, LanguageContext> langs = new ConcurrentHashMap<>();
 
   private static abstract class AbstractHttpExchangeState {
     protected final HttpExchange exchange;
@@ -171,6 +172,34 @@ public class APIServer implements Runnable {
         }
 
         returnOk("Cache cleared");
+      } catch (Exception e) {
+        returnError(400, e);
+      }
+    }
+  }
+
+  private class ReloadParametersExchangeState extends AdminHttpExchangeState {
+    public ReloadParametersExchangeState(HttpExchange exchange) {
+      super(exchange);
+    }
+
+    @Override
+    protected void doHandle() throws IOException {
+      if (!checkCredentials())
+        return;
+
+      try {
+        String lang = reqParams.get("locale");
+        if (lang == null) {
+          returnError(400, new IllegalArgumentException("locale argument missing"));
+          return;
+        }
+
+        if (!langs.containsKey(lang)) {
+          returnError(400, new IllegalArgumentException("invalid language tag"));
+          return;
+        }
+        langs.put(lang, new LanguageContext(lang));
       } catch (Exception e) {
         returnError(400, e);
       }
@@ -364,6 +393,12 @@ public class APIServer implements Runnable {
         @Override
         public void handle(HttpExchange exchange) {
           new ClearCacheExchangeState(exchange).run();
+        }
+      });
+      server.createContext("/admin/reload", new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          new ReloadParametersExchangeState(exchange).run();
         }
       });
       server.setExecutor(pool);
