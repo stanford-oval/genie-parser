@@ -61,13 +61,17 @@ public class OvernightFeatureComputer implements FeatureComputer {
   @Override public void extractLocal(Example ex, Derivation deriv) {
     if (deriv.rule.rhs == null) return;
 
+    // do not featurize $StrValue - the paraphrase model is not appropriate for it
+    if (deriv.rule.lhs != null && deriv.rule.lhs.equals("$StrValue"))
+      return;
+
     // Optimization: feature vector same as child, so don't do anything.
     if (deriv.rule.isCatUnary()) {
       if (deriv.isRootCat()) {
         extractValueInFormulaFeature(deriv);
         extractRootFeatures(ex, deriv);
-        return;
       }
+      return;
     }
 
     // Important!  We want to define the global feature vector for this
@@ -109,9 +113,9 @@ public class OvernightFeatureComputer implements FeatureComputer {
       if (skipPpdb > 0 && opts.featureDomains.contains("skip-ppdb")) deriv.addFeature("paraphrase", "skip-ppdb");
     }
 
-    HashMap<String, Double> features = new LinkedHashMap<>();
-    deriv.incrementAllFeatureVector(+1, features);
     if (opts.verbose >= 1) {
+      HashMap<String, Double> features = new LinkedHashMap<>();
+      deriv.incrementAllFeatureVector(+1, features);
       LogInfo.logs("category %s, %s %s", deriv.cat, inputItems, candidateItems);
       FeatureVector.logFeatures(features);
     }
