@@ -1,6 +1,6 @@
 package edu.stanford.nlp.sempre.api;
 
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.security.SecureRandom;
@@ -13,9 +13,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.Master;
+import edu.stanford.nlp.sempre.Session;
 import fig.basic.LogInfo;
 import fig.basic.Option;
+import fig.basic.Pair;
 import fig.exec.Execution;
 
 final class SecureIdentifiers {
@@ -40,6 +42,8 @@ public class APIServer implements Runnable {
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es" });
     @Option
+    public List<Pair<String, String>> onlineLearnFiles = new ArrayList<>();
+    @Option
     public String accessToken = null;
   }
 
@@ -48,13 +52,6 @@ public class APIServer implements Runnable {
   private final Map<String, Session> sessionMap = new HashMap<>();
   final Map<String, LanguageContext> langs = new ConcurrentHashMap<>();
 
-  private class SessionGCTask extends TimerTask {
-    @Override
-    public void run() {
-      gcSessions();
-    }
-  }
-
   synchronized Session getSession(String sessionId) {
     if (sessionMap.containsKey(sessionId)) {
       return sessionMap.get(sessionId);
@@ -62,6 +59,33 @@ public class APIServer implements Runnable {
       Session newSession = new Session(sessionId);
       sessionMap.put(sessionId, newSession);
       return newSession;
+    }
+  }
+
+  private void recordOnlineLearnExampleInFile(String filename, String example, String targetJson) {
+    try (Writer writer = new OutputStreamWriter(new FileOutputStream(filename, true), "UTF-8")) {
+      writer.write(example + "\t" + targetJson + "\n");
+    } catch (IOException e) {
+      LogInfo.logs("Failed to append online-learnt example: %s", e.getMessage());
+    }
+  }
+
+  void recordOnlineLearnExample(String languageTag, String example, String targetJson) {
+    // we don't want to write to the same file from two threads using two different buffered
+    // writers (they would intermix and break the file format)
+    // synchronizing on onlineLearnFiles achieves that and is as good as anything else
+    synchronized (opts.onlineLearnFiles) {
+      for (Pair<String, String> pair : opts.onlineLearnFiles) {
+        if (pair.getFirst().equals(languageTag))
+          recordOnlineLearnExampleInFile(pair.getSecond(), example, targetJson);
+      }
+    }
+  }
+
+  private class SessionGCTask extends TimerTask {
+    @Override
+    public void run() {
+      gcSessions();
     }
   }
 
@@ -97,7 +121,13 @@ public class APIServer implements Runnable {
       server.createContext("/query", new HttpHandler() {
         @Override
         public void handle(HttpExchange exchange) {
-          new ExchangeState(APIServer.this, exchange).run();
+          new QueryExchangeState(APIServer.this, exchange).run();
+        }
+      });
+      server.createContext("/learn", new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          new OnlineLearnExchangeState(APIServer.this, exchange).run();
         }
       });
       server.createContext("/admin/clear-cache", new HttpHandler() {

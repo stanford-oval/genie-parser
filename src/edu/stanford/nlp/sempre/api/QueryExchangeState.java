@@ -8,19 +8,15 @@ import java.util.*;
 import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.*;
-import edu.stanford.nlp.sempre.api.SecureIdentifiers;
 
-class ExchangeState extends AbstractHttpExchangeState {
-  /**
-   * 
-   */
+class QueryExchangeState extends AbstractHttpExchangeState {
   private final APIServer server;
 
   static private final int MAX_ITEMS = 5;
 
   private final String sessionId;
 
-  public ExchangeState(APIServer server, HttpExchange exchange) {
+  public QueryExchangeState(APIServer server, HttpExchange exchange) {
     super(exchange);
     this.server = server;
 
@@ -58,13 +54,6 @@ class ExchangeState extends AbstractHttpExchangeState {
     return json;
   }
 
-  private Map<String, Object> makeJson(Exception e) {
-    Map<String, Object> json = new HashMap<>();
-    json.put("sessionId", sessionId);
-    json.put("error", e.getMessage());
-    return json;
-  }
-
   private List<Derivation> handleUtterance(Session session, LanguageContext language, String query) {
     session.updateContext();
 
@@ -89,20 +78,7 @@ class ExchangeState extends AbstractHttpExchangeState {
   @Override
   protected void doHandle() throws IOException {
     String localeTag = reqParams.get("locale");
-    LanguageContext language = null;
-
-    if (localeTag != null) {
-      String[] splitTag = localeTag.split("[_\\.\\-]");
-      // try with language and country
-      if (splitTag.length >= 2)
-        language = this.server.langs.get(splitTag[0] + "_" + splitTag[1]);
-      if (language == null && splitTag.length >= 1)
-        language = this.server.langs.get(splitTag[0]);
-    }
-    // fallback to english if the language is not recognized or
-    // locale was not specified
-    if (language == null)
-      language = this.server.langs.get("en");
+    LanguageContext language = localeToLanguage(server.langs, localeTag);
 
     String query = reqParams.get("q");
 
@@ -111,32 +87,33 @@ class ExchangeState extends AbstractHttpExchangeState {
     Exception error = null;
 
     try {
-      if (query != null) {
-        // try from cache
-        derivations = language.cache.hit(query);
-        if (APIServer.opts.verbose >= 3) {
-          if (derivations != null)
-            logs("cache hit");
-          else
-            logs("cache miss");
-        }
+      if (query == null)
+        throw new IllegalArgumentException("Missing query");
 
-        if (derivations == null) {
-          Session session = this.server.getSession(sessionId);
-          synchronized (session) {
-            if (session.lang != null && !session.lang.equals(localeTag))
-              throw new IllegalArgumentException("Cannot change the language of an existing session");
-            session.lang = localeTag;
-            session.remoteHost = remoteHost;
-            derivations = handleUtterance(session, language, query);
-          }
-          language.cache.store(query, derivations);
-        }
-        exitStatus = 200;
-      } else {
-        exitStatus = 400;
-        error = new RuntimeException("Bad Request");
+      // try from cache
+      derivations = language.cache.hit(query);
+      if (APIServer.opts.verbose >= 3) {
+        if (derivations != null)
+          logs("cache hit");
+        else
+          logs("cache miss");
       }
+
+      if (derivations == null) {
+        Session session = this.server.getSession(sessionId);
+        synchronized (session) {
+          if (session.lang != null && !session.lang.equals(language.tag))
+            throw new IllegalArgumentException("Cannot change the language of an existing session");
+          session.lang = language.tag;
+          session.remoteHost = remoteHost;
+          derivations = handleUtterance(session, language, query);
+        }
+        language.cache.store(query, derivations);
+      }
+      exitStatus = 200;
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      exitStatus = 400;
+      error = e;
     } catch (Exception e) {
       exitStatus = 500;
       error = e;
@@ -144,7 +121,7 @@ class ExchangeState extends AbstractHttpExchangeState {
     }
 
     if (error != null)
-      returnJson(exitStatus, makeJson(error));
+      returnError(exitStatus, error, sessionId);
     else
       returnJson(exitStatus, makeJson(derivations));
   }

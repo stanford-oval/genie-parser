@@ -5,9 +5,6 @@ import java.io.IOException;
 import com.sun.net.httpserver.HttpExchange;
 
 class ReloadParametersExchangeState extends AdminHttpExchangeState {
-  /**
-   * 
-   */
   private final APIServer server;
 
   public ReloadParametersExchangeState(APIServer server, HttpExchange exchange) {

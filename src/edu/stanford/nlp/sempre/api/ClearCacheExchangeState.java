@@ -7,9 +7,6 @@ import com.sun.net.httpserver.HttpExchange;
 import fig.basic.LogInfo;
 
 class ClearCacheExchangeState extends AdminHttpExchangeState {
-  /**
-   * 
-   */
   private final APIServer server;
 
   public ClearCacheExchangeState(APIServer server, HttpExchange exchange) {

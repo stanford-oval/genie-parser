@@ -53,10 +53,44 @@ abstract class AbstractHttpExchangeState {
     return ret;
   }
 
-  protected void returnError(int status, Exception e) throws IOException {
+  protected static LanguageContext localeToLanguage(Map<String, LanguageContext> langs, String localeTag) {
+    LanguageContext language = null;
+
+    if (localeTag != null) {
+      String[] splitTag = localeTag.split("[_\\.\\-]");
+      // try with language and country
+      if (splitTag.length >= 2)
+        language = langs.get(splitTag[0] + "_" + splitTag[1]);
+      if (language == null && splitTag.length >= 1)
+        language = langs.get(splitTag[0]);
+    }
+    // fallback to english if the language is not recognized or
+    // locale was not specified
+    if (language == null)
+      language = langs.get("en");
+
+    return language;
+  }
+
+  private Map<String, Object> errorToJson(Throwable e) {
+    Map<String, Object> error = new HashMap<>();
+    error.put("class", e.getClass().getName());
+    error.put("message", e.getMessage());
+    if (e.getCause() != null)
+      error.put("cause", errorToJson(e.getCause()));
+    return error;
+  }
+
+  protected void returnError(int status, Exception e, String sessionId) throws IOException {
     Map<String, Object> json = new HashMap<>();
-    json.put("error", e.getMessage());
+    if (sessionId != null)
+      json.put("sessionId", sessionId);
+    json.put("error", errorToJson(e));
     returnJson(status, json);
+  }
+
+  protected void returnError(int status, Exception e) throws IOException {
+    returnError(status, e, null);
   }
 
   protected void returnJson(int status, Map<String, Object> json) throws IOException {
@@ -70,10 +104,16 @@ abstract class AbstractHttpExchangeState {
     out.close();
   }
 
-  protected void returnOk(String ok) throws IOException {
+  protected void returnOk(String ok, String sessionId) throws IOException {
     Map<String, Object> json = new HashMap<>();
+    if (sessionId != null)
+      json.put("sessionId", sessionId);
     json.put("result", ok);
     returnJson(200, json);
+  }
+
+  protected void returnOk(String ok) throws IOException {
+    returnOk(ok, null);
   }
 
   protected abstract void doHandle() throws IOException;
