@@ -28,47 +28,10 @@ paste ./berkeleyaligner.tmp/output/training.f ./berkeleyaligner.tmp/output/train
 
 # convert the berkeley aligner format to something sempre likes
 java -cp 'libsempre/*:lib/*' -Dmodules=core,corenlp,overnight,thingtalk edu.stanford.nlp.sempre.overnight.Aligner ./sabrina/sabrina.word_alignments.berkeley.source ./sabrina/sabrina.word_alignments.berkeley berkeley 2
+rm -fr ./berkeleyaligner.tmp
 
 # here would optionally clean up the ppdb, but we don't yet
 
 # actually run sempre
-rm -fr ./sempre.tmp
-java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
-              -cp 'libsempre/*:lib/*' \
-              edu.stanford.nlp.sempre.Main \
-              -execDir ./sempre.tmp \
-              -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
-              -Builder.parser FloatingParser \
-              -Builder.executor JavaExecutor \
-              -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
-              -JavaExecutor.unpackValues false \
-              -Builder.dataset thingtalk.ThingpediaDataset \
-              -Grammar.inPaths sabrina/sabrina.${LANGUAGE_TAG}.grammar \
-              -Grammar.tags floatingargs floatingnames \
-              -FeatureExtractor.featureDomains rule \
-              -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
-              -OvernightFeatureComputer.featureDomains \
-              match ppdb skip-bigram skip-ppdb root alignment lexical \
-              root_lexical \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code paramVerbAlign \
-              -FloatingParser.maxDepth 8 \
-              -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 40 \
-              -Learner.maxTrainIters 3 \
-              -Learner.reduceParserScoreNoise \
-              -Parser.derivationScoreNoise 4 \
-              -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
-              -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
-              -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \
-              -PPDBModel.ppdb false \
-              -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
-              -ThingpediaDatabase.dbUser sempre \
-              -BeamParser.executeAllDerivations true \
-              -FloatingParser.executeAllDerivations true \
-              "$@"
-
-# move the generated file where APIServer will know to look for
-cp sempre.tmp/params.3 ./sabrina/sabrina.${LANGUAGE_TAG}.params
-
-rm -fr ./sempre.tmp
-rm -fr ./berkeleyaligner.tmp
+export LANGUAGE_TAG
+./run-sempre-training.sh
