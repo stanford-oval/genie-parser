@@ -227,19 +227,29 @@ public class Learner {
 
   private void checkGradient(Example ex, ParserState state) {
     double eps = 1e-2;
-    for (String feature : state.expectedCounts.keySet()) {
-      LogInfo.begin_track("feature=%s", feature);
-      double computedGradient = state.expectedCounts.get(feature);
-      Params perturbedParams = this.params.copyParams();
-      perturbedParams.getWeights().put(feature, perturbedParams.getWeight(feature) + eps);
-      ParserState perturbedState = parseExample(perturbedParams, ex, true);
-      double checkedGradient = (perturbedState.objectiveValue - state.objectiveValue) / eps;
-      LogInfo.logs("Learner.checkGradient(): weight=%s, pertWeight=%s, obj=%s, pertObj=%s, feature=%s, computed=%s, checked=%s, diff=%s",
-              params.getWeight(feature), perturbedParams.getWeight(feature),
-              state.objectiveValue, perturbedState.objectiveValue,
-              feature,
-              computedGradient, checkedGradient, Math.abs(checkedGradient - computedGradient));
-      LogInfo.end_track();
+    // finalizeWeights acquires the write lock, so call it outside the
+    // read lock
+    this.params.finalizeWeights();
+    this.params.readLock();
+    try {
+      for (String feature : state.expectedCounts.keySet()) {
+        LogInfo.begin_track("feature=%s", feature);
+        double computedGradient = state.expectedCounts.get(feature);
+        Params perturbedParams = this.params.copyParams();
+        perturbedParams.finalizeWeights();
+        perturbedParams.getWeights().put(feature, perturbedParams.getWeight(feature) + eps);
+        ParserState perturbedState = parseExample(perturbedParams, ex, true);
+        double checkedGradient = (perturbedState.objectiveValue - state.objectiveValue) / eps;
+        LogInfo.logs(
+            "Learner.checkGradient(): weight=%s, pertWeight=%s, obj=%s, pertObj=%s, feature=%s, computed=%s, checked=%s, diff=%s",
+            params.getWeight(feature), perturbedParams.getWeight(feature),
+            state.objectiveValue, perturbedState.objectiveValue,
+            feature,
+            computedGradient, checkedGradient, Math.abs(checkedGradient - computedGradient));
+        LogInfo.end_track();
+      }
+    } finally {
+      this.params.readUnlock();
     }
   }
 

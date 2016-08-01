@@ -1,14 +1,16 @@
 package edu.stanford.nlp.sempre;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-
-import fig.basic.*;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+
+import fig.basic.*;
 
 /**
  * Params contains the parameters of the model. Currently consists of a map from
@@ -47,42 +49,70 @@ public class Params {
     if ("none".equals(l1Reg)) return L1Reg.NONE;
     throw new RuntimeException("not legal l1reg");
   }
-  private L1Reg l1Reg = parseReg(opts.l1Reg);
+
+  private final L1Reg l1Reg = parseReg(opts.l1Reg);
 
   // Discriminative weights
-  private Map<String, Double> weights = new HashMap<>();
+  private final Map<String, Double> weights = new HashMap<>();
 
   // For AdaGrad
-  Map<String, Double> sumSquaredGradients = new HashMap<>();
+  private final Map<String, Double> sumSquaredGradients = new HashMap<>();
 
   // For dual averaging
-  Map<String, Double> sumGradients = new HashMap<>();
+  private final Map<String, Double> sumGradients = new HashMap<>();
 
   // Number of stochastic updates we've made so far (for determining step size).
-  int numUpdates;
+  private int numUpdates;
 
   // for lazy l1-reg update
-  Map<String, Integer> l1UpdateTimeMap = new HashMap<>();
+  private final Map<String, Integer> l1UpdateTimeMap = new HashMap<>();
+
+  // multi-thread synchronization
+  private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
+
+  public void readLock() {
+    lock.readLock().lock();
+  }
+
+  public void readUnlock() {
+    lock.readLock().unlock();
+  }
+
+  private void writeLock() {
+    lock.writeLock().lock();
+  }
+
+  private void writeUnlock() {
+    lock.writeLock().unlock();
+  }
 
   // Initialize the weights
   public void init(List<Pair<String, Double>> initialization) {
-    if (!weights.isEmpty())
-      throw new RuntimeException("Initialization is not legal when there are non-zero weights");
-    for (Pair<String, Double> pair: initialization)
-      weights.put(pair.getFirst(), pair.getSecond());
+    writeLock();
+    try {
+      if (!weights.isEmpty())
+        throw new RuntimeException("Initialization is not legal when there are non-zero weights");
+      for (Pair<String, Double> pair : initialization)
+        weights.put(pair.getFirst(), pair.getSecond());
+    } finally {
+      writeUnlock();
+    }
   }
 
   // Read parameters from |path|.
   public void read(String path) {
     LogInfo.begin_track("Reading parameters from %s", path);
-    try {
-      BufferedReader in = IOUtils.openIn(path);
+    try (BufferedReader in = IOUtils.openIn(path)) {
       String line;
-      while ((line = in.readLine()) != null) {
-        String[] pair = Lists.newArrayList(Splitter.on('\t').split(line)).toArray(new String[2]);
-        weights.put(pair[0], Double.parseDouble(pair[1]));
+      writeLock();
+      try {
+        while ((line = in.readLine()) != null) {
+          String[] pair = Lists.newArrayList(Splitter.on('\t').split(line)).toArray(new String[2]);
+          weights.put(pair[0], Double.parseDouble(pair[1]));
+        }
+      } finally {
+        writeUnlock();
       }
-      in.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -93,15 +123,18 @@ public class Params {
   // Read parameters from |path|.
   public void read(String path, String prefix) {
     LogInfo.begin_track("Reading parameters from %s", path);
-    try {
-      BufferedReader in = IOUtils.openIn(path);
+    try (BufferedReader in = IOUtils.openIn(path)) {
       String line;
-      while ((line = in.readLine()) != null) {
-        String[] pair = Lists.newArrayList(Splitter.on('\t').split(line)).toArray(new String[2]);
-        weights.put(pair[0], Double.parseDouble(pair[1]));
-        weights.put(prefix + pair[0], Double.parseDouble(pair[1]));
+      writeLock();
+      try {
+        while ((line = in.readLine()) != null) {
+          String[] pair = Lists.newArrayList(Splitter.on('\t').split(line)).toArray(new String[2]);
+          weights.put(pair[0], Double.parseDouble(pair[1]));
+          weights.put(prefix + pair[0], Double.parseDouble(pair[1]));
+        }
+      } finally {
+        writeUnlock();
       }
-      in.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -110,46 +143,55 @@ public class Params {
   }
 
   // Update weights by adding |gradient| (modified appropriately with step size).
-  public synchronized void update(Map<String, Double> gradient) {
-    for (Map.Entry<String, Double> entry : gradient.entrySet()) {
-      String f = entry.getKey();
-      double g = entry.getValue();
-      if (g * g == 0) continue;  // In order to not divide by zero
+  public void update(Map<String, Double> gradient) {
+    writeLock();
+    try {
+      for (Map.Entry<String, Double> entry : gradient.entrySet()) {
+        String f = entry.getKey();
+        double g = entry.getValue();
+        if (g * g == 0)
+          continue;  // In order to not divide by zero
 
-      if (l1Reg == L1Reg.LAZY) lazyL1Update(f);
-      double stepSize = computeStepSize(f, g);
+        if (l1Reg == L1Reg.LAZY)
+          lazyL1Update(f);
+        double stepSize = computeStepSize(f, g);
 
-      if (opts.dualAveraging) {
-        if (!opts.adaptiveStepSize && opts.stepSizeReduction != 0)
-          throw new RuntimeException("Dual averaging not supported when " +
-                  "step-size changes across iterations for " +
-                  "features for which the gradient is zero");
-        MapUtils.incr(sumGradients, f, g);
-        MapUtils.set(weights, f, stepSize * sumGradients.get(f));
-      } else {
-        if (stepSize * g == Double.POSITIVE_INFINITY || stepSize * g == Double.NEGATIVE_INFINITY) {
-          LogInfo.logs("WEIRD FEATURE UPDATE: feature=%s, currentWeight=%s, stepSize=%s, gradient=%s", f, getWeight(f), stepSize, g);
-          throw new RuntimeException("Gradient absolute value is too large or too small");
+        if (opts.dualAveraging) {
+          if (!opts.adaptiveStepSize && opts.stepSizeReduction != 0)
+            throw new RuntimeException("Dual averaging not supported when " +
+                "step-size changes across iterations for " +
+                "features for which the gradient is zero");
+          MapUtils.incr(sumGradients, f, g);
+          MapUtils.set(weights, f, stepSize * sumGradients.get(f));
+        } else {
+          if (stepSize * g == Double.POSITIVE_INFINITY || stepSize * g == Double.NEGATIVE_INFINITY) {
+            LogInfo.logs("WEIRD FEATURE UPDATE: feature=%s, currentWeight=%s, stepSize=%s, gradient=%s", f,
+                getWeight(f), stepSize, g);
+            throw new RuntimeException("Gradient absolute value is too large or too small");
+          }
+          MapUtils.incr(weights, f, stepSize * g);
+          if (l1Reg == L1Reg.LAZY)
+            l1UpdateTimeMap.put(f, numUpdates);
         }
-        MapUtils.incr(weights, f, stepSize * g);
-        if (l1Reg == L1Reg.LAZY) l1UpdateTimeMap.put(f, numUpdates);
       }
-    }
-    // non lazy implementation goes over all weights
-    if (l1Reg == L1Reg.NONLAZY) {
-      Set<String> features = new HashSet<String>(weights.keySet());
-      for (String f : features) {
-        double stepSize = computeStepSize(f, 0d); // no update for gradient here
-        double update = opts.l1RegCoeff * -Math.signum(MapUtils.getDouble(weights, f, opts.defaultWeight));
-        clipUpdate(f, stepSize * update);
+      // non lazy implementation goes over all weights
+      if (l1Reg == L1Reg.NONLAZY) {
+        Set<String> features = new HashSet<>(weights.keySet());
+        for (String f : features) {
+          double stepSize = computeStepSize(f, 0d); // no update for gradient here
+          double update = opts.l1RegCoeff * -Math.signum(MapUtils.getDouble(weights, f, opts.defaultWeight));
+          clipUpdate(f, stepSize * update);
+        }
       }
-    }
-    numUpdates++;
-    if (l1Reg == L1Reg.LAZY && opts.lazyL1FullUpdateFreq > 0 && numUpdates % opts.lazyL1FullUpdateFreq == 0) {
-      LogInfo.begin_track("Fully apply L1 regularization.");
-      finalizeWeights();
-      System.gc();
-      LogInfo.end_track();
+      numUpdates++;
+      if (l1Reg == L1Reg.LAZY && opts.lazyL1FullUpdateFreq > 0 && numUpdates % opts.lazyL1FullUpdateFreq == 0) {
+        LogInfo.begin_track("Fully apply L1 regularization.");
+        finalizeWeights();
+        System.gc();
+        LogInfo.end_track();
+      }
+    } finally {
+      writeUnlock();
     }
   }
 
@@ -202,34 +244,45 @@ public class Params {
       l1UpdateTimeMap.remove(f);
   }
 
-  public synchronized double getWeight(String f) {
+  // must be called with read lock held
+  public double getWeight(String f) {
     if (l1Reg == L1Reg.LAZY)
       lazyL1Update(f);
-    if (opts.initWeightsRandomly)
-      return MapUtils.getDouble(weights, f, 2 * opts.initRandom.nextDouble() - 1);
-    else {
+    if (opts.initWeightsRandomly) {
+      if (!weights.containsKey(f))
+        weights.put(f, 2 * opts.initRandom.nextDouble() - 1);
+      return weights.get(f);
+    } else {
       return MapUtils.getDouble(weights, f, opts.defaultWeight);
     }
   }
 
-  public synchronized Map<String, Double> getWeights() { finalizeWeights(); return weights; }
+  // must be called with read lock held
+  public Map<String, Double> getWeights() {
+    return weights;
+  }
 
   public void write(PrintWriter out) { write(null, out); }
 
   public void write(String prefix, PrintWriter out) {
-    List<Map.Entry<String, Double>> entries = Lists.newArrayList(weights.entrySet());
-    Collections.sort(entries, new ValueComparator<String, Double>(true));
-    for (Map.Entry<String, Double> entry : entries) {
-      double value = entry.getValue();
-      out.println((prefix == null ? "" : prefix + "\t") + entry.getKey() + "\t" + value);
+    readLock();
+    try {
+      List<Map.Entry<String, Double>> entries = Lists.newArrayList(weights.entrySet());
+      Collections.sort(entries, new ValueComparator<String, Double>(true));
+      for (Map.Entry<String, Double> entry : entries) {
+        double value = entry.getValue();
+        out.println((prefix == null ? "" : prefix + "\t") + entry.getKey() + "\t" + value);
+      }
+    } finally {
+      readUnlock();
     }
   }
 
   public void write(String path) {
     LogInfo.begin_track("Params.write(%s)", path);
-    PrintWriter out = IOUtils.openOutHard(path);
-    write(out);
-    out.close();
+    try (PrintWriter out = IOUtils.openOutHard(path)) {
+      write(out);
+    }
     LogInfo.end_track();
   }
 
@@ -244,36 +297,56 @@ public class Params {
     LogInfo.end_track();
   }
 
-  public synchronized void finalizeWeights() {
-    if (l1Reg == L1Reg.LAZY) {
-      Set<String> features = new HashSet<>(weights.keySet());
-      for (String f : features)
-        lazyL1Update(f);
+  public void finalizeWeights() {
+    readLock();
+    try {
+      if (l1Reg == L1Reg.LAZY) {
+        Set<String> features = new HashSet<>(weights.keySet());
+        for (String f : features)
+          lazyL1Update(f);
+      }
+    } finally {
+      readUnlock();
     }
   }
 
   public Params copyParams()  {
-    Params result = new Params();
-    for (String feature : this.getWeights().keySet()) {
-      result.weights.put(feature, this.getWeight(feature));
+    readLock();
+    try {
+      Params result = new Params();
+      for (String feature : this.weights.keySet()) {
+        result.weights.put(feature, this.getWeight(feature));
+      }
+      return result;
+    } finally {
+      readUnlock();
     }
-    return result;
   }
 
   // copy params starting with prefix and drop the prefix
   public Params copyParamsByPrefix(String prefix)  {
     Params result = new Params();
-    for (String feature : this.getWeights().keySet()) {
-      if (feature.startsWith(prefix)) {
-        String newFeature = feature.substring(prefix.length());
-        result.weights.put(newFeature, this.getWeight(feature));
+    readLock();
+    try {
+      for (String feature : this.getWeights().keySet()) {
+        if (feature.startsWith(prefix)) {
+          String newFeature = feature.substring(prefix.length());
+          result.weights.put(newFeature, this.getWeight(feature));
+        }
       }
+      return result;
+    } finally {
+      readUnlock();
     }
-    return result;
   }
 
   public boolean isEmpty() {
-    return weights.size() == 0;
+    readLock();
+    try {
+      return weights.size() == 0;
+    } finally {
+      readUnlock();
+    }
   }
 
   public Params getRandomWeightParams()  {

@@ -152,13 +152,19 @@ public abstract class Parser {
       ex.targetValue = executor.execute(ex.targetFormula, ex.context).value;
 
     // Parse
+    ParserState state;
     StopWatch watch = new StopWatch();
-    watch.start();
-    LogInfo.begin_track("Parser.parse: parse");
-    ParserState state = newParserState(params, ex, computeExpectedCounts);
-    state.infer();
-    LogInfo.end_track();
-    watch.stop();
+    params.readLock();
+    try {
+      watch.start();
+      LogInfo.begin_track("Parser.parse: parse");
+      state = newParserState(params, ex, computeExpectedCounts);
+      state.infer();
+      LogInfo.end_track();
+      watch.stop();
+    } finally {
+      params.readUnlock();
+    }
     state.parseTime = watch.getCurrTimeLong();
     state.setEvaluation();
 
