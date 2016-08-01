@@ -17,19 +17,19 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
               -JavaExecutor.unpackValues false \
               -Builder.dataset thingtalk.ThingpediaDataset \
               -Grammar.inPaths sabrina/sabrina.${LANGUAGE_TAG}.grammar \
-              -Grammar.tags floatingargs floatingnames \
+              -Grammar.tags floatingargs floatingnames floatingstrings \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code \
-              -FloatingParser.maxDepth 8 \
+              -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 40 \
+              -Parser.beamSize 20 \
               -Learner.maxTrainIters 3 \
               -Learner.reduceParserScoreNoise \
-              -Parser.derivationScoreNoise 4 \
+              -Parser.derivationScoreNoise 1 \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \
