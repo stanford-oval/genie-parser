@@ -25,6 +25,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk,api \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \
+              -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
               -ThingpediaDatabase.dbUser sempre \
               -BeamParser.executeAllDerivations true \
