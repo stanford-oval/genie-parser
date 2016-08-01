@@ -1,6 +1,7 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 import edu.stanford.nlp.sempre.Derivation;
 import edu.stanford.nlp.sempre.Example;
@@ -23,63 +24,6 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     if (opts.featureDomains.contains("code"))
       extractCodeFeatures(ex, deriv);
-
-    if (opts.featureDomains.contains("paramVerbAlign"))
-      extractParamVerbAlign(ex, deriv);
-  }
-
-  private Collection<String> findVerbs(Example ex) {
-    Collection<String> verbs = new ArrayList<>();
-
-    for (int i = 0; i < ex.numTokens(); i++) {
-      // from penn tree bank:
-      //     VB  Verb, base form
-      //     VBD     Verb, past tense
-      //     VBG     Verb, gerund or present participle
-      //     VBN     Verb, past participle
-      //     VBP     Verb, non-3rd person singular present
-      //     VBZ     Verb, 3rd person singular present 
-      if (ex.posTag(i).equals("VB") || ex.posTag(i).equals("VBN") || ex.posTag(i).equals("VBP")
-          || ex.posTag(i).equals("VBZ"))
-        verbs.add(ex.token(i));
-    }
-
-    // GIANT HACK: for some reason corenlp recognizes post and tweet
-    // as nouns (probably because it was trained before these two came
-    // into mainstream use as verbs)
-    // we add them as verbs if they appear in first position (which
-    // would make them imperatives) - in other positions they are
-    // either nouns or properly tagged by corenlp
-    // we only do this if we didn't find a verb though
-    if (verbs.size() == 0) {
-      if (ex.numTokens() > 0 && ex.token(0).equals("post") || ex.token(0).equals("tweet"))
-        verbs.add(ex.token(0));
-    }
-
-    return verbs;
-  }
-
-  private void extractParamVerbAlign(Example ex, Derivation deriv) {
-    if (deriv.value == null)
-      return;
-
-    if (!(deriv.value instanceof ParamNameValue))
-      return;
-
-    ParamNameValue pnv = (ParamNameValue) deriv.value;
-
-    // SEMI HACK: our goal is to make sure that we score high only
-    // the parameters that are good with the current action/trigger/query
-    // otherwise only the bad ones will be left in the beam and we'll
-    // be left with no valid invocations after the correctness filter
-    // unfortunately, we cannot look at "sibling" rules to see which
-    // actions are more likely to be picked
-    // instead, we look at the sentence globally and align ourselves
-    // with the verbs, which we assume are good proxies for the action
-    Collection<String> verbs = findVerbs(ex);
-
-    for (String verb : verbs)
-      deriv.addFeature("paramVerbAlign", verb + "---" + pnv.argname + "(" + pnv.type + ")");
   }
 
   private String tokenBefore(Example ex, Derivation deriv) {

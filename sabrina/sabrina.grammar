@@ -38,7 +38,7 @@
 (when floatingstrings
 	(rule $StringValue (`` $StrValue '') (IdentityFn))
 )
-(when not floatingstrings
+(when (not floatingstrings)
 	(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
 )
 # work around someweirdness in the corenlp tokenizer
@@ -61,55 +61,18 @@
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
 # Argument Names
-(when floatingargs
-    # what this rule maps to is just a placeholder: ThingpediaLexiconFn recognizes
-    # when it is called in floating mode, and generates all possible parameters
-    # furthermore, the lexicon entries have their canonical already specified so
-    # arg just disappears
-	(rule $StringArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param String floating))
-	(rule $DateArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param Date floating))
-	(rule $TimeArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param String floating))
-	(rule $NumberArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param Number floating))
-	(rule $TemperatureArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param "Measure(C)" floating))
-	(rule $TimeIntervalArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param "Measure(ms)" floating))
-	(rule $BooleanArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param Boolean floating))
-	(rule $LocationArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param Location floating))
-	(rule $ArrayStringArgName (arg) (thingtalk.ThingpediaLexiconFn @language_tag param "Array(String)" floating))
-)
 (when (not floatingargs)
-	(rule $StringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param String))
-	(rule $DateArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param Date))
-	(rule $TimeArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param String))
-	(rule $NumberArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param Number))
-	(rule $TemperatureArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param "Measure(C)"))
-	(rule $TimeIntervalArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param "Measure(ms)"))
-	(rule $BooleanArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param Boolean))
-	(rule $LocationArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param Location))
-	(rule $ArrayStringArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param "Array(String)"))
+	(rule $AnchoredArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param))
 )
 
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
 # must see all the rules to generate all the ops
-(rule $GenericOp (@is) (ConstantFn (string is)))
-(rule $StringOp (@is) (ConstantFn (string is)))
-(rule $StringOp (@contains) (ConstantFn (string contains)))
-(rule $NumericOp (@is) (ConstantFn (string is)))
-(rule $NumericOp @is_greater_than (ConstantFn (string ">")))
-(rule $NumericOp @is_less_than (ConstantFn (string "<")))
-(rule $ArrayOp (@has) (ConstantFn (string has)))
-
-# Arguments
-(rule $Arg ($StringArgName $StringOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($DateArgName $GenericOp $DateValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TimeArgName $GenericOp $TimeValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($NumberArgName $NumericOp $NumberValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TemperatureArgName $NumericOp $TemperatureValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($TimeIntervalArgName $NumericOp $TimeIntervalValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($BooleanArgName $GenericOp $BooleanValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($LocationArgName $GenericOp $LocationValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $Arg ($ArrayStringArgName $ArrayOp $StringValue) (lambda arg (lambda op (lambda value (call @paramForm (var arg) (var op) (var value))))))
-(rule $ValidArg ($Arg) (thingtalk.FilterInvalidArgFn))
+(rule $Op (@is) (ConstantFn (string is)))
+(rule $Op (@contains) (ConstantFn (string contains)))
+(rule $Op @is_greater_than (ConstantFn (string ">")))
+(rule $Op @is_less_than (ConstantFn (string "<")))
+(rule $Op (@has) (ConstantFn (string has)))
 
 # Action Handling
 (when floatingnames
@@ -119,7 +82,14 @@
 	(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag action))
 )
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
-(rule $Action ($Action @with $ValidArg) (lambda act (lambda arg (call @actParam (var act) (var arg)))))
+(when floatingargs
+	(rule $ActionWithArg ($Action @with arg) (thingtalk.ApplyFn))
+)
+(when (not floatingargs)
+	(rule $ActionWithArg ($Action @with $AnchoredArgName) (thingtalk.ApplyFn))
+)
+(rule $ActionIntermediate ($ActionWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $Action ($ActionIntermediate $Value) (thingtalk.AddValueFn))
 (rule $ValidAction ($Action) (thingtalk.FilterInvalidInvocationFn))
 
 (when floatingnames
@@ -129,7 +99,14 @@
 	(rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag trigger))
 )
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
-(rule $Trigger ($Trigger @and $ValidArg) (lambda trig (lambda arg (call @trigParam (var trig) (var arg)))))
+(when floatingargs
+	(rule $TriggerWithArg ($Trigger @with arg) (thingtalk.ApplyFn))
+)
+(when (not floatingargs)
+	(rule $TriggerWithArg ($Trigger @with $AnchoredArgName) (thingtalk.ApplyFn))
+)
+(rule $TriggerIntermediate ($TriggerWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $Trigger ($TriggerIntermediate $Value) (thingtalk.AddValueFn))
 (rule $ValidTrigger ($Trigger) (thingtalk.FilterInvalidInvocationFn))
 
 (when floatingnames
@@ -139,7 +116,14 @@
 	(rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag query))
 )
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
-(rule $Query ($Query and $ValidArg) (lambda query (lambda arg (call @queryParam (var query) (var arg)))))
+(when floatingargs
+	(rule $QueryWithArg ($Query @with arg) (thingtalk.ApplyFn))
+)
+(when (not floatingargs)
+	(rule $QueryWithArg ($Query @with $AnchoredArgName) (thingtalk.ApplyFn))
+)
+(rule $QueryIntermediate ($QueryWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $Query ($QueryIntermediate $Value) (thingtalk.AddValueFn))
 (rule $ValidQuery ($Query) (thingtalk.FilterInvalidInvocationFn))
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))

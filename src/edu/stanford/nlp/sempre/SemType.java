@@ -110,4 +110,5 @@ public abstract class SemType {
   public static final SemType anyType = new AtomicSemType(CanonicalNames.ANY);
 
   public static final FuncSemType anyAnyFunc = new FuncSemType(anyType, anyType);
+  public static final FuncSemType anyAnyAnyFunc = new FuncSemType(anyType, anyAnyFunc);
 }

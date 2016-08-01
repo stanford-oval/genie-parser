@@ -33,7 +33,7 @@ public final class ThingTalk {
       return "Measure";
   }
 
-  private static String typeFromValue(Value value) {
+  static String typeFromValue(Value value) {
     if (value instanceof NumberValue)
       return typeFromNumber((NumberValue) value);
     else if (value instanceof StringValue)
@@ -54,19 +54,19 @@ public final class ThingTalk {
     return new ParamValue(tt_arg, typeFromValue(value), operator.value, value);
   }
 
+  public static ParametricValue addParam(ParametricValue oldInvocation, ParamNameValue paramName, StringValue operator,
+      Value value) {
+    ParametricValue newInvocation = oldInvocation.clone();
+    newInvocation.add(paramForm(paramName, operator, value));
+    return newInvocation;
+  }
+
   //******************************************************************************************************************
   // Constructing the trigger value structure
   //******************************************************************************************************************
   public static TriggerValue trigParam(ChannelNameValue triggerName) {
     TriggerValue triggerVal = new TriggerValue(triggerName);
     return triggerVal;
-  }
-
-  public static TriggerValue trigParam(TriggerValue oldTrigger, ParamValue param) {
-    // FIXME: Write a copy constructor
-    TriggerValue newTrigger = (TriggerValue) oldTrigger.clone();
-    newTrigger.add(param);
-    return newTrigger;
   }
 
   //******************************************************************************************************************
@@ -77,25 +77,12 @@ public final class ThingTalk {
     return queryVal;
   }
 
-  public static QueryValue queryParam(QueryValue oldQuery, ParamValue param) {
-    // FIXME: Write a copy constructor
-    QueryValue newQuery = (QueryValue) oldQuery.clone();
-    newQuery.add(param);
-    return newQuery;
-  }
-
   //******************************************************************************************************************
   // Constructing the action value structure
   //******************************************************************************************************************
   public static ActionValue actParam(ChannelNameValue actionName) {
     ActionValue actionVal = new ActionValue(actionName);
     return actionVal;
-  }
-
-  public static ActionValue actParam(ActionValue oldAction, ParamValue param) {
-    ActionValue newAction = (ActionValue) oldAction.clone();
-    newAction.add(param);
-    return newAction;
   }
 
   //******************************************************************************************************************

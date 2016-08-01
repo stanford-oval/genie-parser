@@ -19,13 +19,13 @@ exec java -Xmx12G -ea -Dmodules=core,overnight,freebase,thingtalk \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code paramVerbAlign \
-              -FloatingParser.maxDepth 8 \
+              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code \
+              -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 40 \
-              -Learner.maxTrainIters 3 \
+              -Parser.beamSize 20 \
+              -Learner.maxTrainIters 1 \
               -Learner.reduceParserScoreNoise \
-              -Parser.derivationScoreNoise 4 \
+              -Parser.derivationScoreNoise 1 \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \

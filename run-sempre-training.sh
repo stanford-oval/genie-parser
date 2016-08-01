@@ -23,7 +23,7 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code paramVerbAlign \
+              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code \
               -FloatingParser.maxDepth 8 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 40 \
