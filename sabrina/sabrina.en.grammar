@@ -3,6 +3,10 @@
 (def @true true)
 (def @false false)
 
+(def @here here)
+(def @at_work (at work))
+(def @at_home (at home))
+
 (def @is is)
 (def @contains contains)
 (def @has has)
@@ -12,6 +16,8 @@
 (def @with with)
 (def @and and)
 (def @monitor_if (monitor if))
+(def @every_day_at (every day at))
+(def @every (every))
 
 (def @help help)
 (def @discover discover)

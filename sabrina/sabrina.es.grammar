@@ -3,6 +3,11 @@
 (def @true cierto)
 (def @false falso)
 
+# FIXME!!
+(def @here here)
+(def @at_work (at work))
+(def @at_home (at home))
+
 (def @is es)
 (def @contains contiene)
 (def @has tiene)
@@ -20,6 +25,9 @@
 (def @queries consultas)
 (def @commands comandos)
 (def @list lista)
+# FIXME!!
+(def @every_day_at (every day at))
+(def @every (every))
 
 (def @yes "sí")
 (def @no no)

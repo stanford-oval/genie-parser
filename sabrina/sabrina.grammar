@@ -38,9 +38,9 @@
 (when floatingstrings
 	(rule $StringValue (`` $StrValue '') (IdentityFn))
 )
-(when (not floatingstrings)
-	(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
-)
+# we always have this anchored rule, so that we always pick up
+# if the user explicitly types in quotes
+(rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
 # work around someweirdness in the corenlp tokenizer
 # this is always anchored because it deals with explicitly added quotes
 (rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
@@ -52,9 +52,9 @@
 (rule $Value ($StringValue) (IdentityFn))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
-(rule $LocationValue (here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
-(rule $LocationValue (at home) (ConstantFn (location rel_home -1 -1) fb:type.any))
-(rule $LocationValue (at work) (ConstantFn (location rel_work -1 -1) fb:type.any))
+(rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
+(rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
+(rule $LocationValue @at_work (ConstantFn (location rel_work -1 -1) fb:type.any))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
@@ -131,8 +131,10 @@
 
 (rule $ValidActionOrQuery ($ValidAction) (IdentityFn))
 (rule $ValidActionOrQuery ($ValidQuery) (IdentityFn))
-(rule $TimeRule (every day at $TimeValue $ValidActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
-(rule $TimeRule (every $TimeIntervalValue $ValidActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+(rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
+(rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
+(rule $TimeRule ($TimeTrigger $ValidActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+(rule $TimeRule (@every $TimeIntervalValue $ValidActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
