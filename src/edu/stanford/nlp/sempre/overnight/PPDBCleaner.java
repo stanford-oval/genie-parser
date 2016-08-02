@@ -43,7 +43,7 @@ public class PPDBCleaner implements Runnable {
 		if (useDataset)
 			buildWordsSet();
 
-		try (BufferedReader reader = IOUtils.getBufferedFileReader(inputFile)) {
+    try (BufferedReader reader = IOUtils.readerFromString(inputFile)) {
 			try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile)))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
