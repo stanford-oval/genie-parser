@@ -1,5 +1,7 @@
 # JavaExecutor Functions
 (def @measureValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.measureValueCast)
+(def @phoneNumberCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.phoneNumberCast)
+(def @emailAddressCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.emailAddressCast)
 
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
@@ -44,12 +46,20 @@
 # work around someweirdness in the corenlp tokenizer
 # this is always anchored because it deals with explicitly added quotes
 (rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
+
+# recognize email addresses and phone numbers as strings
+(rule $PhoneNumberValue ($PHRASE) (NerValueFn PHONE_NUMBER) (anchored 1))
+# optimization: email addresses are always single token
+(rule $EmailAddressValue ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
+
 (rule $Value ($DateValue) (IdentityFn))
 (rule $Value ($TimeValue) (IdentityFn))
 (rule $Value ($NumberValue) (IdentityFn))
 (rule $Value ($TemperatureValue) (IdentityFn))
 (rule $Value ($BooleanValue) (IdentityFn))
 (rule $Value ($StringValue) (IdentityFn))
+(rule $Value ($PhoneNumberValue) (lambda v (call @phoneNumberCast (var v))))
+(rule $Value ($EmailAddressValue) (lambda v (call @emailAddressCast (var v))))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))

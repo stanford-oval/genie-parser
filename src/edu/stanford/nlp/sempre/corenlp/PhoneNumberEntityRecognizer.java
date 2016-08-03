@@ -97,6 +97,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
 
       buffer.append(matcher.group());
       tokenIdx++;
+      charIdx = 0;
       return true;
     }
 

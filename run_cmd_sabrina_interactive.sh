@@ -3,10 +3,11 @@
 # The overnight paper does not include "rule" features
 # I have them because they help the parser ignore too many
 # derivation that use $StringValue (which is a catch all)
-exec java -Xmx12G -ea -Dmodules=core,overnight,freebase,thingtalk \
+exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
               -cp 'libsempre/*:lib/*' \
               edu.stanford.nlp.sempre.Main \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
+              -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -Builder.valueEvaluator thingtalk.JsonValueEvaluator \

@@ -18,6 +18,14 @@ public final class ThingTalk {
     return tempVal;
   }
 
+  public static EmailAddressValue emailAddressCast(StringValue string) {
+    return new EmailAddressValue(string.value);
+  }
+
+  public static PhoneNumberValue phoneNumberCast(StringValue string) {
+    return new PhoneNumberValue(string.value);
+  }
+
   //******************************************************************************************************************
   // Constructing the parameter value structure
   //******************************************************************************************************************
@@ -46,6 +54,10 @@ public final class ThingTalk {
       return "Bool";
     else if (value instanceof LocationValue)
       return "Location";
+    else if (value instanceof EmailAddressValue)
+      return "EmailAddress";
+    else if (value instanceof PhoneNumberValue)
+      return "PhoneNumber";
     else
       throw new RuntimeException("Unexpected value " + value);
   }

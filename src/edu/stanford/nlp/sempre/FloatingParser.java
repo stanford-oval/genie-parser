@@ -369,7 +369,7 @@ class FloatingParserState extends ParserState {
     if (Parser.opts.verbose >= 1) {
       LogInfo.begin_track("Summary of Example %s", ex.getUtterance());
       for (Derivation deriv : predDerivations)
-        LogInfo.logs("Generated: canonicalUtterance=%s, value=%s", deriv.canonicalUtterance, deriv.value);
+        LogInfo.logs("Generated: canonicalUtterance=%s", deriv.canonicalUtterance);
       LogInfo.end_track();
     }
 
