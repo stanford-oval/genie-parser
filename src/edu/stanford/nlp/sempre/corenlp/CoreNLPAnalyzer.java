@@ -18,9 +18,11 @@ import edu.stanford.nlp.semgraph.SemanticGraphEdge;
 import edu.stanford.nlp.sempre.LanguageAnalyzer;
 import edu.stanford.nlp.sempre.LanguageInfo;
 import edu.stanford.nlp.sempre.LanguageInfo.DependencyEdge;
+import edu.stanford.nlp.sempre.SempreUtils;
 import edu.stanford.nlp.util.CoreMap;
 import fig.basic.LogInfo;
 import fig.basic.Option;
+import fig.basic.Utils;
 
 /**
  * CoreNLPAnalyzer uses Stanford CoreNLP pipeline to analyze an input string utterance
@@ -38,6 +40,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     @Option(gloss = "What language to use (as a two letter tag)")
     public String languageTag = "en";
+
+    @Option(gloss = "Additional named entity recognizers to run")
+    public List<String> entityRecognizers = new ArrayList<>();
   }
 
   public static Options opts = new Options();
@@ -55,6 +60,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
   private final String languageTag;
   private final StanfordCoreNLP pipeline;
+  private final NamedEntityRecognizer[] extraRecognizers;
 
   public CoreNLPAnalyzer() {
     this(opts.languageTag);
@@ -111,6 +117,11 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     props.put("ner.useSUTime", "true");
 
     pipeline = new StanfordCoreNLP(props);
+
+    extraRecognizers = new NamedEntityRecognizer[opts.entityRecognizers.size()];
+    for (int i = 0; i < extraRecognizers.length; i++)
+      extraRecognizers[i] = (NamedEntityRecognizer) Utils
+          .newInstanceHard(SempreUtils.resolveClassName(opts.entityRecognizers.get(i)));
   }
 
   private static void loadResource(String name, Properties into) {
@@ -125,11 +136,20 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   // Stanford tokenizer doesn't break hyphens.
   // Replace hypens with spaces for utterances like
   // "Spanish-speaking countries" but not for "2012-03-28".
+  // Also not break hyphens with spaces for things like 1-800-GOT-MILK
   public static String breakHyphens(String utterance) {
     StringBuilder buf = new StringBuilder(utterance);
-    for (int i = 0; i < buf.length(); i++) {
-      if (buf.charAt(i) == '-' && (i + 1 < buf.length() && Character.isLetter(buf.charAt(i + 1))))
-        buf.setCharAt(i, ' ');
+
+    boolean seenHyphen = false;
+    for (int i = 1; i < buf.length() - 1; i++) {
+      char c = buf.charAt(i);
+      if (c == '-') {
+        if (!seenHyphen && Character.isLetter(buf.charAt(i - 1)) && Character.isLetter(buf.charAt(i + 1)))
+          buf.setCharAt(i, ' ');
+        else
+          seenHyphen = true;
+      } else if (Character.isWhitespace(c))
+        seenHyphen = false;
     }
     return buf.toString();
   }
@@ -171,6 +191,10 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
       languageInfo.nerValues.add(token.get(NormalizedNamedEntityTagAnnotation.class));
     }
+
+    // Run additional entity recognizers
+    for (NamedEntityRecognizer r : extraRecognizers)
+      r.recognize(languageInfo);
 
     // Fills in a stanford dependency graph for constructing a feature
     for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
