@@ -7,6 +7,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk,api \
               -cp 'libsempre/*:lib/*' \
               edu.stanford.nlp.sempre.api.APIServer \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
+              -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -JavaExecutor.unpackValues false \

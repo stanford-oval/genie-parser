@@ -11,6 +11,7 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
               edu.stanford.nlp.sempre.Main \
               -execDir ./sempre.tmp \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
+              -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
