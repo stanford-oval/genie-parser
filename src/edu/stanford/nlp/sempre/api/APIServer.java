@@ -5,9 +5,7 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -31,6 +29,34 @@ final class SecureIdentifiers {
   }
 }
 
+class LogFlusherThread<E> extends Thread {
+  private final BlockingQueue<E> queue;
+  private final String logFile;
+
+  public LogFlusherThread(BlockingQueue<E> queue, String logFile) {
+    this.queue = queue;
+    this.logFile = logFile;
+
+    setDaemon(true);
+    setName("log flusher " + (new File(logFile).getName()));
+  }
+
+  @Override
+  public void run() {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile))) {
+      E next;
+      while ((next = queue.take()) != null) {
+        writer.append(next.toString());
+        writer.append("\n");
+      }
+    } catch (IOException e) {
+      LogInfo.logs("IOException writing to the log file! %s", e.getMessage());
+    } catch (InterruptedException e) {
+
+    }
+  }
+}
+
 public class APIServer implements Runnable {
   public static class Options {
     @Option
@@ -45,12 +71,35 @@ public class APIServer implements Runnable {
     public List<Pair<String, String>> onlineLearnFiles = new ArrayList<>();
     @Option
     public String accessToken = null;
+    @Option
+    public String utteranceLogFile = null;
   }
 
   public static Options opts = new Options();
 
+  private class LogEntry {
+    private final String languageTag;
+    private final String utterance;
+
+    public LogEntry(String languageTag, String utterance) {
+      this.languageTag = languageTag;
+      this.utterance = utterance;
+    }
+
+    @Override
+    public String toString() {
+      return languageTag + "\t" + utterance;
+    }
+  }
+
+  private final BlockingQueue<LogEntry> logQueue;
+
   private final Map<String, Session> sessionMap = new HashMap<>();
   final Map<String, LanguageContext> langs = new ConcurrentHashMap<>();
+
+  public APIServer() {
+    logQueue = new LinkedBlockingQueue<>();
+  }
 
   synchronized Session getSession(String sessionId) {
     if (sessionMap.containsKey(sessionId)) {
@@ -70,16 +119,11 @@ public class APIServer implements Runnable {
     }
   }
 
-  void recordOnlineLearnExample(String languageTag, String example, String targetJson) {
-    // we don't want to write to the same file from two threads using two different buffered
-    // writers (they would intermix and break the file format)
-    // synchronizing on onlineLearnFiles achieves that and is as good as anything else
-    synchronized (opts.onlineLearnFiles) {
-      for (Pair<String, String> pair : opts.onlineLearnFiles) {
-        if (pair.getFirst().equals(languageTag))
-          recordOnlineLearnExampleInFile(pair.getSecond(), example, targetJson);
-      }
-    }
+  void logUtterance(String languageTag, String utterance) {
+    if (opts.utteranceLogFile == null)
+      return;
+
+    logQueue.offer(new LogEntry(languageTag, utterance));
   }
 
   private class SessionGCTask extends TimerTask {
@@ -113,6 +157,11 @@ public class APIServer implements Runnable {
     // Add supported languages
     for (String tag : opts.languages)
       addLanguage(tag);
+
+    if (opts.utteranceLogFile != null)
+      new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
+    for (Pair<String, String> pair : opts.onlineLearnFiles)
+      new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
 
     try {
       String hostname = fig.basic.SysInfoUtils.getHostName();

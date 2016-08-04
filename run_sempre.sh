@@ -15,6 +15,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk,api \
               -Grammar.tags floatingargs floatingnames \
               -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params \
               -APIServer.onlineLearnFiles en:sabrina/sabrina.en.online_learn it:sabrina/sabrina.it.online_learn es:sabrina/sabrina.es.online_learn \
+              -APIServer.utteranceLogFile sabrina/sabrina.log \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \

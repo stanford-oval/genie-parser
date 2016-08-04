@@ -57,7 +57,7 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         language.learner.onlineLearnExample(ex);
       }
 
-      server.recordOnlineLearnExample(language.tag, query, targetJson);
+      language.onlineLearnSaveQueue.offer(new OnlineLearnEntry(query, targetJson));
 
       // we would need to remove all entries from the cache that are affected by this learning step
       // (which potentially is all of them)
