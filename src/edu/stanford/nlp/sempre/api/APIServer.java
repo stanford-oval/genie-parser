@@ -43,11 +43,12 @@ class LogFlusherThread<E> extends Thread {
 
   @Override
   public void run() {
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile))) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
       E next;
       while ((next = queue.take()) != null) {
         writer.append(next.toString());
         writer.append("\n");
+        writer.flush();
       }
     } catch (IOException e) {
       LogInfo.logs("IOException writing to the log file! %s", e.getMessage());
