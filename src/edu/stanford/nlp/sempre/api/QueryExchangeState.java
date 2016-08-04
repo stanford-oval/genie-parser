@@ -64,15 +64,29 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     b.setContext(session.context);
     Example ex = b.createExample();
 
-    ex.preprocess(language.analyzer);
+    // try from cache
+    List<Derivation> derivations = language.cache.hit(query);
+    if (APIServer.opts.verbose >= 3) {
+      if (derivations != null)
+        logs("cache hit");
+      else
+        logs("cache miss");
+    }
 
     // Parse!
-    language.parser.parse(language.params, ex, false);
+    if (derivations == null) {
+      ex.preprocess(language.analyzer);
+      language.parser.parse(language.params, ex, false);
+      derivations = ex.getPredDerivations();
+      language.cache.store(query, derivations);
+    } else {
+      ex.predDerivations = derivations;
+    }
 
     session.lastEx = ex;
     session.updateContext(ex, 1);
 
-    return ex.getPredDerivations();
+    return derivations;
   }
 
   @Override
@@ -90,25 +104,15 @@ class QueryExchangeState extends AbstractHttpExchangeState {
       if (query == null)
         throw new IllegalArgumentException("Missing query");
 
-      // try from cache
-      derivations = language.cache.hit(query);
-      if (APIServer.opts.verbose >= 3) {
-        if (derivations != null)
-          logs("cache hit");
-        else
-          logs("cache miss");
-      }
 
-      if (derivations == null) {
-        Session session = this.server.getSession(sessionId);
-        synchronized (session) {
-          if (session.lang != null && !session.lang.equals(language.tag))
-            throw new IllegalArgumentException("Cannot change the language of an existing session");
-          session.lang = language.tag;
-          session.remoteHost = remoteHost;
-          derivations = handleUtterance(session, language, query);
-        }
-        language.cache.store(query, derivations);
+      Session session = this.server.getSession(sessionId);
+      synchronized (session) {
+        if (session.lang != null && !session.lang.equals(language.tag))
+          throw new IllegalArgumentException("Cannot change the language of an existing session");
+        session.lang = language.tag;
+        session.remoteHost = remoteHost;
+        
+        derivations = handleUtterance(session, language, query);
       }
       exitStatus = 200;
     } catch (IllegalArgumentException | IllegalStateException e) {
