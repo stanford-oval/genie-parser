@@ -69,23 +69,42 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     public final Tag tag;
     public final String data1;
     public final String stem1;
+    public final String ner1;
     public final String data2;
     public final String stem2;
+    public final String ner2;
 
-    public Item(Tag tag, String data1, String stem1) {
+    public Item(Tag tag, String data1, String stem1, String ner1) {
       this.tag = tag;
       this.data1 = data1;
       this.stem1 = stem1;
+      this.ner1 = ner1;
       this.data2 = null;
       this.stem2 = null;
+      this.ner2 = null;
     }
 
-    public Item(Tag tag, String data1, String stem1, String data2, String stem2) {
+    public Item(Tag tag, String data1, String stem1, String ner1, String data2, String stem2, String ner2) {
       this.tag = tag;
       this.data1 = data1;
       this.stem1 = stem1;
+      this.ner1 = null;
       this.data2 = data2;
       this.stem2 = stem2;
+      this.ner2 = null;
+    }
+
+    public Item(Tag tag, Item i1, Item i2) {
+      assert tag != Tag.UNIGRAM;
+      assert i1.tag == Tag.UNIGRAM;
+      assert i2.tag == Tag.UNIGRAM;
+      this.tag = tag;
+      this.data1 = i1.data1;
+      this.stem1 = i1.stem1;
+      this.ner1 = i1.ner1;
+      this.data2 = i2.data1;
+      this.stem2 = i2.stem1;
+      this.ner2 = i2.ner1;
     }
 
     @Override
@@ -319,12 +338,17 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       for (int i = 0; i < assignment.length; ++i) {
         if (assignment[i] == i) {
           if (i < filteredInputTokens.size()) {
-            String inputToken = filteredInputTokens.get(i).data1;
-            deriv.addFeature("root_lexical", "deleted_token=" + inputToken);
+            Item inputToken = filteredInputTokens.get(i);
+            if (inputToken.ner1 != null)
+              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.ner1);
+            else
+              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.data1);
           }
           else {
-            String derivToken = filteredDerivTokens.get(i - filteredInputTokens.size()).data1;
-            deriv.addFeature("root_lexical", "deleted_token=" + derivToken);
+            Item derivToken = filteredDerivTokens.get(i - filteredInputTokens.size());
+            // deriv tokens never get ner tags (because it would be too expensive to run ner on the
+            // canonical utterance)
+            deriv.addFeature("root_lexical", "deleted_token=" + derivToken.data1);
           }
         }
       }
@@ -440,6 +464,20 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     deriv.addFeature(domain, str1 + "--" + str2);
   }
 
+  private void addAndFilterLexicalFeature(Derivation deriv, String domain, Item str1, Item str2) {
+    if ((str1.tag == Item.Tag.UNIGRAM && stopWords.contains(str1.data1)) ||
+        (str2.tag == Item.Tag.UNIGRAM && stopWords.contains(str2.data1)))
+      return;
+
+    String f1 = str1.ner1 != null ? str1.ner1 : str1.data1;
+    if (str1.tag != Item.Tag.UNIGRAM)
+      f1 += " " + (str1.ner2 != null ? str1.ner2 : str1.data2);
+    String f2 = str2.ner1 != null ? str2.ner1 : str2.data1;
+    if (str2.tag != Item.Tag.UNIGRAM)
+      f2 += " " + (str2.ner2 != null ? str2.ner2 : str2.data2);
+    deriv.addFeature(domain, f1 + "--" + f2);
+  }
+
   private void extractLexicalFeatures(Example ex, Derivation deriv, ArrayList<Item> inputItems,
       ArrayList<Item> derivItems) {
 
@@ -463,14 +501,14 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
         Item derivToken = filteredDerivTokens.get(derivIndex);
         if (!inputToken.equals(derivToken)) {
-          addAndFilterLexicalFeature(deriv, "lexical", inputToken.data1, derivToken.data1);
+          addAndFilterLexicalFeature(deriv, "lexical", inputToken, derivToken);
           extractStringSimilarityFeatures(deriv, inputToken.data1, derivToken.data1);
 
           //2:2 features
           if (i < filteredInputTokens.size() - 1) {
             if (assignment[i + 1] == assignment[i] + 1) {
-              String inputBigram = inputToken.data1 + " " + filteredInputTokens.get(i + 1).data1;
-              String derivBigram = derivToken.data1 + " " + filteredDerivTokens.get(derivIndex + 1).data1;
+              Item inputBigram = new Item(Item.Tag.BIGRAM, inputToken, filteredInputTokens.get(i + 1));
+              Item derivBigram = new Item(Item.Tag.BIGRAM, derivToken, filteredDerivTokens.get(derivIndex + 1));
               if (!inputBigram.equals(derivBigram)) {
                 addAndFilterLexicalFeature(deriv, "lexical", inputBigram, derivBigram);
               }
@@ -478,12 +516,14 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           }
           //1:2 features
           if (derivIndex > 0) {
-            addAndFilterLexicalFeature(deriv, "lexical", inputToken.data1,
-                filteredDerivTokens.get(derivIndex - 1).data1 + " " + filteredDerivTokens.get(derivIndex).data1);
+            addAndFilterLexicalFeature(deriv, "lexical", inputToken,
+                new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex - 1),
+                    filteredDerivTokens.get(derivIndex)));
           }
           if (derivIndex < filteredDerivTokens.size() - 1) {
-            addAndFilterLexicalFeature(deriv, "lexical", inputToken.data1,
-                filteredDerivTokens.get(derivIndex).data1 + " " + filteredDerivTokens.get(derivIndex + 1).data1);
+            addAndFilterLexicalFeature(deriv, "lexical", inputToken,
+                new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex),
+                    filteredDerivTokens.get(derivIndex + 1)));
           }
         }
       }
@@ -607,43 +647,55 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return stopWords.contains(token);
   }
 
-  private static void populateItems(List<String> tokens, ItemList items) {
+  private static void populateItems(List<String> tokens, List<String> nerTags, List<String> nerValues, ItemList items) {
     ArrayList<String> prunedTokens = new ArrayList<>();
     ArrayList<String> prunedStems = new ArrayList<>();
+    ArrayList<String> prunedNer = new ArrayList<>();
 
     // Populate items with unpruned tokens
     String previousUnigram = null;
     String previousStem = null;
+    String previousNer = null;
 
     for (int i = 0; i < tokens.size(); i++) {
       String unigram = tokens.get(i).toLowerCase();
       String stem = LanguageUtils.stem(unigram);
 
-      items.unigrams.add(new Item(Item.Tag.UNIGRAM, unigram, stem));
+      String ner = null;
+      if (nerTags != null && nerValues != null) {
+        if (nerValues.get(i) != null)
+          ner = nerTags.get(i);
+      }
+      items.unigrams.add(new Item(Item.Tag.UNIGRAM, unigram, stem, ner));
       if (i > 0)
-        items.bigrams.add(new Item(Item.Tag.BIGRAM, previousUnigram, previousStem, unigram, stem));
+        items.bigrams.add(new Item(Item.Tag.BIGRAM, previousUnigram, previousStem, previousNer, unigram, stem, ner));
 
       if (!isStopWord(unigram) || (i > 0 && (previousUnigram.equals('`') || previousUnigram.equals("``")))) {
         prunedTokens.add(unigram);
         prunedStems.add(stem);
+        prunedNer.add(ner);
       }
 
       previousUnigram = unigram;
       previousStem = stem;
+      previousNer = ner;
     }
 
     // Populate items with skip words removed
     previousUnigram = null;
     previousStem = null;
+    previousNer = null;
     if (prunedTokens.size() > 0) {
       previousUnigram = prunedTokens.get(0);
       previousStem = prunedStems.get(0);
+      previousNer = prunedNer.get(0);
     }
     for (int i = 1; i < prunedTokens.size(); i++) {
       String unigram = prunedTokens.get(i);
       String stem = prunedStems.get(i);
-      items.skipBigrams.add(new Item(Item.Tag.SKIP_BIGRAM, previousUnigram, previousStem,
-          unigram, stem));
+      String ner = prunedNer.get(i);
+      items.skipBigrams.add(new Item(Item.Tag.SKIP_BIGRAM, previousUnigram, previousStem, previousNer,
+          unigram, stem, ner));
       previousUnigram = unigram;
       previousStem = stem;
     }
@@ -656,7 +708,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     ItemList items = getItems(ex.getTempState());
     if (items.valid)
       return items;
-    populateItems(ex.getTokens(), items);
+    populateItems(ex.getTokens(), ex.languageInfo.nerTags, ex.languageInfo.nerValues, items);
     LogInfo.logs("input %s, items %s", ex.utterance, items);
     return items;
   }
@@ -675,7 +727,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     extractTokens(ex, deriv, tokens);
     // Compute items
     ItemList items = new ItemList();
-    populateItems(tokens, items);
+    populateItems(tokens, null, null, items);
     return items;
   }
 
