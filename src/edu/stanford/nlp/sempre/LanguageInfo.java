@@ -1,15 +1,13 @@
 package edu.stanford.nlp.sempre;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.*;
+
+import com.fasterxml.jackson.annotation.*;
 import com.google.common.base.Joiner;
+
 import fig.basic.IntPair;
 import fig.basic.LispTree;
 import fig.basic.MemUsage;
-
-import java.util.*;
 
 /**
  * Represents an linguistic analysis of a sentence (provided by some LanguageAnalyzer).
@@ -138,6 +136,18 @@ public class LanguageInfo implements MemUsage.Instrumented {
     return value;
   }
 
+  public boolean isMaximalNerSpan(String queryTag, int start, int end) {
+    for (int i = start; i < end; i++) {
+      if (!queryTag.equals(nerTags.get(i)))
+        return false;
+    }
+    if (start > 0 && queryTag.equals(nerTags.get(start - 1)))
+      return false;
+    if (end < nerTags.size() && queryTag.equals(nerTags.get(end)))
+      return false;
+    return true;
+  }
+
   private String omitComparative(String value) {
     if (value.startsWith("<=") || value.startsWith(">="))
       return value.substring(2);
@@ -204,7 +214,7 @@ public class LanguageInfo implements MemUsage.Instrumented {
   }
 
   public List<String> getSpanProperties(int start, int end) {
-    List<String> res = new ArrayList<String>();
+    List<String> res = new ArrayList<>();
     res.add("lemmas=" + lemmaPhrase(start, end));
     res.add("pos=" + posSeq(start, end));
     res.add("ner=" + nerSeq(start, end));
@@ -233,7 +243,7 @@ public class LanguageInfo implements MemUsage.Instrumented {
    * @return
    */
   public Set<IntPair> getNamedEntitySpans() {
-    Set<IntPair> res = new LinkedHashSet<IntPair>();
+    Set<IntPair> res = new LinkedHashSet<>();
     int start = -1;
     String prevTag = "O";
 
@@ -264,7 +274,7 @@ public class LanguageInfo implements MemUsage.Instrumented {
    * @return
    */
   public Set<IntPair> getProperNounSpans() {
-    Set<IntPair> res = new LinkedHashSet<IntPair>();
+    Set<IntPair> res = new LinkedHashSet<>();
     int start = -1;
     String prevTag = "O";
 
@@ -433,6 +443,7 @@ public class LanguageInfo implements MemUsage.Instrumented {
       this.token = token; this.lemma = lemma; this.pos = pos; this.nerTag = nerTag; this.nerValue = nerValue;
     }
 
+    @Override
     public String toString() {
       return toLispTree().toString();
     }

@@ -1,9 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
-import java.util.function.Predicate;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
@@ -30,18 +27,9 @@ public class LocationLexiconFn extends SemanticFn {
     lexicon = LocationLexicon.getForLanguage(languageTag);
   }
 
-  private static <E> boolean all(Collection<E> items, Predicate<E> p) {
-    for (E i : items) {
-      if (!p.test(i))
-        return false;
-    }
-    return true;
-  }
-
   @Override
   public DerivationStream call(Example ex, Callable c) {
-    List<String> nerTags = ex.languageInfo.nerTags.subList(c.getStart(), c.getEnd());
-    if (opts.filterNerTag && !all(nerTags, t -> t.equals("LOCATION")))
+    if (opts.filterNerTag && !ex.languageInfo.isMaximalNerSpan("LOCATION", c.getStart(), c.getEnd()))
       return new EmptyDerivationStream();
 
     String phrase = c.childStringValue(0);
