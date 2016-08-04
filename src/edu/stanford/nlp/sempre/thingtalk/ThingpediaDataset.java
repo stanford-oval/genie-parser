@@ -1,5 +1,7 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
@@ -8,106 +10,136 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
+import fig.basic.Option;
 
 public class ThingpediaDataset extends AbstractDataset {
-	private final ThingpediaDatabase dataSource;
+  public static class Options {
+    @Option
+    public String onlineLearnFile = null;
+  }
 
-	private static final String CANONICAL_QUERY = "select dsc.canonical, ds.kind, dsc.name, dsc.channel_type, dsc.argnames,dsc.types "
-			+ "from device_schema_channels dsc join device_schema ds on ds.id = dsc.schema_id and dsc.version = ds.developer_version "
-			+ "where canonical is not null and ds.kind_type <> 'primary'";
-	private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base";
+  public static Options opts = new Options();
 
-	public ThingpediaDataset() {
-		dataSource = ThingpediaDatabase.getSingleton();
-	}
+  private final ThingpediaDatabase dataSource;
 
-	private void readCanonicals(Connection con, int maxExamples, List<Example> examples) throws SQLException {
-		try (Statement stmt = con.createStatement()) {
-			try (ResultSet set = stmt.executeQuery(CANONICAL_QUERY)) {
-				TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
-				};
+  private static final String CANONICAL_QUERY = "select dsc.canonical, ds.kind, dsc.name, dsc.channel_type, dsc.argnames,dsc.types "
+      + "from device_schema_channels dsc join device_schema ds on ds.id = dsc.schema_id and dsc.version = ds.developer_version "
+      + "where canonical is not null and ds.kind_type <> 'primary'";
+  private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base";
 
-				while (set.next() && examples.size() < maxExamples) {
-					String canonical = set.getString(1);
-					String kind = set.getString(2);
-					String name = set.getString(3);
-					String channelType = set.getString(4);
-					List<String> argnames = Json.readValueHard(set.getString(5), typeRef);
-					List<String> argtypes = Json.readValueHard(set.getString(6), typeRef);
-					Value inner;
-					switch (channelType) {
-					case "action":
-						inner = ThingTalk.actParam(new ChannelNameValue(kind, name, argnames, argtypes));
-						break;
-					case "trigger":
-						inner = ThingTalk.trigParam(new ChannelNameValue(kind, name, argnames, argtypes));
-						break;
-					case "query":
-						inner = ThingTalk.queryParam(new ChannelNameValue(kind, name, argnames, argtypes));
-						break;
-					default:
-						throw new RuntimeException("Invalid channel type " + channelType);
-					}
-					Value targetValue = ThingTalk.jsonOut(inner);
+  public ThingpediaDataset() {
+    dataSource = ThingpediaDatabase.getSingleton();
+  }
 
-					Example ex = new Example.Builder()
-							.setId("canonical_" + kind + "_" + name)
-							.setUtterance(canonical)
-							.setTargetValue(targetValue)
-							.createExample();
+  private void readCanonicals(Connection con, int maxExamples, List<Example> examples) throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet set = stmt.executeQuery(CANONICAL_QUERY)) {
+        TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
+        };
 
-					addOneExample(ex, maxExamples, examples);
-				}
-			}
-		}
-	}
+        while (set.next() && examples.size() < maxExamples) {
+          String canonical = set.getString(1);
+          String kind = set.getString(2);
+          String name = set.getString(3);
+          String channelType = set.getString(4);
+          List<String> argnames = Json.readValueHard(set.getString(5), typeRef);
+          List<String> argtypes = Json.readValueHard(set.getString(6), typeRef);
+          Value inner;
+          switch (channelType) {
+          case "action":
+            inner = ThingTalk.actParam(new ChannelNameValue(kind, name, argnames, argtypes));
+            break;
+          case "trigger":
+            inner = ThingTalk.trigParam(new ChannelNameValue(kind, name, argnames, argtypes));
+            break;
+          case "query":
+            inner = ThingTalk.queryParam(new ChannelNameValue(kind, name, argnames, argtypes));
+            break;
+          default:
+            throw new RuntimeException("Invalid channel type " + channelType);
+          }
+          Value targetValue = ThingTalk.jsonOut(inner);
 
-	private void readFullExamples(Connection con, int maxExamples, List<Example> examples) throws SQLException {
-		try (Statement stmt = con.createStatement()) {
-			try (ResultSet set = stmt.executeQuery(FULL_EXAMPLE_QUERY)) {
+          Example ex = new Example.Builder()
+              .setId("canonical_" + kind + "_" + name)
+              .setUtterance(canonical)
+              .setTargetValue(targetValue)
+              .createExample();
 
-				while (set.next() && examples.size() < maxExamples) {
-					int id = set.getInt(1);
-					String utterance = set.getString(2);
-					String targetJson = set.getString(3);
-					Value targetValue = new StringValue(targetJson);
+          addOneExample(ex, maxExamples, examples);
+        }
+      }
+    }
+  }
 
-					Example ex = new Example.Builder()
-							.setId("full_" + Integer.toString(id))
-							.setUtterance(utterance)
-							.setTargetValue(targetValue)
-							.createExample();
+  private void readFullExamples(Connection con, int maxExamples, List<Example> examples) throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet set = stmt.executeQuery(FULL_EXAMPLE_QUERY)) {
 
-					addOneExample(ex, maxExamples, examples);
-				}
-			}
-		}
-	}
+        while (set.next() && examples.size() < maxExamples) {
+          int id = set.getInt(1);
+          String utterance = set.getString(2);
+          String targetJson = set.getString(3);
+          Value targetValue = new StringValue(targetJson);
 
-	@Override
-	public void read() throws IOException {
-		LogInfo.begin_track_printAll("ThingpediaDataset.read");
+          Example ex = new Example.Builder()
+              .setId("full_" + Integer.toString(id))
+              .setUtterance(utterance)
+              .setTargetValue(targetValue)
+              .createExample();
 
-		// assume all examples are train for now
-		int maxExamples = getMaxExamplesForGroup("train");
-		List<Example> examples = getOrCreateGroup("train");
-		
-		try (Connection con = dataSource.getConnection()) {
-			// we initially train with just the canonical forms
-			// this is to "bias" the learner towards learning actions with
-			// parameters
-			// if we don't do that, with true examples the correct parse
-			// always falls off the beam and we don't learn at all
-			readCanonicals(con, maxExamples, examples);
-			readFullExamples(con, maxExamples, examples);
-		} catch (SQLException e) {
-			throw new IOException(e);
-		}
+          addOneExample(ex, maxExamples, examples);
+        }
+      }
+    }
+  }
 
-		if (Dataset.opts.splitDevFromTrain)
-			splitDevFromTrain();
-		collectStats();
+  private void readOnlineLearn(int maxExamples, List<Example> examples) throws IOException {
+    if (opts.onlineLearnFile == null)
+      return;
 
-		LogInfo.end_track();
-	}
+    int count = 0;
+    try (BufferedReader reader = new BufferedReader(new FileReader(opts.onlineLearnFile))) {
+      String line;
+      while (examples.size() < maxExamples && (line = reader.readLine()) != null) {
+        String[] parts = line.split("\t");
+
+        Example ex = new Example.Builder()
+            .setId("online_" + Integer.toString(count++))
+            .setUtterance(parts[0])
+            .setTargetValue(new StringValue(parts[1]))
+            .createExample();
+
+        addOneExample(ex, maxExamples, examples);
+      }
+    }
+  }
+
+  @Override
+  public void read() throws IOException {
+    LogInfo.begin_track_printAll("ThingpediaDataset.read");
+
+    // assume all examples are train for now
+    int maxExamples = getMaxExamplesForGroup("train");
+    List<Example> examples = getOrCreateGroup("train");
+
+    try (Connection con = dataSource.getConnection()) {
+      // we initially train with just the canonical forms
+      // this is to "bias" the learner towards learning actions with
+      // parameters
+      // if we don't do that, with true examples the correct parse
+      // always falls off the beam and we don't learn at all
+      readCanonicals(con, maxExamples, examples);
+      readFullExamples(con, maxExamples, examples);
+    } catch (SQLException e) {
+      throw new IOException(e);
+    }
+    readOnlineLearn(maxExamples, examples);
+
+    if (Dataset.opts.splitDevFromTrain)
+      splitDevFromTrain();
+    collectStats();
+
+    LogInfo.end_track();
+  }
 }
