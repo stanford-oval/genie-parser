@@ -46,25 +46,24 @@
 # work around someweirdness in the corenlp tokenizer
 # this is always anchored because it deals with explicitly added quotes
 (rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
-
-# recognize email addresses and phone numbers as strings
-(rule $PhoneNumberValue ($PHRASE) (NerValueFn PHONE_NUMBER) (anchored 1))
-# optimization: email addresses are always single token
-(rule $EmailAddressValue ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
-
-(rule $Value ($DateValue) (IdentityFn))
-(rule $Value ($TimeValue) (IdentityFn))
-(rule $Value ($NumberValue) (IdentityFn))
-(rule $Value ($TemperatureValue) (IdentityFn))
-(rule $Value ($BooleanValue) (IdentityFn))
-(rule $Value ($StringValue) (IdentityFn))
-(rule $Value ($PhoneNumberValue) (lambda v (call @phoneNumberCast (var v))))
-(rule $Value ($EmailAddressValue) (lambda v (call @emailAddressCast (var v))))
-
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
 (rule $LocationValue @at_work (ConstantFn (location rel_work -1 -1) fb:type.any))
+
+# recognize email addresses and phone numbers as strings
+(rule $PhoneNumber ($PHRASE) (NerValueFn PHONE_NUMBER) (anchored 1))
+(rule $PhoneNumberValue ($PhoneNumber) (lambda v (call @phoneNumberCast (var v))))
+# optimization: email addresses are always single token
+(rule $EmailAddress ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
+(rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
+
+(def @non_string_values ($DateValue $TimeValue $NumberValue
+$TemperatureValue $TimeIntervalValue $BooleanValue $LocationValue
+$PhoneNumberValue $EmailAddressValue))
+(def @all_values ($DateValue $TimeValue $NumberValue
+$TemperatureValue $TimeIntervalValue $BooleanValue $LocationValue
+$PhoneNumberValue $EmailAddressValue $StringValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
@@ -99,7 +98,9 @@
 	(rule $ActionWithArg ($Action @with $AnchoredArgName) (thingtalk.ApplyFn))
 )
 (rule $ActionIntermediate ($ActionWithArg $Op) (thingtalk.AddOperatorFn))
-(rule $Action ($ActionIntermediate $Value) (thingtalk.AddValueFn))
+(for @v @all_values
+	(rule $Action ($ActionIntermediate @v) (thingtalk.AddValueFn))
+)
 (rule $ValidAction ($Action) (thingtalk.FilterInvalidInvocationFn))
 
 (when floatingnames
@@ -116,7 +117,9 @@
 	(rule $TriggerWithArg ($Trigger @with $AnchoredArgName) (thingtalk.ApplyFn))
 )
 (rule $TriggerIntermediate ($TriggerWithArg $Op) (thingtalk.AddOperatorFn))
-(rule $Trigger ($TriggerIntermediate $Value) (thingtalk.AddValueFn))
+(for @v @all_values
+	(rule $Trigger ($TriggerIntermediate @v) (thingtalk.AddValueFn))
+)
 (rule $ValidTrigger ($Trigger) (thingtalk.FilterInvalidInvocationFn))
 
 (when floatingnames
@@ -133,7 +136,9 @@
 	(rule $QueryWithArg ($Query @with $AnchoredArgName) (thingtalk.ApplyFn))
 )
 (rule $QueryIntermediate ($QueryWithArg $Op) (thingtalk.AddOperatorFn))
-(rule $Query ($QueryIntermediate $Value) (thingtalk.AddValueFn))
+(for @v @all_values
+	(rule $Query ($QueryIntermediate @v) (thingtalk.AddValueFn))
+)
 (rule $ValidQuery ($Query) (thingtalk.FilterInvalidInvocationFn))
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
@@ -194,12 +199,9 @@
 # NOTE 2: boolean answers are matched to yes/no, which are specials
 # but you still need to handle them here to match synonyms of true/false like on/off
 # that should not be learned as synonyms of yes/no
-(rule $Answer ($DateValue) (lambda value (call @ansForm (var value))))
-(rule $Answer ($TimeValue) (lambda value (call @ansForm (var value))))
-(rule $Answer ($NumberValue) (lambda value (call @ansForm (var value))))
-(rule $Answer ($TemperatureValue) (lambda value (call @ansForm (var value))))
-(rule $Answer ($BooleanValue) (lambda value (call @ansForm (var value))))
-(rule $Answer ($LocationValue) (lambda value (call @ansForm (var value))))
+(for @v @non_string_values
+	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
+)
 
 (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 (rule $ROOT ($ValidAction) (lambda cmd (call @jsonOut (var cmd))))
