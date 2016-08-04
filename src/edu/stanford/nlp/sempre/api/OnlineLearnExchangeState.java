@@ -43,6 +43,7 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
       Session session = server.getSession(sessionId);
       Example ex;
       synchronized (session) {
+        LogInfo.logs("session.lang %s, language.tag %s", session.lang, language.tag);
         if (session.lang == null || !session.lang.equals(language.tag))
           throw new IllegalArgumentException("Cannot change the language of an existing session");
         session.lang = language.tag;

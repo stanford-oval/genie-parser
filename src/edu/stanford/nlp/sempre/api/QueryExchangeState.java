@@ -32,7 +32,10 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     json.put("sessionId", sessionId);
     json.put("candidates", items);
 
-    int nItems = MAX_ITEMS;
+    String strLongResponse = reqParams.get("long");
+    boolean longResponse = "1".equals(strLongResponse);
+
+    int nItems = longResponse ? Integer.MAX_VALUE : MAX_ITEMS;
     for (Derivation deriv : response) {
       if (nItems == 0)
         break;
@@ -48,6 +51,8 @@ class QueryExchangeState extends AbstractHttpExchangeState {
         item.put("answer", ((StringValue) ((ListValue) value).values.get(0)).value);
       item.put("score", deriv.score);
       item.put("prob", deriv.prob);
+      if (longResponse)
+        item.put("canonical", deriv.canonicalUtterance);
       items.add(item);
     }
 
