@@ -41,6 +41,13 @@ public final class ThingTalk {
       return "Measure";
   }
 
+  private static String typeFromDate(DateValue value) {
+    if (value.day == -1 && value.month == -1 && value.year == -1)
+      return "Time";
+    else
+      return "Date";
+  }
+
   static String typeFromValue(Value value) {
     if (value instanceof NumberValue)
       return typeFromNumber((NumberValue) value);
@@ -49,7 +56,7 @@ public final class ThingTalk {
     else if (value instanceof TimeValue)
       return "Time";
     else if (value instanceof DateValue)
-      return "Date";
+      return typeFromDate((DateValue) value);
     else if (value instanceof BooleanValue)
       return "Bool";
     else if (value instanceof LocationValue)
