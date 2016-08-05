@@ -49,7 +49,7 @@
   </target>
 
   <!-- Compile corenlp -->
-  <target name="corenlp" depends="init,core,cache">
+  <target name="corenlp" depends="init,core">
     <echo message="Compiling ${ant.project.name}: corenlp"/>
     <mkdir dir="${classes}/corenlp"/>
     <javac srcdir="${src}" destdir="${classes}/corenlp" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
@@ -89,7 +89,7 @@
   </target>
 
   <!-- Compile thingtalk -->
-  <target name="thingtalk" depends="init,core,corenlp,freebase,overnight">
+  <target name="thingtalk" depends="init,core,corenlp,overnight">
     <echo message="Compiling ${ant.project.name}: thingtalk"/>
     <mkdir dir="${classes}/thingtalk"/>
     <javac srcdir="${src}" destdir="${classes}/thingtalk" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">

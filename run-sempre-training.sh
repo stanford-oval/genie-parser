@@ -6,7 +6,7 @@ set -x
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 
 rm -fr ./sempre.tmp
-java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
+java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -cp 'libsempre/*:lib/*' \
               edu.stanford.nlp.sempre.Main \
               -execDir ./sempre.tmp \
