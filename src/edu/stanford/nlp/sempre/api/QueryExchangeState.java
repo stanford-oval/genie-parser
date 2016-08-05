@@ -116,8 +116,9 @@ class QueryExchangeState extends AbstractHttpExchangeState {
           throw new IllegalArgumentException("Cannot change the language of an existing session");
         session.lang = language.tag;
         session.remoteHost = remoteHost;
-        
+
         derivations = handleUtterance(session, language, query);
+        server.logUtterance(language.tag, query);
       }
       exitStatus = 200;
     } catch (IllegalArgumentException | IllegalStateException e) {
