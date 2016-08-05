@@ -38,6 +38,7 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,freebase,thingtalk \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
               -ThingpediaDatabase.dbUser sempre \
               -ThingpediaDataset.onlineLearnFile sabrina/sabrina.${LANGUAGE_TAG}.online_learn \
+              -ThingpediaDataset.languageTag ${LANGUAGE_TAG} \
               -BeamParser.executeAllDerivations true \
               -FloatingParser.executeAllDerivations true \
               "$@"

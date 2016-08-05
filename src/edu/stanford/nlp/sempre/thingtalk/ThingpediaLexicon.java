@@ -287,7 +287,7 @@ public class ThingpediaLexicon {
     String query;
     if (phrase == null) {
       query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-          + "on schema_id = id and version = approved_version and kind_type <> 'primary'";
+          + "on schema_id = id and version = approved_version and kind_type <> 'primary' and language = ?";
     } else {
       String[] tokens = phrase.split(" ");
       if (Builder.opts.parser.equals("BeamParser")) {
@@ -295,14 +295,14 @@ public class ThingpediaLexicon {
           return Collections.emptyIterator();
 
         query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = approved_version and canonical = ? and kind_type <> 'primary' "
+            + "on schema_id = id and version = approved_version and language = ? and canonical = ? and kind_type <> 'primary' "
             + "limit " + Parser.opts.beamSize;
       } else {
         if (tokens.length > 1)
           return Collections.emptyIterator();
 
         query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = approved_version and match canonical against (? in natural language "
+            + "on schema_id = id and version = approved_version and language = ? match canonical against (? in natural language "
             + "mode) and kind_type <> 'primary' limit " + Parser.opts.beamSize;
       }
     }
@@ -320,8 +320,9 @@ public class ThingpediaLexicon {
 
     try (Connection con = dataSource.getConnection()) {
       try (PreparedStatement stmt = con.prepareStatement(query)) {
+        stmt.setString(1, languageTag);
         if (phrase != null)
-          stmt.setString(1, phrase);
+          stmt.setString(2, phrase);
 
         entries = new LinkedList<>();
         try (ResultSet rs = stmt.executeQuery()) {
@@ -375,13 +376,15 @@ public class ThingpediaLexicon {
 
     String query;
     if (Builder.opts.parser.equals("BeamParser")) {
-      query = "select dsc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds "
-          + " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? "
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
+          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
     } else {
-      query = "select dsc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds "
-          + " where dsc.schema_id = ds.id and dsc.version = ds.approved_version and channel_type = ? and "
-          + "match canonical against (? in natural language mode) and ds.kind_type <> 'primary' limit "
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
+          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
+          + " and match canonical against (? in natural language mode) and ds.kind_type <> 'primary' limit "
           + Parser.opts.beamSize;
     }
 
@@ -389,8 +392,9 @@ public class ThingpediaLexicon {
 
     try (Connection con = dataSource.getConnection()) {
       try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, channel_type.toString().toLowerCase());
-        stmt.setString(2, phrase);
+        stmt.setString(1, languageTag);
+        stmt.setString(2, channel_type.toString().toLowerCase());
+        stmt.setString(3, phrase);
 
         entries = new LinkedList<>();
         try (ResultSet rs = stmt.executeQuery()) {

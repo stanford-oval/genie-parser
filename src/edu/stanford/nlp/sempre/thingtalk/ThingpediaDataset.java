@@ -15,6 +15,8 @@ import fig.basic.Option;
 public class ThingpediaDataset extends AbstractDataset {
   public static class Options {
     @Option
+    public String languageTag = "en";
+    @Option
     public String onlineLearnFile = null;
   }
 
@@ -22,18 +24,20 @@ public class ThingpediaDataset extends AbstractDataset {
 
   private final ThingpediaDatabase dataSource;
 
-  private static final String CANONICAL_QUERY = "select dsc.canonical, ds.kind, dsc.name, dsc.channel_type, dsc.argnames,dsc.types "
-      + "from device_schema_channels dsc join device_schema ds on ds.id = dsc.schema_id and dsc.version = ds.developer_version "
-      + "where canonical is not null and ds.kind_type <> 'primary'";
-  private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base";
+  private static final String CANONICAL_QUERY = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
+      + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
+      + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? "
+      + " and canonical is not null and ds.kind_type <> 'primary'";
+  private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base and language = ?";
 
   public ThingpediaDataset() {
     dataSource = ThingpediaDatabase.getSingleton();
   }
 
   private void readCanonicals(Connection con, int maxExamples, List<Example> examples) throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      try (ResultSet set = stmt.executeQuery(CANONICAL_QUERY)) {
+    try (PreparedStatement stmt = con.prepareStatement(CANONICAL_QUERY)) {
+      stmt.setString(1, opts.languageTag);
+      try (ResultSet set = stmt.executeQuery()) {
         TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
         };
 
@@ -73,8 +77,9 @@ public class ThingpediaDataset extends AbstractDataset {
   }
 
   private void readFullExamples(Connection con, int maxExamples, List<Example> examples) throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      try (ResultSet set = stmt.executeQuery(FULL_EXAMPLE_QUERY)) {
+    try (PreparedStatement stmt = con.prepareStatement(FULL_EXAMPLE_QUERY)) {
+      stmt.setString(1, opts.languageTag);
+      try (ResultSet set = stmt.executeQuery()) {
 
         while (set.next() && examples.size() < maxExamples) {
           int id = set.getInt(1);
