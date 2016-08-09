@@ -1,8 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.collect.Sets;
 
@@ -15,13 +13,27 @@ class ArgFilterHelpers {
 
   private static final Set<String> TIME_UNITS = Sets.newHashSet("ms", "s", "min", "h", "day", "week", "month", "year");
   private static final Set<String> TEMP_UNITS = Sets.newHashSet("C", "F");
+  private static final Set<String> LENGTH_UNITS = Sets.newHashSet("m", "km", "mm", "cm", "mi", "in", "ft");
+  private static final Set<String> SPEED_UNITS = Sets.newHashSet("mps", "kmph", "mph");
+  private static final Set<String> WEIGHT_UNITS = Sets.newHashSet("kg", "g", "lb", "oz");
+  private static final Set<String> PRESSURE_UNITS = Sets.newHashSet("Pa", "bar", "psi", "mmHg", "inHg", "atm");
+  private static final Set<String> ENERGY_UNITS = Sets.newHashSet("kcal", "kJ");
+  private static final Set<String> HEARTRATE_UNITS = Collections.singleton("bpm");
   private static final Map<String, Set<String>> ALLOWED_UNITS = new HashMap<>();
   static {
     ALLOWED_UNITS.put("ms", TIME_UNITS);
     ALLOWED_UNITS.put("C", TEMP_UNITS);
+    ALLOWED_UNITS.put("m", LENGTH_UNITS);
+    ALLOWED_UNITS.put("mps", SPEED_UNITS);
+    ALLOWED_UNITS.put("kg", WEIGHT_UNITS);
+    ALLOWED_UNITS.put("mmHg", PRESSURE_UNITS);
+    ALLOWED_UNITS.put("kcal", ENERGY_UNITS);
+    ALLOWED_UNITS.put("bpm", HEARTRATE_UNITS);
   }
 
   private static boolean unitOk(String have, String want) {
+    if (!ALLOWED_UNITS.containsKey(want))
+      throw new RuntimeException("Invalid required unit " + want);
     return ALLOWED_UNITS.get(want).contains(have);
   }
 
