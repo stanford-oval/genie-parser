@@ -26,15 +26,12 @@
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
 (rule $NumberValue ($NumValue) (IdentityFn))
-(rule $TemperatureValue ($NumValue c) (lambda num (call @measureValueCast (string "C") (var num))))
-(rule $TemperatureValue ($NumValue f) (lambda num (call @measureValueCast (string "F") (var num))))
-(rule $TimeIntervalValue ($NumValue s) (lambda num (call @measureValueCast (string "s") (var num))))
-(rule $TimeIntervalValue ($NumValue min) (lambda num (call @measureValueCast (string "min") (var num))))
-(rule $TimeIntervalValue ($NumValue h) (lambda num (call @measureValueCast (string "h") (var num))))
-(rule $TimeIntervalValue ($NumValue day) (lambda num (call @measureValueCast (string "day") (var num))))
-(rule $TimeIntervalValue ($NumValue week) (lambda num (call @measureValueCast (string "week") (var num))))
-(rule $TimeIntervalValue ($NumValue month) (lambda num (call @measureValueCast (string "mon") (var num))))
-(rule $TimeIntervalValue ($NumValue year) (lambda num (call @measureValueCast (string "year") (var num))))
+(for @unit (s min h day week month year)
+	(rule $TimeIntervalValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
+)
+(for @unit (C F)
+	(rule $MeasureValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
+)
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
 (rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
@@ -60,10 +57,10 @@
 (rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
 
 (def @non_string_values ($DateValue $TimeValue $NumberValue
-$TemperatureValue $TimeIntervalValue $BooleanValue $LocationValue
+$MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue))
 (def @all_values ($DateValue $TimeValue $NumberValue
-$TemperatureValue $TimeIntervalValue $BooleanValue $LocationValue
+$MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue $StringValue))
 
 # FIXME: Integrate this to improve the canonicals

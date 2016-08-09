@@ -20,8 +20,8 @@ public class AddValueFn extends SemanticFn {
         ParamNameValue param = (ParamNameValue) vf.value;
 
         String haveType = ThingTalk.typeFromValue(right.value);
-        if (!ArgFilterHelpers.typeOk(haveType, param.type) &&
-            !ArgFilterHelpers.typeOkArray(haveType, param.type))
+        if (!ArgFilterHelpers.typeOk(haveType, param.type, right.value) &&
+            !ArgFilterHelpers.typeOkArray(haveType, param.type, right.value))
           return null;
 
         return new Derivation.Builder().withCallable(c).formula(Formulas.lambdaApply(lf, right.formula))
