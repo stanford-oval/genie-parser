@@ -1,9 +1,9 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.LogInfo;
-import fig.basic.MapUtils;
-
 import java.util.Map;
+
+import fig.basic.LogInfo;
+import gnu.trove.map.TObjectDoubleMap;
 
 /**
  * Created by joberant on 10/18/14.
@@ -27,8 +27,17 @@ public final class SempreUtils {
     LogInfo.end_track();
   }
 
-  public static void addToDoubleMap(Map<String, Double> mutatedMap, Map<String, Double> addedMap) {
-    for (String key : addedMap.keySet())
-      MapUtils.incr(mutatedMap, key, addedMap.get(key));
+  public static <K> void logMap(TObjectDoubleMap<K> map, String desc) {
+    LogInfo.begin_track("Logging %s map", desc);
+    for (K key : map.keySet())
+      LogInfo.log(key + "\t" + map.get(key));
+    LogInfo.end_track();
+  }
+
+  public static <K> void addToDoubleMap(TObjectDoubleMap<K> mutatedMap, TObjectDoubleMap<K> addedMap) {
+    addedMap.forEachEntry((key, value) -> {
+      mutatedMap.adjustOrPutValue(key, value, value);
+      return true;
+    });
   }
 }

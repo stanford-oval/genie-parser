@@ -1,11 +1,14 @@
 package edu.stanford.nlp.sempre;
 
+import java.util.*;
+
 import com.google.common.base.Joiner;
+
 import fig.basic.*;
 import fig.exec.Execution;
 import fig.prob.SampleUtils;
-
-import java.util.*;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * @author joberant
@@ -135,7 +138,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
   private String samplingStrategy;
   private Sampler sampler;
   List<Derivation> correctDerivations = new ArrayList<>();
-  private Map<String, Double> stateSequenceExpectedCounts = new HashMap<>();
+  private TObjectDoubleMap<String> stateSequenceExpectedCounts = new TObjectDoubleHashMap<>();
   Random randGen = new Random(1);
   // backpointers for remembering what derivations on the stream were popped before others
   private Map<Long, Pair<ArrayList<Derivation>, Integer>> backpointerList;
@@ -182,6 +185,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
 
 
 
+  @Override
   protected void addToAgenda(DerivationStream derivationStream) {
     addToAgenda(derivationStream, 0d);
   }
@@ -212,6 +216,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
 
   // we need to override the method because parameters are prefixed with "search_"
   // this means that the score will not be the dot product and features and weights
+  @Override
   protected void featurizeAndScoreDerivation(Derivation deriv) {
     if (deriv.isFeaturizedAndScored()) return;
 
@@ -255,12 +260,13 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
             chart[0][numTokens].get(Rule.rootCat).size() < getBeamSize();
   }
 
+  @Override
   public void infer() {
     if (numTokens == 0)
       return;
 
     ReinforcementParserState oracleState = null;
-    expectedCounts = new HashMap<>();
+    expectedCounts = new TObjectDoubleHashMap<>();
     if (computeExpectedCounts && !ReinforcementParser.opts.simulateNonRlObjective) { // when updating params we first find a correct derivation to set the oracle sampler
       // TODO(jonathan): move to ReinforcementParser, not ParserState
       LogInfo.begin_track("Finding oracle derivation");
@@ -333,7 +339,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
       handleRootDerivation(ex, numItemsSampled, sampledDerivation);
 
       if (computeExpectedCounts) {
-        Map<String, Double> counts = new HashMap<>();
+        TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
         // add the feature vector and subtract for the time it was in the agenda unless has negative probability
         //pretty hacky
         if (pdsAndProbability.getSecond() > -0.0001)
@@ -500,14 +506,15 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
     double rewardExpectation = computeExpectedReward(predDerivations, qDist);
 
     // compute E_q(\phi(d) R(d)) and E_pi(\phi(d))
-    Map<String, Double> featureExpectation = new HashMap<>(), rewardInfusedFeatureExpectation = new HashMap<>();
+    TObjectDoubleMap<String> featureExpectation = new TObjectDoubleHashMap<>(),
+        rewardInfusedFeatureExpectation = new TObjectDoubleHashMap<>();
     for (int i = 0; i < predDerivations.size(); ++i) {
       Derivation deriv = predDerivations.get(i);
       deriv.incrementAllFeatureVector(piDist[i], featureExpectation);
       deriv.incrementAllFeatureVector(qDist[i] * compatibilityToReward(deriv.compatibility), rewardInfusedFeatureExpectation);
     }
     // final gradient computation
-    Map<String, Double> sampleCounts = new HashMap<>();
+    TObjectDoubleMap<String> sampleCounts = new TObjectDoubleHashMap<>();
     if (ReinforcementParser.opts.simulateNonRlObjective) {
       ParserState.computeExpectedCounts(predDerivations, sampleCounts);
     } else {
@@ -552,7 +559,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
   private void finalizeSearchExpectedCounts() {
     if (ReinforcementParser.opts.simulateNonRlObjective) return;
     if (!computeExpectedCounts) return;
-    Map<String, Double> counts = new HashMap<>();
+    TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
     for (PrioritizedDerivationStream pds : agenda) {
       pds.derivStream.peek().incrementLocalFeatureVector(pds.probSum, counts);
     }
@@ -585,6 +592,7 @@ final class ReinforcementParserState extends AbstractReinforcementParserState {
     }
   }
 
+  @Override
   public void setEvaluation() {
     LogInfo.begin_track_printAll("ReinforcementParserParserState.setEvaluation");
     super.setEvaluation();
@@ -922,6 +930,7 @@ class PrioritizedDerivationStream implements Comparable<PrioritizedDerivationStr
     return 0;
   }
 
+  @Override
   public double getScore() { return derivStream.peek().score; }
   public void addProb(double prob) { probSum += prob; }
 }
@@ -966,6 +975,7 @@ class DerivInfo {
     return result;
   }
 
+  @Override
   public String toString() {
     return cat + "(" + start + "," + end + ") " + formula.toString();
   }

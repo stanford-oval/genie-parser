@@ -1,10 +1,13 @@
 package edu.stanford.nlp.sempre;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import fig.basic.*;
 import fig.exec.Execution;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * Output examples in various forms.
@@ -68,7 +71,7 @@ public final class ExampleUtils {
           description.addChild(p.L("value", deriv.value.toLispTree()));
           buf.append("\t" + description);
           buf.append("\t" + deriv.compatibility);
-          Map<String, Double> features = deriv.getAllFeatureVector();
+          Map<String, Double> features = deriv.getFeatureMap();
           buf.append("\t");
           boolean first = true;
           for (Map.Entry<String, Double> e : features.entrySet()) {

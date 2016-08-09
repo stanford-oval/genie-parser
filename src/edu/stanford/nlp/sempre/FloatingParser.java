@@ -7,6 +7,7 @@ import java.util.*;
 
 import fig.basic.*;
 import fig.exec.Execution;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A FloatingParser builds Derivations according to a Grammar without having to
@@ -361,7 +362,7 @@ class FloatingParserState extends ParserState {
     // Compute gradient with respect to the predicted derivations
     ensureExecuted();
     if (computeExpectedCounts) {
-      expectedCounts = new HashMap<>();
+      expectedCounts = new TObjectDoubleHashMap<>();
       ParserState.computeExpectedCounts(predDerivations, expectedCounts);
     }
 

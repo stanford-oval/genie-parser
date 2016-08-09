@@ -2,7 +2,9 @@ package edu.stanford.nlp.sempre;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
+import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
 
 import fig.basic.*;
 
@@ -38,7 +40,7 @@ public abstract class ParserState {
   public final Evaluation evaluation = new Evaluation();
 
   // If computeExpectedCounts is true (for learning), then fill this out.
-  public Map<String, Double> expectedCounts;
+  public TObjectDoubleMap<String> expectedCounts;
   public double objectiveValue;
 
   // Statistics generated while parsing
@@ -258,7 +260,7 @@ public abstract class ParserState {
    * according to a standard exponential family model over a finite set of derivations.
    * Assume that everything has been executed, and compatibility has been computed.
    */
-  public static void computeExpectedCounts(List<Derivation> derivations, Map<String, Double> counts) {
+  public static void computeExpectedCounts(List<Derivation> derivations, TObjectDoubleMap<String> counts) {
     double[] trueScores;
     double[] predScores;
 

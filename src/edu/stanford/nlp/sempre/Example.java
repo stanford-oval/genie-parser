@@ -285,9 +285,7 @@ public class Example {
       item.addChild("null");
     item.addChild(deriv.formula.toLispTree());
 
-    HashMap<String, Double> features = new HashMap<>();
-    deriv.incrementAllFeatureVector(1, features);
-    item.addChild(LispTree.proto.newList(features));
+    item.addChild(LispTree.proto.newList(deriv.getFeatureMap()));
 
     return item;
   }

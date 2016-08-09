@@ -11,6 +11,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A Master manages multiple sessions. Currently, they all share the same model,
@@ -240,7 +242,7 @@ public class Master {
 
   private void printDerivation(Derivation deriv) {
     // Print features
-    HashMap<String, Double> featureVector = new HashMap<>();
+    TObjectDoubleMap<String> featureVector = new TObjectDoubleHashMap<>();
     deriv.incrementAllFeatureVector(1, featureVector);
     FeatureVector.logFeatureWeights("Pred", featureVector, builder.params);
 

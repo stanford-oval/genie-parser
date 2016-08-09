@@ -4,6 +4,8 @@ import java.io.PrintWriter;
 import java.util.*;
 
 import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 ////////////////////////////////////////////////////////////
 
@@ -259,7 +261,7 @@ public abstract class Parser {
     if (correctIndex != -1 && correct != 1) {
       Derivation trueDeriv = predDerivations.get(correctIndex);
       Derivation predDeriv = predDerivations.get(0);
-      HashMap<String, Double> featureDiff = new HashMap<>();
+      TObjectDoubleMap<String> featureDiff = new TObjectDoubleHashMap<>();
       trueDeriv.incrementAllFeatureVector(+1, featureDiff);
       predDeriv.incrementAllFeatureVector(-1, featureDiff);
       String heading = String.format("TopTrue (%d) - Pred (%d) = Diff", correctIndex, 0);

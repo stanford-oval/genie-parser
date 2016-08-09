@@ -1,26 +1,21 @@
 package edu.stanford.nlp.sempre;
 
+import static fig.basic.LogInfo.logs;
+
+import java.io.*;
+import java.math.BigInteger;
+import java.net.*;
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import com.google.common.collect.Lists;
+import com.sun.net.httpserver.*;
+
 import fig.basic.*;
 import fig.html.HtmlElement;
 import fig.html.HtmlUtils;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URLDecoder;
-import java.net.HttpCookie;
-import com.sun.net.httpserver.HttpServer;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.Headers;
-
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.math.BigInteger;
-import java.security.SecureRandom;
-
-import static fig.basic.LogInfo.logs;
 
 final class SecureIdentifiers {
   private SecureIdentifiers() { }
@@ -55,6 +50,7 @@ public class Server {
   public static final HtmlUtils H = new HtmlUtils();
 
   class Handler implements HttpHandler {
+    @Override
     public void handle(HttpExchange exchange) {
       try {
         new ExchangeState(exchange);
@@ -243,7 +239,7 @@ public class Server {
 
     HtmlElement makeDetails(Master.Response response, String uri) {
       Example ex = response.getExample();
-      List<HtmlElement> items = new ArrayList<HtmlElement>();
+      List<HtmlElement> items = new ArrayList<>();
       if (opts.htmlVerbose >= 1)
         items.add(makeLexical(ex));
       if (ex.getPredDerivations().size() > 0) {
@@ -291,11 +287,11 @@ public class Server {
       HtmlElement table = H.table();
 
       Params params = master.getParams();
-      Map<String, Double> features = new HashMap<String, Double>();
+      Map<String, Double> features;
       if (local)
-        deriv.incrementLocalFeatureVector(1, features);
+        features = deriv.getLocalFeatureVector().toMap();
       else
-        deriv.incrementAllFeatureVector(1, features);
+        features = deriv.getFeatureMap();
 
       List<Map.Entry<String, Double>> entries = Lists.newArrayList();
       double sumValue = 0;
@@ -304,7 +300,7 @@ public class Server {
         if (entry.getValue() == 0) continue;
         double value = entry.getValue() * params.getWeight(feature);
         sumValue += value;
-        entries.add(new java.util.AbstractMap.SimpleEntry<String, Double>(feature, value));
+        entries.add(new java.util.AbstractMap.SimpleEntry<>(feature, value));
       }
       Collections.sort(entries, new ValueComparator<String, Double>(false));
       table.child(
@@ -396,9 +392,9 @@ public class Server {
 
     class CandidatePredicates {
       // Parallel arrays
-      List<Formula> predicates = new ArrayList<Formula>();
-      List<Integer> spanLengths = new ArrayList<Integer>();
-      List<Double> scores = new ArrayList<Double>();
+      List<Formula> predicates = new ArrayList<>();
+      List<Integer> spanLengths = new ArrayList<>();
+      List<Double> scores = new ArrayList<>();
 
       void add(Formula formula, int spanLength, double score) {
         predicates.add(formula);
@@ -447,7 +443,7 @@ public class Server {
           // Show possible predicates for a word
           HtmlElement pe = H.table().cls("predInfo");
           int[] perm = ListUtils.sortedIndices(toDoubleArray(predicates[i].scores), true);
-          Set<String> formulaSet = new HashSet<String>();
+          Set<String> formulaSet = new HashSet<>();
           for (int j : perm) {
             String formula = predicates[i].formatPredicate(j);
             if (formulaSet.contains(formula)) continue;  // Dedup
@@ -465,21 +461,21 @@ public class Server {
     }
 
     String makeJson(Master.Response response) {
-      Map<String, Object> json = new HashMap<String, Object>();
-      List<Object> items = new ArrayList<Object>();
+      Map<String, Object> json = new HashMap<>();
+      List<Object> items = new ArrayList<>();
       json.put("candidates", items);
       for (Derivation deriv : response.getExample().getPredDerivations()) {
-        Map<String, Object> item = new HashMap<String, Object>();
+        Map<String, Object> item = new HashMap<>();
         Value value = deriv.getValue();
         if (value instanceof UriValue) {
           item.put("url", ((UriValue) value).value);
         } else if (value instanceof TableValue) {
           TableValue tableValue = (TableValue) value;
           item.put("header", tableValue.header);
-          List<List<String>> rowsObj = new ArrayList<List<String>>();
+          List<List<String>> rowsObj = new ArrayList<>();
           item.put("rows", rowsObj);
           for (List<Value> row : tableValue.rows) {
-            List<String> rowObj = new ArrayList<String>();
+            List<String> rowObj = new ArrayList<>();
             for (Value v : row)
               rowObj.add(v.toString());
             rowsObj.add(rowObj);

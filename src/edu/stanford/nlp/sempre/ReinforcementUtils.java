@@ -1,12 +1,10 @@
 package edu.stanford.nlp.sempre;
 
+import java.util.*;
+
 import fig.basic.MapUtils;
 import fig.basic.NumUtils;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import gnu.trove.map.TObjectDoubleMap;
 
 /**
  * Utils for <code>ReinforcementParser</code>
@@ -21,6 +19,14 @@ public final class ReinforcementUtils {
       MapUtils.incr(mutatedMap, prefix + key, addedMap.get(key));
   }
 
+  public static void addToDoubleMap(TObjectDoubleMap<String> mutatedMap, TObjectDoubleMap<String> addedMap,
+      String prefix) {
+    addedMap.forEachEntry((key, value) -> {
+      mutatedMap.adjustOrPutValue(prefix + key, value, value);
+      return true;
+    });
+  }
+
   public static void subtractFromDoubleMap(Map<String, Double> mutatedMap, Map<String, Double> subtractedMap) {
     for (String key : subtractedMap.keySet())
       MapUtils.incr(mutatedMap, key, -1 * subtractedMap.get(key));
@@ -31,11 +37,29 @@ public final class ReinforcementUtils {
       MapUtils.incr(mutatedMap, prefix + key, -1 * subtractedMap.get(key));
   }
 
+  public static void subtractFromDoubleMap(TObjectDoubleMap<String> mutatedMap,
+      TObjectDoubleMap<String> subtractedMap) {
+    subtractFromDoubleMap(mutatedMap, subtractedMap, "");
+  }
+
+  public static void subtractFromDoubleMap(TObjectDoubleMap<String> mutatedMap, TObjectDoubleMap<String> addedMap,
+      String prefix) {
+    addedMap.forEachEntry((key, value) -> {
+      mutatedMap.adjustOrPutValue(prefix + key, -value, -value);
+      return true;
+    });
+  }
+
   public static Map<String, Double> multiplyDoubleMap(Map<String, Double>  map, double factor) {
     Map<String, Double> res = new HashMap<>();
     for (Map.Entry<String, Double> entry: map.entrySet())
       res.put(entry.getKey(), entry.getValue() * factor);
     return res;
+  }
+
+  public static <K> TObjectDoubleMap<K> multiplyDoubleMap(TObjectDoubleMap<K> map, double factor) {
+    map.transformValues((value) -> value * factor);
+    return map;
   }
 
   public static int sampleIndex(Random rand, List<? extends HasScore> scorables, double denominator) {
