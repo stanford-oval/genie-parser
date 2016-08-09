@@ -142,12 +142,12 @@ $PhoneNumberValue $EmailAddressValue $StringValue))
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
 (rule $Notify ($MonitorIf $ValidTrigger) (SelectFn 1))
 
-(rule $ValidActionOrQuery ($ValidAction) (IdentityFn))
-(rule $ValidActionOrQuery ($ValidQuery) (IdentityFn))
 (rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
 (rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
-(rule $TimeRule ($TimeTrigger $ValidActionOrQuery) (lambda time (lambda action (call @timeRule (var time) (var action)))))
-(rule $TimeRule (@every $TimeIntervalValue $ValidActionOrQuery) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+(for @what ($ValidAction $ValidQuery) 
+	(rule $TimeRule ($TimeTrigger @what) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+	(rule $TimeRule (@every $TimeIntervalValue @what) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+)
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
