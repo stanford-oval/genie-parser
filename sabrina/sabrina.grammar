@@ -56,12 +56,20 @@
 (rule $EmailAddress ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
 (rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
 
-(def @non_string_values ($DateValue $TimeValue $NumberValue
-$MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
-$PhoneNumberValue $EmailAddressValue))
 (def @all_values ($DateValue $TimeValue $NumberValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue $StringValue))
+
+# Answer handling
+# NOTE 1: string answers are handled by putting Sabrina in "raw" mode
+# which bypasses sempre
+# DO NOT put $Answer -> $StringValue here, it would catch everything and confuse the parser
+# NOTE 2: boolean answers are matched to yes/no, which are specials
+# but you still need to handle them here to match synonyms of true/false like on/off
+# that should not be learned as synonyms of yes/no
+(def @answer_values ($DateValue $TimeValue $NumberValue
+$MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
+$PhoneNumberValue $EmailAddressValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
@@ -190,14 +198,7 @@ $PhoneNumberValue $EmailAddressValue $StringValue))
 # this is a literal, it is not translated
 (rule $Special (debug) (ConstantFn tt:root.special.debug))
 
-# Answer handling
-# NOTE 1: string answers are handled by putting Sabrina in "raw" mode
-# which bypasses sempre
-# DO NOT put $Answer -> $StringValue here, it would catch everything and confuse the parser
-# NOTE 2: boolean answers are matched to yes/no, which are specials
-# but you still need to handle them here to match synonyms of true/false like on/off
-# that should not be learned as synonyms of yes/no
-(for @v @non_string_values
+(for @v @answer_values
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
 )
 
