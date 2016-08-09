@@ -6,7 +6,7 @@ public class AddOperatorFn extends SemanticFn {
   private static boolean operatorOk(String paramType, String operator) {
     switch (operator) {
     case "is":
-      return true;
+      return !paramType.startsWith("Array(");
     case "contains":
       return paramType.equals("String");
     case "has":
