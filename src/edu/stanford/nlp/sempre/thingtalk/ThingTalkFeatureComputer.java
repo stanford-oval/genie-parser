@@ -22,6 +22,9 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     if (opts.featureDomains.contains("anchorBoundaries"))
       extractAnchorBoundaries(ex, deriv);
 
+    if (opts.featureDomains.contains("strvalue"))
+      extractStrValue(ex, deriv);
+
     if (opts.featureDomains.contains("code"))
       extractCodeFeatures(ex, deriv);
   }
@@ -46,10 +49,32 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
   }
 
   private void extractAnchorBoundaries(Example ex, Derivation deriv) {
-    if (deriv.rule.isAnchored() && deriv.rule.lhs.equals("$StrValue")) {
-      deriv.addFeature("anchorBoundaries", "left=" + tokenBefore(ex, deriv));
-      deriv.addFeature("anchorBoundaries", "right=" + tokenAfter(ex, deriv));
-    }
+    if (!deriv.rule.isAnchored() || !"$StrValue".equals(deriv.rule.lhs))
+      return;
+
+    deriv.addFeature("anchorBoundaries", "left=" + tokenBefore(ex, deriv));
+    deriv.addFeature("anchorBoundaries", "right=" + tokenAfter(ex, deriv));
+  }
+
+  private void extractStrValue(Example ex, Derivation deriv) {
+    if (!deriv.rule.isAnchored() || !"$StrValue".equals(deriv.rule.lhs))
+      return;
+
+    deriv.addFeature("strvalue", "size", deriv.end - deriv.start);
+
+    // often times string values are proper names, eg when saying
+    // show soccer matches of Juventus
+    // or
+    // monitor tweets from POTUS
+    for (int i = deriv.start; i < deriv.end; i++)
+      deriv.addFeature("strvalue", "pos=" + ex.languageInfo.posTags.get(i));
+
+    // often CoreNLP even comes in our help by recognizing organizations
+    // (when properly spelled)
+    // let's not waste that effort
+    if (ex.languageInfo.isMaximalNerSpan("ORGANIZATION", deriv.start, deriv.end) ||
+        ex.languageInfo.isMaximalNerSpan("PERSON", deriv.start, deriv.end))
+      deriv.addFeature("strvalue", "isEntity");
   }
 
   private void extractCodeFeatures(Example ex, Derivation deriv) {
