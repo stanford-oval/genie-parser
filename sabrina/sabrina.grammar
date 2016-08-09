@@ -21,6 +21,7 @@
 (def @special edu.stanford.nlp.sempre.thingtalk.ThingTalk.special)
 
 # Value Parsing
+(rule $NumValue (one) (ConstantFn (number 1)))
 (rule $NumValue ($PHRASE) (NumberFn) (anchored 1))
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
