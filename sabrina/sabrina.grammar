@@ -44,6 +44,13 @@
 # work around someweirdness in the corenlp tokenizer
 # this is always anchored because it deals with explicitly added quotes
 (rule $StringValue ('' $StrValue '') (IdentityFn) (anchored 1))
+# handle usernames, slack channel names, hashtags, etc.
+(rule $StringValue ($TOKEN) (FilterRegexFn "[@#](.+)") (anchored 1))
+# same thing but with a space in between
+# we need this because voice recognition converts "hashtag random" to "# random"
+# instead of "#random"
+(rule $StringValue ("#" $TOKEN) (IdentityFn) (anchored 1))
+(rule $StringValue ("@" $TOKEN) (IdentityFn) (anchored 1))
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
