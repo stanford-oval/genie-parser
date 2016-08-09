@@ -203,7 +203,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     // derivation, but we can only specify the local feature vector.  So to
     // make things cancel out, we subtract out the unwanted feature vectors of
     // descendents.
-    //subtractDescendentsFeatures(deriv, deriv);
+    subtractDescendentsFeatures(deriv, deriv);
 
     deriv.addFeature("paraphrase", "size", derivationSize(deriv));
 
@@ -734,7 +734,13 @@ public final class OvernightFeatureComputer implements FeatureComputer {
   private static void subtractDescendentsFeatures(Derivation deriv, Derivation subderiv) {
     if (subderiv.children != null) {
       for (Derivation child : subderiv.children) {
-        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector());
+        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
+          @Override
+          public boolean matches(String feature) {
+            return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ");
+          }
+
+        });
         subtractDescendentsFeatures(deriv, child);
       }
     }
