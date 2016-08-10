@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
@@ -61,6 +62,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       "must", "seem" };
   private static final Set<String> AUX_VERBS = new HashSet<>(Arrays.asList(AUX_VERB_ARR));
   private static final String AUX_VERB_TAG = "VBD-AUX";
+
+  private static final Set<String> NOT_A_NUMBER = Sets.newHashSet("9gag");
 
   private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
 
@@ -182,24 +185,29 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     for (CoreLabel token : annotation.get(CoreAnnotations.TokensAnnotation.class)) {
       String word = token.get(TextAnnotation.class);
       String wordLower = word.toLowerCase();
+      String nerTag = token.get(NamedEntityTagAnnotation.class);
+      String nerValue = token.get(NormalizedNamedEntityTagAnnotation.class);
+      String posTag = token.get(PartOfSpeechAnnotation.class);
+
+      if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches()) {
+        nerTag = "NUMBER";
+      } else if (nerTag.equals("NUMBER") && NOT_A_NUMBER.contains(wordLower)) {
+        nerTag = "O";
+        posTag = "NNP";
+        nerValue = null;
+      }
+
       if (LanguageAnalyzer.opts.lowerCaseTokens) {
         languageInfo.tokens.add(wordLower);
       } else {
         languageInfo.tokens.add(word);
       }
       if (languageTag.equals("en")) {
-        languageInfo.posTags.add(
-            AUX_VERBS.contains(wordLower) ? AUX_VERB_TAG : token.get(PartOfSpeechAnnotation.class));
+        languageInfo.posTags.add(AUX_VERBS.contains(wordLower) ? AUX_VERB_TAG : posTag);
       } else {
         languageInfo.posTags.add(token.get(PartOfSpeechAnnotation.class));
       }
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
-      String nerTag = token.get(NamedEntityTagAnnotation.class);
-      String nerValue = token.get(NormalizedNamedEntityTagAnnotation.class);
-      
-      if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches())
-        nerTag = "NUMBER"; 
-      
       languageInfo.nerTags.add(nerTag);
       languageInfo.nerValues.add(nerValue);
     }
