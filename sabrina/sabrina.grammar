@@ -197,6 +197,10 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $Special @never_mind (ConstantFn tt:root.special.nevermind))
 # this is a literal, it is not translated
 (rule $Special (debug) (ConstantFn tt:root.special.debug))
+# this is a special token that should never be matched
+# it represents the failure to parse meaningfully (which triggers
+# fallbacks on the client side)
+(rule $Special (failuretoparse) (ConstantFn tt:root.special.failed))
 
 (for @v @answer_values
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
