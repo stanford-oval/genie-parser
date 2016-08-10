@@ -48,6 +48,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     @Option(gloss = "Ignore DATE tags on years (numbers between 1000 and 3000) and parse them as numbers")
     public boolean yearsAsNumbers = false;
+
+    @Option(gloss = "Whether to split hyphens or not")
+    public boolean splitHyphens = true;
   }
 
   public static Options opts = new Options();
@@ -177,7 +180,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     languageInfo.dependencyChildren.clear();
 
     // Break hyphens
-    utterance = breakHyphens(utterance);
+    if (opts.splitHyphens)
+      utterance = breakHyphens(utterance);
 
     // Run Stanford CoreNLP
     Annotation annotation = pipeline.process(utterance);

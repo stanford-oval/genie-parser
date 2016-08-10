@@ -8,7 +8,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               edu.stanford.nlp.sempre.api.APIServer \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
-              -CoreNLPAnalyzer.yearsAsNumbers \
+              -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -JavaExecutor.unpackValues false \
