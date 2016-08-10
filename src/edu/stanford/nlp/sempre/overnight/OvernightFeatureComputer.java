@@ -314,7 +314,12 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     ArrayList<Item> filteredInputTokens = filterStopWords(inputItems);
     ArrayList<Item> filteredDerivTokens = filterStopWords(derivItems);
 
-    int[] assignment = bMatcher.findMaxWeightAssignment(buildAlignmentMatrix(filteredInputTokens, filteredDerivTokens));
+    // the bipartite matcher explodes if filtered input tokens is zero length
+    int[] assignment;
+    if (!filteredInputTokens.isEmpty())
+      assignment = bMatcher.findMaxWeightAssignment(buildAlignmentMatrix(filteredInputTokens, filteredDerivTokens));
+    else
+      assignment = new int[0];
 
     if (opts.featureDomains.contains("root")) {
       //number of unmathced words based on exact match and ppdb
@@ -487,6 +492,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     BipartiteMatcher bMatcher = new BipartiteMatcher();
     ArrayList<Item> filteredInputTokens = filterStopWords(inputItems);
     ArrayList<Item> filteredDerivTokens = filterStopWords(derivItems);
+
+    // the bipartite matcher explodes if filtered input tokens is zero length
+    if (filteredInputTokens.isEmpty())
+      return;
 
     double[][] alignmentMatrix = buildLexicalAlignmentMatrix(filteredInputTokens, filteredDerivTokens);
     int[] assignment = bMatcher.findMaxWeightAssignment(alignmentMatrix);
