@@ -2,6 +2,7 @@ package edu.stanford.nlp.sempre.corenlp;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -43,6 +44,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     @Option(gloss = "Additional named entity recognizers to run")
     public List<String> entityRecognizers = new ArrayList<>();
+
+    @Option(gloss = "Ignore DATE tags on years (numbers between 1000 and 3000) and parse them as numbers")
+    public boolean yearsAsNumbers = false;
   }
 
   public static Options opts = new Options();
@@ -57,6 +61,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       "must", "seem" };
   private static final Set<String> AUX_VERBS = new HashSet<>(Arrays.asList(AUX_VERB_ARR));
   private static final String AUX_VERB_TAG = "VBD-AUX";
+
+  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
 
   private final String languageTag;
   private final StanfordCoreNLP pipeline;
@@ -187,9 +193,15 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       } else {
         languageInfo.posTags.add(token.get(PartOfSpeechAnnotation.class));
       }
-      languageInfo.nerTags.add(token.get(NamedEntityTagAnnotation.class));
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
-      languageInfo.nerValues.add(token.get(NormalizedNamedEntityTagAnnotation.class));
+      String nerTag = token.get(NamedEntityTagAnnotation.class);
+      String nerValue = token.get(NormalizedNamedEntityTagAnnotation.class);
+      
+      if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches())
+        nerTag = "NUMBER"; 
+      
+      languageInfo.nerTags.add(nerTag);
+      languageInfo.nerValues.add(nerValue);
     }
 
     // Run additional entity recognizers

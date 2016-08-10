@@ -12,6 +12,7 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -execDir ./sempre.tmp \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
+              -CoreNLPAnalyzer.yearsAsNumbers \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
