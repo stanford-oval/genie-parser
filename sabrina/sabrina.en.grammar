@@ -2,6 +2,7 @@
 
 (def @true true)
 (def @false false)
+(def @one one)
 
 (def @here here)
 (def @at_work (at work))

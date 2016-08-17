@@ -121,7 +121,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       LogInfo.logs("Unrecognized language %s, analysis will not work!", languageTag);
     }
 
-    props.put("annotators", Joiner.on(',').join(opts.annotators));
+    if (!languageTag.equals("zh"))
+      props.put("annotators", Joiner.on(',').join(opts.annotators));
 
     // force the numeric classifiers on, even if the props file would say otherwise
     // this is to make sure we can understands at least numbers in number form

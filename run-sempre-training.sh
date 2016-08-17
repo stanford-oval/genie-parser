@@ -13,6 +13,7 @@ java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
+              -CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG} \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -Builder.valueEvaluator thingtalk.JsonValueEvaluator \

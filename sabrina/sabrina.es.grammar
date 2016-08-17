@@ -2,6 +2,7 @@
 
 (def @true cierto)
 (def @false falso)
+(def @one uno)
 
 # FIXME!!
 (def @here here)
