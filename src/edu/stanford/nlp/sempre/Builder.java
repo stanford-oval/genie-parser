@@ -78,6 +78,14 @@ public class Builder {
         params.read(precomputed);
     }
 
+    // Executor
+    if (executor == null)
+      executor = (Executor) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.executor));
+
+    // Feature extractor
+    if (extractor == null)
+      extractor = new FeatureExtractor(executor, languageTag);
+
     buildLanguageAgnostic();
   }
 
@@ -96,21 +104,21 @@ public class Builder {
         params.read(opts.inParamsPath);
     }
 
-    buildLanguageAgnostic();
-  }
-
-  private void buildLanguageAgnostic() {
     // Executor
     if (executor == null)
       executor = (Executor) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.executor));
 
-    // Value evaluator
-    if (valueEvaluator == null)
-      valueEvaluator = (ValueEvaluator) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.valueEvaluator));
-
     // Feature extractor
     if (extractor == null)
       extractor = new FeatureExtractor(executor);
+
+    buildLanguageAgnostic();
+  }
+
+  private void buildLanguageAgnostic() {
+    // Value evaluator
+    if (valueEvaluator == null)
+      valueEvaluator = (ValueEvaluator) Utils.newInstanceHard(SempreUtils.resolveClassName(opts.valueEvaluator));
 
     // Parser
     if (parser == null)

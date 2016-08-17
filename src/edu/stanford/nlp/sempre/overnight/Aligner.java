@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.overnight;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -116,6 +117,15 @@ public class Aligner {
       res.model.get(tokens[0]).incrementCount(tokens[1], Double.parseDouble(tokens[2]));
     }
     return res;
+  }
+
+  public static Aligner read(String path, String languageTag) {
+    // try path.languageTag, if that fails, read just path
+    File withLanguage = new File(path + "." + languageTag);
+    if (withLanguage.exists())
+      return read(path + "." + languageTag);
+    else
+      return read(path);
   }
 
   private void berkeleyAlign(String file, int threshold) {

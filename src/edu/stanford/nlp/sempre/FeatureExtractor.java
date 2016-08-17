@@ -1,10 +1,15 @@
 package edu.stanford.nlp.sempre;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import fig.basic.*;
 
-import java.util.*;
+import fig.basic.MapUtils;
+import fig.basic.Option;
+import fig.basic.StopWatchSet;
 
 /**
  * A FeatureExtractor specifies a mapping from derivations to feature vectors.
@@ -37,19 +42,37 @@ public class FeatureExtractor {
     public int maxBigramDistance = 3;
     @Option(gloss = "Whether or not paraphrasing and bigram features should be lexicalized")
     public boolean lexicalBigramParaphrase = true;
+    @Option
+    public String languageTag = "en";
   }
+
+  public static Options opts = new Options();
 
   private Executor executor;
   private List<FeatureComputer> featureComputers = new ArrayList<>();
 
   public FeatureExtractor(Executor executor) {
-    this.executor = executor;
-    for (String featureComputer : opts.featureComputers) {
-      featureComputers.add((FeatureComputer) Utils.newInstanceHard(SempreUtils.resolveClassName(featureComputer)));
-    }
+    this(executor, opts.languageTag);
   }
 
-  public static Options opts = new Options();
+  public FeatureExtractor(Executor executor, String languageTag) {
+    this.executor = executor;
+    for (String featureComputer : opts.featureComputers) {
+      try {
+        Class<?> fcClass = Class.forName(SempreUtils.resolveClassName(featureComputer));
+        FeatureComputer computer;
+        try {
+          Constructor<?> fcConstr = fcClass.getConstructor(String.class);
+          computer = (FeatureComputer) fcConstr.newInstance(languageTag);
+        } catch (NoSuchMethodException e) {
+          computer = (FeatureComputer) fcClass.newInstance();
+        }
+        featureComputers.add(computer);
+      } catch (ClassNotFoundException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
 
   public static boolean containsDomain(String domain) {
     if (opts.disableDenotationFeatures && domain.equals("denotation")) return false;
@@ -274,7 +297,7 @@ public class FeatureExtractor {
     LanguageInfo derivInfo = LanguageAnalyzer.getSingleton().analyze(deriv.canonicalUtterance);
     List<String> derivLemmas = derivInfo.lemmaTokens;
     List<String> exLemmas = ex.languageInfo.lemmaTokens;
-    Map<Integer, Integer> bigramCounts = new HashMap<Integer, Integer>();
+    Map<Integer, Integer> bigramCounts = new HashMap<>();
     for (int i = 0; i < exLemmas.size() - 1; i++) {
       for (int j = 0; j < derivLemmas.size() - 1; j++) {
         if (derivLemmas.get(j).equals(exLemmas.get(i))) {

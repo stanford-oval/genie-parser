@@ -12,6 +12,7 @@ set -x
 
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 THINGENGINE=${THINGENGINE:-`pwd`/../thingengine-platform-cloud}
+export LANGUAGE_TAG
 
 # extract the canonicals from the db
 node ${THINGENGINE}/scripts/reconstruct_canonicals.js ./sabrina/sabrina.canonicals.tsv
@@ -22,5 +23,4 @@ node ${THINGENGINE}/scripts/reconstruct_canonicals.js ./sabrina/sabrina.canonica
 # here would optionally clean up the ppdb, but we don't yet
 
 # actually run sempre
-export LANGUAGE_TAG
 ./run-sempre-training.sh

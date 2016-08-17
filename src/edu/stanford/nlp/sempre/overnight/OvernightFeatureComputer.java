@@ -177,8 +177,45 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
   }
 
-  private static Aligner aligner;
+  // TODO(yushi): make this less hacky
+  private static final Set<String> ENGLISH_STOP_WORDS = Sets
+      .newHashSet("\' \" `` ` \'\' a an the that which . what ? is are am be of on".split(" "));
+  // FIXME: I don't particularly agree that all these words are stop words...
+  private static final Set<String> ITALIAN_STOP_WORDS = Sets
+      .newHashSet("\' \" `` ` \'\' un uno il lo la i gli le che quale cosa . ? è sono sei di su".split(" "));
+  private static final Map<String, Set<String>> STOP_WORDS = new HashMap<>();
+  static {
+    STOP_WORDS.put("en", ENGLISH_STOP_WORDS);
+    STOP_WORDS.put("it", ITALIAN_STOP_WORDS);
+  }
+  /*private static final Set<String> entities = new HashSet<>(
+      Arrays.asList("alice", "bob", "greenberg", "greenberg cafe", "central office",
+          "sacramento", "austin", "california", "texas", "colorado", "colorado river", "red river", "lake tahoe",
+          "tahoe", "lake huron", "huron", "mount whitney", "whitney", "mount rainier", "rainier", "death valley",
+          "pacific ocean", "pacific",
+          "sesame", "mission ave", "mission", "chelsea",
+          "multivariate data analysis", "multivariate data", "data analysis", "multivariate", "data", "efron", "lakoff",
+          "annals of statistics", "annals", "annals of", "of statistics", "statistics", "computational linguistics",
+          "computational", "linguistics",
+          "thai cafe", "pizzeria juno",
+          "new york", "york", "beijing", "brown university", "ucla", "mckinsey", "google"));*/
+  private static final Set<String> entities = Collections.emptySet();
+
   private static Map<String, Map<String, Double>> phraseTable;
+
+  private final Aligner aligner;
+  private final String languageTag;
+  private final Set<String> stopWords;
+
+  public OvernightFeatureComputer(String languageTag) {
+    this.languageTag = languageTag;
+    aligner = Aligner.read(opts.wordAlignmentPath, languageTag);
+    stopWords = STOP_WORDS.getOrDefault(languageTag, Collections.emptySet());
+  }
+
+  private boolean isStopWord(String token) {
+    return stopWords.contains(token);
+  }
 
   @Override public void extractLocal(Example ex, Derivation deriv) {
     if (deriv.rule.rhs == null) return;
@@ -590,10 +627,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
   private double[][] buildLexicalAlignmentMatrix(ArrayList<Item> filteredInputTokens,
       ArrayList<Item> filteredDerivTokens) {
-    if (aligner == null) {
-      aligner = Aligner.read(opts.wordAlignmentPath);
-    }
-
     double[][] res = new double[filteredInputTokens.size() + filteredDerivTokens.size()][filteredInputTokens.size()
         + filteredDerivTokens.size()];
     //init with -infnty and low score on the diagonal
@@ -640,23 +673,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return items;
   }
 
-  // TODO(yushi): make this less hacky
-  private static final List<String> stopWords = Arrays
-      .asList("\' \" `` ` \'\' a an the that which . what ? is are am be of on".split(" "));
-  private static final Set<String> entities =
-          new HashSet<>(Arrays.asList("alice", "bob", "greenberg", "greenberg cafe", "central office",
-                  "sacramento", "austin", "california", "texas", "colorado", "colorado river", "red river", "lake tahoe", "tahoe", "lake huron", "huron", "mount whitney", "whitney", "mount rainier", "rainier", "death valley", "pacific ocean", "pacific",
-                  "sesame", "mission ave", "mission", "chelsea",
-                  "multivariate data analysis", "multivariate data", "data analysis", "multivariate", "data", "efron", "lakoff", "annals of statistics", "annals", "annals of", "of statistics", "statistics", "computational linguistics", "computational", "linguistics",
-                  "thai cafe", "pizzeria juno",
-                  "new york", "york", "beijing", "brown university", "ucla", "mckinsey", "google"));
-
-
-  private static boolean isStopWord(String token) {
-    return stopWords.contains(token);
-  }
-
-  private static void populateItems(List<String> tokens, List<String> nerTags, List<String> nerValues, ItemList items) {
+  private void populateItems(List<String> tokens, List<String> nerTags, List<String> nerValues, ItemList items) {
     ArrayList<String> prunedTokens = new ArrayList<>();
     ArrayList<String> prunedStems = new ArrayList<>();
     ArrayList<String> prunedNer = new ArrayList<>();
@@ -713,7 +730,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
   }
 
   // Compute the items for the input utterance.
-  private static ItemList computeInputItems(Example ex) {
+  private ItemList computeInputItems(Example ex) {
     ItemList items = getItems(ex.getTempState());
     if (items.valid)
       return items;
@@ -724,13 +741,13 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
   // Return the set of tokens (partial canonical utterance) produced by the
   // derivation.
-  public static List<String> extractTokens(Example ex, Derivation deriv, List<String> tokens) {
+  public List<String> extractTokens(Example ex, Derivation deriv, List<String> tokens) {
     tokens.addAll(Arrays.asList(deriv.canonicalUtterance.split("\\s+")));
     return tokens;
   }
 
   // Compute the items for a partial canonical utterance.
-  private static ItemList computeCandidateItems(Example ex, Derivation deriv) {
+  private ItemList computeCandidateItems(Example ex, Derivation deriv) {
     // Get tokens
     ArrayList<String> tokens = new ArrayList<>();
     extractTokens(ex, deriv, tokens);
