@@ -26,16 +26,12 @@ class QueryExchangeState extends AbstractHttpExchangeState {
       sessionId = SecureIdentifiers.getId();
   }
 
-  private Map<String, Object> makeJson(List<Derivation> response) {
+  private Map<String, Object> makeJson(List<Derivation> response, int nItems, boolean longResponse) {
     Map<String, Object> json = new HashMap<>();
     List<Object> items = new ArrayList<>();
     json.put("sessionId", sessionId);
     json.put("candidates", items);
 
-    String strLongResponse = reqParams.get("long");
-    boolean longResponse = "1".equals(strLongResponse);
-
-    int nItems = longResponse ? Integer.MAX_VALUE : MAX_ITEMS;
     for (Derivation deriv : response) {
       if (nItems == 0)
         break;
@@ -104,11 +100,23 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     int exitStatus;
     List<Derivation> derivations = null;
     Exception error = null;
+    int limit = 0;
+    String strLongResponse = reqParams.get("long");
+    boolean longResponse = "1".equals(strLongResponse);
 
     try {
       if (query == null)
         throw new IllegalArgumentException("Missing query");
 
+      if (longResponse) {
+        limit = Integer.MAX_VALUE;
+      } else {
+        String limitStr = reqParams.get("limit");
+        if (limitStr != null)
+          limit = Integer.valueOf(limitStr);
+        else
+          limit = MAX_ITEMS;
+      }
 
       Session session = this.server.getSession(sessionId);
       synchronized (session) {
@@ -133,6 +141,6 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     if (error != null)
       returnError(exitStatus, error, sessionId);
     else
-      returnJson(exitStatus, makeJson(derivations));
+      returnJson(exitStatus, makeJson(derivations, limit, longResponse));
   }
 }
