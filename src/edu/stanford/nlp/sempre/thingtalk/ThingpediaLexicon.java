@@ -258,7 +258,8 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    String query = "select kind from device_schema where kind = ? limit " + Parser.opts.beamSize;
+    String query = "select kind from device_schema where kind = ? and approved_version is not null limit "
+        + Parser.opts.beamSize;
 
     long now = System.currentTimeMillis();
 
