@@ -35,7 +35,7 @@ import fig.basic.Utils;
 public class CoreNLPAnalyzer extends LanguageAnalyzer {
   public static class Options {
     @Option(gloss = "What CoreNLP annotators to run")
-    public List<String> annotators = Lists.newArrayList("tokenize", "ssplit", "pos", "lemma", "ner", "parse");
+    public List<String> annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner", "parse");
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
@@ -121,8 +121,11 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       LogInfo.logs("Unrecognized language %s, analysis will not work!", languageTag);
     }
 
-    if (!languageTag.equals("zh"))
-      props.put("annotators", Joiner.on(',').join(opts.annotators));
+    String annotators = Joiner.on(',').join(opts.annotators);
+    if (languageTag.equals("zh"))
+      props.put("annotators", "segment," + annotators);
+    else
+      props.put("annotators", "tokenize," + annotators);
 
     // force the numeric classifiers on, even if the props file would say otherwise
     // this is to make sure we can understands at least numbers in number form
@@ -191,6 +194,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       String word = token.get(TextAnnotation.class);
       String wordLower = word.toLowerCase();
       String nerTag = token.get(NamedEntityTagAnnotation.class);
+      if (nerTag == null)
+        nerTag = "O";
       String nerValue = token.get(NormalizedNamedEntityTagAnnotation.class);
       String posTag = token.get(PartOfSpeechAnnotation.class);
 

@@ -22,7 +22,7 @@ import fig.basic.MapUtils;
  */
 public class Aligner {
 
-  private Map<String, Counter<String>> model = new HashMap<>();
+  private final Map<String, Counter<String>> model = new HashMap<>();
 
   public double getCondProb(String target, String source) {
     if (model.containsKey(source)) {
@@ -54,19 +54,19 @@ public class Aligner {
     normalize(threshold);
   }
 
-	public void heuristicTsvAlign(String exampleFile, int threshold) {
-		model.clear();
-		for (String line : IOUtils.readLines(exampleFile)) {
-			String[] phrases = line.split("\t");
-			String utterance = phrases[0];
-			String original = phrases[1];
-			String[] utteranceTokens = utterance.split("\\s+");
-			String[] originalTokens = original.split("\\s+");
+  public void heuristicTsvAlign(String exampleFile, int threshold) {
+    model.clear();
+    for (String line : IOUtils.readLines(exampleFile)) {
+      String[] phrases = line.split("\t");
+      String utterance = phrases[0];
+      String original = phrases[1];
+      String[] utteranceTokens = utterance.split("\\s+");
+      String[] originalTokens = original.split("\\s+");
 
-			align(utteranceTokens, originalTokens);
-		}
-		normalize(threshold);
-	}
+      align(utteranceTokens, originalTokens);
+    }
+    normalize(threshold);
+  }
 
   public void saveModel(String out) throws IOException {
     PrintWriter writer = IOUtils.getPrintWriter(out);
@@ -109,9 +109,9 @@ public class Aligner {
   }
 
   //read from serialized file
-  public static Aligner read(String path) {
+  public static Aligner read(File from) {
     Aligner res = new Aligner();
-    for (String line: edu.stanford.nlp.io.IOUtils.readLines(path)) {
+    for (String line : edu.stanford.nlp.io.IOUtils.readLines(from)) {
       String[] tokens = line.split("\t");
       MapUtils.putIfAbsent(res.model, tokens[0], new ClassicCounter<>());
       res.model.get(tokens[0]).incrementCount(tokens[1], Double.parseDouble(tokens[2]));
@@ -123,9 +123,9 @@ public class Aligner {
     // try path.languageTag, if that fails, read just path
     File withLanguage = new File(path + "." + languageTag);
     if (withLanguage.exists())
-      return read(path + "." + languageTag);
+      return read(withLanguage);
     else
-      return read(path);
+      return read(new File(path));
   }
 
   private void berkeleyAlign(String file, int threshold) {
@@ -154,13 +154,19 @@ public class Aligner {
   public static void main(String[] args) {
     Aligner aligner = new Aligner();
     int threshold = Integer.parseInt(args[3]);
-    if (args[2].equals("heuristic"))
+    switch (args[2]) {
+    case "heuristic":
       aligner.heuristicAlign(args[0], threshold);
-    else if (args[2].equals("berkeley"))
+      break;
+    case "berkeley":
       aligner.berkeleyAlign(args[0], threshold);
-		else if (args[2].equals("heuristic-tsv"))
-			aligner.heuristicTsvAlign(args[0], threshold);
-    else throw new RuntimeException("bad alignment mode: " + args[2]);
+      break;
+    case "heuristic-tsv":
+      aligner.heuristicTsvAlign(args[0], threshold);
+      break;
+    default:
+      throw new RuntimeException("bad alignment mode: " + args[2]);
+    }
     try {
       aligner.saveModel(args[1]);
     } catch (IOException e) {
