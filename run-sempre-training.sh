@@ -7,6 +7,7 @@ LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 
 rm -fr ./sempre.tmp
 java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
+              -Djava.library.path=jni \
               -cp 'libsempre/*:lib/*' \
               edu.stanford.nlp.sempre.Main \
               -execDir ./sempre.tmp \

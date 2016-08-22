@@ -30,6 +30,8 @@ class ReloadParametersExchangeState extends AdminHttpExchangeState {
       }
       LanguageContext previous = this.server.langs.get(lang);
       this.server.langs.put(lang, new LanguageContext(lang, previous.onlineLearnSaveQueue));
+
+      returnOk("Reloaded");
     } catch (Exception e) {
       returnError(400, e);
     }

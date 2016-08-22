@@ -12,10 +12,10 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
               -JavaExecutor.unpackValues false \
-              -Grammar.languageInPaths en:sabrina/sabrina.en.grammar it:sabrina/sabrina.it.grammar es:sabrina/sabrina.es.grammar \
+              -Grammar.languageInPaths en:sabrina/sabrina.en.grammar it:sabrina/sabrina.it.grammar es:sabrina/sabrina.es.grammar zh:sabrina/sabrina.zh.grammar \
               -Grammar.tags floatingargs floatingnames \
-              -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params \
-              -APIServer.onlineLearnFiles en:sabrina/sabrina.en.online_learn it:sabrina/sabrina.it.online_learn es:sabrina/sabrina.es.online_learn \
+              -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params zh:sabrina/sabrina.zh.params \
+              -APIServer.onlineLearnFiles en:sabrina/sabrina.en.online_learn it:sabrina/sabrina.it.online_learn es:sabrina/sabrina.es.online_learn zh:sabrina/sabrina.zh.online_learn \
               -APIServer.utteranceLogFile sabrina/sabrina.log \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
