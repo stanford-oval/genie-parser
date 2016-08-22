@@ -28,7 +28,8 @@ class ReloadParametersExchangeState extends AdminHttpExchangeState {
         returnError(400, new IllegalArgumentException("invalid language tag"));
         return;
       }
-      this.server.langs.put(lang, new LanguageContext(lang));
+      LanguageContext previous = this.server.langs.get(lang);
+      this.server.langs.put(lang, new LanguageContext(lang, previous.onlineLearnSaveQueue));
     } catch (Exception e) {
       returnError(400, e);
     }

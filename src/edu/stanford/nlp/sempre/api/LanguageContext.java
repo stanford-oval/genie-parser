@@ -28,10 +28,15 @@ class LanguageContext {
   public final LanguageAnalyzer analyzer;
   public final QueryCache cache = new QueryCache(256);
   public final Learner learner;
-  public final BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue = new LinkedBlockingQueue<>();
+  public final BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue;
 
   public LanguageContext(String tag) {
+    this(tag, new LinkedBlockingQueue<>());
+  }
+
+  public LanguageContext(String tag, BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue) {
     this.tag = tag;
+    this.onlineLearnSaveQueue = onlineLearnSaveQueue;
 
     Builder builder = new Builder();
     builder.buildForLanguage(tag);
