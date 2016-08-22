@@ -776,7 +776,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
           @Override
           public boolean matches(String feature) {
-            return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ");
+            return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ")
+                || feature.startsWith("alignment :: ");
           }
 
         });
