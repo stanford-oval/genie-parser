@@ -22,7 +22,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code \
+              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
               -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 20 \

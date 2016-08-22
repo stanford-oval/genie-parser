@@ -30,7 +30,7 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code \
+              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
               -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 20 \
@@ -38,7 +38,7 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -Learner.reduceParserScoreNoise \
               -Parser.derivationScoreNoise 1 \
               -wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley.${LANGUAGE_TAG} \
-              -phraseAlignmentPath ${SEMPREDIR}/sabrina/sabrina.phrase_alignments \
+              -phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt \
               -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
