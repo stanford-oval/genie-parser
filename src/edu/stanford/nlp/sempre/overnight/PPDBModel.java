@@ -36,7 +36,7 @@ public final class PPDBModel {
   private final HashSet<StringPair> table = new HashSet<>();
 
   // We should only have one paraphrase model
-  public static PPDBModel getSingleton() {
+  public static synchronized PPDBModel getSingleton() {
     if (model == null) {
       model = new PPDBModel();
     }

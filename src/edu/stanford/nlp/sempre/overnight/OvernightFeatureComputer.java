@@ -204,6 +204,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
   private static Map<String, Map<String, Double>> phraseTable;
 
   private final Aligner aligner;
+  private final PPDBModel ppdbModel;
   private final String languageTag;
   private final Set<String> stopWords;
 
@@ -211,6 +212,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     this.languageTag = languageTag;
     aligner = Aligner.read(opts.wordAlignmentPath, languageTag);
     stopWords = STOP_WORDS.getOrDefault(languageTag, Collections.emptySet());
+    ppdbModel = PPDBModel.getSingleton();
   }
 
   private boolean isStopWord(String token) {
@@ -793,18 +795,17 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return 0;
   }
 
-  private static double computeParaphrase(Item a, Item b) {
+  private double computeParaphrase(Item a, Item b) {
     if (computeMatch(a, b) >  0) return 0;
 
     // we know we never compare items of different types
     assert a.tag == b.tag;
 
-    PPDBModel model = PPDBModel.getSingleton();
     int numPpdb = 0;
     // if we're comparing unigrams, we don't need to check a.data1 == b.data1
     // because we just did it earlier when we called computeMatch
     if (a.tag == Item.Tag.UNIGRAM || (!a.data1.equals(b.data1) && !a.stem1.equals(b.stem1))) {
-      if (model.get(a.data1, b.data1) > 0 || model.get(a.stem1, b.stem1) > 0) {
+      if (ppdbModel.get(a.data1, b.data1) > 0 || ppdbModel.get(a.stem1, b.stem1) > 0) {
         numPpdb++;
       } else {
         return 0;
@@ -812,7 +813,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
     if (a.tag != Item.Tag.UNIGRAM) {
       if (!a.data2.equals(b.data2) && !a.stem2.equals(b.stem2)) {
-        if (model.get(a.data2, b.data2) > 0 || model.get(a.stem2, b.stem2) > 0) {
+        if (ppdbModel.get(a.data2, b.data2) > 0 || ppdbModel.get(a.stem2, b.stem2) > 0) {
           numPpdb++;
         } else {
           return 0;
