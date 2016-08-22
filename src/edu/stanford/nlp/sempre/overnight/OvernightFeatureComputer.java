@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.overnight;
 
+import java.io.File;
 import java.util.*;
 
 import com.google.common.base.Joiner;
@@ -8,7 +9,9 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
-import fig.basic.*;
+import fig.basic.BipartiteMatcher;
+import fig.basic.LogInfo;
+import fig.basic.Option;
 
 /**
  * Define features on the input utterance and a partial canonical utterance.
@@ -201,8 +204,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           "new york", "york", "beijing", "brown university", "ucla", "mckinsey", "google"));*/
   private static final Set<String> entities = Collections.emptySet();
 
-  private static Map<String, Map<String, Double>> phraseTable;
-
+  private final Map<String, Set<String>> phraseTable;
   private final Aligner aligner;
   private final PPDBModel ppdbModel;
   private final String languageTag;
@@ -213,6 +215,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     aligner = Aligner.read(opts.wordAlignmentPath, languageTag);
     stopWords = STOP_WORDS.getOrDefault(languageTag, Collections.emptySet());
     ppdbModel = PPDBModel.getSingleton();
+    phraseTable = loadPhraseTable(languageTag);
   }
 
   private boolean isStopWord(String token) {
@@ -454,7 +457,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
   private void extractPhraseAlignmentFeatures(Example ex, Derivation deriv, List<Item> derivTokens) {
 
     if (!opts.featureDomains.contains("alignment")) return;
-    if (phraseTable == null) phraseTable = loadPhraseTable();
 
     //get the tokens
     Set<String> inputSubspans = ex.languageInfo.getLowerCasedSpans();
@@ -466,8 +468,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         if (entities.contains(lhs)) continue; //optimization
 
         if (phraseTable.containsKey(lhs)) {
-          Map<String, Double> rhsCandidates = phraseTable.get(lhs);
-          Set<String> intersection = Sets.intersection(rhsCandidates.keySet(), inputSubspans);
+          Set<String> rhsCandidates = phraseTable.get(lhs);
+          Set<String> intersection = Sets.intersection(rhsCandidates, inputSubspans);
           for (String rhs: intersection) {
             addAndFilterLexicalFeature(deriv, "alignment", rhs, lhs);
           }
@@ -476,17 +478,18 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
   }
 
-  private Map<String, Map<String, Double>> loadPhraseTable() {
-    Map<String, Map<String, Double>> res = new HashMap<>();
+  private static Map<String, Set<String>> loadPhraseTable(File fromFile) {
+    Map<String, Set<String>> res = new HashMap<>();
     int num = 0;
-    for (String line : IOUtils.readLines(opts.phraseAlignmentPath)) {
+    for (String line : IOUtils.readLines(fromFile)) {
       String[] tokens = line.split("\t");
       if (tokens.length != 3) throw new RuntimeException("Bad alignment line: " + line);
-      MapUtils.putIfAbsent(res, tokens[0], new HashMap<>());
+      if (!res.containsKey(tokens[0]))
+        res.put(tokens[0], new HashSet<>());
 
       double value = Double.parseDouble(tokens[2]);
       if (value >= opts.phraseTableThreshold) {
-        res.get(tokens[0]).put(tokens[1], value);
+        res.get(tokens[0]).add(tokens[1]);
         num++;
       }
     }
@@ -494,6 +497,14 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return res;
   }
 
+  private static Map<String, Set<String>> loadPhraseTable(String languageTag) {
+    // try path.languageTag, if that fails, read just path
+    File withLanguage = new File(opts.phraseAlignmentPath + "." + languageTag);
+    if (withLanguage.exists())
+      return loadPhraseTable(withLanguage);
+    else
+      return loadPhraseTable(new File(opts.phraseAlignmentPath));
+  }
 
   private void addAndFilterLexicalFeature(Derivation deriv, String domain, String str1, String str2) {
 
