@@ -144,6 +144,10 @@ public class PhraseAligner {
           if (!inSourceSpan)
             continue;
 
+          // ignore 1 to 1 mappings (handled by the berkeley aligner files instead)
+          if (i2 - i1 == 1 && jmax - jmin == 0)
+            continue;
+
           hit(Joiner.on(' ').join(utteranceInfo.tokens.subList(i1, i2)),
               Joiner.on(' ').join(originalInfo.tokens.subList(jmin, jmax + 1)));
         }
