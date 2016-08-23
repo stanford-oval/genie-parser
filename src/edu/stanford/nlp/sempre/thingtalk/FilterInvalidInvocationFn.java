@@ -1,6 +1,9 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.util.Set;
+
 import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.util.ArraySet;
 
 public class FilterInvalidInvocationFn extends SemanticFn {
   private static boolean operatorOk(String operator, boolean isAction) {
@@ -21,11 +24,19 @@ public class FilterInvalidInvocationFn extends SemanticFn {
     boolean isAction = value instanceof ActionValue;
 
     ParametricValue pv = (ParametricValue) value;
+
+    Set<String> names = new ArraySet<>();
     for (ParamValue param : pv.params) {
       if (!ArgFilterHelpers.valueOk(param))
         return false;
       if (!paramTypeOk(param.name, pv.name) || !operatorOk(param.operator, isAction))
         return false;
+      if (isAction) {
+        if (names.contains(param.name.argname))
+          return false;
+        else
+          names.add(param.name.argname);
+      }
     }
 
     return true;
