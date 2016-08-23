@@ -26,7 +26,7 @@
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
 (rule $NumberValue ($NumValue) (IdentityFn))
-(for @unit (s min h day week month year)
+(for @unit (s min h day week mon year)
 	(rule $TimeIntervalValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
 )
 (for @unit (C F)
