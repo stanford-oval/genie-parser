@@ -40,24 +40,29 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
       if (targetJson == null)
         throw new IllegalArgumentException("Missing target");
 
+      LogInfo.logs("Learning %s as %s", query, targetJson);
+
       Session session = server.getSession(sessionId);
       Example ex;
       synchronized (session) {
         LogInfo.logs("session.lang %s, language.tag %s", session.lang, language.tag);
-        if (session.lang == null || !session.lang.equals(language.tag))
+        if (session.lang != null && !session.lang.equals(language.tag))
           throw new IllegalArgumentException("Cannot change the language of an existing session");
         session.lang = language.tag;
         session.remoteHost = remoteHost;
-        if (session.lastEx == null || session.lastEx.utterance == null || !session.lastEx.utterance.equals(query))
-          throw new IllegalStateException("Query is not the last for the session (or the session expired)");
-        ex = session.lastEx;
 
-        LogInfo.logs("Learning %s as %s", ex.utterance, targetJson);
+        // we only learn in the ML sense if we still have the parsed example...
+        if (session.lastEx != null && session.lastEx.utterance != null && session.lastEx.utterance.equals(query)) {
+          ex = session.lastEx;
 
-        ex.targetValue = new StringValue(targetJson);
-        language.learner.onlineLearnExample(ex);
+          ex.targetValue = new StringValue(targetJson);
+          language.learner.onlineLearnExample(ex);
+        }
       }
 
+      // ... but we always save the example in the database, just in case
+      // potentially this allows someone to DDOS our server with bad data
+      // we just hope the ML model is resilient to that (and it should be)
       language.onlineLearnSaveQueue.offer(new OnlineLearnEntry(query, targetJson));
 
       // we would need to remove all entries from the cache that are affected by this learning step
