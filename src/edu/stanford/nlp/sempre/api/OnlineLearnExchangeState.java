@@ -4,9 +4,7 @@ import java.io.IOException;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import edu.stanford.nlp.sempre.Example;
-import edu.stanford.nlp.sempre.Session;
-import edu.stanford.nlp.sempre.StringValue;
+import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
 
 class OnlineLearnExchangeState extends AbstractHttpExchangeState {
@@ -39,6 +37,13 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
       String targetJson = reqParams.get("target");
       if (targetJson == null)
         throw new IllegalArgumentException("Missing target");
+
+      // check if the target parses as JSON
+      try {
+        Json.readMapHard(targetJson);
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Target is not valid JSON");
+      }
 
       LogInfo.logs("Learning %s as %s", query, targetJson);
 
