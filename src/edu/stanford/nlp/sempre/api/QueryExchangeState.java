@@ -8,6 +8,7 @@ import java.util.*;
 import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.Derivation.Cacheability;
 
 class QueryExchangeState extends AbstractHttpExchangeState {
   private final APIServer server;
@@ -65,13 +66,26 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     b.setContext(session.context);
     Example ex = b.createExample();
 
-    // try from cache
-    List<Derivation> derivations = language.cache.hit(query);
-    if (APIServer.opts.verbose >= 3) {
-      if (derivations != null)
-        logs("cache hit");
-      else
-        logs("cache miss");
+    List<Derivation> derivations;
+
+    // try the exact match
+    String targetJson = language.exactMatch.hit(query);
+    if (targetJson != null) {
+      Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
+          .value(new StringValue(targetJson)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
+      derivations = new ArrayList<>();
+      derivations.add(deriv);
+      if (APIServer.opts.verbose >= 3)
+        logs("resolved from exact match");
+    } else {
+      // try from cache
+      derivations = language.cache.hit(query);
+      if (APIServer.opts.verbose >= 3) {
+        if (derivations != null)
+          logs("cache hit");
+        else
+          logs("cache miss");
+      }
     }
 
     // Parse!

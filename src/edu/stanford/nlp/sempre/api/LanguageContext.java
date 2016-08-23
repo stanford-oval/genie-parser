@@ -28,14 +28,17 @@ class LanguageContext {
   public final LanguageAnalyzer analyzer;
   public final QueryCache cache = new QueryCache(256);
   public final Learner learner;
+  public final ExactMatcherLayer exactMatch;
   public final BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue;
 
   public LanguageContext(String tag) {
-    this(tag, new LinkedBlockingQueue<>());
+    this(tag, new ExactMatcherLayer(), new LinkedBlockingQueue<>());
   }
 
-  public LanguageContext(String tag, BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue) {
+  public LanguageContext(String tag, ExactMatcherLayer exactMatch,
+      BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue) {
     this.tag = tag;
+    this.exactMatch = exactMatch;
     this.onlineLearnSaveQueue = onlineLearnSaveQueue;
 
     Builder builder = new Builder();

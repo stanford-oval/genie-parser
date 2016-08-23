@@ -165,6 +165,9 @@ public class APIServer implements Runnable {
       new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
 
     try {
+      for (Pair<String, String> pair : opts.onlineLearnFiles)
+        langs.get(pair.getFirst()).exactMatch.load(pair.getSecond());
+
       String hostname = fig.basic.SysInfoUtils.getHostName();
       HttpServer server = HttpServer.create(new InetSocketAddress(opts.port), 10);
       ExecutorService pool = Executors.newFixedThreadPool(opts.numThreads);
@@ -208,7 +211,7 @@ public class APIServer implements Runnable {
       server.stop(0);
       pool.shutdown();
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 
