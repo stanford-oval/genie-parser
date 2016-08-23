@@ -66,26 +66,13 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     b.setContext(session.context);
     Example ex = b.createExample();
 
-    List<Derivation> derivations;
-
-    // try the exact match
-    String targetJson = language.exactMatch.hit(query);
-    if (targetJson != null) {
-      Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
-          .value(new StringValue(targetJson)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
-      derivations = new ArrayList<>();
-      derivations.add(deriv);
-      if (APIServer.opts.verbose >= 3)
-        logs("resolved from exact match");
-    } else {
-      // try from cache
-      derivations = language.cache.hit(query);
-      if (APIServer.opts.verbose >= 3) {
-        if (derivations != null)
-          logs("cache hit");
-        else
-          logs("cache miss");
-      }
+    // try from cache
+    List<Derivation> derivations = language.cache.hit(query);
+    if (APIServer.opts.verbose >= 3) {
+      if (derivations != null)
+        logs("cache hit");
+      else
+        logs("cache miss");
     }
 
     // Parse!
@@ -100,6 +87,19 @@ class QueryExchangeState extends AbstractHttpExchangeState {
 
     session.lastEx = ex;
     session.updateContext(ex, 1);
+
+    // now try the exact match, and if it succeeds replace the choice in front
+    String exactMatch = language.exactMatch.hit(query);
+    if (exactMatch != null) {
+      Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
+          .value(new StringValue(exactMatch)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
+
+      // make a copy of the derivation list, so that we don't put
+      // semi-garbage in the query cache or later when trying to online
+      // learn
+      derivations = new ArrayList<>(derivations);
+      derivations.add(0, deriv);
+    }
 
     return derivations;
   }
