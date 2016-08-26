@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
@@ -399,9 +400,17 @@ public class ThingpediaLexicon {
       try (PreparedStatement stmt = con.prepareStatement(query)) {
         stmt.setString(1, languageTag);
         stmt.setString(2, channel_type.toString().toLowerCase());
-        stmt.setString(3, phrase);
-        if (!isBeam)
-          stmt.setString(4, phrase);
+        if (isBeam) {
+          stmt.setString(3, phrase);
+        } else {
+          String search = "";
+          for (int i = 0; i < tokens.length; i++) {
+            search += " " + tokens[i];
+            search += " " + LanguageUtils.stem(tokens[i]);
+          }
+          stmt.setString(3, search);
+          stmt.setString(3, search);
+        }
 
         entries = new LinkedList<>();
         try (ResultSet rs = stmt.executeQuery()) {
