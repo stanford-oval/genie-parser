@@ -34,10 +34,15 @@
 )
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
 (rule $BooleanValue (@false) (ConstantFn (boolean false)))
-(rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
+# one can choose to enable floating strings, which means full strings to be picked up
+# by anchors, or just single tokens, also picked up by anchors
 (when floatingstrings
-	(rule $StringValue (`` $StrValue '') (IdentityFn))
+	(rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
 )
+(when (not floatingstrings)
+	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
+)
+(rule $StringValue (`` $StrValue '') (IdentityFn))
 # we always have this anchored rule, so that we always pick up
 # if the user explicitly types in quotes
 (rule $StringValue (`` $StrValue '') (IdentityFn) (anchored 1))
