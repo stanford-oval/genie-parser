@@ -376,16 +376,20 @@ public class ThingpediaLexicon {
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
     String query;
+    boolean isBeam;
     if (Builder.opts.parser.equals("BeamParser")) {
+      isBeam = true;
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
     } else {
+      isBeam = false;
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
-          + " and match canonical against (? in natural language mode) and ds.kind_type <> 'primary' limit "
+          + " and (match canonical against (? in natural language mode) or match keywords against (? in natural language mode)) "
+          + " and ds.kind_type <> 'primary' limit "
           + Parser.opts.beamSize;
     }
 
@@ -396,6 +400,8 @@ public class ThingpediaLexicon {
         stmt.setString(1, languageTag);
         stmt.setString(2, channel_type.toString().toLowerCase());
         stmt.setString(3, phrase);
+        if (!isBeam)
+          stmt.setString(4, phrase);
 
         entries = new LinkedList<>();
         try (ResultSet rs = stmt.executeQuery()) {
