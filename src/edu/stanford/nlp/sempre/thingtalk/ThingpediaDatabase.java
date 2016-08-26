@@ -34,6 +34,7 @@ public class ThingpediaDatabase implements DataSource {
 		dataSource.setUrl(opts.dbUrl);
 		dataSource.setUsername(opts.dbUser);
 		dataSource.setPassword(opts.dbPw);
+    dataSource.setConnectionProperties("useUnicode=true;characterEncoding=utf8");
 	}
 
 	public static ThingpediaDatabase getSingleton() {
