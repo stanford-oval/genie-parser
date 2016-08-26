@@ -31,8 +31,7 @@ public class ApplyFn extends SemanticFn {
       pseudoRight = pv.name.argtypes.entrySet().stream().map(e -> {
         String argname = e.getKey();
         String argtype = e.getValue();
-
-        String argcanonical = argname.replace("_", " ").replaceAll("([^A-Z])([A-Z])", "$1 $2");
+        String argcanonical = pv.name.argcanonicals.get(e.getKey());
 
         // build a pseudo-derivation with the formula and the canonical
         Derivation.Builder bld = new Derivation.Builder().canonicalUtterance(argcanonical)

@@ -141,7 +141,8 @@ public final class ThingTalk {
     ParamNameValue timeName = new ParamNameValue("time", "String");
     ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
     TriggerValue timeTrigger = new TriggerValue(
-        new ChannelNameValue("builtin", "at", Collections.singletonList("time"), Collections.singletonList("String")),
+        new ChannelNameValue("builtin", "at", Collections.singletonList("time"), Collections.singletonList("time"),
+            Collections.singletonList("String")),
         Collections.singletonList(timeParam));
 
     if (action instanceof QueryValue)
@@ -156,7 +157,8 @@ public final class ThingTalk {
     ParamNameValue timeName = new ParamNameValue("interval", "Measure(ms)");
     ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
     TriggerValue timeTrigger = new TriggerValue(new ChannelNameValue("builtin", "timer",
-        Collections.singletonList("interval"), Collections.singletonList("Measure(ms)")),
+        Collections.singletonList("interval"), Collections.singletonList("interval"),
+        Collections.singletonList("Measure(ms)")),
         Collections.singletonList(timeParam));
 
     if (action instanceof QueryValue)

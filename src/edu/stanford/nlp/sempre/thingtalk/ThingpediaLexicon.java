@@ -100,9 +100,11 @@ public class ThingpediaLexicon {
     private final String kind;
     private final String name;
     private final List<String> argnames;
+    private final List<String> argcanonicals;
     private final List<String> argtypes;
 
-    public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argtypes)
+    public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
+        String argtypes)
         throws JsonProcessingException {
       this.rawPhrase = rawPhrase;
       this.kind = kind;
@@ -111,6 +113,7 @@ public class ThingpediaLexicon {
       TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
       };
       this.argnames = Json.readValueHard(argnames, typeRef);
+      this.argcanonicals = Json.readValueHard(argcanonicals, typeRef);
       this.argtypes = Json.readValueHard(argtypes, typeRef);
     }
 
@@ -121,7 +124,7 @@ public class ThingpediaLexicon {
 
     @Override
     public Formula toFormula() {
-      return new ValueFormula<>(new ChannelNameValue(kind, name, argnames, argtypes));
+      return new ValueFormula<>(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
     }
 
     @Override
@@ -380,13 +383,13 @@ public class ThingpediaLexicon {
     boolean isBeam;
     if (Builder.opts.parser.equals("BeamParser")) {
       isBeam = true;
-      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
     } else {
       isBeam = false;
-      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dsc.types from device_schema_channels dsc, device_schema ds, "
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and (match canonical against (? in natural language mode) or match keywords against (? in natural language mode)) "
@@ -416,7 +419,7 @@ public class ThingpediaLexicon {
         try (ResultSet rs = stmt.executeQuery()) {
           while (rs.next())
             entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
-                rs.getString(4), rs.getString(5)));
+                rs.getString(4), rs.getString(5), rs.getString(6)));
         } catch (SQLException | JsonProcessingException e) {
           if (opts.verbose > 0)
             LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
