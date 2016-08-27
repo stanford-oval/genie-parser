@@ -30,6 +30,7 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
+              -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
               -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
