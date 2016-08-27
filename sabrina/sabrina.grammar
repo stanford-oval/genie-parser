@@ -29,7 +29,7 @@
 (for @unit (s min h day week mon year)
 	(rule $TimeIntervalValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
 )
-(for @unit (C F)
+(for @unit (C F byte KB MB GB TB)
 	(rule $MeasureValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
 )
 (rule $BooleanValue (@true) (ConstantFn (boolean true)))
