@@ -19,6 +19,8 @@ class ArgFilterHelpers {
   private static final Set<String> PRESSURE_UNITS = Sets.newHashSet("Pa", "bar", "psi", "mmHg", "inHg", "atm");
   private static final Set<String> ENERGY_UNITS = Sets.newHashSet("kcal", "kJ");
   private static final Set<String> HEARTRATE_UNITS = Collections.singleton("bpm");
+  private static final Set<String> FILESIZE_UNITS = Sets.newHashSet("byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB",
+      "TiB");
   private static final Map<String, Set<String>> ALLOWED_UNITS = new HashMap<>();
   static {
     ALLOWED_UNITS.put("ms", TIME_UNITS);
@@ -29,6 +31,7 @@ class ArgFilterHelpers {
     ALLOWED_UNITS.put("mmHg", PRESSURE_UNITS);
     ALLOWED_UNITS.put("kcal", ENERGY_UNITS);
     ALLOWED_UNITS.put("bpm", HEARTRATE_UNITS);
+    ALLOWED_UNITS.put("byte", FILESIZE_UNITS);
   }
 
   private static boolean unitOk(String have, String want) {
