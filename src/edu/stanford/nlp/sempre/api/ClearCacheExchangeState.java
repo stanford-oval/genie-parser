@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import com.sun.net.httpserver.HttpExchange;
 
+import edu.stanford.nlp.sempre.thingtalk.ThingpediaLexicon;
 import fig.basic.LogInfo;
 
 class ClearCacheExchangeState extends AdminHttpExchangeState {
@@ -36,6 +37,8 @@ class ClearCacheExchangeState extends AdminHttpExchangeState {
         if (APIServer.opts.verbose >= 3)
           LogInfo.logs("Clearing query cache for locale = %s", lang);
         this.server.langs.get(lang).cache.clear();
+
+        ThingpediaLexicon.clearAllCaches();
       }
 
       returnOk("Cache cleared");

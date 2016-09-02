@@ -99,7 +99,7 @@
   </target>
 
   <!-- Compile api -->
-  <target name="api" depends="init,core">
+  <target name="api" depends="init,core,thingtalk">
     <echo message="Compiling ${ant.project.name}: api"/>
     <mkdir dir="${classes}/api"/>
     <javac srcdir="${src}" destdir="${classes}/api" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
