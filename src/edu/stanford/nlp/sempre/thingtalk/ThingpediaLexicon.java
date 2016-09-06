@@ -134,15 +134,17 @@ public class ThingpediaLexicon {
   }
 
   private static class KindEntry extends Entry {
+    private final String kindCanonical;
     private final String kind;
 
-    public KindEntry(String kind) {
+    public KindEntry(String kindCanonical, String kind) {
+      this.kindCanonical = kindCanonical;
       this.kind = kind;
     }
 
     @Override
     public String getRawPhrase() {
-      return kind;
+      return kindCanonical;
     }
 
     @Override
@@ -268,8 +270,14 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    String query = "select kind from device_schema where kind = ? and approved_version is not null limit "
-        + Parser.opts.beamSize;
+    String query;
+    if (Builder.opts.parser.equals("BeamParser")) {
+      query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and kind = ? limit "
+          + Parser.opts.beamSize;
+    } else {
+      query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and match kind_canonical against (? "
+          + " in natural language mode) limit " + Parser.opts.beamSize;
+    }
 
     long now = System.currentTimeMillis();
 
@@ -280,7 +288,7 @@ public class ThingpediaLexicon {
         entries = new LinkedList<>();
         try (ResultSet rs = stmt.executeQuery()) {
           while (rs.next())
-            entries.add(new KindEntry(rs.getString(1)));
+            entries.add(new KindEntry(rs.getString(1), rs.getString(2)));
         } catch (SQLException e) {
           if (opts.verbose > 0)
             LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
