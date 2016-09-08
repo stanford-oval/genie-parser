@@ -18,7 +18,9 @@
 (def @and "和")
 (def @monitor_if ("监控" "如果"))
 (def @every_day_at ("每天" "在"))
-(def @every ("每"))
+(def @every "每")
+(def @if "如果")
+(def @then "就")
 
 (def @help "帮助")
 (def @discover "搜索")

@@ -4,10 +4,9 @@
 (def @false falso)
 (def @one uno)
 
-# FIXME!!
-(def @here here)
-(def @at_work (at work))
-(def @at_home (at home))
+(def @here aqui)
+(def @at_work (en el trabajo))
+(def @at_home (en casa))
 
 (def @is es)
 (def @contains contiene)
@@ -18,6 +17,10 @@
 (def @with con)
 (def @and y)
 (def @monitor_if (controla se))
+(def @every_day_at (todos los "días" a))
+(def @every cada)
+(def @if si)
+(def @then entonces)
 
 (def @help ayuda)
 (def @discover buscar)
@@ -26,9 +29,6 @@
 (def @queries consultas)
 (def @commands comandos)
 (def @list lista)
-# FIXME!!
-(def @every_day_at (every day at))
-(def @every (every))
 
 (def @yes "sí")
 (def @no no)
