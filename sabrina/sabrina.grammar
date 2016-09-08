@@ -11,6 +11,7 @@
 
 (def @timeRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeRule)
 (def @timeSpanRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeSpanRule)
+(def @ifttt edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt)
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
 
@@ -165,9 +166,16 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
 (rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
 (for @what ($ValidAction $ValidQuery) 
-	(rule $TimeRule ($TimeTrigger @what) (lambda time (lambda action (call @timeRule (var time) (var action)))))
+	(rule $TimeRule ($TimeTrigger @what)              (lambda time (lambda action (call @timeRule     (var time) (var action)))))
 	(rule $TimeRule (@every $TimeIntervalValue @what) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 )
+(rule $TimeRule ($TimeTrigger $ValidAction $ValidQuery)              (lambda time (lambda query (lambda action (call @timeRule     (var time) (var query) (var action))))))
+(rule $TimeRule (@every $TimeIntervalValue $ValidAction $ValidQuery) (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
+
+(rule $IftttRule (@if $ValidTrigger @then $ValidAction)                   (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
+(rule $IftttRule (@if $ValidTrigger @then $ValidQuery)                    (lambda trigger (lambda query (call @ifttt (var trigger) (var query)))))
+(rule $IftttRule (@if $ValidTrigger @then $ValidQuery @then $ValidAction) (lambda trigger (lambda query (lambda action (call @ifttt (var trigger) (var query) (var action))))))
+(rule $IftttRule ($ValidQuery @then $ValidAction)                         (lambda query (lambda action (call @ifttt (var query) (var action)))))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
@@ -218,10 +226,7 @@ $PhoneNumberValue $EmailAddressValue))
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
 )
 
-(rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
-(rule $ROOT ($ValidAction) (lambda cmd (call @jsonOut (var cmd))))
-(rule $ROOT ($Notify) (lambda cmd (call @jsonOut (var cmd))))
-(rule $ROOT ($ValidQuery) (lambda cmd (call @jsonOut (var cmd))))
-(rule $ROOT ($Answer) (lambda cmd (call @jsonOut (var cmd))))
-(rule $ROOT ($TimeRule) (lambda cmd (call @jsonOut (var cmd))))
+(for @v ($Command $ValidAction $Notify $ValidQuery $Answer $TimeRule $IftttRule)
+	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
+)
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

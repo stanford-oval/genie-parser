@@ -138,6 +138,24 @@ public final class ThingTalk {
   // Constructing the rule value structure
   //******************************************************************************************************************
   public static RuleValue timeRule(DateValue time, Value action) {
+    if (action instanceof QueryValue)
+      return timeRule(time, (QueryValue) action, null);
+    else if (action instanceof ActionValue)
+      return timeRule(time, null, (ActionValue) action);
+    else
+      throw new RuntimeException();
+  }
+
+  public static RuleValue timeSpanRule(NumberValue time, Value action) {
+    if (action instanceof QueryValue)
+      return timeSpanRule(time, (QueryValue) action, null);
+    else if (action instanceof ActionValue)
+      return timeSpanRule(time, null, (ActionValue) action);
+    else
+      throw new RuntimeException();
+  }
+
+  public static RuleValue timeRule(DateValue time, QueryValue query, ActionValue action) {
     ParamNameValue timeName = new ParamNameValue("time", "String");
     ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
     TriggerValue timeTrigger = new TriggerValue(
@@ -145,15 +163,10 @@ public final class ThingTalk {
             Collections.singletonList("String")),
         Collections.singletonList(timeParam));
 
-    if (action instanceof QueryValue)
-      return new RuleValue(timeTrigger, (QueryValue) action, null);
-    else if (action instanceof ActionValue)
-      return new RuleValue(timeTrigger, null, (ActionValue) action);
-    else
-      throw new RuntimeException();
+    return new RuleValue(timeTrigger, query, action);
   }
 
-  public static RuleValue timeSpanRule(NumberValue time, Value action) {
+  public static RuleValue timeSpanRule(NumberValue time, QueryValue query, ActionValue action) {
     ParamNameValue timeName = new ParamNameValue("interval", "Measure(ms)");
     ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
     TriggerValue timeTrigger = new TriggerValue(new ChannelNameValue("builtin", "timer",
@@ -161,12 +174,7 @@ public final class ThingTalk {
         Collections.singletonList("Measure(ms)")),
         Collections.singletonList(timeParam));
 
-    if (action instanceof QueryValue)
-      return new RuleValue(timeTrigger, (QueryValue) action, null);
-    else if (action instanceof ActionValue)
-      return new RuleValue(timeTrigger, null, (ActionValue) action);
-    else
-      throw new RuntimeException();
+    return new RuleValue(timeTrigger, query, action);
   }
 
   public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
@@ -174,8 +182,18 @@ public final class ThingTalk {
     return ruleVal;
   }
 
-  public static RuleValue ifttt(TriggerValue trigger, QueryValue action) {
-    RuleValue ruleVal = new RuleValue(trigger, action, null);
+  public static RuleValue ifttt(TriggerValue trigger, QueryValue query) {
+    RuleValue ruleVal = new RuleValue(trigger, query, null);
+    return ruleVal;
+  }
+
+  public static RuleValue ifttt(TriggerValue trigger, QueryValue query, ActionValue action) {
+    RuleValue ruleVal = new RuleValue(trigger, query, action);
+    return ruleVal;
+  }
+
+  public static RuleValue ifttt(QueryValue query, ActionValue action) {
+    RuleValue ruleVal = new RuleValue(null, query, action);
     return ruleVal;
   }
 

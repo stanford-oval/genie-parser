@@ -19,6 +19,8 @@
 (def @monitor_if (osserva se))
 (def @every_day_at (ogni giorno alle))
 (def @every (ogni))
+(def @if (se))
+(def @then (allora))
 
 (def @help aiuto)
 (def @discover ricerca)

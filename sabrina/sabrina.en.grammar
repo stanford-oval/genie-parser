@@ -19,6 +19,8 @@
 (def @monitor_if (monitor if))
 (def @every_day_at (every day at))
 (def @every (every))
+(def @if (if))
+(def @then (then))
 
 (def @help help)
 (def @discover discover)
