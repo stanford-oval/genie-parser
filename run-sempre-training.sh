@@ -34,10 +34,8 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
               -FloatingParser.maxDepth 16 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 20 \
+              -Parser.beamSize 15 \
               -Learner.maxTrainIters 3 \
-              -Learner.reduceParserScoreNoise \
-              -Parser.derivationScoreNoise 1 \
               -wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley.${LANGUAGE_TAG} \
               -phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt \
