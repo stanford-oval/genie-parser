@@ -165,17 +165,30 @@ $PhoneNumberValue $EmailAddressValue))
 
 (rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
 (rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
-(for @what ($ValidAction $ValidQuery) 
-	(rule $TimeRule ($TimeTrigger @what)              (lambda time (lambda action (call @timeRule     (var time) (var action)))))
-	(rule $TimeRule (@every $TimeIntervalValue @what) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
-)
-(rule $TimeRule ($TimeTrigger $ValidQuery @then $ValidAction)              (lambda time (lambda query (lambda action (call @timeRule     (var time) (var query) (var action))))))
-(rule $TimeRule (@every $TimeIntervalValue $ValidQuery @then $ValidAction) (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
 
-(rule $IftttRule (@if $ValidTrigger @then $ValidAction)                   (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
-(rule $IftttRule (@if $ValidTrigger @then $ValidQuery)                    (lambda trigger (lambda query (call @ifttt (var trigger) (var query)))))
-(rule $IftttRule (@if $ValidTrigger @then $ValidQuery @then $ValidAction) (lambda trigger (lambda query (lambda action (call @ifttt (var trigger) (var query) (var action))))))
-(rule $IftttRule ($ValidQuery @then $ValidAction)                         (lambda query (lambda action (call @ifttt (var query) (var action)))))
+(rule $TimeQueryRule  ($TimeTrigger $ValidQuery)               (lambda time (lambda query  (call @timeRule     (var time) (var query)))))
+(rule $TimeActionRule ($TimeTrigger $ValidAction)              (lambda time (lambda action (call @timeRule     (var time) (var action)))))
+(rule $TimeQueryRule  (@every $TimeIntervalValue $ValidQuery)  (lambda time (lambda query  (call @timeSpanRule (var time) (var query)))))
+(rule $TimeActionRule (@every $TimeIntervalValue $ValidAction) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+(rule $TimeActionRule ($TimeTrigger $ValidQuery @then $ValidAction)              (lambda time (lambda query (lambda action (call @timeRule     (var time) (var query) (var action))))))
+(rule $TimeActionRule (@every $TimeIntervalValue $ValidQuery @then $ValidAction) (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
+
+(rule $IftttActionRule (@if $ValidTrigger @then $ValidAction)  (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
+(rule $IftttQueryRule  (@if $ValidTrigger @then $ValidQuery)   (lambda trigger (lambda query (call @ifttt (var trigger) (var query)))))
+(rule $IftttActionRule ($IftttQueryRule @then $ValidAction)    (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
+(rule $IftttChain      ($ValidQuery @then $ValidAction)        (lambda query (lambda action (call @ifttt (var query) (var action)))))
+
+# the following rules are very very tricky
+# they deal with "with foo is that" passing of arguments from trigger to action
+# and they rely on the precise binarization of the grammar to have correct canonicals
+# in particular, the binarized grammar will include an intermediate binary rule with SelectFn 0
+# and an unary cat rule with AddCompositionFn
+# AddCompositionFn takes care of adding the "foo is that" part
+(rule $TimeQueryRule   ($TimeQueryRule @with)            (thingtalk.AddCompositionFn query @is))
+(rule $TimeActionRule  ($TimeActionRule @with)           (thingtalk.AddCompositionFn action @is))
+(rule $IftttQueryRule  ($IftttQueryRule @with)           (thingtalk.AddCompositionFn query @is))
+(rule $IftttActionRule ($IftttActionRule @with)          (thingtalk.AddCompositionFn action @is))
+(rule $IftttChain      ($IftttChain @with)               (thingtalk.AddCompositionFn action @is))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
@@ -226,7 +239,7 @@ $PhoneNumberValue $EmailAddressValue))
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
 )
 
-(for @v ($Command $ValidAction $Notify $ValidQuery $Answer $TimeRule $IftttRule)
+(for @v ($Command $ValidAction $Notify $ValidQuery $Answer $TimeQueryRule $TimeActionRule $IftttActionRule $IftttQueryRule $IftttChain)
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

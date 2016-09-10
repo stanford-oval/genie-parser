@@ -40,8 +40,16 @@ public class ChannelNameValue extends Value {
     }
   }
 
+  public Collection<String> getArgNames() {
+    return argtypes.keySet();
+  }
+
   public String getArgType(String name) {
     return argtypes.get(name);
+  }
+
+  public String getArgCanonical(String name) {
+    return argcanonicals.get(name);
   }
 
   @Override
@@ -97,4 +105,5 @@ public class ChannelNameValue extends Value {
       return false;
     return true;
   }
+
 }

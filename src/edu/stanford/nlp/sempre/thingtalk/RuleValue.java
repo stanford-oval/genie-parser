@@ -11,7 +11,7 @@ import fig.basic.LispTree;
  * Represents a thingtalk rule.
  * @author Rakesh Ramesh
  */
-public class RuleValue extends Value {
+public final class RuleValue extends Value implements Cloneable {
   public final TriggerValue trigger;
   public final QueryValue query;
   public final ActionValue action;
@@ -45,6 +45,13 @@ public class RuleValue extends Value {
     else
       tree.addChild("null");
     return tree;
+  }
+
+  @Override
+  public RuleValue clone() {
+    return new RuleValue(trigger != null ? (TriggerValue) trigger.clone() : null,
+          query != null ? (QueryValue) query.clone() : null,
+          action != null ? (ActionValue) action.clone() : null);
   }
 
   @Override

@@ -187,8 +187,8 @@ public final class ThingTalk {
     return ruleVal;
   }
 
-  public static RuleValue ifttt(TriggerValue trigger, QueryValue query, ActionValue action) {
-    RuleValue ruleVal = new RuleValue(trigger, query, action);
+  public static RuleValue ifttt(RuleValue rule, ActionValue action) {
+    RuleValue ruleVal = new RuleValue(rule.trigger, rule.query, action);
     return ruleVal;
   }
 

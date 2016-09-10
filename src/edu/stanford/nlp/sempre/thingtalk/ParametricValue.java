@@ -13,9 +13,9 @@ class ParamValueComparator implements Comparator<ParamValue>, Cloneable {
   }
 }
 
-class SortedList<E> extends AbstractCollection<E> {
+class SortedList<E> extends AbstractCollection<E> implements Cloneable {
   private final Comparator<E> comp;
-  private final List<E> backingStore = new ArrayList<>();
+  private ArrayList<E> backingStore = new ArrayList<>();
 
   public SortedList(Comparator<E> comp) {
     this.comp = comp;
@@ -54,6 +54,14 @@ class SortedList<E> extends AbstractCollection<E> {
     backingStore.add(i, el);
     return true;
   }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public SortedList<E> clone() throws CloneNotSupportedException {
+    SortedList<E> self = (SortedList<E>) super.clone();
+    self.backingStore = (ArrayList<E>) self.backingStore.clone();
+    return self;
+  }
 }
 
 /**
@@ -65,7 +73,7 @@ class SortedList<E> extends AbstractCollection<E> {
 public abstract class ParametricValue extends Value implements Cloneable {
   public final ChannelNameValue name;
 
-  public final Collection<ParamValue> params = new SortedList<>(new ParamValueComparator());
+  public SortedList<ParamValue> params = new SortedList<>(new ParamValueComparator());
 
   public ParametricValue(LispTree tree) {
     this.name = (ChannelNameValue) Values.fromLispTree(tree.child(1));
@@ -133,7 +141,9 @@ public abstract class ParametricValue extends Value implements Cloneable {
   @Override
   public ParametricValue clone() {
     try {
-      return (ParametricValue) super.clone();
+      ParametricValue self = (ParametricValue) super.clone();
+      self.params = self.params.clone();
+      return self;
     } catch (CloneNotSupportedException e) {
       throw new RuntimeException(e);
     }
