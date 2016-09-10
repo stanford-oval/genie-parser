@@ -102,13 +102,15 @@ public class ThingpediaLexicon {
     private final List<String> argnames;
     private final List<String> argcanonicals;
     private final List<String> argtypes;
+    private final String search;
 
     public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
-        String argtypes)
+        String argtypes, String search)
         throws JsonProcessingException {
       this.rawPhrase = rawPhrase;
       this.kind = kind;
       this.name = name;
+      this.search = search;
 
       TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
       };
@@ -130,6 +132,11 @@ public class ThingpediaLexicon {
     @Override
     public void addFeatures(FeatureVector vec) {
       vec.add("kinds", kind);
+
+      // this overfits wildly, but makes sure that certain words like xkcd or twitter
+      // (when they appear) are immediately recognized as the right kind so that we don't
+      // go in the woods because of a "get" that's too generic
+      vec.add("thingtalk_lexicon", search + "---" + this.kind);
     }
   }
 
@@ -413,17 +420,22 @@ public class ThingpediaLexicon {
 
     long now = System.currentTimeMillis();
 
+    String search, key;
     try (Connection con = dataSource.getConnection()) {
       try (PreparedStatement stmt = con.prepareStatement(query)) {
         stmt.setString(1, languageTag);
         stmt.setString(2, channel_type.toString().toLowerCase());
         if (isBeam) {
+          search = phrase;
+          key = phrase;
           stmt.setString(3, phrase);
         } else {
-          String search = "";
+          search = "";
+          key = "";
           for (int i = 0; i < tokens.length; i++) {
-            search += " " + tokens[i];
+            search += (i > 0 ? " " : "") + tokens[i];
             search += " " + LanguageUtils.stem(tokens[i]);
+            key += (i > 0 ? " " : "") + tokens[i];
           }
           stmt.setString(3, search);
         }
@@ -432,7 +444,7 @@ public class ThingpediaLexicon {
         try (ResultSet rs = stmt.executeQuery()) {
           while (rs.next())
             entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
-                rs.getString(4), rs.getString(5), rs.getString(6)));
+                rs.getString(4), rs.getString(5), rs.getString(6), key));
         } catch (SQLException | JsonProcessingException e) {
           if (opts.verbose > 0)
             LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
