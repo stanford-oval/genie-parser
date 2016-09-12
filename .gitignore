@@ -25,6 +25,9 @@ java.hprof.txt
 
 sabrina/sabrina.canonicals.tsv
 sabrina/sabrina.*.params
-sabrina/sabrina.word_alignments.berkeley.source
-sabrina/sabrina.word_alignments.berkeley
+sabrina/sabrina.word_alignments.berkeley.source.*
+sabrina/sabrina.word_alignments.berkeley.*
 sabrina/sabrina.*.online_learn
+sabrina/sabrina.log
+sabrina/sabrina.phrase_alignments.*
+sabrina/sabrina-ppdb.txt
