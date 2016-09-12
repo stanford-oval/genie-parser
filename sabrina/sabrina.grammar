@@ -192,7 +192,7 @@ $PhoneNumberValue $EmailAddressValue))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
-(rule $Help (@help) (ConstantFn (string generic)) (anchored 1))
+(rule $Help (@help) (ConstantFn (string generic)))
 (rule $Help (@help $Device) (IdentityFn))
 
 (rule $Discovery (@discover) (ConstantFn (string generic)))
