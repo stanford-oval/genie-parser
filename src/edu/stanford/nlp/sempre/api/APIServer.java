@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -161,6 +162,9 @@ public class APIServer implements Runnable {
 
   @Override
   public void run() {
+    // use a sane x509 key manager that does server-side SNI properly
+    Security.setProperty("ssl.KeyManagerFactory.algorithm", "NewSunX509");
+
     try {
       // create the server early so we can bind and drop privileges
     
