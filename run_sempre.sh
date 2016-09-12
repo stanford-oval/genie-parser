@@ -5,6 +5,7 @@
 # derivation that use $StringValue (which is a catch all)
 exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -Djava.library.path=jni \
+              $JAVA_ARGS \
               -cp 'libsempre/*:lib/*' \
               edu.stanford.nlp.sempre.api.APIServer \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
