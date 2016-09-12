@@ -313,7 +313,7 @@ public class ThingpediaLexicon {
     String query;
     if (phrase == null) {
       query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-          + "on schema_id = id and version = approved_version and kind_type <> 'primary' and language = ?";
+          + "on schema_id = id and version = developer_version and kind_type <> 'primary' and language = ?";
     } else {
       String[] tokens = phrase.split(" ");
       if (Builder.opts.parser.equals("BeamParser")) {
@@ -321,14 +321,14 @@ public class ThingpediaLexicon {
           return Collections.emptyIterator();
 
         query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = approved_version and language = ? and canonical = ? and kind_type <> 'primary' "
+            + "on schema_id = id and version = developer_version and language = ? and canonical = ? and kind_type <> 'primary' "
             + "limit " + Parser.opts.beamSize;
       } else {
         if (tokens.length > 1)
           return Collections.emptyIterator();
 
         query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = approved_version and language = ? match canonical against (? in natural language "
+            + "on schema_id = id and version = developer_version and language = ? match canonical against (? in natural language "
             + "mode) and kind_type <> 'primary' limit " + Parser.opts.beamSize;
       }
     }
@@ -405,13 +405,13 @@ public class ThingpediaLexicon {
     if (Builder.opts.parser.equals("BeamParser")) {
       isBeam = true;
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
-          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
     } else {
       isBeam = false;
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
-          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.approved_version and "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
           + " and match (canonical,keywords) against (? in natural language mode) "
           + " and ds.kind_type <> 'primary' limit "
