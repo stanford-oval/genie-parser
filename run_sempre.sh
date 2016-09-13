@@ -18,6 +18,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -APIServer.onlineLearnFiles en:sabrina/sabrina.en.online_learn it:sabrina/sabrina.it.online_learn es:sabrina/sabrina.es.online_learn zh:sabrina/sabrina.zh.online_learn \
               -APIServer.testSetFiles en:sabrina/sabrina.en.test it:sabrina/sabrina.it.test es:sabrina/sabrina.es.test zh:sabrina/sabrina.zh.test \
               -APIServer.utteranceLogFile sabrina/sabrina.log \
+              -OnlineLearnExchangeState.testProbability 0.4 \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \

@@ -9,7 +9,7 @@ import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
-class OnlineLearnExchangeState extends AbstractHttpExchangeState {
+public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
   public static class Options {
     @Option(gloss = "Probability of storing the example in the test set instead of the train set.")
     public double testProbability = 0.1;
@@ -58,7 +58,7 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
       boolean storeAsTest = diceRoll > (1 - opts.testProbability);
 
       if (storeAsTest)
-        LogInfo.logs("Storing %s as %s in the test set");
+        LogInfo.logs("Storing %s as %s in the test set", query, targetJson);
       else
         LogInfo.logs("Learning %s as %s", query, targetJson);
 
