@@ -18,6 +18,8 @@ public class ThingpediaDataset extends AbstractDataset {
     public String languageTag = "en";
     @Option
     public String onlineLearnFile = null;
+    @Option
+    public String testFile = null;
   }
 
   public static Options opts = new Options();
@@ -100,12 +102,9 @@ public class ThingpediaDataset extends AbstractDataset {
     }
   }
 
-  private void readOnlineLearn(int maxExamples, List<Example> examples) throws IOException {
-    if (opts.onlineLearnFile == null)
-      return;
-
+  private void readFromFile(int maxExamples, List<Example> examples, String filename) throws IOException {
     int count = 0;
-    try (BufferedReader reader = new BufferedReader(new FileReader(opts.onlineLearnFile))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       String line;
       while (examples.size() < maxExamples && (line = reader.readLine()) != null) {
         String[] parts = line.split("\t");
@@ -119,6 +118,23 @@ public class ThingpediaDataset extends AbstractDataset {
         addOneExample(ex, maxExamples, examples);
       }
     }
+  }
+
+  private void readOnlineLearn(int maxExamples, List<Example> examples) throws IOException {
+    if (opts.onlineLearnFile == null)
+      return;
+
+    readFromFile(maxExamples, examples, opts.onlineLearnFile);
+  }
+
+  private void readTest() throws IOException {
+    int maxExamples = getMaxExamplesForGroup("test");
+    List<Example> examples = getOrCreateGroup("test");
+
+    if (opts.testFile == null)
+      return;
+
+    readFromFile(maxExamples, examples, opts.testFile);
   }
 
   @Override
@@ -144,6 +160,8 @@ public class ThingpediaDataset extends AbstractDataset {
 
     if (Dataset.opts.splitDevFromTrain)
       splitDevFromTrain();
+
+    readTest();
     collectStats();
 
     LogInfo.end_track();
