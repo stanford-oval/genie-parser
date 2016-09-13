@@ -18,6 +18,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -Grammar.tags floatingargs floatingnames \
               -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params zh:sabrina/sabrina.zh.params \
               -APIServer.onlineLearnFiles en:sabrina/sabrina.en.online_learn it:sabrina/sabrina.it.online_learn es:sabrina/sabrina.es.online_learn zh:sabrina/sabrina.zh.online_learn \
+              -APIServer.testSetFiles en:sabrina/sabrina.en.test it:sabrina/sabrina.it.test es:sabrina/sabrina.es.test zh:sabrina/sabrina.zh.test \
               -APIServer.utteranceLogFile sabrina/sabrina.log \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \

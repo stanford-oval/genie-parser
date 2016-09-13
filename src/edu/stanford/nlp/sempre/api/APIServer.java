@@ -78,6 +78,8 @@ public class APIServer implements Runnable {
     @Option
     public List<Pair<String, String>> onlineLearnFiles = new ArrayList<>();
     @Option
+    public List<Pair<String, String>> testSetFiles = new ArrayList<>();
+    @Option
     public String accessToken = null;
     @Option
     public String utteranceLogFile = null;
@@ -116,14 +118,6 @@ public class APIServer implements Runnable {
       Session newSession = new Session(sessionId);
       sessionMap.put(sessionId, newSession);
       return newSession;
-    }
-  }
-
-  private void recordOnlineLearnExampleInFile(String filename, String example, String targetJson) {
-    try (Writer writer = new OutputStreamWriter(new FileOutputStream(filename, true), "UTF-8")) {
-      writer.write(example + "\t" + targetJson + "\n");
-    } catch (IOException e) {
-      LogInfo.logs("Failed to append online-learnt example: %s", e.getMessage());
     }
   }
 
@@ -167,7 +161,7 @@ public class APIServer implements Runnable {
 
     try {
       // create the server early so we can bind and drop privileges
-    
+
       HttpServer server = null;
       HttpsServer ssl_server = null;
       if (opts.port >= 0)
@@ -197,6 +191,8 @@ public class APIServer implements Runnable {
         new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
       for (Pair<String, String> pair : opts.onlineLearnFiles)
         new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
+      for (Pair<String, String> pair : opts.testSetFiles)
+        new LogFlusherThread<>(langs.get(pair.getFirst()).testSetSaveQueue, pair.getSecond()).start();
 
       for (Pair<String, String> pair : opts.onlineLearnFiles)
         langs.get(pair.getFirst()).exactMatch.load(pair.getSecond());
