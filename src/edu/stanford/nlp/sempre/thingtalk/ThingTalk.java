@@ -1,10 +1,10 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import edu.stanford.nlp.sempre.*;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import edu.stanford.nlp.sempre.*;
 
 /**
  * Functions for supporting thingtalk
@@ -147,25 +147,6 @@ public final class ThingTalk {
   }
 
   public static RuleValue timeSpanRule(NumberValue time, Value action) {
-    if (action instanceof QueryValue)
-      return timeSpanRule(time, (QueryValue) action, null);
-    else if (action instanceof ActionValue)
-      return timeSpanRule(time, null, (ActionValue) action);
-    else
-      throw new RuntimeException();
-  }
-
-  // Handling cases like: "every 5 min" which is tagged as SET by CoreNLP NER
-  public static RuleValue timeSpanRule(StringValue time_, Value action) {
-    // TODO: Clean the following hacky way
-    String[] parts = time_.value.split(" ");
-    NumberValue time = null;
-    try {
-      time = new NumberValue(Double.parseDouble(parts[1]), parts[2]);
-    } catch (NumberFormatException e) {
-      throw new RuntimeException("timeSpanRule: Cannot convert NerSpan \"%s\" to a time interval" + time_);
-    }
-
     if (action instanceof QueryValue)
       return timeSpanRule(time, (QueryValue) action, null);
     else if (action instanceof ActionValue)
