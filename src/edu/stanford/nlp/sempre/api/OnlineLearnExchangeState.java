@@ -1,13 +1,22 @@
 package edu.stanford.nlp.sempre.api;
 
 import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
+import fig.basic.Option;
 
 class OnlineLearnExchangeState extends AbstractHttpExchangeState {
+  public static class Options {
+    @Option(gloss = "Probability of storing the example in the test set instead of the train set.")
+    public double testProbability = 0.1;
+  }
+
+  public static final Options opts = new Options();
+
   private final APIServer server;
   private final String sessionId;
 
@@ -45,7 +54,13 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         throw new IllegalArgumentException("Target is not valid JSON");
       }
 
-      LogInfo.logs("Learning %s as %s", query, targetJson);
+      double diceRoll = ThreadLocalRandom.current().nextDouble();
+      boolean storeAsTest = diceRoll > (1 - opts.testProbability);
+
+      if (storeAsTest)
+        LogInfo.logs("Storing %s as %s in the test set");
+      else
+        LogInfo.logs("Learning %s as %s", query, targetJson);
 
       Session session = server.getSession(sessionId);
       Example ex;
@@ -57,7 +72,8 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         session.remoteHost = remoteHost;
 
         // we only learn in the ML sense if we still have the parsed example...
-        if (session.lastEx != null && session.lastEx.utterance != null && session.lastEx.utterance.equals(query)) {
+        if (!storeAsTest && session.lastEx != null && session.lastEx.utterance != null
+            && session.lastEx.utterance.equals(query)) {
           ex = session.lastEx;
 
           ex.targetValue = new StringValue(targetJson);
@@ -65,11 +81,15 @@ class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         }
       }
 
-      // ... but we always save the example in the database, just in case
-      // potentially this allows someone to DDOS our server with bad data
-      // we just hope the ML model is resilient to that (and it should be)
-      language.exactMatch.store(query, targetJson);
-      language.onlineLearnSaveQueue.offer(new OnlineLearnEntry(query, targetJson));
+      if (storeAsTest) {
+        language.testSetSaveQueue.add(new OnlineLearnEntry(query, targetJson));
+      } else {
+        // ... but we always save the example in the database, just in case
+        // potentially this allows someone to DDOS our server with bad data
+        // we just hope the ML model is resilient to that (and it should be)
+        language.exactMatch.store(query, targetJson);
+        language.onlineLearnSaveQueue.offer(new OnlineLearnEntry(query, targetJson));
+      }
 
       // we would need to remove all entries from the cache that are affected by this learning step
       // (which potentially is all of them)

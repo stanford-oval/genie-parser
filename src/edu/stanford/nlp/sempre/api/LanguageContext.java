@@ -30,16 +30,19 @@ class LanguageContext {
   public final Learner learner;
   public final ExactMatcherLayer exactMatch;
   public final BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue;
+  public final BlockingQueue<OnlineLearnEntry> testSetSaveQueue;
 
   public LanguageContext(String tag) {
-    this(tag, new ExactMatcherLayer(), new LinkedBlockingQueue<>());
+    this(tag, new ExactMatcherLayer(), new LinkedBlockingQueue<>(), new LinkedBlockingQueue<>());
   }
 
   public LanguageContext(String tag, ExactMatcherLayer exactMatch,
-      BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue) {
+      BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue,
+      BlockingQueue<OnlineLearnEntry> testSetSaveQueue) {
     this.tag = tag;
     this.exactMatch = exactMatch;
     this.onlineLearnSaveQueue = onlineLearnSaveQueue;
+    this.testSetSaveQueue = testSetSaveQueue;
 
     Builder builder = new Builder();
     builder.buildForLanguage(tag);
