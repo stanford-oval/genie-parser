@@ -102,7 +102,7 @@ public class ThingpediaDataset extends AbstractDataset {
     }
   }
 
-  private void readFromFile(int maxExamples, List<Example> examples, String filename) throws IOException {
+  private void readFromFile(int maxExamples, List<Example> examples, String prefix, String filename) throws IOException {
     int count = 0;
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       String line;
@@ -110,7 +110,7 @@ public class ThingpediaDataset extends AbstractDataset {
         String[] parts = line.split("\t");
 
         Example ex = new Example.Builder()
-            .setId("online_" + Integer.toString(count++))
+            .setId(prefix + "_" + Integer.toString(count++))
             .setUtterance(parts[0])
             .setTargetValue(new StringValue(parts[1]))
             .createExample();
@@ -124,7 +124,7 @@ public class ThingpediaDataset extends AbstractDataset {
     if (opts.onlineLearnFile == null)
       return;
 
-    readFromFile(maxExamples, examples, opts.onlineLearnFile);
+    readFromFile(maxExamples, examples, "online", opts.onlineLearnFile);
   }
 
   private void readTest() throws IOException {
@@ -134,7 +134,7 @@ public class ThingpediaDataset extends AbstractDataset {
     if (opts.testFile == null)
       return;
 
-    readFromFile(maxExamples, examples, opts.testFile);
+    readFromFile(maxExamples, examples, "test", opts.testFile);
   }
 
   @Override
