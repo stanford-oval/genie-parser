@@ -17,6 +17,8 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
 import edu.stanford.nlp.semgraph.SemanticGraphEdge;
+import edu.stanford.nlp.time.TimeAnnotations;
+import edu.stanford.nlp.time.Timex;
 import edu.stanford.nlp.sempre.LanguageAnalyzer;
 import edu.stanford.nlp.sempre.LanguageInfo;
 import edu.stanford.nlp.sempre.LanguageInfo.DependencyEdge;
@@ -197,6 +199,12 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       if (nerTag == null)
         nerTag = "O";
       String nerValue = token.get(NormalizedNamedEntityTagAnnotation.class);
+      if(nerValue == null) {
+        Timex nerValue_ = token.get(TimeAnnotations.TimexAnnotation.class);
+        if(nerValue_ != null) {
+          nerValue = nerValue_.value();
+        }
+      }
       String posTag = token.get(PartOfSpeechAnnotation.class);
 
       if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches()) {

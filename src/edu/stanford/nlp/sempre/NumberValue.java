@@ -2,9 +2,12 @@ package edu.stanford.nlp.sempre;
 
 import fig.basic.Fmt;
 import fig.basic.LispTree;
+import fig.basic.LogInfo;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Represents a numerical value (optionally comes with a unit).
@@ -18,6 +21,49 @@ public class NumberValue extends Value {
 
   public final double value;
   public final String unit;  // What measurement (e.g., "fb:en.meter" or unitless)
+
+  public static final Pattern PATTERN = Pattern.compile("(P|PT)([0-9]+)([MSDHYW])");
+
+  public static NumberValue parseDurationValue(String durationStr) {
+    if(!PATTERN.matcher(durationStr).matches())
+      return null;
+
+    Matcher m = PATTERN.matcher(durationStr);
+    if(m.find()) {
+      boolean dailyValue = false;
+      if(m.group(1).equals("PT"))
+        dailyValue = true;
+
+      String unitStr = m.group(3);
+      String unit;
+      if(unitStr.equals("S"))
+        unit = "s";
+      else if(unitStr.equals("M"))
+        unit = dailyValue ? "min" : "month";
+      else if(unitStr.equals("H"))
+        unit = "h";
+      else if(unitStr.equals("D"))
+        unit = "day";
+      else if(unitStr.equals("W"))
+        unit = "week";
+      else if(unitStr.equals("Y"))
+        unit = "year";
+      else {
+        LogInfo.warnings("Got unknown unit %s", unitStr);
+        return null;
+      }
+
+      try {
+        return new NumberValue(Double.parseDouble(m.group(2)), unit);
+      } catch(NumberFormatException e) {
+        LogInfo.warnings("Cannot parse %s as a number", m.group(1));
+        return null;
+      }
+    } else {
+      LogInfo.warning("Cannot parse duration string");
+      return null;
+    }
+  }
 
   public NumberValue(double value) {
     this(value, unitless);
