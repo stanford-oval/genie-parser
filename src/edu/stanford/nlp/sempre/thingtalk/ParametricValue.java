@@ -99,6 +99,14 @@ public abstract class ParametricValue extends Value implements Cloneable {
     params.add(param);
   }
 
+  public boolean hasParamName(String name) {
+    for (ParamValue p : params) {
+      if (p.name.argname.equals(name))
+        return true;
+    }
+    return false;
+  }
+
   @Override
   public LispTree toLispTree() {
     LispTree tree = LispTree.proto.newList();

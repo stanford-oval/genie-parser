@@ -26,7 +26,6 @@
 (rule $NumValue ($PHRASE) (NumberFn) (anchored 1))
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
-(rule $NumberValue ($NumValue) (IdentityFn))
 (for @unit (s min h day week mon year)
 	(rule $TimeIntervalValue ($NumValue @unit) (lambda num (call @measureValueCast (string @unit) (var num))))
 )
@@ -70,8 +69,9 @@
 (rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
 
 (rule $PeriodicTimeValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
+(rule $PeriodicTimeValue (@every $TimeIntervalValue) (SelectFn 0))
 
-(def @all_values ($DateValue $TimeValue $NumberValue
+(def @all_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue $StringValue))
 
@@ -82,18 +82,13 @@ $PhoneNumberValue $EmailAddressValue $StringValue))
 # NOTE 2: boolean answers are matched to yes/no, which are specials
 # but you still need to handle them here to match synonyms of true/false like on/off
 # that should not be learned as synonyms of yes/no
-(def @answer_values ($DateValue $TimeValue $NumberValue
+(def @answer_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
-
-# Argument Names
-(when (not floatingargs)
-	(rule $AnchoredArgName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag param))
-)
 
 # operators
 # DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
@@ -104,84 +99,52 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $Op @is_less_than (ConstantFn (string "<")))
 (rule $Op (@has) (ConstantFn (string has)))
 
+(rule $WithArg (@with arg) (ConstantFn null))
+
 # Action Handling
-(when floatingnames
-	(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action))
-)
-(when (not floatingnames)
-	(rule $ActionName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag action))
-)
+(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
-(when floatingargs
-	(rule $ActionWithArg ($Action @with arg) (thingtalk.ApplyFn))
-)
-(when (not floatingargs)
-	(rule $ActionWithArg ($Action @with $AnchoredArgName) (thingtalk.ApplyFn))
-)
-(rule $ActionIntermediate ($ActionWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $ActionWithArg ($Action $WithArg) (thingtalk.ApplyFn action))
+(rule $ActionIntermediate ($ActionWithArg $Op) (thingtalk.AddOperatorFn action))
 (for @v @all_values
 	(rule $Action ($ActionIntermediate @v) (thingtalk.AddValueFn))
 )
-(rule $ValidAction ($Action) (thingtalk.FilterInvalidInvocationFn))
 
-(when floatingnames
-	(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger))
-)
-(when (not floatingnames)
-	(rule $TriggerName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag trigger))
-)
+(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
-(when floatingargs
-	(rule $TriggerWithArg ($Trigger @with arg) (thingtalk.ApplyFn))
-)
-(when (not floatingargs)
-	(rule $TriggerWithArg ($Trigger @with $AnchoredArgName) (thingtalk.ApplyFn))
-)
-(rule $TriggerIntermediate ($TriggerWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $TriggerWithArg ($Trigger $WithArg) (thingtalk.ApplyFn trigger))
+(rule $TriggerIntermediate ($TriggerWithArg $Op) (thingtalk.AddOperatorFn trigger))
 (for @v @all_values
 	(rule $Trigger ($TriggerIntermediate @v) (thingtalk.AddValueFn))
 )
-(rule $ValidTrigger ($Trigger) (thingtalk.FilterInvalidInvocationFn))
 
-(when floatingnames
-	(rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query))
-)
-(when (not floatingnames)
-	(rule $QueryName ($PHRASE) (thingtalk.ThingpediaLexiconFn @language_tag query))
-)
+(rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
-(when floatingargs
-	(rule $QueryWithArg ($Query @with arg) (thingtalk.ApplyFn))
-)
-(when (not floatingargs)
-	(rule $QueryWithArg ($Query @with $AnchoredArgName) (thingtalk.ApplyFn))
-)
-(rule $QueryIntermediate ($QueryWithArg $Op) (thingtalk.AddOperatorFn))
+(rule $QueryWithArg ($Query $WithArg) (thingtalk.ApplyFn query))
+(rule $QueryIntermediate ($QueryWithArg $Op) (thingtalk.AddOperatorFn query))
 (for @v @all_values
 	(rule $Query ($QueryIntermediate @v) (thingtalk.AddValueFn))
 )
-(rule $ValidQuery ($Query) (thingtalk.FilterInvalidInvocationFn))
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
-(rule $Notify ($MonitorIf $ValidTrigger) (SelectFn 1))
+(rule $Notify ($MonitorIf $Trigger) (SelectFn 1))
 
 (rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
 (rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
 
-(rule $TimeQueryRule  ($TimeTrigger $ValidQuery)               (lambda time (lambda query  (call @timeRule     (var time) (var query)))))
-(rule $TimeActionRule ($TimeTrigger $ValidAction)              (lambda time (lambda action (call @timeRule     (var time) (var action)))))
-(rule $TimeQueryRule  (@every $TimeIntervalValue $ValidQuery)  (lambda time (lambda query  (call @timeSpanRule (var time) (var query)))))
-(rule $TimeQueryRule  ($PeriodicTimeValue $ValidQuery)         (lambda time (lambda query  (call @timeSpanRule (var time) (var query)))))
-(rule $TimeActionRule (@every $TimeIntervalValue $ValidAction) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
-(rule $TimeActionRule ($PeriodicTimeValue $ValidAction)        (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
-(rule $TimeActionRule ($TimeTrigger $ValidQuery @then $ValidAction)              (lambda time (lambda query (lambda action (call @timeRule     (var time) (var query) (var action))))))
-(rule $TimeActionRule (@every $TimeIntervalValue $ValidQuery @then $ValidAction) (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
-(rule $TimeActionRule ($PeriodicTimeValue $ValidQuery @then $ValidAction)        (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
+(rule $TimeQueryRule  ($TimeTrigger $Query)               (thingtalk.CallFn @timeRule))
+(rule $TimeActionRule ($TimeTrigger $Action)              (thingtalk.CallFn @timeRule))
+(rule $TimeQueryRule  ($PeriodicTimeValue $Query)         (thingtalk.CallFn @timeSpanRule))
+(rule $TimeActionRule ($PeriodicTimeValue $Action)        (thingtalk.CallFn @timeSpanRule))
+(rule $TimeActionRule ($TimeQueryRule @then $Action)      (thingtalk.CallFn @ifttt))
 
-(rule $IftttActionRule (@if $ValidTrigger @then $ValidAction)  (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
-(rule $IftttQueryRule  (@if $ValidTrigger @then $ValidQuery)   (lambda trigger (lambda query (call @ifttt (var trigger) (var query)))))
-(rule $IftttActionRule ($IftttQueryRule @then $ValidAction)    (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
-(rule $IftttChain      ($ValidQuery @then $ValidAction)        (lambda query (lambda action (call @ifttt (var query) (var action)))))
+# manually binarize rule meaningfully
+(rule $IfTrigger       (@if $Trigger) (SelectFn 0))
+(rule $IfTriggerThen   ($IfTrigger @then)  (SelectFn 0))
+(rule $IftttQueryRule  ($IfTriggerThen $Query)            (thingtalk.CallFn @ifttt))
+(rule $IftttActionRule ($IfTriggerThen $Action)           (thingtalk.CallFn @ifttt))
+(rule $IftttActionRule ($IftttQueryRule @then $Action)    (thingtalk.CallFn @ifttt))
+(rule $IftttChain      ($Query @then $Action)        (thingtalk.CallFn @ifttt))
 
 # the following rules are very very tricky
 # they deal with "with foo is that" passing of arguments from trigger to action
@@ -206,12 +169,10 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $Configuration (@configure) (ConstantFn (string generic)))
 (rule $Configuration (@configure $Device) (IdentityFn))
 
-(rule $Listing (@devices) (ConstantFn (string device)))
-(rule $Listing (@queries) (ConstantFn (string query)))
-(rule $Listing (@commands) (ConstantFn (string command)))
-
 (rule $Information (@list) (ConstantFn (string generic)))
-(rule $Information (@list $Listing) (IdentityFn))
+(rule $Information (@list @devices) (ConstantFn (string device)))
+(rule $Information (@list @queries) (ConstantFn (string query)))
+(rule $Information (@list @commands) (ConstantFn (string command)))
 
 # Command handling
 (rule $Command ($Help) (lambda value (call @cmdForm (string "help") (var value))))
@@ -244,7 +205,7 @@ $PhoneNumberValue $EmailAddressValue))
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
 )
 
-(for @v ($Command $ValidAction $Notify $ValidQuery $Answer $TimeQueryRule $TimeActionRule $IftttActionRule $IftttQueryRule $IftttChain)
+(for @v ($Command $Action $Notify $Query $Answer $TimeQueryRule $TimeActionRule $IftttActionRule $IftttQueryRule $IftttChain)
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
 (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

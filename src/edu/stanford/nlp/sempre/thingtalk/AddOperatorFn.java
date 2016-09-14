@@ -1,8 +1,17 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
 import edu.stanford.nlp.sempre.*;
+import fig.basic.LispTree;
 
 public class AddOperatorFn extends SemanticFn {
+  private boolean isAction;
+
+  @Override
+  public void init(LispTree tree) {
+    super.init(tree);
+    isAction = tree.children.size() > 1 && tree.child(1).value.equals("action");
+  }
+
   private static boolean operatorOk(String paramType, String operator) {
     switch (operator) {
     case "is":
@@ -37,8 +46,13 @@ public class AddOperatorFn extends SemanticFn {
         ParamNameValue param = (ParamNameValue) vf.value;
         StringValue operator = (StringValue) right.value;
         
-        if (!operatorOk(param.type, operator.value))
-          return null;
+        if (isAction) {
+          if (!operator.value.equals("is"))
+            return null;
+        } else {
+          if (!operatorOk(param.type, operator.value))
+            return null;
+        }
 
         return new Derivation.Builder().withCallable(c).formula(Formulas.lambdaApply(lf2, right.formula))
             .type(SemType.anyAnyFunc)

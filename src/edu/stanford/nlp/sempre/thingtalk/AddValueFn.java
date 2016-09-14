@@ -16,7 +16,6 @@ public class AddValueFn extends SemanticFn {
         LambdaFormula lf = (LambdaFormula) left.formula;
         CallFormula cf = (CallFormula) lf.body;
         ValueFormula<?> vf = (ValueFormula<?>) cf.args.get(1);
-
         ParamNameValue param = (ParamNameValue) vf.value;
 
         String haveType = ThingTalk.typeFromValue(right.value);

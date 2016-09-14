@@ -48,8 +48,11 @@ public class FilterInvalidInvocationFn extends SemanticFn {
       @Override
       public Derivation createDerivation() {
         Derivation child = c.child(0);
+
+        // we should generate valid stuff by construction, so complain loudly if that's
+        // not the case
         if (child.getValue() != null && !valueOk(child.getValue()))
-          return null;
+          throw new RuntimeException("Generated an invalid derivation");
 
         return new Derivation.Builder()
             .withCallable(c)
