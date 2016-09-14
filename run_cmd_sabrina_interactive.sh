@@ -22,9 +22,9 @@ exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 16 \
+              -FloatingParser.maxDepth 14 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 20 \
+              -Parser.beamSize 8 \
               -Learner.maxTrainIters 1 \
               -Learner.reduceParserScoreNoise \
               -Parser.derivationScoreNoise 1 \
