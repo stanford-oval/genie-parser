@@ -18,6 +18,11 @@ public final class ThingTalk {
     return tempVal;
   }
 
+  public static NumberValue measureValueCast(NumberValue number, StringValue unit) {
+    NumberValue tempVal = new NumberValue(number.value, unit.value);
+    return tempVal;
+  }
+
   public static EmailAddressValue emailAddressCast(StringValue string) {
     return new EmailAddressValue(string.value);
   }
