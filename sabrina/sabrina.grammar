@@ -69,6 +69,8 @@
 (rule $EmailAddress ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
 (rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
 
+(rule $PeriodicTimeValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
+
 (def @all_values ($DateValue $TimeValue $NumberValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
 $PhoneNumberValue $EmailAddressValue $StringValue))
@@ -169,9 +171,12 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $TimeQueryRule  ($TimeTrigger $ValidQuery)               (lambda time (lambda query  (call @timeRule     (var time) (var query)))))
 (rule $TimeActionRule ($TimeTrigger $ValidAction)              (lambda time (lambda action (call @timeRule     (var time) (var action)))))
 (rule $TimeQueryRule  (@every $TimeIntervalValue $ValidQuery)  (lambda time (lambda query  (call @timeSpanRule (var time) (var query)))))
+(rule $TimeQueryRule  ($PeriodicTimeValue $ValidQuery)         (lambda time (lambda query  (call @timeSpanRule (var time) (var query)))))
 (rule $TimeActionRule (@every $TimeIntervalValue $ValidAction) (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
+(rule $TimeActionRule ($PeriodicTimeValue $ValidAction)        (lambda time (lambda action (call @timeSpanRule (var time) (var action)))))
 (rule $TimeActionRule ($TimeTrigger $ValidQuery @then $ValidAction)              (lambda time (lambda query (lambda action (call @timeRule     (var time) (var query) (var action))))))
 (rule $TimeActionRule (@every $TimeIntervalValue $ValidQuery @then $ValidAction) (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
+(rule $TimeActionRule ($PeriodicTimeValue $ValidQuery @then $ValidAction)        (lambda time (lambda query (lambda action (call @timeSpanRule (var time) (var query) (var action))))))
 
 (rule $IftttActionRule (@if $ValidTrigger @then $ValidAction)  (lambda trigger (lambda action (call @ifttt (var trigger) (var action)))))
 (rule $IftttQueryRule  (@if $ValidTrigger @then $ValidQuery)   (lambda trigger (lambda query (call @ifttt (var trigger) (var query)))))
