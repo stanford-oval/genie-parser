@@ -44,6 +44,9 @@ class ArgFilterHelpers {
     if (have.equals(want))
       return true;
 
+    if (have.equals("Enum") && want.startsWith("Enum("))
+      return true;
+
     // a mistake in the naming that is in too many places
     // to fix now
     if (have.equals("Bool") && want.equals("Boolean"))
