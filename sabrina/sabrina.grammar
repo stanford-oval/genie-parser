@@ -154,25 +154,15 @@ $PhoneNumberValue $EmailAddressValue))
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
 
-(rule $Help (@help) (ConstantFn (string generic)))
-(rule $Help (@help $Device) (IdentityFn))
-
-(rule $Discovery (@discover) (ConstantFn (string generic)))
-(rule $Discovery (@discover $Device) (IdentityFn))
-
-(rule $Configuration (@configure) (ConstantFn (string generic)))
-(rule $Configuration (@configure $Device) (IdentityFn))
-
-(rule $Information (@list) (ConstantFn (string generic)))
-(rule $Information (@list @devices) (ConstantFn (string device)))
-(rule $Information (@list @queries) (ConstantFn (string query)))
-(rule $Information (@list @commands) (ConstantFn (string command)))
-
 # Command handling
-(rule $Command ($Help) (lambda value (call @cmdForm (string "help") (var value))))
-(rule $Command ($Discovery) (lambda value (call @cmdForm (string "discover") (var value))))
-(rule $Command ($Information) (lambda value (call @cmdForm (string "list") (var value))))
-(rule $Command ($Configuration) (lambda value (call @cmdForm (string "configure") (var value))))
+(rule $Command (@discover)          (ConstantFn (call @cmdForm (string "discover") (string generic))))
+(rule $Command (@help)              (ConstantFn (call @cmdForm (string "help") (string generic))))
+(rule $Command (@help $Device)      (lambda value (call @cmdForm (string "help") (var value))))
+(rule $Command (@list)              (ConstantFn (call @cmdForm (string "list") (string generic))))
+(rule $Command (@list @devices)     (ConstantFn (call @cmdForm (string "list") (string device))))
+(rule $Command (@list @commands)    (ConstantFn (call @cmdForm (string "list") (string command))))
+(rule $Command (@configure)         (ConstantFn (call @cmdForm (string "configure") (string generic))))
+(rule $Command (@configure $Device) (lambda value (call @cmdForm (string "configure") (var value))))
 
 # special handling
 # this used to be in SimpleLexicon but we moved it here for two reasons:
