@@ -58,12 +58,6 @@ class ArgFilterHelpers {
     if (have.equals("Time") && want.equals("String"))
       return true;
 
-    // String and Picture are the same type for compat with
-    // type annotations that were written before Picture existed
-    if ((have.equals("String") && want.equals("Picture")) ||
-        (have.equals("Picture") && want.equals("String")))
-      return true;
-
     return false;
   }
 
