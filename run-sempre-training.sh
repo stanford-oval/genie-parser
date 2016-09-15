@@ -50,4 +50,4 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
 
 # move the generated file where APIServer will know to look for
 cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
-rm -fr ${WORKDIR}/sempre.tmp
+#rm -fr ${WORKDIR}/sempre.tmp
