@@ -84,40 +84,26 @@ $PhoneNumberValue $EmailAddressValue))
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
-# operators
-# DO NOT replace this with SimpleLexiconFn or similar: FloatingParser
-# must see all the rules to generate all the ops
-(rule $Op (@is) (ConstantFn (string is)))
-(rule $Op (@contains) (ConstantFn (string contains)))
-(rule $Op @is_greater_than (ConstantFn (string ">")))
-(rule $Op @is_less_than (ConstantFn (string "<")))
-(rule $Op (@has) (ConstantFn (string has)))
-
-(rule $WithArg (@with arg) (ConstantFn null))
+# MUST be kept in sync with AddValueFn.OPERATORS
+(def @op_list (@is @contains @is_greater_than @is_less_than @has))
 
 # Action Handling
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
-(rule $ActionWithArg ($Action $WithArg) (thingtalk.ApplyFn action))
-(rule $ActionIntermediate ($ActionWithArg $Op) (thingtalk.AddOperatorFn action))
 (for @v @all_values
-	(rule $Action ($ActionIntermediate @v) (thingtalk.AddValueFn))
+	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with @op_list ))
 )
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
-(rule $TriggerWithArg ($Trigger $WithArg) (thingtalk.ApplyFn trigger))
-(rule $TriggerIntermediate ($TriggerWithArg $Op) (thingtalk.AddOperatorFn trigger))
 (for @v @all_values
-	(rule $Trigger ($TriggerIntermediate @v) (thingtalk.AddValueFn))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @op_list ))
 )
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
-(rule $QueryWithArg ($Query $WithArg) (thingtalk.ApplyFn query))
-(rule $QueryIntermediate ($QueryWithArg $Op) (thingtalk.AddOperatorFn query))
 (for @v @all_values
-	(rule $Query ($QueryIntermediate @v) (thingtalk.AddValueFn))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @op_list ))
 )
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
