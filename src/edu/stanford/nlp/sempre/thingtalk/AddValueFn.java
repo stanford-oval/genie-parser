@@ -1,20 +1,17 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.util.*;
+import java.util.Iterator;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
 
 public class AddValueFn extends SemanticFn {
-  private static List<String> OPERATORS = Lists.newArrayList("is", "contains", ">", "<", "has");
-  private static List<String> ACTION_OPERATORS = Collections.singletonList("is");
-
   private boolean isAction;
   private String withToken;
-  private List<String> opNames;
+  private String opToken;
+  private String operator;
 
   @Override
   public void init(LispTree tree) {
@@ -22,14 +19,11 @@ public class AddValueFn extends SemanticFn {
     isAction = tree.child(1).value.equals("action");
     withToken = tree.child(2).value;
 
-    LispTree opList = tree.child(3);
-    opNames = new ArrayList<>();
-    for (LispTree op : opList.children) {
-      if (op.isLeaf())
-        opNames.add(op.value);
-      else
-        opNames.add(Joiner.on(' ').join(op.children));
-    }
+    if (tree.child(3).isLeaf())
+      opToken = tree.child(3).value;
+    else
+      opToken = Joiner.on(' ').join(tree.child(3).children);
+    operator = tree.child(4).value;
   }
 
   @Override
@@ -59,7 +53,6 @@ public class AddValueFn extends SemanticFn {
     private final ParametricValue invocation;
     private final Iterator<String> argnameIter;
     private String currentArgname;
-    private ListIterator<String> opIter;
 
     public AddValueStream(Example ex, Callable callable) {
       this.ex = ex;
@@ -76,26 +69,15 @@ public class AddValueFn extends SemanticFn {
     @Override
     public Derivation createDerivation() {
       while (true) {
-        if (opIter == null) {
-          if (!argnameIter.hasNext())
-            return null;
+        if (!argnameIter.hasNext())
+          return null;
 
-          currentArgname = argnameIter.next();
-          if (isAction && invocation.hasParamName(currentArgname))
-            continue;
-
-          List<String> opList = isAction ? ACTION_OPERATORS : OPERATORS;
-          opIter = opList.listIterator();
-        }
-        if (!opIter.hasNext()) {
-          opIter = null;
+        currentArgname = argnameIter.next();
+        if (isAction && invocation.hasParamName(currentArgname))
           continue;
-        }
 
         ParamNameValue param = new ParamNameValue(currentArgname, invocation.name.getArgType(currentArgname));
 
-        int opIndex = opIter.nextIndex();
-        String operator = opIter.next();
         if (!operatorOk(param.type, operator))
           continue;
 
@@ -114,7 +96,7 @@ public class AddValueFn extends SemanticFn {
         newInvocation.add(pv);
 
         String canonical = left.canonicalUtterance + " " + withToken + " arg " +
-            invocation.name.getArgCanonical(currentArgname) + " " + opNames.get(opIndex) + " "
+            invocation.name.getArgCanonical(currentArgname) + " " + opToken + " "
             + right.canonicalUtterance;
 
         Derivation.Builder bld = new Derivation.Builder().withCallable(callable)

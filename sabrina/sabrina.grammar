@@ -91,19 +91,27 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
 (for @v @all_values
-	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with @op_list ))
+	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with @is is))
 )
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
 (for @v @all_values
-	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @op_list ))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @is is))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @contains contains))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @is_greater_than >))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @is_less_than <))
+	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @has has))
 )
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
 (for @v @all_values
-	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @op_list ))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @is is))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @contains contains))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @is_greater_than >))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @is_less_than <))
+	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @has has))
 )
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
