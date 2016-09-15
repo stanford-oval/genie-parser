@@ -369,7 +369,7 @@ public class ThingpediaLexicon {
   // with FloatingParser, if the lookup word is in this array, we just return no
   // derivations
   private static final String[] IGNORED_WORDS = { "in", "on", "a", "to", "with", "and",
-      "me", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
+      "me", "the", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
   static {
     Arrays.sort(IGNORED_WORDS);
   }
