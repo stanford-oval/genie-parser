@@ -1,13 +1,13 @@
 package edu.stanford.nlp.sempre.test;
 
-import edu.stanford.nlp.sempre.*;
-import fig.basic.LogInfo;
+import static org.testng.AssertJUnit.assertEquals;
+
 import org.testng.annotations.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.testng.AssertJUnit.assertEquals;
+import edu.stanford.nlp.sempre.*;
+import fig.basic.LogInfo;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * Test parsers.
@@ -128,7 +128,7 @@ public class ParserTest {
   // TODO(chaganty): verify that things are ranked appropriately
   public void checkRankingArithmetic(Parser parser) {
     Params params = new Params();
-    Map<String, Double> features = new HashMap<>();
+    TObjectDoubleMap<String> features = new TObjectDoubleHashMap<>();
     features.put("rule :: $Operator -> and (ConstantFn (lambda y (lambda x (call + (var x) (var y)))))", 1.0);
     features.put("rule :: $Operator -> and (ConstantFn (lambda y (lambda x (call * (var x) (var y)))))", -1.0);
     params.update(features);

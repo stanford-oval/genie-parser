@@ -1,11 +1,14 @@
 package edu.stanford.nlp.sempre.test;
 
-import java.util.*;
+import static org.testng.AssertJUnit.assertEquals;
+
+import java.util.Random;
 
 import org.testng.annotations.Test;
 
-import static org.testng.AssertJUnit.*;
 import edu.stanford.nlp.sempre.Params;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * Test lazy L1 regularization.
@@ -40,8 +43,8 @@ public class L1RegularizationTest {
     Params.opts.l1RegCoeff = options.l1RegCoeff;
   }
 
-  private Map<String, Double> constructGradient(double a, double b, double c, double d) {
-    Map<String, Double> gradient = new HashMap<>();
+  private TObjectDoubleMap<String> constructGradient(double a, double b, double c, double d) {
+    TObjectDoubleMap<String> gradient = new TObjectDoubleHashMap<>();
     if (a != 0) gradient.put("a", a);
     if (b != 0) gradient.put("b", b);
     if (c != 0) gradient.put("c", c);
