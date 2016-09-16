@@ -166,17 +166,13 @@ public class AddCompositionFn extends SemanticFn {
         // if we use param=%s.%s:%s here we first try to match those to one of the several values from "get cat picture"
         // (eg image id, or link url), causing the good parse to fall off the beam
         if (applyToAction)
-          deriv.addFeature("code",
+          deriv.addFeature("thingtalk_composition",
               String.format("composed_param=%s.%s:%s", rv.action.name.kind, rv.action.name.channelName,
                   currentActionArg));
         else
-          deriv.addFeature("code",
+          deriv.addFeature("thingtalk_composition",
               String.format("composed_param=%s.%s:%s", rv.query.name.kind, rv.query.name.channelName,
                   currentActionArg));
-        if (!applyToAction) {
-          deriv.addFeature("code", "operatortype=" + nextPv.name.type + ":" + nextPv.operator);
-          deriv.addFeature("code", "operator=" + nextPv.name.argname + "," + nextPv.name.type + ":" + nextPv.operator);
-        }
 
         return deriv;
       }
