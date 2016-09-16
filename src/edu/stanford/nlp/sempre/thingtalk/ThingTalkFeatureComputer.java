@@ -94,6 +94,10 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     if (deriv.value == null)
       return;
     
+    // optimization (and also to handle $ROOT being a StringValue in JSON form)
+    if (deriv.rule.isCatUnary())
+      return;
+
     // Important!  We want to define the global feature vector for this
     // derivation, but we can only specify the local feature vector.  So to
     // make things cancel out, we subtract out the unwanted feature vectors of
