@@ -32,7 +32,7 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               root_lexical \
               -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 14 \
+              -FloatingParser.maxDepth 8 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 8 \
               -Learner.maxTrainIters 2 \
