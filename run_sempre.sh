@@ -13,6 +13,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
+              -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
               -JavaExecutor.unpackValues false \
               -Grammar.languageInPaths en:sabrina/sabrina.en.grammar it:sabrina/sabrina.it.grammar es:sabrina/sabrina.es.grammar zh:sabrina/sabrina.zh.grammar \
               -Grammar.tags floatingargs floatingnames \
