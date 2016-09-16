@@ -12,18 +12,25 @@ public class JsonValueEvaluator implements ValueEvaluator {
   }
 
   @SuppressWarnings("unchecked")
-  private void normalize(List<Object> list) {
-    ListIterator<Object> li = list.listIterator();
+  private Set<Object> normalize(List<?> list) {
+    ListIterator<?> li = list.listIterator();
+    Set<Object> res = new HashSet<>();
 
     while (li.hasNext()) {
       Object o = li.next();
-      if (o instanceof Number && !(o instanceof Double))
-        li.set(((Number) o).doubleValue());
-      else if (o instanceof Map<?, ?>)
+      if (o instanceof Number && !(o instanceof Double)) {
+        res.add(((Number) o).doubleValue());
+      } else if (o instanceof Map<?, ?>) {
         normalize((Map<?, Object>) o);
-      else if (o instanceof List<?>)
-        normalize((List<Object>) o);
+        res.add(o);
+      } else if (o instanceof List<?>) {
+        res.add(normalize((List<Object>) o));
+      } else {
+        res.add(o);
+      }
     }
+
+    return res;
   }
 
   @SuppressWarnings("unchecked")
@@ -33,7 +40,7 @@ public class JsonValueEvaluator implements ValueEvaluator {
       if (v instanceof Number && !(v instanceof Double))
         e.setValue(((Number) v).doubleValue());
       else if (v instanceof List<?>)
-        normalize((List<Object>) v);
+        e.setValue(normalize((List<?>) v));
       else if (v instanceof Map<?, ?>)
         normalize((Map<?, Object>) v);
     }
