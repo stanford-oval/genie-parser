@@ -32,10 +32,10 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               root_lexical \
               -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 16 \
+              -FloatingParser.maxDepth 8 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 15 \
-              -Learner.maxTrainIters 3 \
+              -Parser.beamSize 8 \
+              -Learner.maxTrainIters 2 \
               -wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley.${LANGUAGE_TAG} \
               -phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt \
@@ -49,5 +49,5 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               "$@"
 
 # move the generated file where APIServer will know to look for
-cp ${WORKDIR}/sempre.tmp/params.3 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
-rm -fr ${WORKDIR}/sempre.tmp
+cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
+#rm -fr ${WORKDIR}/sempre.tmp

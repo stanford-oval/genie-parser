@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import fig.basic.*;
+import gnu.trove.iterator.TObjectDoubleIterator;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A FeatureVector represents a mapping from feature (string) to value
@@ -29,7 +32,7 @@ public class FeatureVector {
   // These features map to the value 1 (most common case in NLP).
   private ArrayList<String> indicatorFeatures;
   // General features
-  private ArrayList<Pair<String, Double>> generalFeatures;
+  private TObjectDoubleMap<String> generalFeatures;
   // A dense array of features to save memory
   private double[] denseFeatures;
   private static final String DENSE_NAME = "Dns";
@@ -54,10 +57,10 @@ public class FeatureVector {
       }
     }
     if (generalFeatures != null) {
-      for (Pair<String, Double> general : generalFeatures) {
-        builder.append(general.getFirst());
+      for (String general : generalFeatures.keySet()) {
+        builder.append(general);
         builder.append(" = ");
-        builder.append(general.getSecond());
+        builder.append(generalFeatures.get(general));
         builder.append(", ");
       }
     }
@@ -89,8 +92,9 @@ public class FeatureVector {
     add(toFeature(domain, name), value);
   }
   private void add(String feature, double value) {
-    if (generalFeatures == null) generalFeatures = new ArrayList<>();
-    generalFeatures.add(Pair.newPair(feature, value));
+    if (generalFeatures == null)
+      generalFeatures = new TObjectDoubleHashMap<>();
+    generalFeatures.adjustOrPutValue(feature, value, value);
   }
 
   public void addWithBias(String domain, String name, double value) {
@@ -146,9 +150,11 @@ public class FeatureVector {
         }
     }
     if (that.generalFeatures != null) {
-      for (Pair<String, Double> pair : that.generalFeatures)
-        if (matcher.matches(pair.getFirst()))
-          add(pair.getFirst(), scale * pair.getSecond());
+      that.generalFeatures.forEachEntry((key, value) -> {
+        if (matcher.matches(key))
+          add(key, scale * value);
+        return true;
+      });
     }
     // dense features are always added
     if (that.denseFeatures != null) {
@@ -165,8 +171,11 @@ public class FeatureVector {
         sum += params.getWeight(f);
     }
     if (generalFeatures != null) {
-      for (Pair<String, Double> pair : generalFeatures)
-        sum += params.getWeight(pair.getFirst()) * pair.getSecond();
+      TObjectDoubleIterator<String> it = generalFeatures.iterator();
+      while (it.hasNext()) {
+        it.advance();
+        sum += params.getWeight(it.key()) * it.value();
+      }
     }
     if (denseFeatures != null) {
       for (int i = 0; i < denseFeatures.length; ++i)
@@ -177,23 +186,26 @@ public class FeatureVector {
 
   // Increment |map| by a factor times this feature vector.
   // converts the dense features to a non-dense representation
-  public void increment(double factor, Map<String, Double> map) {
+  public void increment(double factor, TObjectDoubleMap<String> map) {
     increment(factor, map, AllFeatureMatcher.matcher);
   }
-  public void increment(double factor, Map<String, Double> map, FeatureMatcher matcher) {
+
+  public void increment(double factor, TObjectDoubleMap<String> map, FeatureMatcher matcher) {
     if (indicatorFeatures != null) {
       for (String feature : indicatorFeatures)
         if (matcher.matches(feature))
-          MapUtils.incr(map, feature, factor);
+          map.adjustOrPutValue(feature, factor, factor);
     }
     if (generalFeatures != null) {
-      for (Pair<String, Double> pair : generalFeatures)
-        if (matcher.matches(pair.getFirst()))
-          MapUtils.incr(map, pair.getFirst(), factor * pair.getSecond());
+      generalFeatures.forEachEntry((key, value) -> {
+        if (matcher.matches(key))
+          map.adjustOrPutValue(key, factor * value, factor * value);
+        return true;
+      });
     }
     if (denseFeatures != null) {
       for (int i = 0; i < denseFeatures.length; ++i)
-        MapUtils.incr(map, DENSE_NAME + "_" + i, factor * denseFeatures[i]);
+        map.adjustOrPutValue(DENSE_NAME + "_" + i, factor * denseFeatures[i], factor * denseFeatures[i]);
     }
   }
 
@@ -205,9 +217,10 @@ public class FeatureVector {
         res.add(prefix + feature);
     }
     if (generalFeatures != null) {
-      for (Pair<String, Double> pair : generalFeatures) {
-        res.add(prefix + pair.getFirst(), pair.getSecond());
-      }
+      generalFeatures.forEachEntry((key, value) -> {
+        res.add(prefix + key, value);
+        return true;
+      });
     }
     return res;
   }
@@ -215,12 +228,12 @@ public class FeatureVector {
   @JsonValue
   public Map<String, Double> toMap() {
     HashMap<String, Double> map = new HashMap<>();
-    increment(1, map);
-    if (denseFeatures != null) {
-      for (int i = 0; i < denseFeatures.length; ++i) {
-        map.put(DENSE_NAME + "_" + i, denseFeatures[i]);
-      }
-    }
+    TObjectDoubleMap<String> tmap = new TObjectDoubleHashMap<>();
+    increment(1, tmap);
+    tmap.forEachEntry((key, value) -> {
+      map.put(key, value);
+      return true;
+    });
     return map;
   }
 
@@ -271,13 +284,16 @@ public class FeatureVector {
     LogInfo.end_track();
   }
 
-  public static void logFeatureWeights(String prefix, Map<String, Double> features, Params params) {
+  public static void logFeatureWeights(String prefix, TObjectDoubleMap<String> features, Params params) {
     List<Map.Entry<String, Double>> entries = new ArrayList<>();
     double sumValue = 0;
-    for (Map.Entry<String, Double> entry : features.entrySet()) {
-      String feature = entry.getKey();
-      if (entry.getValue() == 0) continue;
-      double value = entry.getValue() * params.getWeight(feature);
+    TObjectDoubleIterator<String> it = features.iterator();
+    while (it.hasNext()) {
+      it.advance();
+      String feature = it.key();
+      if (it.value() == 0)
+        continue;
+      double value = it.value() * params.getWeight(feature);
       if (opts.ignoreZeroWeight && value == 0) continue;
       sumValue += value;
       entries.add(new java.util.AbstractMap.SimpleEntry<>(feature, value));
@@ -289,27 +305,30 @@ public class FeatureVector {
         String feature = entry.getKey();
         double value = entry.getValue();
         double weight = params.getWeight(feature);
-        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(MapUtils.getDouble(features, feature, 0)), Fmt.D(weight));
+        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(features.get(feature)),
+            Fmt.D(weight));
       }
       LogInfo.logs("... (%d more features) ...", entries.size() - 2 * opts.logFeaturesLimit);
       for (Map.Entry<String, Double> entry : entries.subList(entries.size() - opts.logFeaturesLimit, entries.size())) {
         String feature = entry.getKey();
         double value = entry.getValue();
         double weight = params.getWeight(feature);
-        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(MapUtils.getDouble(features, feature, 0)), Fmt.D(weight));
+        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(features.get(feature)),
+            Fmt.D(weight));
       }
     } else {
       for (Map.Entry<String, Double> entry : entries) {
         String feature = entry.getKey();
         double value = entry.getValue();
         double weight = params.getWeight(feature);
-        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(MapUtils.getDouble(features, feature, 0)), Fmt.D(weight));
+        LogInfo.logs("%-50s %6s = %s * %s", "[ " + feature + " ]", Fmt.D(value), Fmt.D(features.get(feature)),
+            Fmt.D(weight));
       }
     }
     LogInfo.end_track();
   }
 
-  public static void logFeatures(Map<String, Double> features) {
+  public static void logFeatures(TObjectDoubleMap<String> features) {
     for (String key : features.keySet()) {
       LogInfo.logs("%s\t%s", key, features.get(key));
     }

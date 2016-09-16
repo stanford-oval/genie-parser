@@ -371,6 +371,13 @@ public class Grammar {
       return newRules;
     }
 
+    // Binaries with ConstantFn: don't need to binarize, even if one is not
+    // a required category
+    if (rule.rhs.size() == 2 && rule.sem instanceof ConstantFn) {
+      newRules.add(rule);
+      return newRules;
+    }
+
     // Stores the current RHS that we're building up.
     List<String> newRhs = new ArrayList<>();
     List<Boolean> newIsOptional = new ArrayList<>();

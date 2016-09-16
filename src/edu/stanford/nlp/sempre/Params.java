@@ -11,6 +11,11 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
 import fig.basic.*;
+import gnu.trove.impl.Constants;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 
 /**
  * Params contains the parameters of the model. Currently consists of a map from
@@ -53,19 +58,20 @@ public class Params {
   private final L1Reg l1Reg = parseReg(opts.l1Reg);
 
   // Discriminative weights
-  private final Map<String, Double> weights = new HashMap<>();
+  private final TObjectDoubleMap<String> weights = new TObjectDoubleHashMap<>(Constants.DEFAULT_CAPACITY,
+      Constants.DEFAULT_LOAD_FACTOR, opts.defaultWeight);
 
   // For AdaGrad
-  private final Map<String, Double> sumSquaredGradients = new HashMap<>();
+  private final TObjectDoubleMap<String> sumSquaredGradients = new TObjectDoubleHashMap<>();
 
   // For dual averaging
-  private final Map<String, Double> sumGradients = new HashMap<>();
+  private final TObjectDoubleMap<String> sumGradients = new TObjectDoubleHashMap<>();
 
   // Number of stochastic updates we've made so far (for determining step size).
   private int numUpdates;
 
   // for lazy l1-reg update
-  private final Map<String, Integer> l1UpdateTimeMap = new HashMap<>();
+  private final TObjectIntMap<String> l1UpdateTimeMap = new TObjectIntHashMap<>();
 
   // multi-thread synchronization
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
@@ -143,14 +149,12 @@ public class Params {
   }
 
   // Update weights by adding |gradient| (modified appropriately with step size).
-  public void update(Map<String, Double> gradient) {
+  public void update(TObjectDoubleMap<String> gradient) {
     writeLock();
     try {
-      for (Map.Entry<String, Double> entry : gradient.entrySet()) {
-        String f = entry.getKey();
-        double g = entry.getValue();
+      gradient.forEachEntry((f, g) -> {
         if (g * g == 0)
-          continue;  // In order to not divide by zero
+          return true;  // In order to not divide by zero
 
         if (l1Reg == L1Reg.LAZY)
           lazyL1Update(f);
@@ -161,25 +165,26 @@ public class Params {
             throw new RuntimeException("Dual averaging not supported when " +
                 "step-size changes across iterations for " +
                 "features for which the gradient is zero");
-          MapUtils.incr(sumGradients, f, g);
-          MapUtils.set(weights, f, stepSize * sumGradients.get(f));
+          sumGradients.adjustOrPutValue(f, g, g);
+          weights.put(f, stepSize * sumGradients.get(f));
         } else {
           if (stepSize * g == Double.POSITIVE_INFINITY || stepSize * g == Double.NEGATIVE_INFINITY) {
             LogInfo.logs("WEIRD FEATURE UPDATE: feature=%s, currentWeight=%s, stepSize=%s, gradient=%s", f,
                 getWeight(f), stepSize, g);
             throw new RuntimeException("Gradient absolute value is too large or too small");
           }
-          MapUtils.incr(weights, f, stepSize * g);
+          weights.adjustOrPutValue(f, stepSize * g, stepSize * g);
           if (l1Reg == L1Reg.LAZY)
             l1UpdateTimeMap.put(f, numUpdates);
         }
-      }
+        return true;
+      });
       // non lazy implementation goes over all weights
       if (l1Reg == L1Reg.NONLAZY) {
         Set<String> features = new HashSet<>(weights.keySet());
         for (String f : features) {
           double stepSize = computeStepSize(f, 0d); // no update for gradient here
-          double update = opts.l1RegCoeff * -Math.signum(MapUtils.getDouble(weights, f, opts.defaultWeight));
+          double update = opts.l1RegCoeff * -Math.signum(weights.get(f));
           clipUpdate(f, stepSize * update);
         }
       }
@@ -197,7 +202,7 @@ public class Params {
 
   private double computeStepSize(String feature, double gradient) {
     if (opts.adaptiveStepSize) {
-      MapUtils.incr(sumSquaredGradients, feature, gradient * gradient);
+      sumSquaredGradients.adjustOrPutValue(feature, gradient * gradient, gradient * gradient);
       // ugly - adding one to the denominator when using l1 reg.
       if (l1Reg != L1Reg.NONE)
         return opts.initStepSize / (Math.sqrt(sumSquaredGradients.get(feature) + 1));
@@ -208,35 +213,43 @@ public class Params {
     }
   }
 
+  private static <K> double getDouble(TObjectDoubleMap<K> map, K key, double defaultValue) {
+    if (map.containsKey(key))
+      return map.get(key);
+    else
+      return defaultValue;
+  }
+
   /*
    * If the update changes the sign, remove the feature
    */
   private void clipUpdate(String f, double update) {
-    double currWeight = MapUtils.getDouble(weights, f, 0);
+    double currWeight = getDouble(weights, f, 0);
     if (currWeight == 0)
       return;
 
     if (currWeight * (currWeight + update) < 0.0)  {
       weights.remove(f);
     } else {
-      MapUtils.incr(weights, f, update);
+      weights.adjustOrPutValue(f, update, update);
     }
   }
 
   private void lazyL1Update(String f) {
-    if (MapUtils.getDouble(weights, f, 0.0) == 0) return;
+    if (weights.get(f) == 0)
+      return;
     // For pre-initialized weights, which have no updates yet
-    if (sumSquaredGradients.get(f) == null || l1UpdateTimeMap.get(f) == null) {
+    if (!sumSquaredGradients.containsKey(f) || !l1UpdateTimeMap.containsKey(f)) {
       l1UpdateTimeMap.put(f, numUpdates);
       sumSquaredGradients.put(f, 0.0);
       return;
     }
-    int numOfIter = numUpdates - MapUtils.get(l1UpdateTimeMap, f, 0);
+    int numOfIter = numUpdates - l1UpdateTimeMap.get(f);
     if (numOfIter == 0) return;
     if (numOfIter < 0) throw new RuntimeException("l1UpdateTimeMap is out of sync.");
 
     double stepSize = (numOfIter * opts.initStepSize) / (Math.sqrt(sumSquaredGradients.get(f) + 1));
-    double update = -opts.l1RegCoeff * Math.signum(MapUtils.getDouble(weights, f, 0.0));
+    double update = -opts.l1RegCoeff * Math.signum(getDouble(weights, f, 0.0));
     clipUpdate(f, stepSize * update);
     if (weights.containsKey(f))
       l1UpdateTimeMap.put(f, numUpdates);
@@ -253,13 +266,18 @@ public class Params {
         weights.put(f, 2 * opts.initRandom.nextDouble() - 1);
       return weights.get(f);
     } else {
-      return MapUtils.getDouble(weights, f, opts.defaultWeight);
+      return weights.get(f);
     }
   }
 
   // must be called with read lock held
   public Map<String, Double> getWeights() {
-    return weights;
+    final Map<String, Double> hashMap = new HashMap<>();
+    weights.forEachEntry((feature, value) -> {
+      hashMap.put(feature, value);
+      return true;
+    });
+    return hashMap;
   }
 
   public void write(PrintWriter out) { write(null, out); }
@@ -267,7 +285,7 @@ public class Params {
   public void write(String prefix, PrintWriter out) {
     readLock();
     try {
-      List<Map.Entry<String, Double>> entries = Lists.newArrayList(weights.entrySet());
+      List<Map.Entry<String, Double>> entries = new ArrayList<>(getWeights().entrySet());
       Collections.sort(entries, new ValueComparator<String, Double>(true));
       for (Map.Entry<String, Double> entry : entries) {
         double value = entry.getValue();
@@ -288,7 +306,7 @@ public class Params {
 
   public void log() {
     LogInfo.begin_track("Params");
-    List<Map.Entry<String, Double>> entries = Lists.newArrayList(weights.entrySet());
+    List<Map.Entry<String, Double>> entries = new ArrayList<>(getWeights().entrySet());
     Collections.sort(entries, new ValueComparator<String, Double>(true));
     for (Map.Entry<String, Double> entry : entries) {
       double value = entry.getValue();

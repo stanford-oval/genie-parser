@@ -9,9 +9,9 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
-import fig.basic.BipartiteMatcher;
-import fig.basic.LogInfo;
-import fig.basic.Option;
+import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * Define features on the input utterance and a partial canonical utterance.
@@ -302,7 +302,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
 
     if (opts.verbose >= 1) {
-      HashMap<String, Double> features = new LinkedHashMap<>();
+      TObjectDoubleMap<String> features = new TObjectDoubleHashMap<>();
       deriv.incrementAllFeatureVector(+1, features);
       LogInfo.logs("category %s, %s %s", deriv.cat, inputItems, candidateItems);
       FeatureVector.logFeatures(features);

@@ -1,13 +1,17 @@
 package edu.stanford.nlp.sempre;
 
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 import fig.basic.*;
 import fig.exec.Execution;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * The main learning loop.  Goes over a dataset multiple times, calling the
@@ -140,7 +144,7 @@ public class Learner {
 
   public void onlineLearnExample(Example ex) {
     LogInfo.begin_track("onlineLearnExample: %s derivations", ex.predDerivations.size());
-    HashMap<String, Double> counts = new HashMap<>();
+    TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
     for (Derivation deriv : ex.predDerivations)
       deriv.compatibility = parser.valueEvaluator.getCompatibility(ex.targetValue, deriv.value);
     ParserState.computeExpectedCounts(ex.predDerivations, counts);
@@ -163,7 +167,7 @@ public class Learner {
             "Processing %s: %s examples", prefix, examples.size());
     LogInfo.begin_track("Examples");
 
-    Map<String, Double> counts = new HashMap<>();
+    TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
     int batchSize = 0;
     for (int e = 0; e < examples.size(); e++) {
 
@@ -272,7 +276,7 @@ public class Learner {
     return res;
   }
 
-  private void updateWeights(Map<String, Double> counts) {
+  private void updateWeights(TObjectDoubleMap<String> counts) {
     StopWatchSet.begin("Learner.updateWeights");
     LogInfo.begin_track("Updating learner weights");
     double sum = 0;
@@ -320,8 +324,7 @@ public class Learner {
         fields.add("iter=" + iter);
         fields.add("group=" + group);
         fields.add("utterance=" + ex.utterance);
-        Map<String, Double> features = new HashMap<>();
-        deriv.incrementAllFeatureVector(1, features);
+        Map<String, Double> features = deriv.getFeatureMap();
         for (String f : features.keySet()) {
           double v = features.get(f);
           fields.add(f + "=" + v);

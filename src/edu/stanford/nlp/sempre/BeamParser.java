@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 
 import fig.basic.*;
 import fig.exec.Execution;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A simple bottom-up chart-based parser that keeps the |beamSize| top
@@ -117,7 +118,7 @@ public void infer() {
       // Compute gradient with respect to the predicted derivations
       ensureExecuted();
       if (computeExpectedCounts) {
-        expectedCounts = new HashMap<>();
+        expectedCounts = new TObjectDoubleHashMap<>();
         ParserState.computeExpectedCounts(predDerivations, expectedCounts);
       }
     }

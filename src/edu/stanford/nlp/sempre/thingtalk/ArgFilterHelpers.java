@@ -44,6 +44,9 @@ class ArgFilterHelpers {
     if (have.equals(want))
       return true;
 
+    if (have.equals("Enum") && want.startsWith("Enum("))
+      return true;
+
     // a mistake in the naming that is in too many places
     // to fix now
     if (have.equals("Bool") && want.equals("Boolean"))
@@ -56,12 +59,6 @@ class ArgFilterHelpers {
 
     // time gets converted to String by Sabrina
     if (have.equals("Time") && want.equals("String"))
-      return true;
-
-    // String and Picture are the same type for compat with
-    // type annotations that were written before Picture existed
-    if ((have.equals("String") && want.equals("Picture")) ||
-        (have.equals("Picture") && want.equals("String")))
       return true;
 
     return false;

@@ -3,9 +3,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.util.HashSet;
 import java.util.Set;
 
-import edu.stanford.nlp.sempre.Derivation;
-import edu.stanford.nlp.sempre.Example;
-import edu.stanford.nlp.sempre.FeatureComputer;
+import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.util.ArraySet;
 import fig.basic.Option;
 
@@ -77,15 +75,48 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       deriv.addFeature("strvalue", "isEntity");
   }
 
+  private static void subtractDescendentsCodeFeatures(Derivation deriv, Derivation subderiv) {
+    if (subderiv.children != null) {
+      for (Derivation child : subderiv.children) {
+        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
+          @Override
+          public boolean matches(String feature) {
+            return feature.startsWith("code ::");
+          }
+
+        });
+        subtractDescendentsCodeFeatures(deriv, child);
+      }
+    }
+  }
+
   private void extractCodeFeatures(Example ex, Derivation deriv) {
     if (deriv.value == null)
       return;
     
-    if (deriv.value instanceof ParametricValue)
+    // Important!  We want to define the global feature vector for this
+    // derivation, but we can only specify the local feature vector.  So to
+    // make things cancel out, we subtract out the unwanted feature vectors of
+    // descendents.
+    //
+    // This fixes double counting of code features, and is the same thing we
+    // do in OvernightFeatureComputer
+    subtractDescendentsCodeFeatures(deriv, deriv);
+
+    if (deriv.value instanceof ParametricValue) {
       extractParametricValueFeatures(deriv, (ParametricValue) deriv.value);
+    } else if (deriv.value instanceof RuleValue) {
+      RuleValue rule = (RuleValue)deriv.value;
+      extractParametricValueFeatures(deriv, rule.trigger);
+      extractParametricValueFeatures(deriv, rule.query);
+      extractParametricValueFeatures(deriv, rule.action);
+    }
   }
 
   private void extractParametricValueFeatures(Derivation deriv, ParametricValue pv) {
+    if (pv == null)
+      return;
+    
     ArraySet<String> params = new ArraySet<>();
     ArraySet<ParamValue> duplicates = new ArraySet<>();
     for (ParamValue p : pv.params) {
@@ -125,7 +156,10 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // sense, for example @thermostat.temperature(value), value = 73 F, because it will never be exactly 73 F
       // note that we use the actual ThingTalk type from param.name.type, not the looser
       // param.type
-      deriv.addFeature("code", "operatortype=" + p.name.type + ":" + p.operator);
+
+      // Actually don't: this feature tends to overselect String:is, because we have way too
+      // many string inputs to queries, and the right combination of arguments falls off the beam
+      //deriv.addFeature("code", "operatortype=" + p.name.type + ":" + p.operator);
 
       // add a feature for the triple (argname, type, operator)
       // this is to bias towards certain operators for certain arguments

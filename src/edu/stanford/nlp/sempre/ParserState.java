@@ -1,14 +1,12 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.Fmt;
-import fig.basic.LogInfo;
-import fig.basic.NumUtils;
-import fig.basic.Evaluation;
-import fig.basic.Option;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
+import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
+
+import fig.basic.*;
 
 /**
  * Actually does the parsing.  Main method is infer(), whose job is to fill in
@@ -38,11 +36,11 @@ public abstract class ParserState {
 
   //// Output
 
-  public final List<Derivation> predDerivations = new ArrayList<Derivation>();
+  public final List<Derivation> predDerivations = new ArrayList<>();
   public final Evaluation evaluation = new Evaluation();
 
   // If computeExpectedCounts is true (for learning), then fill this out.
-  public Map<String, Double> expectedCounts;
+  public TObjectDoubleMap<String> expectedCounts;
   public double objectiveValue;
 
   // Statistics generated while parsing
@@ -136,7 +134,7 @@ public abstract class ParserState {
     if (parser.opts.verbose >= 3) {
       LogInfo.begin_track("ParserState.pruneCell(%s): %d derivations", cellDescription, derivations.size());
       for (Derivation deriv : derivations) {
-        LogInfo.logs("%s(%s,%s): %s %s, [score=%s]", deriv.cat, deriv.start, deriv.end, deriv.formula,
+        LogInfo.logs("%s(%s,%s): %s, [score=%s]", deriv.cat, deriv.start, deriv.end,
                 deriv.canonicalUtterance, deriv.score);
       }
 
@@ -262,7 +260,7 @@ public abstract class ParserState {
    * according to a standard exponential family model over a finite set of derivations.
    * Assume that everything has been executed, and compatibility has been computed.
    */
-  public static void computeExpectedCounts(List<Derivation> derivations, Map<String, Double> counts) {
+  public static void computeExpectedCounts(List<Derivation> derivations, TObjectDoubleMap<String> counts) {
     double[] trueScores;
     double[] predScores;
 

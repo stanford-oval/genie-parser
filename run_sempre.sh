@@ -27,9 +27,9 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 16 \
+              -FloatingParser.maxDepth 14 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 20 \
+              -Parser.beamSize 8 \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \

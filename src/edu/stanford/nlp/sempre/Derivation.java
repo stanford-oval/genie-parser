@@ -3,6 +3,8 @@ package edu.stanford.nlp.sempre;
 import java.util.*;
 
 import fig.basic.*;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A Derivation corresponds to the production of a (partial) logical form
@@ -370,13 +372,16 @@ public String childStringValue(int i) {
   @Override
 public String toString() { return toLispTree().toString(); }
 
-  public void incrementLocalFeatureVector(double factor, Map<String, Double> map) {
+  public void incrementLocalFeatureVector(double factor, TObjectDoubleMap<String> map) {
     localFeatureVector.increment(factor, map, AllFeatureMatcher.matcher);
   }
-  public void incrementAllFeatureVector(double factor, Map<String, Double> map) {
+
+  public void incrementAllFeatureVector(double factor, TObjectDoubleMap<String> map) {
     incrementAllFeatureVector(factor, map, AllFeatureMatcher.matcher);
   }
-  public void incrementAllFeatureVector(double factor, Map<String, Double> map, FeatureMatcher updateFeatureMatcher) {
+
+  public void incrementAllFeatureVector(double factor, TObjectDoubleMap<String> map,
+      FeatureMatcher updateFeatureMatcher) {
     localFeatureVector.increment(factor, map, updateFeatureMatcher);
     for (Derivation child : children)
       child.incrementAllFeatureVector(factor, map, updateFeatureMatcher);
@@ -392,17 +397,26 @@ public String toString() { return toLispTree().toString(); }
     return localFeatureVector.addPrefix(prefix);
   }
 
-  public Map<String, Double> getAllFeatureVector() {
-    Map<String, Double> m = new HashMap<>();
+  public TObjectDoubleMap<String> getAllFeatureVector() {
+    TObjectDoubleMap<String> m = new TObjectDoubleHashMap<>();
     incrementAllFeatureVector(1.0d, m, AllFeatureMatcher.matcher);
     return m;
   }
 
+  public Map<String, Double> getFeatureMap() {
+    Map<String, Double> map = new HashMap<>();
+    getAllFeatureVector().forEachEntry((key, value) -> {
+      map.put(key, value);
+      return true;
+    });
+    return map;
+  }
+
   // TODO(pliang): this is crazy inefficient
   public double getAllFeatureVector(String featureName) {
-    Map<String, Double> m = new HashMap<>();
+    TObjectDoubleMap<String> m = new TObjectDoubleHashMap<>();
     incrementAllFeatureVector(1.0d, m, new ExactFeatureMatcher(featureName));
-    return MapUtils.get(m, featureName, 0.0);
+    return m.get(featureName);
   }
 
   public void addLocalChoice(String choice) {
