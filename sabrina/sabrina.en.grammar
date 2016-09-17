@@ -8,11 +8,10 @@
 (def @at_work (at work))
 (def @at_home (at home))
 
-(def @is is)
-(def @contains contains)
-(def @has has)
-(def @is_greater_than (is greater than))
-(def @is_less_than (is less than))
+(def @containing containing)
+(def @having having)
+(def @greater_than (greater than))
+(def @less_than (less than))
 
 (def @with with)
 (def @and and)

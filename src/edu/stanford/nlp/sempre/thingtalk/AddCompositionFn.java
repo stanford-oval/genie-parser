@@ -7,13 +7,11 @@ import fig.basic.LispTree;
 
 public class AddCompositionFn extends SemanticFn {
   private boolean applyToAction;
-  private String isToken;
 
   @Override
   public void init(LispTree tree) {
     super.init(tree);
     applyToAction = tree.child(1).value.equals("action");
-    isToken = tree.child(2).value;
   }
 
   @Override
@@ -145,8 +143,7 @@ public class AddCompositionFn extends SemanticFn {
 
         Derivation deriv = new Derivation.Builder().withCallable(callable).formula(new ValueFormula<>(clone))
             .type(SemType.entityType)
-            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + actionArgCanonical + " "
-                + isToken + " " + triggerArgCanonical)
+            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + actionArgCanonical + " " + triggerArgCanonical)
             .createDerivation();
 
         deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);

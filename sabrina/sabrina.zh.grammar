@@ -8,11 +8,10 @@
 (def @at_work ("在" "公司"))
 (def @at_home ("在" "家"))
 
-(def @is "是")
-(def @contains "包含")
-(def @has "有")
-(def @is_greater_than ("大于"))
-(def @is_less_than ("少于"))
+(def @containing "包含")
+(def @having "有")
+(def @greater_than ("大于"))
+(def @less_than ("少于"))
 
 (def @with "把")
 (def @and "和")
