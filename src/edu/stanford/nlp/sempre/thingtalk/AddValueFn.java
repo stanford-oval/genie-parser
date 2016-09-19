@@ -48,14 +48,12 @@ public class AddValueFn extends SemanticFn {
   }
 
   private class AddValueStream extends MultipleDerivationStream {
-    private final Example ex;
     private final Callable callable;
     private final ParametricValue invocation;
     private final Iterator<String> argnameIter;
     private String currentArgname;
 
     public AddValueStream(Example ex, Callable callable) {
-      this.ex = ex;
       this.callable = callable;
 
       Derivation left = callable.child(0);

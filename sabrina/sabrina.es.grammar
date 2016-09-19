@@ -20,6 +20,10 @@
 (def @every cada)
 (def @if si)
 (def @then entonces)
+# FIXME
+(def @event (the event))
+(def @event_title (the event title))
+(def @event_body (the event body)) 
 
 (def @help ayuda)
 (def @discover buscar)

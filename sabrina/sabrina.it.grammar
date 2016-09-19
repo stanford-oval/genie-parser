@@ -20,7 +20,10 @@
 (def @every ogni)
 (def @if se)
 (def @then allora)
-
+(def @event ("l'" evento))
+(def @event_title (il titolo evento))
+(def @event_body (il corpo evento))
+ 
 (def @help aiuto)
 (def @discover ricerca)
 (def @configure configura)

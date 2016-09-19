@@ -9,7 +9,9 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
-import fig.basic.*;
+import fig.basic.BipartiteMatcher;
+import fig.basic.LogInfo;
+import fig.basic.Option;
 import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 
@@ -185,7 +187,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       .newHashSet("\' \" `` ` \'\' a an the that which . what ? is are am be of on".split(" "));
   // FIXME: I don't particularly agree that all these words are stop words...
   private static final Set<String> ITALIAN_STOP_WORDS = Sets
-      .newHashSet("\' \" `` ` \'\' un uno il lo la i gli le che quale cosa . ? è sono sei di su".split(" "));
+      .newHashSet("\' \" `` ` \'\' un uno il l\' lo la i gli le che quale cosa . ? è sono sei di su".split(" "));
   private static final Map<String, Set<String>> STOP_WORDS = new HashMap<>();
   static {
     STOP_WORDS.put("en", ENGLISH_STOP_WORDS);

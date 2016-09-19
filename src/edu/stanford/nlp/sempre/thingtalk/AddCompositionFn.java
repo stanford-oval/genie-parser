@@ -27,11 +27,9 @@ public class AddCompositionFn extends SemanticFn {
     private String currentActionArg;
     private Iterator<String> triggerArgs;
     private final RuleValue rv;
-    private final Example ex;
     private final Callable callable;
 
     public CompositionStream(Example ex, Callable c) {
-      this.ex = ex;
       this.callable = c;
 
       Derivation left = c.child(0);
@@ -148,9 +146,6 @@ public class AddCompositionFn extends SemanticFn {
 
         deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
         deriv.addFeature("thingtalk_composition", "type = " + actionType);
-
-        // thingtalk feature extractor will not run at this point, so add the features we want manually
-        // see thingtalkfeatureextractor for the meaning of these features
 
         // note that it's a different feature compared to param=%s.%s:%s
         // the latter is about values that are explicitly given by the user, this one is about values that
