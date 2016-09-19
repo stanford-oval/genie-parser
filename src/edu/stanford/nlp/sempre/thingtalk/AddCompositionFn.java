@@ -7,13 +7,11 @@ import fig.basic.LispTree;
 
 public class AddCompositionFn extends SemanticFn {
   private boolean applyToAction;
-  private String isToken;
 
   @Override
   public void init(LispTree tree) {
     super.init(tree);
     applyToAction = tree.child(1).value.equals("action");
-    isToken = tree.child(2).value;
   }
 
   @Override
@@ -29,11 +27,9 @@ public class AddCompositionFn extends SemanticFn {
     private String currentActionArg;
     private Iterator<String> triggerArgs;
     private final RuleValue rv;
-    private final Example ex;
     private final Callable callable;
 
     public CompositionStream(Example ex, Callable c) {
-      this.ex = ex;
       this.callable = c;
 
       Derivation left = c.child(0);
@@ -145,15 +141,11 @@ public class AddCompositionFn extends SemanticFn {
 
         Derivation deriv = new Derivation.Builder().withCallable(callable).formula(new ValueFormula<>(clone))
             .type(SemType.entityType)
-            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + actionArgCanonical + " "
-                + isToken + " " + triggerArgCanonical)
+            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + actionArgCanonical + " " + triggerArgCanonical)
             .createDerivation();
 
         deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
         deriv.addFeature("thingtalk_composition", "type = " + actionType);
-
-        // thingtalk feature extractor will not run at this point, so add the features we want manually
-        // see thingtalkfeatureextractor for the meaning of these features
 
         // note that it's a different feature compared to param=%s.%s:%s
         // the latter is about values that are explicitly given by the user, this one is about values that
@@ -166,17 +158,13 @@ public class AddCompositionFn extends SemanticFn {
         // if we use param=%s.%s:%s here we first try to match those to one of the several values from "get cat picture"
         // (eg image id, or link url), causing the good parse to fall off the beam
         if (applyToAction)
-          deriv.addFeature("code",
+          deriv.addFeature("thingtalk_composition",
               String.format("composed_param=%s.%s:%s", rv.action.name.kind, rv.action.name.channelName,
                   currentActionArg));
         else
-          deriv.addFeature("code",
+          deriv.addFeature("thingtalk_composition",
               String.format("composed_param=%s.%s:%s", rv.query.name.kind, rv.query.name.channelName,
                   currentActionArg));
-        if (!applyToAction) {
-          deriv.addFeature("code", "operatortype=" + nextPv.name.type + ":" + nextPv.operator);
-          deriv.addFeature("code", "operator=" + nextPv.name.argname + "," + nextPv.name.type + ":" + nextPv.operator);
-        }
 
         return deriv;
       }

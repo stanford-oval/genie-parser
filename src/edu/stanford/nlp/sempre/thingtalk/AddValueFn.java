@@ -48,14 +48,12 @@ public class AddValueFn extends SemanticFn {
   }
 
   private class AddValueStream extends MultipleDerivationStream {
-    private final Example ex;
     private final Callable callable;
     private final ParametricValue invocation;
     private final Iterator<String> argnameIter;
     private String currentArgname;
 
     public AddValueStream(Example ex, Callable callable) {
-      this.ex = ex;
       this.callable = callable;
 
       Derivation left = callable.child(0);
@@ -95,8 +93,10 @@ public class AddValueFn extends SemanticFn {
         ParametricValue newInvocation = invocation.clone();
         newInvocation.add(pv);
 
-        String canonical = left.canonicalUtterance + " " + withToken + " arg " +
-            invocation.name.getArgCanonical(currentArgname) + " " + opToken + " "
+        String opPart = opToken.length() > 0 ? " " + opToken + " " : " ";
+
+        String canonical = left.canonicalUtterance + " " + withToken + " " +
+            invocation.name.getArgCanonical(currentArgname) + opPart
             + right.canonicalUtterance;
 
         Derivation.Builder bld = new Derivation.Builder().withCallable(callable)

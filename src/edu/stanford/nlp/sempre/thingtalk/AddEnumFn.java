@@ -7,12 +7,9 @@ import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
 
 public class AddEnumFn extends SemanticFn {
-  private String opToken;
-
   @Override
   public void init(LispTree tree) {
     super.init(tree);
-    opToken = tree.child(1).value;
   }
 
   @Override
@@ -74,8 +71,8 @@ public class AddEnumFn extends SemanticFn {
         ParametricValue newInvocation = invocation.clone();
         newInvocation.add(pv);
 
-        String canonical = left.canonicalUtterance + " arg " +
-            invocation.name.getArgCanonical(currentArgname) + " " + opToken + " "
+        String canonical = left.canonicalUtterance + " " +
+            invocation.name.getArgCanonical(currentArgname) + " "
             + enumValue;
 
         Derivation.Builder bld = new Derivation.Builder().withCallable(callable)
