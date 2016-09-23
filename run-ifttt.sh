@@ -33,7 +33,7 @@ on_error() {
 #trap on_error ERR INT TERM
 
 # run the berkeley aligner
-${SEMPRE}/run-berkeley-aligner.sh ${SEMPRE}/ifttt/train.tsv ${SEMPRE}
+${SEMPRE}/run-berkeley-aligner.sh ${SEMPRE}/ifttt/train.tsv
 
 # actually run sempre
 ${SEMPRE}/run-sempre-training.sh \

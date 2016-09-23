@@ -5,7 +5,8 @@ set -x
 
 MODULE=${MODULE:-sabrina}
 CANONICALS=${1:-./${MODULE}/sabrina.canonicals.tsv}
-SEMPREDIR=${2:-`pwd`}
+SEMPREDIR=`dirname $0`
+BERKELEYALIGNER=${BERKELEYALIGNER:-${SEMPREDIR}/../berkeleyaligner}
 
 # prepare the berkeley aligner input
 rm -fr ./berkeleyaligner.tmp
@@ -20,7 +21,7 @@ java -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
 	${LANGUAGE_TAG}
 
 # run the berkeley aligner
-( cd ./berkeleyaligner.tmp ; java -ea -jar /home/gcampagn/mobisocial/berkeleyaligner/berkeleyaligner.jar ++${SEMPREDIR}/sabrina/sabrina.berkeleyaligner.conf )
+( cd ./berkeleyaligner.tmp ; java -ea -jar ${BERKELEYALIGNER}/berkeleyaligner.jar ++${SEMPREDIR}/sabrina/sabrina.berkeleyaligner.conf )
 paste ./berkeleyaligner.tmp/output/training.f \
       ./berkeleyaligner.tmp/output/training.e \
       ./berkeleyaligner.tmp/output/training.align > ./${MODULE}/${MODULE}.word_alignments.berkeley.source.${LANGUAGE_TAG}
