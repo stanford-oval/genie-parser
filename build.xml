@@ -98,6 +98,16 @@
     <jar destfile="${libsempre}/sempre-thingtalk.jar" basedir="${classes}/thingtalk"/>
   </target>
 
+  <!-- Compile ifttt -->
+  <target name="ifttt" depends="init,core,corenlp,overnight,thingtalk">
+    <echo message="Compiling ${ant.project.name}: ifttt"/>
+    <mkdir dir="${classes}/ifttt"/>
+    <javac srcdir="${src}" destdir="${classes}/ifttt" classpathref="lib.path" debug="true" includeantruntime="false" source="${source}" target="${target}">
+      <include name="edu/stanford/nlp/sempre/ifttt/"/>
+    </javac>
+    <jar destfile="${libsempre}/sempre-ifttt.jar" basedir="${classes}/ifttt"/>
+  </target>
+
   <!-- Compile api -->
   <target name="api" depends="init,core,thingtalk">
     <echo message="Compiling ${ant.project.name}: api"/>

@@ -3,13 +3,16 @@
 set -e
 set -x
 
+MODULE=${MODULE:-sabrina}
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 WORKDIR=`pwd`
 SEMPREDIR=`dirname $0`
 
+MODULES=${MODULES:-core,corenlp,overnight,thingtalk}
+
 rm -fr ${WORKDIR}/sempre.tmp
 cp ${SEMPREDIR}/module-classes.txt .
-java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
+java -Xmx32G -ea -Dmodules=${MODULES} \
               -Djava.library.path=jni \
               -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
               edu.stanford.nlp.sempre.Main \
@@ -23,7 +26,7 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
               -JavaExecutor.unpackValues false \
               -Builder.dataset thingtalk.ThingpediaDataset \
-              -Grammar.inPaths ${SEMPREDIR}/sabrina/sabrina.${LANGUAGE_TAG}.grammar \
+              -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar \
               -Grammar.tags floatingargs floatingnames floatingstrings \
               -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
@@ -36,8 +39,8 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 8 \
               -Learner.maxTrainIters 2 \
-              -wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley.${LANGUAGE_TAG} \
-              -phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments \
+              -wordAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
+              -phraseAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.phrase_alignments \
               -PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt \
               -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
@@ -49,5 +52,5 @@ java -Xmx32G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               "$@"
 
 # move the generated file where APIServer will know to look for
-cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
+cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.params
 #rm -fr ${WORKDIR}/sempre.tmp

@@ -26,8 +26,6 @@ exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 8 \
               -Learner.maxTrainIters 1 \
-              -Learner.reduceParserScoreNoise \
-              -Parser.derivationScoreNoise 1 \
               -wordAlignmentPath sabrina/sabrina.word_alignments.berkeley \
               -phraseAlignmentPath sabrina/sabrina.phrase_alignments \
               -PPDBModel.ppdbModelPath sabrina/sabrina-ppdb.txt \

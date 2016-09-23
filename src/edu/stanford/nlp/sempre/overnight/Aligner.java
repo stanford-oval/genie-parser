@@ -131,6 +131,10 @@ public class Aligner {
   private void berkeleyAlign(String file, int threshold) {
     for (String line: IOUtils.readLines(file)) {
       String[] tokens = line.split("\t");
+      if (tokens.length < 3) {
+        System.err.println("Skipped line " + line);
+        continue;
+      }
       String[] sourceTokens = tokens[0].split("\\s+");
       String[] targetTokens = tokens[1].split("\\s+");
       String[] alignmentTokens = tokens[2].split("\\s+");
