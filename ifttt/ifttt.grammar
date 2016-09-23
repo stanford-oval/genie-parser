@@ -13,10 +13,10 @@
 # Value Parsing
 
 # Action Handling
-(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
+(rule $ActionName ($TOKEN) (ifttt.IftttLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
 
-(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
+(rule $TriggerName ($TOKEN) (ifttt.IftttLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
 
 # manually binarize rule meaningfully

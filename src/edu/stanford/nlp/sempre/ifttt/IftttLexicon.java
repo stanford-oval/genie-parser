@@ -190,13 +190,11 @@ public class IftttLexicon {
     if (Builder.opts.parser.equals("BeamParser")) {
       isBeam = true;
       query = "select canonical,channel,name from interfaces where type = ? "
-          + " and canonical = ? limit " + (3 * Parser.opts.beamSize);
+          + " and canonical = ?";
     } else {
       isBeam = false;
       query = "select canonical,channel,name from interfaces where type = ?  "
-          + " and match (canonical,keywords) against (? in natural language mode) "
-          + " and ds.kind_type <> 'primary' limit "
-          + (3 * Parser.opts.beamSize);
+          + " and match (canonical) against (? in natural language mode)";
     }
 
     long now = System.currentTimeMillis();
@@ -204,12 +202,11 @@ public class IftttLexicon {
     String search, key;
     try (Connection con = dataSource.getConnection()) {
       try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, languageTag);
-        stmt.setString(2, channel_type.toString().toLowerCase());
+        stmt.setString(1, channel_type.toString().toLowerCase());
         if (isBeam) {
           search = phrase;
           key = phrase;
-          stmt.setString(3, phrase);
+          stmt.setString(2, phrase);
         } else {
           search = "";
           key = "";
@@ -218,7 +215,7 @@ public class IftttLexicon {
             search += " " + LanguageUtils.stem(tokens[i]);
             key += (i > 0 ? " " : "") + tokens[i];
           }
-          stmt.setString(3, search);
+          stmt.setString(2, search);
         }
 
         entries = new LinkedList<>();
