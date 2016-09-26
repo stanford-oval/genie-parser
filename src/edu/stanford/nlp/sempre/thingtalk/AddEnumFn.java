@@ -64,6 +64,7 @@ public class AddEnumFn extends SemanticFn {
         String enumValue = currentEnumIter.next();
 
         Derivation left = callable.child(0);
+        Derivation right = callable.child(1);
         Value toAdd = new StringValue(enumValue);
 
         ParamValue pv = new ParamValue(param, "Enum", "is", toAdd);
@@ -71,8 +72,8 @@ public class AddEnumFn extends SemanticFn {
         ParametricValue newInvocation = invocation.clone();
         newInvocation.add(pv);
 
-        String canonical = left.canonicalUtterance + " " +
-            invocation.name.getArgCanonical(currentArgname) + " "
+        String canonical = left.canonicalUtterance + " " + right.canonicalUtterance + " "
+            + invocation.name.getArgCanonical(currentArgname) + " "
             + enumValue;
 
         Derivation.Builder bld = new Derivation.Builder().withCallable(callable)
