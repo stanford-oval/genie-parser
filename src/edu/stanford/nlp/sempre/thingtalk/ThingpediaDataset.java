@@ -20,6 +20,8 @@ public class ThingpediaDataset extends AbstractDataset {
     public String onlineLearnFile = null;
     @Option
     public String testFile = null;
+    @Option
+    public String iftttFile = null;
   }
 
   public static Options opts = new Options();
@@ -127,6 +129,13 @@ public class ThingpediaDataset extends AbstractDataset {
     readFromFile(maxExamples, examples, "online", opts.onlineLearnFile);
   }
 
+  private void readIfttt(int maxExamples, List<Example> examples) throws IOException {
+    if (opts.iftttFile == null)
+      return;
+
+    readFromFile(maxExamples, examples, "ifttt", opts.iftttFile);
+  }
+
   private void readTest() throws IOException {
     int maxExamples = getMaxExamplesForGroup("test");
     List<Example> examples = getOrCreateGroup("test");
@@ -157,6 +166,7 @@ public class ThingpediaDataset extends AbstractDataset {
       throw new IOException(e);
     }
     readOnlineLearn(maxExamples, examples);
+    readIfttt(maxExamples, examples);
 
     if (Dataset.opts.splitDevFromTrain)
       splitDevFromTrain();
