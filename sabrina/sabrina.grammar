@@ -84,13 +84,17 @@ $PhoneNumberValue $EmailAddressValue))
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
 #(rule $OrgValue ($PHRASE) (FilterNerSpanFn ORGANIZATION) (anchored 1))
 
+# HACK: binarization with introduce an intermediate if a rule has any token on the right hand side
+# we don't want that, so we introduce a dummy category that only contains the token
+(rule $With (@with) (ConstantFn null))
+
 # Action Handling
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
 (for @v @all_values
 	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with "" is))
 )
-(rule $Action ($Action @with) (thingtalk.AddEnumFn))
+(rule $Action ($Action $With) (thingtalk.AddEnumFn))
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
@@ -101,7 +105,7 @@ $PhoneNumberValue $EmailAddressValue))
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @less_than <))
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @having has))
 )
-(rule $Trigger ($Trigger @with) (thingtalk.AddEnumFn))
+(rule $Trigger ($Trigger $With) (thingtalk.AddEnumFn))
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
@@ -112,7 +116,7 @@ $PhoneNumberValue $EmailAddressValue))
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @less_than <))
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @having has))
 )
-(rule $Query ($Query @with) (thingtalk.AddEnumFn))
+(rule $Query ($Query $With) (thingtalk.AddEnumFn))
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
 (rule $Notify ($MonitorIf $Trigger) (SelectFn 1))
@@ -139,30 +143,30 @@ $PhoneNumberValue $EmailAddressValue))
 # in particular, the binarized grammar will include an intermediate binary rule with SelectFn 0
 # and an unary cat rule with AddCompositionFn
 # AddCompositionFn takes care of adding the "foo that" part
-(rule $TimeQueryRule   ($TimeQueryRule @with)            (thingtalk.AddCompositionFn query))
-(rule $TimeQueryRule   ($TimeQueryRule @with)            (thingtalk.AddEventFn query "$event" @event ))
-(rule $TimeQueryRule   ($TimeQueryRule @with)            (thingtalk.AddEventFn query "$event.title" @event_title ))
-(rule $TimeQueryRule   ($TimeQueryRule @with)            (thingtalk.AddEventFn query "$event.body" @event_body ))
+(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddCompositionFn query))
+(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event" @event ))
+(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.title" @event_title ))
+(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.body" @event_body ))
 
-(rule $TimeActionRule  ($TimeActionRule @with)           (thingtalk.AddCompositionFn action))
-(rule $TimeActionRule  ($TimeActionRule @with)           (thingtalk.AddEventFn action "$event" @event ))
-(rule $TimeActionRule  ($TimeActionRule @with)           (thingtalk.AddEventFn action "$event.title" @event_title ))
-(rule $TimeActionRule  ($TimeActionRule @with)           (thingtalk.AddEventFn action "$event.body" @event_body ))
+(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddCompositionFn action))
+(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event" @event ))
+(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.title" @event_title ))
+(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.body" @event_body ))
 
-(rule $IftttQueryRule  ($IftttQueryRule @with)           (thingtalk.AddCompositionFn query))
-(rule $IftttQueryRule  ($IftttQueryRule @with)           (thingtalk.AddEventFn query "$event" @event ))
-(rule $IftttQueryRule  ($IftttQueryRule @with)           (thingtalk.AddEventFn query "$event.title" @event_title ))
-(rule $IftttQueryRule  ($IftttQueryRule @with)           (thingtalk.AddEventFn query "$event.body" @event_body ))
+(rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddCompositionFn query))
+(rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddEventFn query "$event" @event ))
+(rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddEventFn query "$event.title" @event_title ))
+(rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddEventFn query "$event.body" @event_body ))
 
-(rule $IftttActionRule ($IftttActionRule @with)          (thingtalk.AddCompositionFn action))
-(rule $IftttActionRule ($IftttActionRule @with)          (thingtalk.AddEventFn action "$event" @event ))
-(rule $IftttActionRule ($IftttActionRule @with)          (thingtalk.AddEventFn action "$event.title" @event_title ))
-(rule $IftttActionRule ($IftttActionRule @with)          (thingtalk.AddEventFn action "$event.body" @event_body ))
+(rule $IftttActionRule ($IftttActionRule $With)          (thingtalk.AddCompositionFn action))
+(rule $IftttActionRule ($IftttActionRule $With)          (thingtalk.AddEventFn action "$event" @event ))
+(rule $IftttActionRule ($IftttActionRule $With)          (thingtalk.AddEventFn action "$event.title" @event_title ))
+(rule $IftttActionRule ($IftttActionRule $With)          (thingtalk.AddEventFn action "$event.body" @event_body ))
 
-(rule $IftttChain      ($IftttChain @with)               (thingtalk.AddCompositionFn action))
-(rule $IftttChain      ($IftttChain @with)               (thingtalk.AddEventFn action "$event" @event ))
-(rule $IftttChain      ($IftttChain @with)               (thingtalk.AddEventFn action "$event.title" @event_title ))
-(rule $IftttChain      ($IftttChain @with)               (thingtalk.AddEventFn action "$event.body" @event_body ))
+(rule $IftttChain      ($IftttChain $With)               (thingtalk.AddCompositionFn action))
+(rule $IftttChain      ($IftttChain $With)               (thingtalk.AddEventFn action "$event" @event ))
+(rule $IftttChain      ($IftttChain $With)               (thingtalk.AddEventFn action "$event.title" @event_title ))
+(rule $IftttChain      ($IftttChain $With)               (thingtalk.AddEventFn action "$event.body" @event_body ))
 
 
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
