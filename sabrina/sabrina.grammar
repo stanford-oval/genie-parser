@@ -126,9 +126,8 @@ $PhoneNumberValue $EmailAddressValue))
 (rule $TimeActionRule ($PeriodicTimeValue $Action)        (thingtalk.CallFn @timeSpanRule))
 (rule $TimeActionRule ($TimeQueryRule @then $Action)      (thingtalk.CallFn @ifttt))
 
-# manually binarize rule meaningfully
-(rule $IfTrigger       (@if $Trigger) (SelectFn 0))
-(rule $IfTriggerThen   ($IfTrigger @then)  (SelectFn 0))
+# use a shared category for the first part to reduce duplicate featurizations
+(rule $IfTriggerThen   (@if $Trigger @then)  (IdentityFn))
 (rule $IftttQueryRule  ($IfTriggerThen $Query)            (thingtalk.CallFn @ifttt))
 (rule $IftttActionRule ($IfTriggerThen $Action)           (thingtalk.CallFn @ifttt))
 (rule $IftttActionRule ($IftttQueryRule @then $Action)    (thingtalk.CallFn @ifttt))
