@@ -1,10 +1,11 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
+import java.util.Map;
+
+import javax.sql.DataSource;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -17,11 +18,7 @@ public class ThingpediaDataset extends AbstractDataset {
     @Option
     public String languageTag = "en";
     @Option
-    public String onlineLearnFile = null;
-    @Option
-    public String testFile = null;
-    @Option
-    public String iftttFile = null;
+    public boolean includeIfttt = false;
   }
 
   public static Options opts = new Options();
@@ -32,13 +29,19 @@ public class ThingpediaDataset extends AbstractDataset {
       + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
       + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? "
       + " and canonical is not null and ds.kind_type <> 'primary'";
-  private static final String FULL_EXAMPLE_QUERY = "select id, utterance, target_json from example_utterances where not is_base and language = ?";
+  private static final String FULL_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ?";
+  private static final String RAW_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ? and type not in ('ifttt', 'thingpedia')";
+  private static final String INSERT_QUERY = "insert into example_utterances(type, language, utterance, target_json) values (?, ?, ?, ?)";
+  private static final String INSERT_SCHEMA_REF_QUERY = "insert into example_rule_schema(example_id, schema_id) select ?, id from device_schema where kind = ?";
 
   public ThingpediaDataset() {
     dataSource = ThingpediaDatabase.getSingleton();
   }
 
-  private void readCanonicals(Connection con, int maxExamples, List<Example> examples) throws SQLException {
+  private void readCanonicals(Connection con) throws SQLException {
+    int maxExamples = getMaxExamplesForGroup("train");
+    List<Example> examples = getOrCreateGroup("train");
+
     try (PreparedStatement stmt = con.prepareStatement(CANONICAL_QUERY)) {
       stmt.setString(1, opts.languageTag);
       try (ResultSet set = stmt.executeQuery()) {
@@ -81,69 +84,48 @@ public class ThingpediaDataset extends AbstractDataset {
     }
   }
 
-  private void readFullExamples(Connection con, int maxExamples, List<Example> examples) throws SQLException {
+  private void readFullExamples(Connection con) throws SQLException {
+    int trainMaxExamples = getMaxExamplesForGroup("train");
+    List<Example> trainExamples = getOrCreateGroup("train");
+    int testMaxExamples = getMaxExamplesForGroup("test");
+    List<Example> testExamples = getOrCreateGroup("test");
+
     try (PreparedStatement stmt = con.prepareStatement(FULL_EXAMPLE_QUERY)) {
       stmt.setString(1, opts.languageTag);
       try (ResultSet set = stmt.executeQuery()) {
 
-        while (set.next() && examples.size() < maxExamples) {
+        while (set.next() && (trainExamples.size() < trainMaxExamples || testExamples.size() < testMaxExamples)) {
           int id = set.getInt(1);
-          String utterance = set.getString(2);
-          String targetJson = set.getString(3);
+          String type = set.getString(2);
+          String utterance = set.getString(3);
+          String targetJson = set.getString(4);
           Value targetValue = new StringValue(targetJson);
 
+          if (type.equals("ifttt") && !opts.includeIfttt)
+            continue;
+
+          List<Example> group;
+          int maxGroup;
+          if (type.equals("test")) {
+            group = testExamples;
+            maxGroup = testMaxExamples;
+          } else {
+            group = trainExamples;
+            maxGroup = trainMaxExamples;
+          }
+          if (group.size() >= maxGroup)
+            continue;
+
           Example ex = new Example.Builder()
-              .setId("full_" + Integer.toString(id))
+              .setId(type + "_" + Integer.toString(id))
               .setUtterance(utterance)
               .setTargetValue(targetValue)
               .createExample();
 
-          addOneExample(ex, maxExamples, examples);
+          addOneExample(ex, maxGroup, group);
         }
       }
     }
-  }
-
-  private void readFromFile(int maxExamples, List<Example> examples, String prefix, String filename) throws IOException {
-    int count = 0;
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-      String line;
-      while (examples.size() < maxExamples && (line = reader.readLine()) != null) {
-        String[] parts = line.split("\t");
-
-        Example ex = new Example.Builder()
-            .setId(prefix + "_" + Integer.toString(count++))
-            .setUtterance(parts[0])
-            .setTargetValue(new StringValue(parts[1]))
-            .createExample();
-
-        addOneExample(ex, maxExamples, examples);
-      }
-    }
-  }
-
-  private void readOnlineLearn(int maxExamples, List<Example> examples) throws IOException {
-    if (opts.onlineLearnFile == null)
-      return;
-
-    readFromFile(maxExamples, examples, "online", opts.onlineLearnFile);
-  }
-
-  private void readIfttt(int maxExamples, List<Example> examples) throws IOException {
-    if (opts.iftttFile == null)
-      return;
-
-    readFromFile(maxExamples, examples, "ifttt", opts.iftttFile);
-  }
-
-  private void readTest() throws IOException {
-    int maxExamples = getMaxExamplesForGroup("test");
-    List<Example> examples = getOrCreateGroup("test");
-
-    if (opts.testFile == null)
-      return;
-
-    readFromFile(maxExamples, examples, "test", opts.testFile);
   }
 
   @Override
@@ -151,8 +133,6 @@ public class ThingpediaDataset extends AbstractDataset {
     LogInfo.begin_track_printAll("ThingpediaDataset.read");
 
     // assume all examples are train for now
-    int maxExamples = getMaxExamplesForGroup("train");
-    List<Example> examples = getOrCreateGroup("train");
 
     try (Connection con = dataSource.getConnection()) {
       // we initially train with just the canonical forms
@@ -160,20 +140,72 @@ public class ThingpediaDataset extends AbstractDataset {
       // parameters
       // if we don't do that, with true examples the correct parse
       // always falls off the beam and we don't learn at all
-      readCanonicals(con, maxExamples, examples);
-      readFullExamples(con, maxExamples, examples);
+      readCanonicals(con);
+
+      readFullExamples(con);
     } catch (SQLException e) {
       throw new IOException(e);
     }
-    readOnlineLearn(maxExamples, examples);
-    readIfttt(maxExamples, examples);
 
     if (Dataset.opts.splitDevFromTrain)
       splitDevFromTrain();
 
-    readTest();
     collectStats();
 
     LogInfo.end_track();
+  }
+
+  public static void storeExample(String utterance, String targetJson, String languageTag, String type, List<String> schemas) {
+    DataSource dataSource = ThingpediaDatabase.getSingleton();
+    try (Connection con = dataSource.getConnection()) {
+      con.setAutoCommit(false);
+      
+      int exampleId;
+      try (PreparedStatement stmt = con.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS)) {
+        stmt.setString(1, type);
+        stmt.setString(2, languageTag);
+        stmt.setString(3, utterance);
+        stmt.setString(4, targetJson);
+        
+        stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        rs.next();
+
+        exampleId = rs.getInt(1);
+      }
+
+      try (PreparedStatement stmt2 = con.prepareStatement(INSERT_SCHEMA_REF_QUERY)) {
+        for (String schema : schemas) {
+          stmt2.setInt(1, exampleId);
+          stmt2.setString(2, schema);
+          stmt2.executeUpdate();
+        }
+      }
+
+      con.commit();
+    } catch (SQLException e) {
+      LogInfo.logs("Failed to store example in the DB: %s", e.getMessage());
+    }
+  }
+
+  public static void getRawExamples(Map<String, String> into, String languageTag) throws IOException {
+    DataSource dataSource = ThingpediaDatabase.getSingleton();
+
+    try (Connection con = dataSource.getConnection();
+        PreparedStatement stmt = con.prepareStatement(RAW_EXAMPLE_QUERY)) {
+      stmt.setString(1, languageTag);
+      try (ResultSet set = stmt.executeQuery()) {
+        while (set.next()) {
+          // 1: id
+          // 2: type
+          String utterance = set.getString(3);
+          String targetJson = set.getString(4);
+
+          into.put(utterance, targetJson);
+        }
+      }
+    } catch (SQLException e) {
+      throw new IOException(e);
+    }
   }
 }

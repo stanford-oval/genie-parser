@@ -45,7 +45,6 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
               -ThingpediaDatabase.dbUser sempre \
-              -ThingpediaDataset.onlineLearnFile ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.online_learn \
               -ThingpediaDataset.languageTag ${LANGUAGE_TAG} \
               -BeamParser.executeAllDerivations true \
               -FloatingParser.executeAllDerivations true \

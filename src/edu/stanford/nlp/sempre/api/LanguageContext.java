@@ -1,8 +1,5 @@
 package edu.stanford.nlp.sempre.api;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.corenlp.CoreNLPAnalyzer;
 
@@ -29,20 +26,14 @@ class LanguageContext {
   public final QueryCache cache = new QueryCache(256);
   public final Learner learner;
   public final ExactMatcherLayer exactMatch;
-  public final BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue;
-  public final BlockingQueue<OnlineLearnEntry> testSetSaveQueue;
 
   public LanguageContext(String tag) {
-    this(tag, new ExactMatcherLayer(), new LinkedBlockingQueue<>(), new LinkedBlockingQueue<>());
+    this(tag, new ExactMatcherLayer(tag));
   }
 
-  public LanguageContext(String tag, ExactMatcherLayer exactMatch,
-      BlockingQueue<OnlineLearnEntry> onlineLearnSaveQueue,
-      BlockingQueue<OnlineLearnEntry> testSetSaveQueue) {
+  public LanguageContext(String tag, ExactMatcherLayer exactMatch) {
     this.tag = tag;
     this.exactMatch = exactMatch;
-    this.onlineLearnSaveQueue = onlineLearnSaveQueue;
-    this.testSetSaveQueue = testSetSaveQueue;
 
     Builder builder = new Builder();
     builder.buildForLanguage(tag);

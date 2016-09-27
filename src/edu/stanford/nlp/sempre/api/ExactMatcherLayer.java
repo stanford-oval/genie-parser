@@ -4,24 +4,18 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import edu.stanford.nlp.io.IOUtils;
-import edu.stanford.nlp.io.RuntimeIOException;
+import edu.stanford.nlp.sempre.thingtalk.ThingpediaDataset;
 
 class ExactMatcherLayer {
   private final Map<String, String> mem = new ConcurrentHashMap<>();
+  private final String languageTag;
 
-  public void load(String filename) throws IOException {
-    try {
-      for (String line : IOUtils.readLines(filename)) {
-        String[] parts = line.split("\t");
-        store(parts[0], parts[1]);
-      }
-    } catch (RuntimeIOException e) {
-      if (e.getCause() instanceof IOException)
-        throw ((IOException) e.getCause());
-      else
-        throw e;
-    }
+  public ExactMatcherLayer(String languageTag) {
+    this.languageTag = languageTag;
+  }
+
+  public void load() throws IOException {
+    ThingpediaDataset.getRawExamples(mem, languageTag);
   }
 
   public void store(String query, String targetJson) {

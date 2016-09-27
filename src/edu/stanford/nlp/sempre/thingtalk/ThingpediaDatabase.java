@@ -37,7 +37,7 @@ public class ThingpediaDatabase implements DataSource {
     dataSource.setConnectionProperties("useUnicode=true;characterEncoding=utf8");
 	}
 
-	public static ThingpediaDatabase getSingleton() {
+	public static synchronized ThingpediaDatabase getSingleton() {
 		if (instance == null)
 			instance = new ThingpediaDatabase();
 

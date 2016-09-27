@@ -1,11 +1,17 @@
 package edu.stanford.nlp.sempre.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.thingtalk.ThingpediaDataset;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
@@ -30,6 +36,27 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
       sessionId = null;
   }
 
+  private static final Pattern NAME_REGEX = Pattern.compile("^tt:([^\\.]+)\\.(.+)$");
+
+  private static void extractSchema(List<String> into, Map<?, ?> invocation) {
+    if (invocation == null)
+      return;
+
+    Object name = invocation.get("name");
+
+    CharSequence fullName;
+    if (name instanceof CharSequence)
+      fullName = (CharSequence) name;
+    else
+      fullName = (CharSequence) ((Map<?, ?>) name).get("id");
+
+    Matcher matcher = NAME_REGEX.matcher(fullName);
+    if (!matcher.matches())
+      return;
+
+    into.add(matcher.group(1));
+  }
+
   @Override
   protected void doHandle() throws IOException {
     try {
@@ -48,10 +75,28 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         throw new IllegalArgumentException("Missing target");
 
       // check if the target parses as JSON
+      Map<String, Object> parsed;
       try {
-        Json.readMapHard(targetJson);
+        parsed = Json.readMapHard(targetJson);
       } catch (Exception e) {
         throw new IllegalArgumentException("Target is not valid JSON");
+      }
+
+      // figure out what schemas are involved in this example
+      List<String> schemas = new ArrayList<>();
+      try {
+        if (parsed.containsKey("rule")) {
+          Map<?, ?> rule = (Map<?, ?>) parsed.get("rule");
+          extractSchema(schemas, (Map<?, ?>) rule.get("trigger"));
+          extractSchema(schemas, (Map<?, ?>) rule.get("query"));
+          extractSchema(schemas, (Map<?, ?>) rule.get("action"));
+        } else {
+          extractSchema(schemas, (Map<?, ?>) parsed.get("trigger"));
+          extractSchema(schemas, (Map<?, ?>) parsed.get("query"));
+          extractSchema(schemas, (Map<?, ?>) parsed.get("action"));
+        }
+      } catch (ClassCastException e) {
+        throw new IllegalArgumentException("Target is not valid SEMPRE JSON");
       }
 
       double diceRoll = ThreadLocalRandom.current().nextDouble();
@@ -81,15 +126,17 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         }
       }
 
+      String type;
       if (storeAsTest) {
-        language.testSetSaveQueue.add(new OnlineLearnEntry(query, targetJson));
+        type = "test";
       } else {
         // ... but we always save the example in the database, just in case
         // potentially this allows someone to DDOS our server with bad data
         // we just hope the ML model is resilient to that (and it should be)
         language.exactMatch.store(query, targetJson);
-        language.onlineLearnSaveQueue.offer(new OnlineLearnEntry(query, targetJson));
+        type = "online";
       }
+      ThingpediaDataset.storeExample(query, targetJson, language.tag, type, schemas);
 
       // we would need to remove all entries from the cache that are affected by this learning step
       // (which potentially is all of them)

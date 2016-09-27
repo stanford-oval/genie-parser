@@ -18,7 +18,6 @@ import edu.stanford.nlp.sempre.PosixHelper;
 import edu.stanford.nlp.sempre.Session;
 import fig.basic.LogInfo;
 import fig.basic.Option;
-import fig.basic.Pair;
 import fig.exec.Execution;
 
 final class SecureIdentifiers {
@@ -75,10 +74,6 @@ public class APIServer implements Runnable {
     public String chuid = null;
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es", "zh" });
-    @Option
-    public List<Pair<String, String>> onlineLearnFiles = new ArrayList<>();
-    @Option
-    public List<Pair<String, String>> testSetFiles = new ArrayList<>();
     @Option
     public String accessToken = null;
     @Option
@@ -189,13 +184,9 @@ public class APIServer implements Runnable {
       // open log files (after we dropped privileges, so the log files are not owned by root)
       if (opts.utteranceLogFile != null)
         new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
-      for (Pair<String, String> pair : opts.onlineLearnFiles)
-        new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
-      for (Pair<String, String> pair : opts.testSetFiles)
-        new LogFlusherThread<>(langs.get(pair.getFirst()).testSetSaveQueue, pair.getSecond()).start();
 
-      for (Pair<String, String> pair : opts.onlineLearnFiles)
-        langs.get(pair.getFirst()).exactMatch.load(pair.getSecond());
+      for (LanguageContext lang : langs.values())
+        lang.exactMatch.load();
 
       String hostname = fig.basic.SysInfoUtils.getHostName();
       ExecutorService pool = Executors.newFixedThreadPool(opts.numThreads);
