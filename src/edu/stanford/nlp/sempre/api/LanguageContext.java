@@ -28,7 +28,7 @@ class LanguageContext {
   public final ExactMatcherLayer exactMatch;
 
   public LanguageContext(String tag) {
-    this(tag, new ExactMatcherLayer());
+    this(tag, new ExactMatcherLayer(tag));
   }
 
   public LanguageContext(String tag, ExactMatcherLayer exactMatch) {

@@ -15,7 +15,6 @@ import edu.stanford.nlp.sempre.Master;
 import edu.stanford.nlp.sempre.Session;
 import fig.basic.LogInfo;
 import fig.basic.Option;
-import fig.basic.Pair;
 import fig.exec.Execution;
 
 final class SecureIdentifiers {
@@ -68,10 +67,6 @@ public class APIServer implements Runnable {
     public int verbose = 1;
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es", "zh" });
-    @Option
-    public List<Pair<String, String>> onlineLearnFiles = new ArrayList<>();
-    @Option
-    public List<Pair<String, String>> testSetFiles = new ArrayList<>();
     @Option
     public String accessToken = null;
     @Option
@@ -157,8 +152,8 @@ public class APIServer implements Runnable {
       new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
 
     try {
-      for (Pair<String, String> pair : opts.onlineLearnFiles)
-        langs.get(pair.getFirst()).exactMatch.load(pair.getSecond());
+      for (LanguageContext lang : langs.values())
+        lang.exactMatch.load();
 
       String hostname = fig.basic.SysInfoUtils.getHostName();
       HttpServer server = HttpServer.create(new InetSocketAddress(opts.port), 10);
