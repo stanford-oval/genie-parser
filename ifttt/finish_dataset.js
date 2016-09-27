@@ -51,7 +51,7 @@ function handleOne(map, line, output) {
     if (ifttt.startsWith('date___time.every_day_at+')) {
         var time = findEntity(entities, "TIME");
         if (time && /T[0-9]{2}:[0-9]{2}/.test(time))
-            json.rule.trigger.args.push(makeArg("interval", time.substr(1), "Time", "is"));
+            json.rule.trigger.args.push(makeArg("time", time.substr(1), "Time", "is"));
     }
     if (ifttt.endsWith('+gmail.send_an_email')) {
         var email = findEntity(entities, "EMAIL_ADDRESS");
