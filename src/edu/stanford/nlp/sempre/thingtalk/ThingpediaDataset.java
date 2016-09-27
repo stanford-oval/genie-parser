@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import edu.stanford.nlp.sempre.*;
@@ -27,6 +29,8 @@ public class ThingpediaDataset extends AbstractDataset {
       + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? "
       + " and canonical is not null and ds.kind_type <> 'primary'";
   private static final String FULL_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ?";
+  private static final String INSERT_QUERY = "insert into example_utterances(type, language, utterance, target_json) values (?, ?, ?, ?)";
+  private static final String INSERT_SCHEMA_REF_QUERY = "insert into example_rule_schema(example_id, schema_id) select ?, id from device_schema where kind = ?";
 
   public ThingpediaDataset() {
     dataSource = ThingpediaDatabase.getSingleton();
@@ -147,5 +151,38 @@ public class ThingpediaDataset extends AbstractDataset {
     collectStats();
 
     LogInfo.end_track();
+  }
+
+  public static void storeExample(String utterance, String targetJson, String languageTag, String type, List<String> schemas) {
+    DataSource dataSource = ThingpediaDatabase.getSingleton();
+    try (Connection con = dataSource.getConnection()) {
+      con.setAutoCommit(false);
+      
+      int exampleId;
+      try (PreparedStatement stmt = con.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS)) {
+        stmt.setString(1, type);
+        stmt.setString(2, languageTag);
+        stmt.setString(3, utterance);
+        stmt.setString(4, targetJson);
+        
+        stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        rs.next();
+
+        exampleId = rs.getInt(1);
+      }
+
+      try (PreparedStatement stmt2 = con.prepareStatement(INSERT_SCHEMA_REF_QUERY)) {
+        for (String schema : schemas) {
+          stmt2.setInt(1, exampleId);
+          stmt2.setString(2, schema);
+          stmt2.executeUpdate();
+        }
+      }
+
+      con.commit();
+    } catch (SQLException e) {
+      LogInfo.logs("Failed to store example in the DB: %s", e.getMessage());
+    }
   }
 }

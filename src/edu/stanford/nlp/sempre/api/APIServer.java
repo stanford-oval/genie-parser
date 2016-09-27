@@ -155,10 +155,6 @@ public class APIServer implements Runnable {
 
     if (opts.utteranceLogFile != null)
       new LogFlusherThread<>(logQueue, opts.utteranceLogFile).start();
-    for (Pair<String, String> pair : opts.onlineLearnFiles)
-      new LogFlusherThread<>(langs.get(pair.getFirst()).onlineLearnSaveQueue, pair.getSecond()).start();
-    for (Pair<String, String> pair : opts.testSetFiles)
-      new LogFlusherThread<>(langs.get(pair.getFirst()).testSetSaveQueue, pair.getSecond()).start();
 
     try {
       for (Pair<String, String> pair : opts.onlineLearnFiles)
