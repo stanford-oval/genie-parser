@@ -32,7 +32,6 @@ exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -PPDBModel.ppdb false \
               -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
               -ThingpediaDatabase.dbUser sempre \
-              -ThingpediaDataset.onlineLearnFile sabrina/sabrina.en.online_learn \
               -BeamParser.executeAllDerivations true \
               -FloatingParser.executeAllDerivations true \
               -Main.interactive true \
