@@ -37,10 +37,12 @@ ${SEMPRE}/run-berkeley-aligner.sh ${SEMPRE}/ifttt/train.tsv
 
 # actually run sempre
 ${SEMPRE}/run-sempre-training.sh \
+    -FloatingParser.maxDepth 5 \
+    -Parser.beamSize 20 \
     -Builder.dataset ifttt.IftttDataset \
     -IftttDataset.trainFile ${SEMPRE}/ifttt/train.tsv \
     -IftttDataset.testFile ${SEMPRE}/ifttt/test.tsv \
-    -ThingpediaDatabase.dbUrl mysql://localhost/ifttt \
+    -ThingpediaDatabase.dbUrl jdbc:mysql://localhost/ifttt \
     -ThingpediaDatabase.dbUser ifttt \
     -ThingpediaDatabase.dbPw ifttt \
     "$@"

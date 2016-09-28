@@ -19,9 +19,6 @@
 (rule $TriggerName ($TOKEN) (ifttt.IftttLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
 
-# manually binarize rule meaningfully
-(rule $IfTrigger       (@if $Trigger) (SelectFn 0))
-(rule $IfTriggerThen   ($IfTrigger @then)  (SelectFn 0))
-(rule $IftttActionRule ($IfTriggerThen $Action)           (thingtalk.CallFn @ifttt))
+(rule $IftttActionRule (@if $Trigger @then $Action)           (thingtalk.CallFn @ifttt))
 
 (rule $ROOT ($IftttActionRule) (lambda cmd (call @jsonOut (var cmd))))
