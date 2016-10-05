@@ -108,7 +108,7 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         LogInfo.logs("Learning %s as %s", query, targetJson);
 
       Session session = server.getSession(sessionId);
-      Example ex;
+      Example ex = null;
       synchronized (session) {
         LogInfo.logs("session.lang %s, language.tag %s", session.lang, language.tag);
         if (session.lang != null && !session.lang.equals(language.tag))
@@ -133,7 +133,12 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         // ... but we always save the example in the database, just in case
         // potentially this allows someone to DDOS our server with bad data
         // we just hope the ML model is resilient to that (and it should be)
-        language.exactMatch.store(query, targetJson);
+
+        // reuse the CoreNLP analysis if possible
+        if (ex != null)
+          language.exactMatch.store(ex, targetJson);
+        else
+          language.exactMatch.store(query, targetJson);
         type = "online";
       }
       ThingpediaDataset.storeExample(query, targetJson, language.tag, type, schemas);

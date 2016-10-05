@@ -89,7 +89,7 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     session.updateContext(ex, 1);
 
     // now try the exact match, and if it succeeds replace the choice in front
-    String exactMatch = language.exactMatch.hit(query);
+    String exactMatch = language.exactMatch.hit(ex);
     if (exactMatch != null) {
       Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
           .value(new StringValue(exactMatch)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();

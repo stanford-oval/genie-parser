@@ -15,7 +15,7 @@ SUPPORTED_CHANNELS=set(['if_notifications', 'date___time', 'email',
     'twitter', 'android_device', 'dropbox', 'sms', 'philips_hue',
     'facebook', 'gmail', 'tumblr', 'instagram', 'weather', 'android_sms',
     'space', 'stocks', 'up_by_jawbone', 'slack', 'youtube', 'linkedin'])
-FILTER_BY_CHANNEL=True
+FILTER_BY_CHANNEL=False
 
 def normalize(x):
     return re.sub('[^a-z0-9]', '_', x.strip().lower().decode('utf-8'))
@@ -115,6 +115,7 @@ def main():
     action_recipes = Counter()
     channel_recipes = Counter()
     joint_recipes = Counter()
+    joint_shares = Counter()
     trigger_shares = Counter()
     action_shares = Counter()
     channel_shares = Counter()
@@ -140,6 +141,10 @@ def main():
         channel_shares[action_channel] += shares
         
         joint_recipes[trigger_channel + '.' + trigger + '+' + action_channel + '.' + action] += 1
+        joint_shares[trigger_channel + '.' + trigger + '+' + action_channel + '.' + action] += shares
+    
+    print(joint_recipes['instagram.any_new_photo_by_you+twitter.post_a_tweet_with_image'], joint_shares['instagram.any_new_photo_by_you+twitter.post_a_tweet_with_image'])
+    #sys.exit(0)
     
     #with open('ifttt-stats.json', 'w') as f:
     #    json.dump({ 'trigger_recipes': trigger_recipes,
@@ -162,7 +167,7 @@ def main():
     print_top(channel_recipes, 22, "Top %d channels by # of recipes")
     print_top(trigger_recipes, 132, "Top %d triggers by # of recipes")
     print_top(action_recipes, 54, "Top %d actions by # of recipes")
-    #print_top(joint_recipes, 200, "Top %d trigger-action pairs by # of recipes")
+    print_top(joint_recipes, 20, "Top %d trigger-action pairs by # of recipes")
     
     #plt.xkcd()
 

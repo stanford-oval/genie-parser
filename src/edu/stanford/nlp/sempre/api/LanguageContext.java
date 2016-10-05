@@ -28,18 +28,21 @@ class LanguageContext {
   public final ExactMatcherLayer exactMatch;
 
   public LanguageContext(String tag) {
-    this(tag, new ExactMatcherLayer(tag));
+    this(tag, new CoreNLPAnalyzer(tag), null);
   }
 
-  public LanguageContext(String tag, ExactMatcherLayer exactMatch) {
+  public LanguageContext(String tag, LanguageAnalyzer analyzer, ExactMatcherLayer exactMatch) {
     this.tag = tag;
-    this.exactMatch = exactMatch;
+    this.analyzer = analyzer;
+    if (exactMatch != null)
+      this.exactMatch = exactMatch;
+    else
+      this.exactMatch = new ExactMatcherLayer(tag, analyzer);
 
     Builder builder = new Builder();
     builder.buildForLanguage(tag);
     parser = builder.parser;
     params = builder.params;
-    analyzer = new CoreNLPAnalyzer(tag);
     learner = new Learner(builder.parser, builder.params, null);
   }
 }
