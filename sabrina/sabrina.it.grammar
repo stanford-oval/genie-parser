@@ -31,6 +31,7 @@
 (def @queries interrogazioni)
 (def @commands comandi)
 (def @list lista)
+(def @make_rule (crea regola))
 
 (def @yes "sì")
 (def @no no)

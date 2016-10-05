@@ -31,6 +31,7 @@
 (def @queries queries)
 (def @commands commands)
 (def @list list)
+(def @make_rule (make rule))
 
 (def @yes yes)
 (def @no no)

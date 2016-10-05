@@ -3,7 +3,6 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
-import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -188,7 +187,11 @@ public class ThingpediaDataset extends AbstractDataset {
     }
   }
 
-  public static void getRawExamples(Map<String, String> into, String languageTag) throws IOException {
+  public interface ExampleConsumer {
+    public void accept(String utterance, String targetJson);
+  }
+
+  public static void getRawExamples(String languageTag, ExampleConsumer consumer) throws IOException {
     DataSource dataSource = ThingpediaDatabase.getSingleton();
 
     try (Connection con = dataSource.getConnection();
@@ -201,7 +204,7 @@ public class ThingpediaDataset extends AbstractDataset {
           String utterance = set.getString(3);
           String targetJson = set.getString(4);
 
-          into.put(utterance, targetJson);
+          consumer.accept(utterance, targetJson);
         }
       }
     } catch (SQLException e) {
