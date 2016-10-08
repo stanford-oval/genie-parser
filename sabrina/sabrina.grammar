@@ -30,7 +30,7 @@
 	(rule $TimeUnit (@unit) (ConstantFn (string @unit)))
 )
 (rule $TimeIntervalValue ($NumValue $TimeUnit) (thingtalk.CallFn @measureValueCast))
-(for @unit (C F byte KB MB GB TB)
+(for @unit (C F byte KB MB GB TB kg lb g oz)
 	(rule $Unit (@unit) (ConstantFn (string @unit)))
 )
 (rule $MeasureValue ($NumValue $Unit) (thingtalk.CallFn @measureValueCast))

@@ -65,6 +65,7 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     b.setUtterance(query);
     b.setContext(session.context);
     Example ex = b.createExample();
+    ex.preprocess(language.analyzer);
 
     // try from cache
     List<Derivation> derivations = language.cache.hit(query);
@@ -77,7 +78,6 @@ class QueryExchangeState extends AbstractHttpExchangeState {
 
     // Parse!
     if (derivations == null) {
-      ex.preprocess(language.analyzer);
       language.parser.parse(language.params, ex, false);
       derivations = ex.getPredDerivations();
       language.cache.store(query, derivations);
