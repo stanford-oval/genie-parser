@@ -413,46 +413,53 @@ public class ThingpediaLexicon {
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
-          + " and match (canonical,keywords) against (? in natural language mode) "
+          + " and match (canonical,keywords) against (? in natural language mode with query expansion) "
           + " and ds.kind_type <> 'primary' limit "
-          + Parser.opts.beamSize;
+          + (3 * Parser.opts.beamSize)
+          + " union distinct (select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
+          + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon lex "
+          + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
+          + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
+          + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
+          + " and lex.token in (?, ?) limit "
+          + (3 * Parser.opts.beamSize) + ")";
     }
 
     long now = System.currentTimeMillis();
 
     String search, key;
-    try (Connection con = dataSource.getConnection()) {
-      try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, languageTag);
-        stmt.setString(2, channel_type.toString().toLowerCase());
-        if (isBeam) {
-          search = phrase;
-          key = phrase;
-          stmt.setString(3, phrase);
-        } else {
-          search = "";
-          key = "";
-          for (int i = 0; i < tokens.length; i++) {
-            search += (i > 0 ? " " : "") + tokens[i];
-            search += " " + LanguageUtils.stem(tokens[i]);
-            key += (i > 0 ? " " : "") + tokens[i];
-          }
-          stmt.setString(3, search);
-        }
-
-        entries = new LinkedList<>();
-        try (ResultSet rs = stmt.executeQuery()) {
-          while (rs.next())
-            entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
-                rs.getString(4), rs.getString(5), rs.getString(6), key));
-        } catch (SQLException | JsonProcessingException e) {
-          if (opts.verbose > 0)
-            LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
-        }
-        cache.store(new LexiconKey(channel_type, phrase), Collections.unmodifiableList(entries),
-            now + CACHE_AGE);
-        return entries.iterator();
+    try (Connection con = dataSource.getConnection(); PreparedStatement stmt = con.prepareStatement(query)) {
+      stmt.setString(1, languageTag);
+      String channelType = channel_type.toString().toLowerCase();
+      stmt.setString(2, channelType);
+      if (isBeam) {
+        search = phrase;
+        key = phrase;
+        stmt.setString(3, phrase);
+      } else {
+        String stemmed = LanguageUtils.stem(tokens[0]);
+        key = tokens[0];
+        search = tokens[0] + " " + stemmed;
+        stmt.setString(3, search);
+        stmt.setString(4, languageTag);
+        stmt.setString(5, channelType);
+        stmt.setString(6, languageTag);
+        stmt.setString(7, tokens[0]);
+        stmt.setString(8, stemmed);
       }
+
+      entries = new LinkedList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next())
+          entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
+              rs.getString(4), rs.getString(5), rs.getString(6), key));
+      } catch (SQLException | JsonProcessingException e) {
+        if (opts.verbose > 0)
+          LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
+      }
+      cache.store(new LexiconKey(channel_type, phrase), Collections.unmodifiableList(entries),
+          now + CACHE_AGE);
+      return entries.iterator();
     }
   }
 }
