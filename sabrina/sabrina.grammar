@@ -146,15 +146,15 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
 # in particular, the binarized grammar will include an intermediate binary rule with SelectFn 0
 # and an unary cat rule with AddCompositionFn
 # AddCompositionFn takes care of adding the "foo that" part
-(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddCompositionFn query))
-(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event" @event ))
-(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.title" @event_title ))
-(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.body" @event_body ))
+#(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddCompositionFn query))
+#(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event" @event ))
+#(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.title" @event_title ))
+#(rule $TimeQueryRule   ($TimeQueryRule $With)            (thingtalk.AddEventFn query "$event.body" @event_body ))
 
-(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddCompositionFn action))
-(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event" @event ))
-(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.title" @event_title ))
-(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.body" @event_body ))
+#(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddCompositionFn action))
+#(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event" @event ))
+#(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.title" @event_title ))
+#(rule $TimeActionRule  ($TimeActionRule $With)           (thingtalk.AddEventFn action "$event.body" @event_body ))
 
 (rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddCompositionFn query))
 (rule $IftttQueryRule  ($IftttQueryRule $With)           (thingtalk.AddEventFn query "$event" @event ))
