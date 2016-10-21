@@ -1,7 +1,6 @@
 # JavaExecutor Functions
 (def @measureValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.measureValueCast)
-(def @phoneNumberCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.phoneNumberCast)
-(def @emailAddressCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.emailAddressCast)
+(def @typedStringCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.typedStringCast)
 
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
@@ -48,8 +47,12 @@
 # we always have this anchored rule, so that we always pick up
 # if the user explicitly types in quotes
 (rule $StringValue (`` $PHRASE '') (IdentityFn) (anchored 1))
-# handle usernames, slack channel names, hashtags, etc.
-(rule $StringValue ($TOKEN) (FilterRegexFn "[@#](.+)") (anchored 1))
+
+(rule $Username ($TOKEN) (FilterRegexFn "[@](.+)") (anchored 1))
+(rule $UsernameValue ($Username) (lambda v (call @typedStringCast (string Username) (var v))) (anchored 1))
+(rule $Hashtag ($TOKEN) (FilterRegexFn "[#](.+)") (anchored 1))
+(rule $HashtagValue ($Hashtag) (lambda v (call @typedStringCast (string Hashtag) (var v))) (anchored 1))
+
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
@@ -57,17 +60,17 @@
 
 # recognize email addresses and phone numbers as strings
 (rule $PhoneNumber ($PHRASE) (NerValueFn PHONE_NUMBER) (anchored 1))
-(rule $PhoneNumberValue ($PhoneNumber) (lambda v (call @phoneNumberCast (var v))))
+(rule $PhoneNumberValue ($PhoneNumber) (lambda v (call @typedStringCast (string PhoneNumber) (var v))) (anchored 1))
 # optimization: email addresses are always single token
 (rule $EmailAddress ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
-(rule $EmailAddressValue ($EmailAddress) (lambda v (call @emailAddressCast (var v))))
+(rule $EmailAddressValue ($EmailAddress) (lambda v (call @typedStringCast (string EmailAddress) (var v))) (anchored 1))
 
 (rule $PeriodicTimeValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
 (rule $PeriodicTimeValue (@every $TimeIntervalValue) (SelectFn 0))
 
 (def @all_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
-$PhoneNumberValue $EmailAddressValue $StringValue))
+$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $StringValue))
 
 # Answer handling
 # NOTE 1: string answers are handled by putting Sabrina in "raw" mode
@@ -78,7 +81,7 @@ $PhoneNumberValue $EmailAddressValue $StringValue))
 # that should not be learned as synonyms of yes/no
 (def @answer_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
-$PhoneNumberValue $EmailAddressValue))
+$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
