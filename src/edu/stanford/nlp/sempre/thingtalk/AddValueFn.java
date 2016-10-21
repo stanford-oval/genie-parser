@@ -73,6 +73,8 @@ public class AddValueFn extends SemanticFn {
         currentArgname = argnameIter.next();
         if (operator.equals("is") && invocation.hasParamName(currentArgname))
           continue;
+        if (currentArgname.startsWith("__")) // compat argument
+          continue;
 
         ParamNameValue param = new ParamNameValue(currentArgname, invocation.name.getArgType(currentArgname));
 

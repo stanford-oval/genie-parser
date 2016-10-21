@@ -52,14 +52,14 @@ class ArgFilterHelpers {
     if (have.equals("Bool") && want.equals("Boolean"))
       return true;
 
+    // String is acceptable for Username/Hashtag
+    if (have.equals("String") && (want.equals("Username") || want.equals("Hashtag")))
+      return true;
+
     // FIXME be stricter in handling measures
     // (not a problem for now because we only parse temperatures)
     if (have.equals("Measure") && want.startsWith("Measure(") && value instanceof NumberValue)
       return unitOk(((NumberValue) value).unit, want.substring("Measure(".length(), want.length() - 1));
-
-    // time gets converted to String by Sabrina
-    if (have.equals("Time") && want.equals("String"))
-      return true;
 
     return false;
   }

@@ -16,6 +16,10 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   // recognize numbers, *, # and -, or recognize full numbers in touch tone format
   private static final Pattern NUMBER = Pattern
       .compile("^([0-9*#\\-]+|[A-Za-z0-90-9*#\\-]{3,4}-[A-Za-z0-90-9*#\\-]{3,})$");
+  // same thing, but more lenient with touch tones, if we have an explicit intl or area code prefix
+  // parses things like 1-800-SABRINA, where the number part does not match NUMBER
+  private static final Pattern LENIENT_NUMBER = Pattern
+      .compile("^([A-Za-z0-90-9*#\\-]{4,})$");
   // but don't recognize something that would be a legitimate number
   private static final Pattern DOUBLE_PATTERN = Pattern.compile("[+\\-]?([0-9]*\\.[0-9]+|[0-9]+)([eE][+-]?[0-9]+)?");
 
@@ -83,7 +87,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       return true;
     }
 
-    private boolean tryNumber() {
+    private boolean tryNumber(boolean lenient) {
       if (tokens.size() <= startToken + tokenIdx)
         return false;
 
@@ -91,7 +95,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       if (charIdx > 0)
         token = token.substring(charIdx);
 
-      Matcher matcher = NUMBER.matcher(token);
+      Matcher matcher = (lenient ? LENIENT_NUMBER : NUMBER).matcher(token);
       if (!matcher.matches())
         return false;
 
@@ -108,11 +112,11 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
     public String tryParse() {
       tryIntlPrefix();
       tryAreaCode();
-      while (tryNumber())
+      while (tryNumber(hasIntlPrefix || hasAreaCode))
         ;
       
-      // reject anything with less than 5 chars
-      if (buffer.length() < 5)
+      // reject anything with less than 5 chars, or with no tokens
+      if (buffer.length() < 5 || tokenIdx == 0)
         return null;
 
       // if the buffer has 4 chars or less (plus 2 for intl prefix, plus 3 for area code), we don't accept it

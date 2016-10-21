@@ -23,12 +23,8 @@ public final class ThingTalk {
     return tempVal;
   }
 
-  public static EmailAddressValue emailAddressCast(StringValue string) {
-    return new EmailAddressValue(string.value);
-  }
-
-  public static PhoneNumberValue phoneNumberCast(StringValue string) {
-    return new PhoneNumberValue(string.value);
+  public static TypedStringValue typedStringCast(StringValue type, StringValue string) {
+    return new TypedStringValue(type.value, string.value);
   }
 
   //******************************************************************************************************************
@@ -56,6 +52,8 @@ public final class ThingTalk {
   static String typeFromValue(Value value) {
     if (value instanceof NumberValue)
       return typeFromNumber((NumberValue) value);
+    else if (value instanceof TypedStringValue)
+      return ((TypedStringValue) value).getType();
     else if (value instanceof StringValue)
       return "String";
     else if (value instanceof TimeValue)
