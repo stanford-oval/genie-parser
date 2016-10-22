@@ -78,6 +78,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     public final String data2;
     public final String stem2;
     public final String ner2;
+    private int hashData1;
+    private int hashData2;
+    private int hashStem1;
+    private int hashStem2;
 
     public Item(Tag tag, String data1, String stem1, String ner1) {
       this.tag = tag;
@@ -120,13 +124,41 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         return tag + ":" + data1 + " " + data2;
     }
 
+    private int ensureHash1() {
+      if (hashData1 != 0)
+        return hashData1;
+      return hashData1 = 1 + data1.hashCode();
+    }
+
+    private int ensureHash2() {
+      if (hashData2 != 0)
+        return hashData2;
+      if (data2 == null)
+        return hashData2 = 1;
+      return hashData2 = 2 + data2.hashCode();
+    }
+
+    private int ensureHashStem1() {
+      if (hashStem1 != 0)
+        return hashStem1;
+      return hashStem1 = 1 + stem1.hashCode();
+    }
+
+    private int ensureHashStem2() {
+      if (hashStem2 != 0)
+        return hashStem2;
+      if (stem2 == null)
+        return hashStem2 = 1;
+      return hashStem2 = 2 + stem2.hashCode();
+    }
+
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((data1 == null) ? 0 : data1.hashCode());
-      result = prime * result + ((data2 == null) ? 0 : data2.hashCode());
-      result = prime * result + ((tag == null) ? 0 : tag.hashCode());
+      result = prime * result + ensureHash1();
+      result = prime * result + ensureHash2();
+      result = prime * result + tag.hashCode();
       return result;
     }
 
@@ -144,6 +176,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         return true;
       if (tag != other.tag)
         return false;
+      if (ensureHash1() != other.ensureHash1() ||
+          ensureHash2() != other.ensureHash2())
+        return false;
       if (!data1.equals(other.data1))
         return false;
       if (data2 == null) {
@@ -158,6 +193,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       if (this == other)
         return true;
       if (tag != other.tag)
+        return false;
+      if (ensureHashStem1() != other.ensureHashStem1() ||
+          ensureHashStem2() != other.ensureHashStem2())
         return false;
       if (!stem1.equals(other.stem1))
         return false;
