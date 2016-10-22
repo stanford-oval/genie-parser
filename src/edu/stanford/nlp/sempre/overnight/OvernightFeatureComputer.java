@@ -310,8 +310,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       double match = 0;
       double ppdb = 0;
       for (Item candidate : candidateItems.unigrams) {
-        match = Math.max(match, computeMatch(input, candidate));
-        ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
+        int isMatch = computeMatch(input, candidate);
+        match = Math.max(match, isMatch);
+        if (isMatch == 0)
+          ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
         deriv.addFeature("paraphrase", "match");
@@ -322,8 +324,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       double match = 0;
       double ppdb = 0;
       for (Item candidate : candidateItems.bigrams) {
-        match = Math.max(match, computeMatch(input, candidate));
-        ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
+        int isMatch = computeMatch(input, candidate);
+        match = Math.max(match, isMatch);
+        if (isMatch == 0)
+          ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
         deriv.addFeature("paraphrase", "match");
@@ -841,7 +845,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return sum;
   }
 
-  private static double computeMatch(Item a, Item b) {
+  private static int computeMatch(Item a, Item b) {
     if (a.equals(b))
       return 1;
     if (a.stemEquals(b))
@@ -849,8 +853,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return 0;
   }
 
-  private double computeParaphrase(Item a, Item b) {
-    if (computeMatch(a, b) >  0) return 0;
+  private int computeParaphrase(Item a, Item b) {
+    // we know that we never compare items that match
 
     // we know we never compare items of different types
     assert a.tag == b.tag;
@@ -874,6 +878,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         }
       }
     }
-    return numPpdb <= 1 ? 1d : 0d;
+    return numPpdb <= 1 ? 1 : 0;
   }
 }
