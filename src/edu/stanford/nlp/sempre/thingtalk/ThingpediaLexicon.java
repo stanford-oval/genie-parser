@@ -413,7 +413,7 @@ public class ThingpediaLexicon {
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
-          + " and match (canonical,keywords) against (? in natural language mode with query expansion) "
+          + " and match (canonical,keywords) against (? in natural language) "
           + " and ds.kind_type <> 'primary' limit "
           + (3 * Parser.opts.beamSize)
           + " union distinct (select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
