@@ -595,6 +595,29 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
     double[][] alignmentMatrix = buildLexicalAlignmentMatrix(filteredInputTokens, filteredDerivTokens);
     int[] assignment = bMatcher.findMaxWeightAssignment(alignmentMatrix);
+    
+    int countInOrder = 0;
+    int countReorder = 0;
+    int i0 = -1;
+    for (int i = 0; i < filteredInputTokens.size(); ++i) {
+      if (assignment[i] != i) {
+        i0 = i;
+        break;
+      }
+    }
+    if (i0 != -1) {
+      for (int i = i0 + 1; i < filteredInputTokens.size(); ++i) {
+        if (assignment[i] < assignment[i - 1])
+          countReorder++;
+        else
+          countInOrder++;
+      }
+      if (countReorder > 0)
+        deriv.addFeature("reorder", "anyInversion");
+      deriv.addFeature("reorder", "inversions", countReorder);
+      deriv.addFeature("reorder", "correct", countInOrder);
+    }
+    
     for (int i = 0; i < filteredInputTokens.size(); ++i) {
       if (assignment[i] != i) {
         int derivIndex = assignment[i] - filteredInputTokens.size();
@@ -823,7 +846,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           @Override
           public boolean matches(String feature) {
             return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ")
-                || feature.startsWith("alignment :: ");
+                || feature.startsWith("alignment :: ") || feature.startsWith("reorder :: ");
           }
 
         });
