@@ -859,7 +859,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     // if we're comparing unigrams, we don't need to check a.data1 == b.data1
     // because we just did it earlier when we called computeMatch
     if (a.tag == Item.Tag.UNIGRAM || (!a.data1.equals(b.data1) && !a.stem1.equals(b.stem1))) {
-      if (ppdbModel.get(a.data1, b.data1) > 0 || ppdbModel.get(a.stem1, b.stem1) > 0) {
+      if (ppdbModel.get(a.data1, b.data1) || ppdbModel.get(a.stem1, b.stem1)) {
         numPpdb++;
       } else {
         return 0;
@@ -867,7 +867,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
     if (a.tag != Item.Tag.UNIGRAM) {
       if (!a.data2.equals(b.data2) && !a.stem2.equals(b.stem2)) {
-        if (ppdbModel.get(a.data2, b.data2) > 0 || ppdbModel.get(a.stem2, b.stem2) > 0) {
+        if (ppdbModel.get(a.data2, b.data2) || ppdbModel.get(a.stem2, b.stem2)) {
           numPpdb++;
         } else {
           return 0;
