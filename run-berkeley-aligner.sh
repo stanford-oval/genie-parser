@@ -38,7 +38,6 @@ rm -fr ./berkeleyaligner.tmp
 java -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
 	-Dmodules=core,corenlp,overnight,thingtalk \
 	edu.stanford.nlp.sempre.overnight.PhraseAligner \
-	$CANONICALS \
+	./${MODULE}/${MODULE}.word_alignments.berkeley.source.${LANGUAGE_TAG} \
 	./${MODULE}/${MODULE}.phrase_alignments.${LANGUAGE_TAG} \
-	./${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
 	${LANGUAGE_TAG} 2
