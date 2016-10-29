@@ -51,8 +51,8 @@ public class Derivation implements SemanticFn.Callable, HasScore {
   public final int end;
 
   // Floating cell information
-  // TODO(yushi): make fields final
   public String canonicalUtterance;
+  public String nerUtterance;
   private boolean[] anchoredTokens;   // Tokens which anchored rules are defined on
 
   // If this derivation is composed of other derivations
@@ -133,20 +133,22 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     private Evaluation executorStats;
     private double compatibility = Double.NaN;
     private double prob = Double.NaN;
-    private String canonicalUtterance = "";
-		private Cacheability cache = Cacheability.CACHEABLE;
+    private String canonicalUtterance = null;
+    private String nerUtterance = null;
+    private Cacheability cache = Cacheability.CACHEABLE;
 
     public Builder cat(String cat) { this.cat = cat; return this; }
     public Builder start(int start) { this.start = start; return this; }
     public Builder end(int end) { this.end = end; return this; }
     public Builder rule(Rule rule) { this.rule = rule; return this; }
 
-		public Builder children(List<Derivation> children) {
-			this.children = children;
-			for (Derivation child : children)
-				this.meetCache(child.cache);
-			return this;
-		}
+    public Builder children(List<Derivation> children) {
+      this.children = children;
+      for (Derivation child : children)
+        this.meetCache(child.cache);
+      return this;
+    }
+
     public Builder formula(Formula formula) { this.formula = formula; return this; }
     public Builder type(SemType type) { this.type = type; return this; }
     public Builder localFeatureVector(FeatureVector localFeatureVector) { this.localFeatureVector = localFeatureVector; return this; }
@@ -156,11 +158,15 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     public Builder compatibility(double compatibility) { this.compatibility = compatibility; return this; }
     public Builder prob(double prob) { this.prob = prob; return this; }
     public Builder canonicalUtterance(String canonicalUtterance) { this.canonicalUtterance = canonicalUtterance; return this; }
+    public Builder nerUtterance(String nerUtterance) {
+      this.nerUtterance = nerUtterance;
+      return this;
+    }
 
-		public Builder meetCache(Cacheability cache) {
-			this.cache = this.cache.meet(cache);
-			return this;
-		}
+    public Builder meetCache(Cacheability cache) {
+      this.cache = this.cache.meet(cache);
+      return this;
+    }
 
     public Builder withStringFormulaFrom(String value) {
       this.formula = new ValueFormula<>(new StringValue(value));
@@ -186,13 +192,13 @@ public class Derivation implements SemanticFn.Callable, HasScore {
       return new Derivation(
           cat, start, end, rule, children, formula, type,
           localFeatureVector, score, value, executorStats, compatibility, prob,
-					canonicalUtterance, cache);
+          canonicalUtterance, nerUtterance, cache);
     }
   }
 
   Derivation(String cat, int start, int end, Rule rule, List<Derivation> children, Formula formula, SemType type,
       FeatureVector localFeatureVector, double score, Value value, Evaluation executorStats, double compatibility, double prob,
-			String canonicalUtterance, Cacheability cache) {
+      String canonicalUtterance, String nerUtterance, Cacheability cache) {
     this.cat = cat;
     this.start = start;
     this.end = end;
@@ -207,38 +213,53 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     this.compatibility = compatibility;
     this.prob = prob;
     this.canonicalUtterance = canonicalUtterance;
-		this.cache = cache;
+    this.nerUtterance = nerUtterance;
+    this.cache = cache;
     this.creationIndex = numCreated++;
   }
 
   public Formula getFormula() { return formula; }
   @Override
-public double getScore() { return score; }
+  public double getScore() {
+    return score;
+  }
   public double getProb() { return prob; }
   public double getCompatibility() { return compatibility; }
   @Override
-public List<Derivation> getChildren() { return children; }
+  public List<Derivation> getChildren() {
+    return children;
+  }
   public Value getValue() { return value; }
 
   public boolean isFeaturizedAndScored() { return !Double.isNaN(score); }
   public boolean isExecuted() { return value != null; }
   public int getMaxBeamPosition() { return maxBeamPosition; }
   @Override
-public String getCat() { return cat; }
+  public String getCat() {
+    return cat;
+  }
   @Override
-public int getStart() { return start; }
+  public int getStart() {
+    return start;
+  }
   @Override
-public int getEnd() { return end; }
+  public int getEnd() {
+    return end;
+  }
   public boolean containsIndex(int i) { return i < end && i >= start; }
   @Override
-public Rule getRule() { return rule; }
+  public Rule getRule() {
+    return rule;
+  }
   public Evaluation getExecutorStats() { return executorStats; }
   public FeatureVector getLocalFeatureVector() { return localFeatureVector; }
 
   @Override
-public Derivation child(int i) { return children.get(i); }
+  public Derivation child(int i) {
+    return children.get(i);
+  }
   @Override
-public String childStringValue(int i) {
+  public String childStringValue(int i) {
     return Formulas.getString(children.get(i).formula);
   }
 
