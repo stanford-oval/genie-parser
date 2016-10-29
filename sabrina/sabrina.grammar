@@ -1,6 +1,5 @@
 # JavaExecutor Functions
 (def @measureValueCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.measureValueCast)
-(def @typedStringCast edu.stanford.nlp.sempre.thingtalk.ThingTalk.typedStringCast)
 
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
@@ -45,25 +44,16 @@
 )
 (rule $StringValue (`` $StrValue '') (IdentityFn))
 
-(rule $QuotedString ($PHRASE) (NerValueFn QUOTED_STRING) (anchored 1))
-(rule $StringValue ($QuotedString) (IdentityFn))
-
-(rule $Username ($TOKEN) (NerValueFn USERNAME) (anchored 1))
-(rule $UsernameValue ($Username) (lambda v (call @typedStringCast (string Username) (var v))) (anchored 1))
-(rule $Hashtag ($TOKEN) (NerValueFn HASHTAG) (anchored 1))
-(rule $HashtagValue ($Hashtag) (lambda v (call @typedStringCast (string Hashtag) (var v))) (anchored 1))
+(rule $StringValue ($PHRASE) (thingtalk.NerValueFn QUOTED_STRING String) (anchored 1))
+(rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME Username) (anchored 1))
+(rule $HashtagValue ($TOKEN) (thingtalk.NerValueFn HASHTAG Hashtag) (anchored 1))
+(rule $PhoneNumberValue ($PHRASE) (thingtalk.NerValueFn PHONE_NUMBER PhoneNumber) (anchored 1))
+(rule $EmailAddressValue ($TOKEN) (thingtalk.NerValueFn EMAIL_ADDRESS EmailAddress) (anchored 1))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
 (rule $LocationValue @at_work (ConstantFn (location rel_work -1 -1) fb:type.any))
-
-# recognize email addresses and phone numbers as strings
-(rule $PhoneNumber ($PHRASE) (NerValueFn PHONE_NUMBER) (anchored 1))
-(rule $PhoneNumberValue ($PhoneNumber) (lambda v (call @typedStringCast (string PhoneNumber) (var v))) (anchored 1))
-# optimization: email addresses are always single token
-(rule $EmailAddress ($TOKEN) (NerValueFn EMAIL_ADDRESS) (anchored 1))
-(rule $EmailAddressValue ($EmailAddress) (lambda v (call @typedStringCast (string EmailAddress) (var v))) (anchored 1))
 
 (rule $PeriodicTimeValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
 (rule $PeriodicTimeValue (@every $TimeIntervalValue) (SelectFn 0))

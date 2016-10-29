@@ -1,21 +1,25 @@
-package edu.stanford.nlp.sempre;
+package edu.stanford.nlp.sempre.thingtalk;
 
+import edu.stanford.nlp.sempre.*;
 import fig.basic.LispTree;
 
 /**
  * Similar to FilterNerSpanFn, but it will return the NER values
- * instead of the raw tokens
+ * instead of the raw tokens, and will return a TypedStringValue instead of a
+ * StringValue
  * 
  * @author gcampagn
  */
 public class NerValueFn extends SemanticFn {
   // Accepted NER tag (PERSON, LOCATION, ORGANIZATION, etc)
   private String tag;
+  private String type;
 
   @Override
   public void init(LispTree tree) {
     super.init(tree);
     tag = tree.child(1).value;
+    type = tree.child(2).value;
   }
 
   @Override
@@ -28,7 +32,7 @@ public class NerValueFn extends SemanticFn {
           return null;
         return new Derivation.Builder()
             .withCallable(c)
-            .formula(new ValueFormula<>(new StringValue(value)))
+            .formula(new ValueFormula<>(new TypedStringValue(type, value)))
             .type(SemType.entityType)
             .createDerivation();
       }
