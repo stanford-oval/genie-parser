@@ -2,14 +2,12 @@ package edu.stanford.nlp.sempre.overnight;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 import edu.stanford.nlp.io.IOUtils;
-import edu.stanford.nlp.sempre.LanguageInfo;
 import edu.stanford.nlp.sempre.corenlp.CoreNLPAnalyzer;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
@@ -45,15 +43,15 @@ public class PhraseAligner {
       String utterance = phrases[0];
       String original = phrases[1];
 
-      LanguageInfo utteranceInfo = analyzer.analyze(utterance);
-      LanguageInfo originalInfo = analyzer.analyze(original);
+      List<String> utteranceTokens = Arrays.asList(utterance.split(" "));
+      List<String> originalTokens = Arrays.asList(original.split(" "));
 
-      int[] utteranceAlignment = new int[utteranceInfo.numTokens()];
+      int[] utteranceAlignment = new int[utteranceTokens.size()];
 
       // we use -1 to mean "not aligned"
       for (int i = 0; i < utteranceAlignment.length; i++)
           utteranceAlignment[i] = -1;
-      int[] originalAlignment = new int[originalInfo.numTokens()];
+      int[] originalAlignment = new int[originalTokens.size()];
       for (int i = 0; i < originalAlignment.length; i++)
           originalAlignment[i] = -1;
       
@@ -67,8 +65,8 @@ public class PhraseAligner {
         originalAlignment[originalToken] = utteranceToken;
       }
       
-      for (int i1 = 0; i1 < utteranceInfo.numTokens(); i1++) {
-        for (int i2 = i1+1; i2 <= utteranceInfo.numTokens(); i2++) {
+      for (int i1 = 0; i1 < utteranceTokens.size(); i1++) {
+        for (int i2 = i1 + 1; i2 <= utteranceTokens.size(); i2++) {
           // span utterance tokens [i1, i2)
 
           // TP = target-phrase
@@ -124,8 +122,8 @@ public class PhraseAligner {
           // ignore 1 to 1 mappings (handled by the berkeley aligner files instead)
           if (i2 - i1 == 1 && jmax - jmin == 0)
             continue;
-          hit(Joiner.on(' ').join(utteranceInfo.tokens.subList(i1, i2)),
-              Joiner.on(' ').join(originalInfo.tokens.subList(jmin, jmax + 1)));
+          hit(Joiner.on(' ').join(utteranceTokens.subList(i1, i2)),
+              Joiner.on(' ').join(originalTokens.subList(jmin, jmax + 1)));
         }
       }
       
@@ -135,10 +133,10 @@ public class PhraseAligner {
 
   //count every co-occurrence
   private void hit(String utterancePhrase, String originalPhrase) {
-    MapUtils.putIfAbsent(model, utterancePhrase.toLowerCase(), new ClassicCounter<>());
-    MapUtils.putIfAbsent(model, originalPhrase.toLowerCase(), new ClassicCounter<>());
-    model.get(utterancePhrase.toLowerCase()).incrementCount(originalPhrase.toLowerCase());
-    model.get(originalPhrase.toLowerCase()).incrementCount(utterancePhrase.toLowerCase());
+    MapUtils.putIfAbsent(model, utterancePhrase, new ClassicCounter<>());
+    MapUtils.putIfAbsent(model, originalPhrase, new ClassicCounter<>());
+    model.get(utterancePhrase).incrementCount(originalPhrase);
+    model.get(originalPhrase).incrementCount(utterancePhrase);
   }
 
   private void applyThreshold(int threshold) {
