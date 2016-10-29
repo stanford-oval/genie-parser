@@ -569,13 +569,19 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     if ((str1.tag == Item.Tag.UNIGRAM && stopWords.contains(str1.data1)) ||
         (str2.tag == Item.Tag.UNIGRAM && stopWords.contains(str2.data1)))
       return;
+    if (str1.ner1 != null || str2.ner1 != null)
+      return;
+    if (str1.tag != Item.Tag.UNIGRAM && str1.ner2 != null)
+      return;
+    if (str2.tag != Item.Tag.UNIGRAM && str2.ner2 != null)
+      return;
 
-    String f1 = str1.ner1 != null ? str1.ner1 : str1.data1;
+    String f1 = str1.data1;
     if (str1.tag != Item.Tag.UNIGRAM)
-      f1 += " " + (str1.ner2 != null ? str1.ner2 : str1.data2);
-    String f2 = str2.ner1 != null ? str2.ner1 : str2.data1;
+      f1 += " " + str1.data2;
+    String f2 = str2.data1;
     if (str2.tag != Item.Tag.UNIGRAM)
-      f2 += " " + (str2.ner2 != null ? str2.ner2 : str2.data2);
+      f2 += " " + str2.data2;
     deriv.addFeature(domain, f1 + "--" + f2);
   }
 
