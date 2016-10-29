@@ -44,13 +44,13 @@
 	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
 )
 (rule $StringValue (`` $StrValue '') (IdentityFn))
-# we always have this anchored rule, so that we always pick up
-# if the user explicitly types in quotes
-(rule $StringValue (`` $PHRASE '') (IdentityFn) (anchored 1))
 
-(rule $Username ($TOKEN) (FilterRegexFn "[@](.+)") (anchored 1))
+(rule $QuotedString ($PHRASE) (NerValueFn QUOTED_STRING) (anchored 1))
+(rule $StringValue ($QuotedString) (IdentityFn))
+
+(rule $Username ($TOKEN) (NerValueFn USERNAME) (anchored 1))
 (rule $UsernameValue ($Username) (lambda v (call @typedStringCast (string Username) (var v))) (anchored 1))
-(rule $Hashtag ($TOKEN) (FilterRegexFn "[#](.+)") (anchored 1))
+(rule $Hashtag ($TOKEN) (NerValueFn HASHTAG) (anchored 1))
 (rule $HashtagValue ($Hashtag) (lambda v (call @typedStringCast (string Hashtag) (var v))) (anchored 1))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))

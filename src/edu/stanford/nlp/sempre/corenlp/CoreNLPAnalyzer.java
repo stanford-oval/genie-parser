@@ -17,12 +17,12 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
 import edu.stanford.nlp.semgraph.SemanticGraphEdge;
-import edu.stanford.nlp.time.TimeAnnotations;
-import edu.stanford.nlp.time.Timex;
 import edu.stanford.nlp.sempre.LanguageAnalyzer;
 import edu.stanford.nlp.sempre.LanguageInfo;
 import edu.stanford.nlp.sempre.LanguageInfo.DependencyEdge;
 import edu.stanford.nlp.sempre.SempreUtils;
+import edu.stanford.nlp.time.TimeAnnotations;
+import edu.stanford.nlp.time.Timex;
 import edu.stanford.nlp.util.CoreMap;
 import fig.basic.LogInfo;
 import fig.basic.Option;
@@ -47,6 +47,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     @Option(gloss = "Additional named entity recognizers to run")
     public List<String> entityRecognizers = new ArrayList<>();
+
+    @Option(gloss = "Additional regular expressions to apply to tokens")
+    public List<String> regularExpressions = new ArrayList<>();
 
     @Option(gloss = "Ignore DATE tags on years (numbers between 1000 and 3000) and parse them as numbers")
     public boolean yearsAsNumbers = false;
@@ -136,10 +139,16 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     pipeline = new StanfordCoreNLP(props);
 
-    extraRecognizers = new NamedEntityRecognizer[opts.entityRecognizers.size()];
-    for (int i = 0; i < extraRecognizers.length; i++)
+    extraRecognizers = new NamedEntityRecognizer[opts.entityRecognizers.size() + opts.regularExpressions.size()];
+    for (int i = 0; i < opts.entityRecognizers.size(); i++)
       extraRecognizers[i] = (NamedEntityRecognizer) Utils
           .newInstanceHard(SempreUtils.resolveClassName(opts.entityRecognizers.get(i)));
+    for (int i = 0; i < opts.regularExpressions.size(); i++) {
+      String spec = opts.regularExpressions.get(i);
+      int split = spec.indexOf(':');
+      extraRecognizers[opts.entityRecognizers.size() + i] = new RegexpEntityRecognizer(spec.substring(0, split),
+          spec.substring(split + 1));
+    }
   }
 
   private static void loadResource(String name, Properties into) {
