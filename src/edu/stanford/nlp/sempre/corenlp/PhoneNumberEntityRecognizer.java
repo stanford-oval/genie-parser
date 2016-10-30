@@ -10,9 +10,9 @@ import edu.stanford.nlp.sempre.LanguageInfo;
 
 public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   // recognize std syntax +... or north american 1-
-  private static final Pattern INTL_PREFIX = Pattern.compile("^(\\+[0-9]{1,3}|1)-?");
+  private static final Pattern INTL_PREFIX = Pattern.compile("^(\\+[0-9]{1,3}-?|1-)");
   // recognize common (000) area code, or just 0000, followed by optional -
-  private static final Pattern AREA_CODE = Pattern.compile("^\\(?[0-9]{1,4}\\)?-?");
+  private static final Pattern AREA_CODE = Pattern.compile("^\\(?[0-9]{3,4}\\)?-?");
   // recognize numbers, *, # and -, or recognize full numbers in touch tone format
   private static final Pattern NUMBER = Pattern
       .compile("^([0-9*#\\-]+|[A-Za-z0-90-9*#\\-]{3,4}-[A-Za-z0-90-9*#\\-]{3,})$");
