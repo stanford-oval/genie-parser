@@ -296,7 +296,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
     extractRootFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
     extractLexicalFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
-    extractPhraseAlignmentFeatures(ex, deriv, candidateItems.unigrams);
+    extractPhraseAlignmentFeatures(ex, deriv);
     extractLogicalFormFeatures(ex, deriv);
 
     if (!opts.itemAnalysis) return;
@@ -500,18 +500,19 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
   }
 
-  private void extractPhraseAlignmentFeatures(Example ex, Derivation deriv, List<Item> derivTokens) {
+  private void extractPhraseAlignmentFeatures(Example ex, Derivation deriv) {
 
     if (!opts.featureDomains.contains("alignment")) return;
 
     //get the tokens
-    Set<String> inputSubspans = ex.languageInfo.getLowerCasedSpans();
+    Set<String> inputSubspans = ex.languageInfo.getNerSpans();
+    List<String> derivTokens = Arrays.asList(deriv.nerUtterance.split(" "));
 
     for (int i = 0; i < derivTokens.size(); ++i) {
-      for (int j = i + 1; j <= derivTokens.size() && j <= i + 4; ++j) {
+      for (int j = i + 1; j <= derivTokens.size() && j <= i + 5; ++j) {
 
-        String lhs = Joiner.on(' ').join(derivTokens.subList(i, j).stream().map(item -> item.data1).iterator());
-        if (entities.contains(lhs)) continue; //optimization
+        String lhs = Joiner.on(' ').join(derivTokens.subList(i, j));
+        //if (entities.contains(lhs)) continue; //optimization
 
         if (phraseTable.containsKey(lhs)) {
           Set<String> rhsCandidates = phraseTable.get(lhs);

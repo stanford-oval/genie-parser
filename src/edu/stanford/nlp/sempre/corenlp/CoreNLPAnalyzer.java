@@ -243,6 +243,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     for (NamedEntityRecognizer r : extraRecognizers)
       r.recognize(languageInfo);
 
+    languageInfo.computeNerTokens();
+
     // Fills in a stanford dependency graph for constructing a feature
     for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
       SemanticGraph ccDeps = sentence.get(SemanticGraphCoreAnnotations.CollapsedCCProcessedDependenciesAnnotation.class);
