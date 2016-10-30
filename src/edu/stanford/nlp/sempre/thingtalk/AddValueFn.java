@@ -100,10 +100,16 @@ public class AddValueFn extends SemanticFn {
         String canonical = left.canonicalUtterance + " " + withToken + " " +
             invocation.name.getArgCanonical(currentArgname) + opPart
             + right.canonicalUtterance;
+        String nerCanonical = left.nerUtterance + " " + withToken + " "
+            + invocation.name.getArgCanonical(currentArgname) + opPart
+            + right.nerUtterance;
 
-        Derivation.Builder bld = new Derivation.Builder().withCallable(callable)
-            .formula(new ValueFormula<>(newInvocation)).type(SemType.entityType)
-            .canonicalUtterance(canonical);
+        Derivation.Builder bld = new Derivation.Builder()
+            .withCallable(callable)
+            .formula(new ValueFormula<>(newInvocation))
+            .type(SemType.entityType)
+            .canonicalUtterance(canonical)
+            .nerUtterance(nerCanonical);
         return bld.createDerivation();
       }
     }

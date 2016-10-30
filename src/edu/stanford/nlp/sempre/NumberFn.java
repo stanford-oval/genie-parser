@@ -2,7 +2,10 @@ package edu.stanford.nlp.sempre;
 
 import java.util.ArrayList;
 import java.util.List;
-import fig.basic.*;
+
+import fig.basic.LispTree;
+import fig.basic.LogInfo;
+import fig.basic.Option;
 
 /**
  * Maps a string to a number (double).
@@ -23,18 +26,21 @@ public class NumberFn extends SemanticFn {
     return requests == null || requests.contains(req);
   }
 
+  @Override
   public void init(LispTree tree) {
     super.init(tree);
     if (tree.children.size() > 1) {
-      requests = new ArrayList<String>();
+      requests = new ArrayList<>();
       for (int i = 1; i < tree.children.size(); i++)
         requests.add(tree.child(1).value);
     }
   }
 
   // TODO(pliang): handle measurements too (e.g., 3cm)
+  @Override
   public DerivationStream call(final Example ex, final Callable c) {
     return new SingleDerivationStream() {
+      @Override
       public Derivation createDerivation() {
         // Numbers: If it is an integer, set its type to integer.  Otherwise, use float.
         if (request("NUMBER")) {
@@ -47,6 +53,7 @@ public class NumberFn extends SemanticFn {
                       .withCallable(c)
                       .formula(new ValueFormula<>(numberValue))
                       .type(type)
+                  .nerUtterance("NUMBER")
                       .createDerivation();
             } catch (NumberFormatException e) {
               LogInfo.warnings("NumberFn: Cannot convert NerSpan \"%s\" to a number", value);
@@ -67,6 +74,7 @@ public class NumberFn extends SemanticFn {
                       .withCallable(c)
                       .formula(new ValueFormula<>(numberValue))
                       .type(type)
+                  .nerUtterance("ORDINAL")
                       .createDerivation();
             } catch (NumberFormatException e) {
               LogInfo.warnings("NumberFn: Cannot convert NerSpan \"%s\" to a number", value);
@@ -87,6 +95,7 @@ public class NumberFn extends SemanticFn {
                       .withCallable(c)
                       .formula(new ValueFormula<>(numberValue))
                       .type(type)
+                  .nerUtterance("PERCENT")
                       .createDerivation();
             } catch (NumberFormatException e) {
               LogInfo.warnings("NumberFn: Cannot convert NerSpan \"%s\" to a number", value);
@@ -107,6 +116,7 @@ public class NumberFn extends SemanticFn {
                       .withCallable(c)
                       .formula(new ValueFormula<>(numberValue))
                       .type(type)
+                  .nerUtterance("MONEY")
                       .createDerivation();
             } catch (NumberFormatException e) {
               LogInfo.warnings("NumberFn: Cannot convert NerSpan \"%s\" to a number", value);

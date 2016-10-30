@@ -33,6 +33,7 @@ public class NerValueFn extends SemanticFn {
         return new Derivation.Builder()
             .withCallable(c)
             .formula(new ValueFormula<>(new TypedStringValue(type, value)))
+            .nerUtterance(tag)
             .type(SemType.entityType)
             .createDerivation();
       }

@@ -75,10 +75,16 @@ public class AddEnumFn extends SemanticFn {
         String canonical = left.canonicalUtterance + " " + right.canonicalUtterance + " "
             + invocation.name.getArgCanonical(currentArgname) + " "
             + enumValue;
+        String nerCanonical = left.nerUtterance + " " + right.nerUtterance + " "
+            + invocation.name.getArgCanonical(currentArgname) + " "
+            + enumValue;
 
-        Derivation.Builder bld = new Derivation.Builder().withCallable(callable)
-            .formula(new ValueFormula<>(newInvocation)).type(SemType.entityType)
-            .canonicalUtterance(canonical);
+        Derivation.Builder bld = new Derivation.Builder()
+            .withCallable(callable)
+            .formula(new ValueFormula<>(newInvocation))
+            .type(SemType.entityType)
+            .canonicalUtterance(canonical)
+            .nerUtterance(nerCanonical);
         return bld.createDerivation();
       }
     }

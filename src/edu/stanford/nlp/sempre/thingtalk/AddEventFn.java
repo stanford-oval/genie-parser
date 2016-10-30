@@ -102,9 +102,10 @@ public class AddEventFn extends SemanticFn {
 
         Derivation deriv = new Derivation.Builder().withCallable(callable).formula(new ValueFormula<>(clone))
             .type(SemType.entityType)
-            .canonicalUtterance(
-                callable.child(0).canonicalUtterance + " " + callable.child(1).canonicalUtterance + " "
+            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + callable.child(1).canonicalUtterance + " "
                     + actionArgCanonical + " " + eventToken)
+            .nerUtterance(callable.child(0).nerUtterance + " " + callable.child(1).nerUtterance + " "
+                + actionArgCanonical + " " + eventToken)
             .createDerivation();
 
         deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + eventVar);

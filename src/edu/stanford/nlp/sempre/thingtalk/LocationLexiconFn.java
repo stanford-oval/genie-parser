@@ -58,7 +58,9 @@ public class LocationLexiconFn extends SemanticFn {
       LocationLexicon.Entry entry = entries.next();
       Derivation deriv = new Derivation.Builder().withCallable(callable)
           .formula(entry.formula)
-          .canonicalUtterance(entry.rawPhrase).type(SemType.entityType)
+          .canonicalUtterance(entry.rawPhrase)
+          .nerUtterance("LOCATION")
+          .type(SemType.entityType)
           .createDerivation();
 
       // Doesn't generalize, but add it for now, otherwise not separable

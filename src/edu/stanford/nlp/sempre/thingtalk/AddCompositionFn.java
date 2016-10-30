@@ -143,6 +143,8 @@ public class AddCompositionFn extends SemanticFn {
             .type(SemType.entityType)
             .canonicalUtterance(callable.child(0).canonicalUtterance + " " + callable.child(1).canonicalUtterance + " "
                 + actionArgCanonical + " " + triggerArgCanonical)
+            .nerUtterance(callable.child(0).nerUtterance + " " + callable.child(1).nerUtterance + " "
+                + actionArgCanonical + " " + triggerArgCanonical)
             .createDerivation();
 
         deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
