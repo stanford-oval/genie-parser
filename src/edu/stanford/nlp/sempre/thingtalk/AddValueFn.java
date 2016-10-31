@@ -64,8 +64,24 @@ public class AddValueFn extends SemanticFn {
       argnameIter = invocation.name.argtypes.keySet().iterator();
     }
 
+    private Derivation findLastAnchoredArg(Derivation deriv) {
+      Derivation lastArg = null;
+      if (deriv.children != null && deriv.children.size() == 2)
+        lastArg = deriv.child(1);
+      else
+        return null;
+      if (lastArg.spanStart == -1 || lastArg.spanEnd == -1)
+        return findLastAnchoredArg(deriv.child(0));
+      else
+        return lastArg;
+    }
+
     @Override
     public Derivation createDerivation() {
+      Derivation lastArg = findLastAnchoredArg(callable.child(0));
+      if (lastArg != null && !lastArg.isLeftOf(callable.child(1)))
+        return null;
+
       while (true) {
         if (!argnameIter.hasNext())
           return null;
