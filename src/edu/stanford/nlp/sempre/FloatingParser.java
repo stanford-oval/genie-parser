@@ -151,6 +151,32 @@ class FloatingParserState extends ParserState {
         new SemanticFn.CallInfo(rule.lhs, start, end, rule, children));
     while (results.hasNext()) {
       Derivation newDeriv = results.next();
+
+      if (start != -1 && end != -1) {
+        newDeriv.spanStart = start;
+        newDeriv.spanEnd = end;
+      } else {
+        int newStart = Integer.MAX_VALUE;
+        int newEnd = Integer.MIN_VALUE;
+
+        if (child1 != null && child1.spanStart != -1)
+          newStart = child1.spanStart;
+        if (child2 != null && child2.spanStart != -1)
+          newStart = Math.min(newStart, child2.spanStart);
+        if (child1 != null && child1.spanEnd != -1)
+          newEnd = child1.spanEnd;
+        if (child2 != null && child2.spanEnd != -1)
+          newEnd = Math.max(newEnd, child2.spanEnd);
+        if (newStart != Integer.MAX_VALUE)
+          newDeriv.spanStart = newStart;
+        else
+          newDeriv.spanStart = -1;
+        if (newEnd != Integer.MIN_VALUE)
+          newDeriv.spanEnd = newEnd;
+        else
+          newDeriv.spanEnd = -1;
+      }
+
       // only overwrite canonical utterance if it's missing
       // this handles derivations produced by thingtalk.ThingpediaLexiconFn,
       // where the canonical is already set (and we don't want to mess it up)

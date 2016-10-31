@@ -53,6 +53,10 @@ public class Derivation implements SemanticFn.Callable, HasScore {
   // Floating cell information
   public String canonicalUtterance;
   public String nerUtterance;
+  // start if start != -1, else min(start) over children
+  public int spanStart;
+  // end if end != -1, else min(end) over children
+  public int spanEnd;
   private boolean[] anchoredTokens;   // Tokens which anchored rules are defined on
 
   // If this derivation is composed of other derivations
@@ -543,5 +547,13 @@ public String toString() { return toLispTree().toString(); }
       }
     }
     return anchoredTokens.clone();
+  }
+
+  public boolean isLeftOf(Derivation deriv) {
+    if (spanEnd == -1)
+      return true;
+    if (deriv.spanStart == -1)
+      return true;
+    return spanEnd <= deriv.spanStart;
   }
 }
