@@ -133,9 +133,7 @@ public class PhraseAligner {
 
   //count every co-occurrence
   private void hit(String utterancePhrase, String originalPhrase) {
-    MapUtils.putIfAbsent(model, utterancePhrase, new ClassicCounter<>());
     MapUtils.putIfAbsent(model, originalPhrase, new ClassicCounter<>());
-    model.get(utterancePhrase).incrementCount(originalPhrase);
     model.get(originalPhrase).incrementCount(utterancePhrase);
   }
 
