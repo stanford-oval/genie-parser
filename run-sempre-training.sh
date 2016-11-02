@@ -30,7 +30,6 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -Builder.dataset thingtalk.ThingpediaDataset \
               -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar \
               -Grammar.tags floatingargs floatingnames floatingstrings \
-              -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
