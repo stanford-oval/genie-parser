@@ -5,10 +5,8 @@ import java.io.PrintWriter;
 import java.util.*;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 import edu.stanford.nlp.io.IOUtils;
-import edu.stanford.nlp.sempre.corenlp.CoreNLPAnalyzer;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.stats.Counters;
@@ -30,9 +28,6 @@ public class PhraseAligner {
   // as cited by the Overnight paper
   public void phraseAlign(String exampleFile) {
     model.clear();
-
-    CoreNLPAnalyzer.opts.annotators = Lists.newArrayList("ssplit");
-    CoreNLPAnalyzer analyzer = new CoreNLPAnalyzer(languageTag);
 
     for (String line : IOUtils.readLines(exampleFile)) {
       String[] phrases = line.split("\t");
@@ -122,12 +117,16 @@ public class PhraseAligner {
           // ignore 1 to 1 mappings (handled by the berkeley aligner files instead)
           if (i2 - i1 == 1 && jmax - jmin == 0)
             continue;
+          // HEURISTIC: ignore many to 1 mappings
+          if (jmax - jmin == 0)
+            continue;
+
           hit(Joiner.on(' ').join(utteranceTokens.subList(i1, i2)),
               Joiner.on(' ').join(originalTokens.subList(jmin, jmax + 1)));
         }
       }
       
-      System.out.printf("processed %s to %s\n", utterance, original);
+      //System.out.printf("processed %s to %s\n", utterance, original);
     }
   }
 

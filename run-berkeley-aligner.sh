@@ -21,6 +21,7 @@ java -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
 	${LANGUAGE_TAG}
 
 # run the berkeley aligner
+test -f sabrina/berkeleydictionary.${LANGUAGE_TAG} && cp sabrina/berkeleydictionary.${LANGUAGE_TAG} berkeleyaligner.tmp/sabrina/dictionary
 ( cd ./berkeleyaligner.tmp ; java -ea -jar ${BERKELEYALIGNER}/berkeleyaligner.jar ++${SEMPREDIR}/sabrina/sabrina.berkeleyaligner.conf )
 paste ./berkeleyaligner.tmp/output/training.f \
       ./berkeleyaligner.tmp/output/training.e \
