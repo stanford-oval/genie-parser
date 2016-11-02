@@ -3,10 +3,12 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
@@ -17,7 +19,11 @@ public class ThingpediaDataset extends AbstractDataset {
     @Option
     public String languageTag = "en";
     @Option
-    public boolean includeIfttt = false;
+    public boolean includeCanonical = true;
+    @Option
+    public boolean includeTest = true;
+    @Option
+    public Set<String> trainTypes = Sets.newHashSet("thingpedia", "online", "turking", "generated");
   }
 
   public static Options opts = new Options();
@@ -29,7 +35,8 @@ public class ThingpediaDataset extends AbstractDataset {
       + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? "
       + " and canonical is not null and ds.kind_type <> 'primary'";
   private static final String FULL_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ?";
-  private static final String RAW_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ? and type not in ('ifttt', 'thingpedia')";
+  private static final String RAW_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ? "
+      + "and type not in ('ifttt', 'thingpedia')";
   private static final String INSERT_QUERY = "insert into example_utterances(type, language, utterance, target_json) values (?, ?, ?, ?)";
   private static final String INSERT_SCHEMA_REF_QUERY = "insert into example_rule_schema(example_id, schema_id) select ?, id from device_schema where kind = ?";
 
@@ -89,6 +96,10 @@ public class ThingpediaDataset extends AbstractDataset {
     int testMaxExamples = getMaxExamplesForGroup("test");
     List<Example> testExamples = getOrCreateGroup("test");
 
+    // fast path running manually with no training
+    if (trainMaxExamples == 0 && testMaxExamples == 0)
+      return;
+
     try (PreparedStatement stmt = con.prepareStatement(FULL_EXAMPLE_QUERY)) {
       stmt.setString(1, opts.languageTag);
       try (ResultSet set = stmt.executeQuery()) {
@@ -100,8 +111,13 @@ public class ThingpediaDataset extends AbstractDataset {
           String targetJson = set.getString(4);
           Value targetValue = new StringValue(targetJson);
 
-          if (type.equals("ifttt") && !opts.includeIfttt)
-            continue;
+          if (type.equals("test")) {
+            if (!opts.includeTest)
+              continue;
+          } else {
+            if (!opts.trainTypes.contains(type))
+              continue;
+          }
 
           List<Example> group;
           int maxGroup;
@@ -139,7 +155,8 @@ public class ThingpediaDataset extends AbstractDataset {
       // parameters
       // if we don't do that, with true examples the correct parse
       // always falls off the beam and we don't learn at all
-      readCanonicals(con);
+      if (opts.includeCanonical)
+        readCanonicals(con);
 
       readFullExamples(con);
     } catch (SQLException e) {
