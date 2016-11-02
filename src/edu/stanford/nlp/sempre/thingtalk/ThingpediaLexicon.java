@@ -368,8 +368,10 @@ public class ThingpediaLexicon {
   // the lexicon), but are not useful to lookup canonical forms
   // with FloatingParser, if the lookup word is in this array, we just return no
   // derivations
-  private static final String[] IGNORED_WORDS = { "in", "on", "a", "to", "with", "and",
-      "me", "the", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
+  private static final String[] IGNORED_WORDS = { "in", "is", "of", "or", "not", "my", "i",
+      "at", "as", "by",
+      "from", "for", "an", "on", "a", "to", "with", "and", "'s", "'", "s", "when",
+      "notify", "monitor", "it", "?", "me", "the", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
   static {
     Arrays.sort(IGNORED_WORDS);
   }
