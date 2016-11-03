@@ -271,25 +271,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     if (deriv.rule.lhs != null && deriv.rule.lhs.equals("$StrValue"))
       return;
 
-    // Optimization: feature vector same as child, so don't do anything.
-    if (deriv.rule.isCatUnary()) {
-      if (deriv.isRootCat()) {
-        extractValueInFormulaFeature(deriv);
-
-        ItemList inputItems = computeInputItems(ex);
-        ItemList candidateItems = computeCandidateItems(ex, deriv);
-        extractRootFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
-      }
-      return;
-    }
-
-    // Important!  We want to define the global feature vector for this
-    // derivation, but we can only specify the local feature vector.  So to
-    // make things cancel out, we subtract out the unwanted feature vectors of
-    // descendents.
-    subtractDescendentsFeatures(deriv, deriv);
-
-    deriv.addFeature("paraphrase", "size", derivationSize(deriv));
+    deriv.addGlobalFeature("paraphrase", "size", derivationSize(deriv));
 
     ItemList inputItems = computeInputItems(ex);
     ItemList candidateItems = computeCandidateItems(ex, deriv);
@@ -316,9 +298,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
-        deriv.addFeature("paraphrase", "match");
+        deriv.addGlobalFeature("paraphrase", "match");
       if (ppdb > 0 && hasPpdb)
-        deriv.addFeature("paraphrase", "ppdb");
+        deriv.addGlobalFeature("paraphrase", "ppdb");
     }
     for (Item input : inputItems.bigrams) {
       double match = 0;
@@ -330,9 +312,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
-        deriv.addFeature("paraphrase", "match");
+        deriv.addGlobalFeature("paraphrase", "match");
       if (ppdb > 0 && hasPpdb)
-        deriv.addFeature("paraphrase", "ppdb");
+        deriv.addGlobalFeature("paraphrase", "ppdb");
     }
     for (Item input : inputItems.skipBigrams) {
       double skipBigram = 0;
@@ -342,9 +324,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           skipPpdb = Math.max(skipPpdb, computeParaphrase(input, candidate));
       }
       if (skipBigram > 0 && hasSkipBigram)
-        deriv.addFeature("paraphrase", "skip-bigram");
+        deriv.addGlobalFeature("paraphrase", "skip-bigram");
       if (skipPpdb > 0 && hasSkipPpdb)
-        deriv.addFeature("paraphrase", "skip-ppdb");
+        deriv.addGlobalFeature("paraphrase", "skip-ppdb");
     }
 
     if (opts.verbose >= 1) {
@@ -387,7 +369,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         Value formulaValue = ((ValueFormula<?>) f).value;
         String valueStr = (formulaValue instanceof StringValue) ? ((StringValue) formulaValue).value : formulaValue.toString();
         if (valueList.contains(valueStr))
-          deriv.addFeature("denotation", "value_in_formula");
+          deriv.addGlobalFeature("denotation", "value_in_formula");
       }
     }
   }
@@ -417,12 +399,13 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           matches++;
         }
       }
-      deriv.addFeature("root", "unmatched_input", filteredInputTokens.size() - matches);
-      deriv.addFeature("root", "unmatched_deriv", filteredDerivTokens.size() - matches);
+      deriv.addGlobalFeature("root", "unmatched_input", filteredInputTokens.size() - matches);
+      deriv.addGlobalFeature("root", "unmatched_deriv", filteredDerivTokens.size() - matches);
       if (deriv.value != null) {
         if (deriv.value instanceof ListValue) {
           ListValue list = (ListValue) deriv.value;
-          deriv.addFeature("root", String.format("pos0=%s&returnType=%s", ex.posTag(0), list.values.get(0).getClass()));
+          deriv.addGlobalFeature("root",
+              String.format("pos0=%s&returnType=%s", ex.posTag(0), list.values.get(0).getClass()));
         }
       }
     }
@@ -433,15 +416,15 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           if (i < filteredInputTokens.size()) {
             Item inputToken = filteredInputTokens.get(i);
             if (inputToken.ner1 != null)
-              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.ner1);
+              deriv.addGlobalFeature("root_lexical", "deleted_token=" + inputToken.ner1);
             else
-              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.data1);
+              deriv.addGlobalFeature("root_lexical", "deleted_token=" + inputToken.data1);
           }
           else {
             Item derivToken = filteredDerivTokens.get(i - filteredInputTokens.size());
             // deriv tokens never get ner tags (because it would be too expensive to run ner on the
             // canonical utterance)
-            deriv.addFeature("root_lexical", "deleted_token=" + derivToken.data1);
+            deriv.addGlobalFeature("root_lexical", "deleted_token=" + derivToken.data1);
           }
         }
       }
@@ -467,7 +450,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         for (Formula callFormula: callFormulas) {
           String callFormulaDesc = callFormula.toString();
           //LogInfo.logs("SUPER: utterance=%s, formula=%s", ex.utterance, deriv.formula);
-          deriv.addFeature("lf", callFormulaDesc + "& superlative");
+          deriv.addGlobalFeature("lf", callFormulaDesc + "& superlative");
         }
       }
     }
@@ -478,22 +461,24 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       String desc = callFormula.func.toString();
       switch (desc) {
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.filter":
-          deriv.addFeature("simpleworld", "filter&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld", "filter&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.getProperty":
-          deriv.addFeature("simpleworld", "getProperty&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld", "getProperty&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.superlative":
-          deriv.addFeature("simpleworld", "superlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
+        deriv.addGlobalFeature("simpleworld", "superlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.countSuperlative":
-          deriv.addFeature("simpleworld", "countSuperlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
+        deriv.addGlobalFeature("simpleworld",
+            "countSuperlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.countComparative":
-          deriv.addFeature("simpleworld", "countComparative&" + callFormula.args.get(2) + "&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld",
+            "countComparative&" + callFormula.args.get(2) + "&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.aggregate":
-          deriv.addFeature("simpleworld", "countComparative&" + callFormula.args.get(0));
+        deriv.addGlobalFeature("simpleworld", "countComparative&" + callFormula.args.get(0));
           break;
         default: break;
       }
@@ -563,7 +548,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       if (entities.contains(str2Token)) return;
 
     if (stopWords.contains(str1) || stopWords.contains(str2)) return;
-    deriv.addFeature(domain, str1 + "--" + str2);
+    deriv.addGlobalFeature(domain, str1 + "--" + str2);
   }
 
   private void addAndFilterLexicalFeature(Derivation deriv, String domain, Item str1, Item str2) {
@@ -583,7 +568,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     String f2 = str2.data1;
     if (str2.tag != Item.Tag.UNIGRAM)
       f2 += " " + str2.data2;
-    deriv.addFeature(domain, f1 + "--" + f2);
+    deriv.addGlobalFeature(domain, f1 + "--" + f2);
   }
 
   private void extractLexicalFeatures(Example ex, Derivation deriv, ArrayList<Item> inputItems,
@@ -620,9 +605,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           countInOrder++;
       }
       if (countReorder > 0)
-        deriv.addFeature("reorder", "anyInversion");
-      deriv.addFeature("reorder", "inversions", countReorder);
-      deriv.addFeature("reorder", "correct", countInOrder);
+        deriv.addGlobalFeature("reorder", "anyInversion");
+      deriv.addGlobalFeature("reorder", "inversions", countReorder);
+      deriv.addGlobalFeature("reorder", "correct", countInOrder);
     }
     
     for (int i = 0; i < filteredInputTokens.size(); ++i) {
@@ -667,10 +652,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
   private void extractStringSimilarityFeatures(Derivation deriv, String inputToken, String derivToken) {
     if (inputToken.startsWith(derivToken) || derivToken.startsWith(inputToken))
-      deriv.addFeature("lexical", "starts_with");
+      deriv.addGlobalFeature("lexical", "starts_with");
     else if (inputToken.length() > 4 && derivToken.length() > 4) {
       if (inputToken.substring(0, 4).equals(derivToken.substring(0, 4)))
-        deriv.addFeature("lexical", "common_prefix");
+        deriv.addGlobalFeature("lexical", "common_prefix");
     }
   }
 
@@ -844,22 +829,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     ItemList items = new ItemList();
     populateItems(tokens, null, null, items);
     return items;
-  }
-
-  private static void subtractDescendentsFeatures(Derivation deriv, Derivation subderiv) {
-    if (subderiv.children != null) {
-      for (Derivation child : subderiv.children) {
-        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
-          @Override
-          public boolean matches(String feature) {
-            return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ")
-                || feature.startsWith("alignment :: ") || feature.startsWith("reorder :: ");
-          }
-
-        });
-        subtractDescendentsFeatures(deriv, child);
-      }
-    }
   }
 
   // Return the "complexity" of the given derivation.
