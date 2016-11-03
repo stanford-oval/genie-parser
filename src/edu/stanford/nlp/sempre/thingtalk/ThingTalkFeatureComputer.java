@@ -146,8 +146,12 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     // "send sms saying foo"
     // this becomes even more important for trigger/queries, where parameters
     // are optional
-    for (String p : params)
-      deriv.addFeature("code", String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p));
+    for (ParamValue p : pv.params) {
+      if (p.tt_type.equals("VarRef"))
+        continue;
+
+      deriv.addFeature("code", String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p.name.argname));
+    }
 
     // don't add operator features for actions (because their operators are
     // always "is" and don't really have any meaning)
@@ -155,15 +159,14 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       return;
 
     for (ParamValue p : pv.params) {
+      if (p.tt_type.equals("VarRef"))
+        continue;
+
       // add a feature for the pair (argtype, operator)
       // this is to bias against certain operators that, while legal, don't make much
       // sense, for example @thermostat.temperature(value), value = 73 F, because it will never be exactly 73 F
-      // note that we use the actual ThingTalk type from param.name.type, not the looser
-      // param.type
 
-      // Actually don't: this feature tends to overselect String:is, because we have way too
-      // many string inputs to queries, and the right combination of arguments falls off the beam
-      //deriv.addFeature("code", "operatortype=" + p.name.type + ":" + p.operator);
+      deriv.addFeature("code", "operatortype=" + p.tt_type + ":" + p.operator);
 
       // add a feature for the triple (argname, type, operator)
       // this is to bias towards certain operators for certain arguments
@@ -172,7 +175,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // @twitter.source(text, ...), text = "foo"
       // "=" is a fine operator for Strings in general, but for the specific case
       // of text it is wrong
-      deriv.addFeature("code", "operator=" + p.name.argname + "," + p.name.type + ":" + p.operator);
+      deriv.addFeature("code", "operator=" + p.name.argname + ":" + p.operator);
     }
   }
 }
