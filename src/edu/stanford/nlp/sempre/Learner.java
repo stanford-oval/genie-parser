@@ -25,6 +25,9 @@ public class Learner {
     @Option(gloss = "Number of iterations to train")
     public int maxTrainIters = 0;
 
+    @Option(gloss = "Number of threads to use; default is 1 (no multithreading)")
+    public int numThreads = 1;
+
     @Option(gloss = "Write predDerivations to examples file (huge)")
     public boolean outputPredDerivations = false;
 
@@ -218,13 +221,19 @@ public class Learner {
         "Processing %s: %s examples", prefix, examples.size());
     LogInfo.begin_track("Examples");
 
-    ExecutorService exec = Executors.newSingleThreadExecutor();
+    ExecutorService exec;
+    if (opts.numThreads > 1)
+      exec = Executors.newFixedThreadPool(opts.numThreads);
+    else
+      exec = Executors.newSingleThreadExecutor();
 
+    LogInfo.begin_threads();
     try {
       exec.invokeAll(makeTasksForExamples(iter, group, examples, computeExpectedCounts, evaluation));
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+    LogInfo.end_threads();
 
     params.finalizeWeights();
     if (opts.sortOnFeedback && computeExpectedCounts)
