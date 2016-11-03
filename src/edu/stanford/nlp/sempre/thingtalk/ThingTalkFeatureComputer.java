@@ -81,7 +81,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
         deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
           @Override
           public boolean matches(String feature) {
-            return feature.startsWith("code ::");
+            return feature.startsWith("thingtalk_params ::") || feature.startsWith("thingtalk_complexity :: ");
           }
 
         });
@@ -132,11 +132,11 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     for (ParamValue p : duplicates) {
       if (p.operator.equals("is"))
-        deriv.addFeature("code", "dupIsParam=" + p.name.argname);
+        deriv.addFeature("thingtalk_complexity", "dupIsParam=" + p.name.argname);
       else
-        deriv.addFeature("code", "dupNonIsParam=" + p.name.argname);
+        deriv.addFeature("thingtalk_complexity", "dupNonIsParam=" + p.name.argname);
     }
-    deriv.addFeature("code", "nparams", params.size());
+    deriv.addFeature("thingtalk_complexity", "nparams", params.size());
     
     // add a feature for each pair (channel name, parameter)
     // this is a bias towards choosing certain params for certain channels
@@ -150,7 +150,8 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       if (p.tt_type.equals("VarRef"))
         continue;
 
-      deriv.addFeature("code", String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p.name.argname));
+      deriv.addFeature("thingtalk_params",
+          String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p.name.argname));
     }
 
     // don't add operator features for actions (because their operators are
@@ -166,7 +167,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // this is to bias against certain operators that, while legal, don't make much
       // sense, for example @thermostat.temperature(value), value = 73 F, because it will never be exactly 73 F
 
-      deriv.addFeature("code", "operatortype=" + p.tt_type + ":" + p.operator);
+      deriv.addFeature("thingtalk_params", "operatortype=" + p.tt_type + ":" + p.operator);
 
       // add a feature for the triple (argname, type, operator)
       // this is to bias towards certain operators for certain arguments
@@ -175,7 +176,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // @twitter.source(text, ...), text = "foo"
       // "=" is a fine operator for Strings in general, but for the specific case
       // of text it is wrong
-      deriv.addFeature("code", "operator=" + p.name.argname + ":" + p.operator);
+      deriv.addFeature("thingtalk_params", "operator=" + p.name.argname + ":" + p.operator);
     }
   }
 }
