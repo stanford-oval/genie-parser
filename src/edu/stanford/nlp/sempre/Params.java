@@ -316,7 +316,7 @@ public class Params {
   }
 
   public void finalizeWeights() {
-    readLock();
+    writeLock();
     try {
       if (l1Reg == L1Reg.LAZY) {
         Set<String> features = new HashSet<>(weights.keySet());
@@ -324,7 +324,7 @@ public class Params {
           lazyL1Update(f);
       }
     } finally {
-      readUnlock();
+      writeUnlock();
     }
   }
 
