@@ -509,7 +509,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     List<String> derivTokens = Arrays.asList(deriv.nerUtterance.split(" "));
 
     for (int i = 0; i < derivTokens.size(); ++i) {
-      for (int j = i + 1; j <= derivTokens.size() && j <= i + 5; ++j) {
+      for (int j = i + 1; j <= derivTokens.size() && j <= i + 6; ++j) {
 
         String lhs = Joiner.on(' ').join(derivTokens.subList(i, j));
         //if (entities.contains(lhs)) continue; //optimization
