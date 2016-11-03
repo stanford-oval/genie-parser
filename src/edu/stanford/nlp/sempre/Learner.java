@@ -1,9 +1,10 @@
 package edu.stanford.nlp.sempre;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
@@ -149,6 +150,59 @@ public class Learner {
     LogInfo.end_track();
   }
 
+  private Collection<Callable<Void>> makeTasksForExamples(int iter, String group,
+      final List<Example> examples,
+      boolean computeExpectedCounts,
+      Evaluation evaluation) {
+    ArrayList<Callable<Void>> tasks = new ArrayList<>();
+    final String prefix = "iter=" + iter + "." + group;
+
+    for (int i = 0; i < examples.size(); i++) {
+      final int e = i;
+      final Example ex = examples.get(e);
+      tasks.add(() -> {
+        LogInfo.begin_track_printAll(
+            "%s: example %s/%s: %s", prefix, e, examples.size(), ex.id);
+        ex.log();
+        Execution.putOutput("example", e);
+
+        ParserState state = parseExample(params, ex, computeExpectedCounts);
+        if (computeExpectedCounts) {
+          if (opts.checkGradient) {
+            LogInfo.begin_track("Checking gradient");
+            checkGradient(ex, state);
+            LogInfo.end_track();
+          }
+          updateWeights(state.expectedCounts);
+        }
+        // }
+
+        synchronized (evaluation) {
+          LogInfo.logs("Current: %s", ex.evaluation.summary());
+          evaluation.add(ex.evaluation);
+          LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
+        }
+
+        printLearnerEventsIter(ex, iter, group);
+        LogInfo.end_track();
+        if (opts.addFeedback && computeExpectedCounts)
+          addFeedback(ex);
+
+        // Write out examples and predictions
+        if (opts.outputPredDerivations && Builder.opts.parser.equals("FloatingParser")) {
+          ExampleUtils.writeParaphraseSDF(iter, group, ex, opts.outputPredDerivations);
+        }
+
+        // To save memory
+        ex.predDerivations.clear();
+
+        return null;
+      });
+    }
+
+    return tasks;
+  }
+
   private Evaluation processExamples(int iter, String group,
                                      List<Example> examples,
                                      boolean computeExpectedCounts) {
@@ -161,45 +215,15 @@ public class Learner {
 
     Execution.putOutput("group", group);
     LogInfo.begin_track_printAll(
-            "Processing %s: %s examples", prefix, examples.size());
+        "Processing %s: %s examples", prefix, examples.size());
     LogInfo.begin_track("Examples");
 
-    for (int e = 0; e < examples.size(); e++) {
+    ExecutorService exec = Executors.newSingleThreadExecutor();
 
-      Example ex = examples.get(e);
-
-      LogInfo.begin_track_printAll(
-              "%s: example %s/%s: %s", prefix, e, examples.size(), ex.id);
-      ex.log();
-      Execution.putOutput("example", e);
-
-      ParserState state = parseExample(params, ex, computeExpectedCounts);
-      if (computeExpectedCounts) {
-        if (opts.checkGradient) {
-          LogInfo.begin_track("Checking gradient");
-          checkGradient(ex, state);
-          LogInfo.end_track();
-        }
-        updateWeights(state.expectedCounts);
-      }
-     // }
-
-      LogInfo.logs("Current: %s", ex.evaluation.summary());
-      evaluation.add(ex.evaluation);
-      LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
-
-      printLearnerEventsIter(ex, iter, group);
-      LogInfo.end_track();
-      if (opts.addFeedback && computeExpectedCounts)
-        addFeedback(ex);
-
-      // Write out examples and predictions
-      if (opts.outputPredDerivations && Builder.opts.parser.equals("FloatingParser")) {
-        ExampleUtils.writeParaphraseSDF(iter, group, ex, opts.outputPredDerivations);
-      }
-
-      // To save memory
-      ex.predDerivations.clear();
+    try {
+      exec.invokeAll(makeTasksForExamples(iter, group, examples, computeExpectedCounts, evaluation));
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
 
     params.finalizeWeights();
