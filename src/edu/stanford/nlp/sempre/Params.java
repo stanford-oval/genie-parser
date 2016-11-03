@@ -156,9 +156,9 @@ public class Params {
         if (g * g == 0)
           return true;  // In order to not divide by zero
 
-        if (l1Reg == L1Reg.LAZY)
-          lazyL1Update(f);
         double stepSize = computeStepSize(f, g);
+        if (l1Reg == L1Reg.LAZY)
+          lazyL1Update(f, stepSize);
 
         if (opts.dualAveraging) {
           if (!opts.adaptiveStepSize && opts.stepSizeReduction != 0)
@@ -184,8 +184,9 @@ public class Params {
         Set<String> features = new HashSet<>(weights.keySet());
         for (String f : features) {
           double stepSize = computeStepSize(f, 0d); // no update for gradient here
-          double update = opts.l1RegCoeff * -Math.signum(weights.get(f));
-          clipUpdate(f, stepSize * update);
+          double currWeight = getWeight(f, 0.0);
+          double update = opts.l1RegCoeff * -Math.signum(currWeight);
+          clipUpdate(f, currWeight, stepSize * update);
         }
       }
       numUpdates++;
@@ -202,7 +203,8 @@ public class Params {
 
   private double computeStepSize(String feature, double gradient) {
     if (opts.adaptiveStepSize) {
-      sumSquaredGradients.adjustOrPutValue(feature, gradient * gradient, gradient * gradient);
+      if (gradient * gradient != 0)
+        sumSquaredGradients.adjustOrPutValue(feature, gradient * gradient, gradient * gradient);
       // ugly - adding one to the denominator when using l1 reg.
       if (l1Reg != L1Reg.NONE)
         return opts.initStepSize / (Math.sqrt(sumSquaredGradients.get(feature) + 1));
@@ -213,9 +215,9 @@ public class Params {
     }
   }
 
-  private static <K> double getDouble(TObjectDoubleMap<K> map, K key, double defaultValue) {
-    if (map.containsKey(key))
-      return map.get(key);
+  private double getWeight(String key, double defaultValue) {
+    if (defaultValue == opts.defaultWeight || weights.containsKey(key))
+      return weights.get(key);
     else
       return defaultValue;
   }
@@ -223,8 +225,7 @@ public class Params {
   /*
    * If the update changes the sign, remove the feature
    */
-  private void clipUpdate(String f, double update) {
-    double currWeight = getDouble(weights, f, 0);
+  private void clipUpdate(String f, double currWeight, double update) {
     if (currWeight == 0)
       return;
 
@@ -235,7 +236,7 @@ public class Params {
     }
   }
 
-  private void lazyL1Update(String f) {
+  private void lazyL1Update(String f, double stepSize) {
     if (weights.get(f) == 0)
       return;
     // For pre-initialized weights, which have no updates yet
@@ -248,9 +249,10 @@ public class Params {
     if (numOfIter == 0) return;
     if (numOfIter < 0) throw new RuntimeException("l1UpdateTimeMap is out of sync.");
 
-    double stepSize = (numOfIter * opts.initStepSize) / (Math.sqrt(sumSquaredGradients.get(f) + 1));
-    double update = -opts.l1RegCoeff * Math.signum(getDouble(weights, f, 0.0));
-    clipUpdate(f, stepSize * update);
+    stepSize *= numOfIter;
+    double currWeight = getWeight(f, 0.0);
+    double update = -opts.l1RegCoeff * Math.signum(currWeight);
+    clipUpdate(f, currWeight, stepSize * update);
     if (weights.containsKey(f))
       l1UpdateTimeMap.put(f, numUpdates);
     else
@@ -260,7 +262,7 @@ public class Params {
   // must be called with read lock held
   public double getWeight(String f) {
     if (l1Reg == L1Reg.LAZY)
-      lazyL1Update(f);
+      lazyL1Update(f, computeStepSize(f, 0d));
     if (opts.initWeightsRandomly) {
       if (!weights.containsKey(f))
         weights.put(f, 2 * opts.initRandom.nextDouble() - 1);
@@ -316,15 +318,15 @@ public class Params {
   }
 
   public void finalizeWeights() {
-    readLock();
+    writeLock();
     try {
       if (l1Reg == L1Reg.LAZY) {
         Set<String> features = new HashSet<>(weights.keySet());
         for (String f : features)
-          lazyL1Update(f);
+          lazyL1Update(f, computeStepSize(f, 0d));
       }
     } finally {
-      readUnlock();
+      writeUnlock();
     }
   }
 

@@ -51,8 +51,12 @@ public class Derivation implements SemanticFn.Callable, HasScore {
   public final int end;
 
   // Floating cell information
-  // TODO(yushi): make fields final
   public String canonicalUtterance;
+  public String nerUtterance;
+  // start if start != -1, else min(start) over children
+  public int spanStart;
+  // end if end != -1, else min(end) over children
+  public int spanEnd;
   private boolean[] anchoredTokens;   // Tokens which anchored rules are defined on
 
   // If this derivation is composed of other derivations
@@ -80,7 +84,11 @@ public class Derivation implements SemanticFn.Callable, HasScore {
 
   // Information for scoring
   private final FeatureVector localFeatureVector;  // Features
+  private final FeatureVector globalFeatureVector;
   public double score = Double.NaN;  // Weighted combination of features
+  private double localScore;
+  private double globalScore;
+  private boolean scored;
 
   // Used during parsing (by FeatureExtractor, SemanticFn) to cache arbitrary
   // computation across different sub-Derivations.
@@ -128,39 +136,51 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     private Formula formula;
     private SemType type;
     private FeatureVector localFeatureVector = new FeatureVector();
+    private FeatureVector globalFeatureVector = new FeatureVector();
     private double score = Double.NaN;
     private Value value;
     private Evaluation executorStats;
     private double compatibility = Double.NaN;
     private double prob = Double.NaN;
-    private String canonicalUtterance = "";
-		private Cacheability cache = Cacheability.CACHEABLE;
+    private String canonicalUtterance = null;
+    private String nerUtterance = null;
+    private Cacheability cache = Cacheability.CACHEABLE;
 
     public Builder cat(String cat) { this.cat = cat; return this; }
     public Builder start(int start) { this.start = start; return this; }
     public Builder end(int end) { this.end = end; return this; }
     public Builder rule(Rule rule) { this.rule = rule; return this; }
 
-		public Builder children(List<Derivation> children) {
-			this.children = children;
-			for (Derivation child : children)
-				this.meetCache(child.cache);
-			return this;
-		}
+    public Builder children(List<Derivation> children) {
+      this.children = children;
+      for (Derivation child : children)
+        this.meetCache(child.cache);
+      return this;
+    }
+
     public Builder formula(Formula formula) { this.formula = formula; return this; }
     public Builder type(SemType type) { this.type = type; return this; }
     public Builder localFeatureVector(FeatureVector localFeatureVector) { this.localFeatureVector = localFeatureVector; return this; }
+
+    public Builder globalFeatureVector(FeatureVector globalFeatureVector) {
+      this.globalFeatureVector = globalFeatureVector;
+      return this;
+    }
     public Builder score(double score) { this.score = score; return this; }
     public Builder value(Value value) { this.value = value; return this; }
     public Builder executorStats(Evaluation executorStats) { this.executorStats = executorStats; return this; }
     public Builder compatibility(double compatibility) { this.compatibility = compatibility; return this; }
     public Builder prob(double prob) { this.prob = prob; return this; }
     public Builder canonicalUtterance(String canonicalUtterance) { this.canonicalUtterance = canonicalUtterance; return this; }
+    public Builder nerUtterance(String nerUtterance) {
+      this.nerUtterance = nerUtterance;
+      return this;
+    }
 
-		public Builder meetCache(Cacheability cache) {
-			this.cache = this.cache.meet(cache);
-			return this;
-		}
+    public Builder meetCache(Cacheability cache) {
+      this.cache = this.cache.meet(cache);
+      return this;
+    }
 
     public Builder withStringFormulaFrom(String value) {
       this.formula = new ValueFormula<>(new StringValue(value));
@@ -185,14 +205,15 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     public Derivation createDerivation() {
       return new Derivation(
           cat, start, end, rule, children, formula, type,
-          localFeatureVector, score, value, executorStats, compatibility, prob,
-					canonicalUtterance, cache);
+          localFeatureVector, globalFeatureVector, score, value, executorStats, compatibility, prob,
+          canonicalUtterance, nerUtterance, cache);
     }
   }
 
   Derivation(String cat, int start, int end, Rule rule, List<Derivation> children, Formula formula, SemType type,
-      FeatureVector localFeatureVector, double score, Value value, Evaluation executorStats, double compatibility, double prob,
-			String canonicalUtterance, Cacheability cache) {
+      FeatureVector localFeatureVector, FeatureVector globalFeatureVector, double score, Value value,
+      Evaluation executorStats, double compatibility, double prob,
+      String canonicalUtterance, String nerUtterance, Cacheability cache) {
     this.cat = cat;
     this.start = start;
     this.end = end;
@@ -201,44 +222,60 @@ public class Derivation implements SemanticFn.Callable, HasScore {
     this.formula = formula;
     this.type = type;
     this.localFeatureVector = localFeatureVector;
+    this.globalFeatureVector = globalFeatureVector;
     this.score = score;
     this.value = value;
     this.executorStats = executorStats;
     this.compatibility = compatibility;
     this.prob = prob;
     this.canonicalUtterance = canonicalUtterance;
-		this.cache = cache;
+    this.nerUtterance = nerUtterance;
+    this.cache = cache;
     this.creationIndex = numCreated++;
   }
 
   public Formula getFormula() { return formula; }
   @Override
-public double getScore() { return score; }
+  public double getScore() {
+    return score;
+  }
   public double getProb() { return prob; }
   public double getCompatibility() { return compatibility; }
   @Override
-public List<Derivation> getChildren() { return children; }
+  public List<Derivation> getChildren() {
+    return children;
+  }
   public Value getValue() { return value; }
 
   public boolean isFeaturizedAndScored() { return !Double.isNaN(score); }
   public boolean isExecuted() { return value != null; }
   public int getMaxBeamPosition() { return maxBeamPosition; }
   @Override
-public String getCat() { return cat; }
+  public String getCat() {
+    return cat;
+  }
   @Override
-public int getStart() { return start; }
+  public int getStart() {
+    return start;
+  }
   @Override
-public int getEnd() { return end; }
+  public int getEnd() {
+    return end;
+  }
   public boolean containsIndex(int i) { return i < end && i >= start; }
   @Override
-public Rule getRule() { return rule; }
+  public Rule getRule() {
+    return rule;
+  }
   public Evaluation getExecutorStats() { return executorStats; }
   public FeatureVector getLocalFeatureVector() { return localFeatureVector; }
 
   @Override
-public Derivation child(int i) { return children.get(i); }
+  public Derivation child(int i) {
+    return children.get(i);
+  }
   @Override
-public String childStringValue(int i) {
+  public String childStringValue(int i) {
     return Formulas.getString(children.get(i).formula);
   }
 
@@ -253,17 +290,61 @@ public String childStringValue(int i) {
   }
 
   // Functions that operate on features.
-  public void addFeature(String domain, String name) { addFeature(domain, name, 1); }
-  public void addFeature(String domain, String name, double value) { this.localFeatureVector.add(domain, name, value); }
+  public void addFeature(String domain, String name) {
+    this.localFeatureVector.add(domain, name);
+  }
+
+  public void addFeature(String domain, String name, double value) {
+    this.localFeatureVector.add(domain, name, value);
+  }
+
   public void addHistogramFeature(String domain, String name, double value,
-                                  int initBinSize, int numBins, boolean exp) {
+      int initBinSize, int numBins, boolean exp) {
     this.localFeatureVector.addHistogram(domain, name, value, initBinSize, numBins, exp);
   }
-  public void addFeatureWithBias(String domain, String name, double value) { this.localFeatureVector.addWithBias(domain, name, value); }
-  public void addFeatures(FeatureVector fv) { this.localFeatureVector.add(fv); }
 
-  public double localScore(Params params) {
-    return localFeatureVector.dotProduct(params);
+  public void addFeatureWithBias(String domain, String name, double value) {
+    this.localFeatureVector.addWithBias(domain, name, value);
+  }
+
+  public void addFeatures(FeatureVector fv) {
+    this.localFeatureVector.add(fv);
+  }
+
+  public void addGlobalFeature(String domain, String name) {
+    this.globalFeatureVector.add(domain, name);
+  }
+
+  public void addGlobalFeature(String domain, String name, double value) {
+    this.globalFeatureVector.add(domain, name, value);
+  }
+
+  public void addGlobalHistogramFeature(String domain, String name, double value,
+      int initBinSize, int numBins, boolean exp) {
+    this.globalFeatureVector.addHistogram(domain, name, value, initBinSize, numBins, exp);
+  }
+
+  public void addGlobalFeatureWithBias(String domain, String name, double value) {
+    this.globalFeatureVector.addWithBias(domain, name, value);
+  }
+
+  public void addGlobalFeatures(FeatureVector fv) {
+    this.globalFeatureVector.add(fv);
+  }
+
+  private void computeScoreRecursive(Params params) {
+    if (scored)
+      return;
+    localScore = localFeatureVector.dotProduct(params);
+    globalScore = globalFeatureVector.dotProduct(params);
+    score = localScore + globalScore;
+    if (children != null) {
+      for (Derivation child : children) {
+        child.computeScoreRecursive(params);
+        score += child.localScore;
+      }
+    }
+    scored = true;
   }
 
   /**
@@ -271,22 +352,7 @@ public String childStringValue(int i) {
    * field as well as return its value.
    */
   public double computeScore(Params params) {
-    score = localScore(params);
-    if (children != null)
-      for (Derivation child : children)
-        score += child.computeScore(params);
-    return score;
-  }
-
-  /**
-   * Same as |computeScore()| but without recursion (assumes children are
-   * already scored).
-   */
-  public double computeScoreLocal(Params params) {
-    score = localScore(params);
-    if (children != null)
-      for (Derivation child : children)
-        score += child.score;
+    computeScoreRecursive(params);
     return score;
   }
 
@@ -382,14 +448,15 @@ public String toString() { return toLispTree().toString(); }
 
   public void incrementAllFeatureVector(double factor, TObjectDoubleMap<String> map,
       FeatureMatcher updateFeatureMatcher) {
+    globalFeatureVector.increment(factor, map, updateFeatureMatcher);
+    incrementAllFeatureVectorRecursive(factor, map, updateFeatureMatcher);
+  }
+
+  private void incrementAllFeatureVectorRecursive(double factor, TObjectDoubleMap<String> map,
+      FeatureMatcher updateFeatureMatcher) {
     localFeatureVector.increment(factor, map, updateFeatureMatcher);
     for (Derivation child : children)
-      child.incrementAllFeatureVector(factor, map, updateFeatureMatcher);
-  }
-  public void incrementAllFeatureVector(double factor, FeatureVector fv) {
-    localFeatureVector.add(factor, fv);
-    for (Derivation child : children)
-      child.incrementAllFeatureVector(factor, fv);
+      child.incrementAllFeatureVectorRecursive(factor, map, updateFeatureMatcher);
   }
 
   // returns feature vector with renamed features by prefix
@@ -410,13 +477,6 @@ public String toString() { return toLispTree().toString(); }
       return true;
     });
     return map;
-  }
-
-  // TODO(pliang): this is crazy inefficient
-  public double getAllFeatureVector(String featureName) {
-    TObjectDoubleMap<String> m = new TObjectDoubleHashMap<>();
-    incrementAllFeatureVector(1.0d, m, new ExactFeatureMatcher(featureName));
-    return m.get(featureName);
   }
 
   public void addLocalChoice(String choice) {
@@ -522,5 +582,13 @@ public String toString() { return toLispTree().toString(); }
       }
     }
     return anchoredTokens.clone();
+  }
+
+  public boolean isLeftOf(Derivation deriv) {
+    if (spanEnd == -1)
+      return true;
+    if (deriv.spanStart == -1)
+      return true;
+    return spanEnd <= deriv.spanStart;
   }
 }

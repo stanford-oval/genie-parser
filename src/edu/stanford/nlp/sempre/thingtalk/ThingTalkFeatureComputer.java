@@ -75,42 +75,21 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       deriv.addFeature("strvalue", "isEntity");
   }
 
-  private static void subtractDescendentsCodeFeatures(Derivation deriv, Derivation subderiv) {
-    if (subderiv.children != null) {
-      for (Derivation child : subderiv.children) {
-        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
-          @Override
-          public boolean matches(String feature) {
-            return feature.startsWith("code ::");
-          }
-
-        });
-        subtractDescendentsCodeFeatures(deriv, child);
-      }
-    }
-  }
-
   private void extractCodeFeatures(Example ex, Derivation deriv) {
     if (deriv.value == null)
       return;
-    
-    // optimization (and also to handle $ROOT being a StringValue in JSON form)
-    if (deriv.rule.isCatUnary())
-      return;
 
-    // Important!  We want to define the global feature vector for this
-    // derivation, but we can only specify the local feature vector.  So to
-    // make things cancel out, we subtract out the unwanted feature vectors of
-    // descendents.
-    //
-    // This fixes double counting of code features, and is the same thing we
-    // do in OvernightFeatureComputer
-    subtractDescendentsCodeFeatures(deriv, deriv);
+    Value value = deriv.value;
+    if (deriv.isRootCat()) {
+      // HACK: the root is a StringValue in json form, so we descend one level
+      // to find the value
+      value = deriv.child(0).value;
+    }
 
-    if (deriv.value instanceof ParametricValue) {
-      extractParametricValueFeatures(deriv, (ParametricValue) deriv.value);
-    } else if (deriv.value instanceof RuleValue) {
-      RuleValue rule = (RuleValue)deriv.value;
+    if (value instanceof ParametricValue) {
+      extractParametricValueFeatures(deriv, (ParametricValue) value);
+    } else if (value instanceof RuleValue) {
+      RuleValue rule = (RuleValue) value;
       extractParametricValueFeatures(deriv, rule.trigger);
       extractParametricValueFeatures(deriv, rule.query);
       extractParametricValueFeatures(deriv, rule.action);
@@ -132,11 +111,11 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     for (ParamValue p : duplicates) {
       if (p.operator.equals("is"))
-        deriv.addFeature("code", "dupIsParam=" + p.name.argname);
+        deriv.addGlobalFeature("thingtalk_complexity", "dupIsParam=" + p.name.argname);
       else
-        deriv.addFeature("code", "dupNonIsParam=" + p.name.argname);
+        deriv.addGlobalFeature("thingtalk_complexity", "dupNonIsParam=" + p.name.argname);
     }
-    deriv.addFeature("code", "nparams", params.size());
+    deriv.addGlobalFeature("thingtalk_complexity", "nparams", params.size());
     
     // add a feature for each pair (channel name, parameter)
     // this is a bias towards choosing certain params for certain channels
@@ -146,8 +125,13 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     // "send sms saying foo"
     // this becomes even more important for trigger/queries, where parameters
     // are optional
-    for (String p : params)
-      deriv.addFeature("code", String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p));
+    for (ParamValue p : pv.params) {
+      if (p.tt_type.equals("VarRef"))
+        continue;
+
+      deriv.addGlobalFeature("thingtalk_params",
+          String.format("param=%s.%s:%s", pv.name.kind, pv.name.channelName, p.name.argname));
+    }
 
     // don't add operator features for actions (because their operators are
     // always "is" and don't really have any meaning)
@@ -155,15 +139,14 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       return;
 
     for (ParamValue p : pv.params) {
+      if (p.tt_type.equals("VarRef"))
+        continue;
+
       // add a feature for the pair (argtype, operator)
       // this is to bias against certain operators that, while legal, don't make much
       // sense, for example @thermostat.temperature(value), value = 73 F, because it will never be exactly 73 F
-      // note that we use the actual ThingTalk type from param.name.type, not the looser
-      // param.type
 
-      // Actually don't: this feature tends to overselect String:is, because we have way too
-      // many string inputs to queries, and the right combination of arguments falls off the beam
-      //deriv.addFeature("code", "operatortype=" + p.name.type + ":" + p.operator);
+      deriv.addGlobalFeature("thingtalk_params", "operatortype=" + p.tt_type + ":" + p.operator);
 
       // add a feature for the triple (argname, type, operator)
       // this is to bias towards certain operators for certain arguments
@@ -172,7 +155,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // @twitter.source(text, ...), text = "foo"
       // "=" is a fine operator for Strings in general, but for the specific case
       // of text it is wrong
-      deriv.addFeature("code", "operator=" + p.name.argname + "," + p.name.type + ":" + p.operator);
+      deriv.addGlobalFeature("thingtalk_params", "operator=" + p.name.argname + ":" + p.operator);
     }
   }
 }

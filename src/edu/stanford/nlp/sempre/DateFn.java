@@ -20,12 +20,13 @@ public DerivationStream call(final Example ex, final Callable c) {
         if (dateValue == null)
           return null;
         return new Derivation.Builder()
-                .withCallable(c)
-                .formula(new ValueFormula<>(dateValue))
-                .type(SemType.dateType)
-						.meetCache(
-								value.equals("PRESENT_REF") ? Cacheability.NON_DETERMINISTIC : Cacheability.CACHEABLE)
-                .createDerivation();
+            .withCallable(c)
+            .formula(new ValueFormula<>(dateValue))
+            .type(SemType.dateType)
+            .nerUtterance("DATE")
+            .meetCache(
+                value.equals("PRESENT_REF") ? Cacheability.NON_DETERMINISTIC : Cacheability.CACHEABLE)
+            .createDerivation();
       }
     };
   }

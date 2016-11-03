@@ -116,7 +116,7 @@ public final class PPDBModel {
     LogInfo.end_track();
   }
 
-  public double get(String key, String token) {
-    return table.contains(new StringPair(key, token)) ? 1.0 : 0.0;
+  public boolean get(String key, String token) {
+    return table.contains(new StringPair(key, token));
   }
 }

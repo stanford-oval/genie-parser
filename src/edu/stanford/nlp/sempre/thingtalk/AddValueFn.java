@@ -64,8 +64,24 @@ public class AddValueFn extends SemanticFn {
       argnameIter = invocation.name.argtypes.keySet().iterator();
     }
 
+    private Derivation findLastAnchoredArg(Derivation deriv) {
+      Derivation lastArg = null;
+      if (deriv.children != null && deriv.children.size() == 2)
+        lastArg = deriv.child(1);
+      else
+        return null;
+      if (lastArg.spanStart == -1 || lastArg.spanEnd == -1)
+        return findLastAnchoredArg(deriv.child(0));
+      else
+        return lastArg;
+    }
+
     @Override
     public Derivation createDerivation() {
+      Derivation lastArg = findLastAnchoredArg(callable.child(0));
+      if (lastArg != null && !lastArg.isLeftOf(callable.child(1)))
+        return null;
+
       while (true) {
         if (!argnameIter.hasNext())
           return null;
@@ -100,10 +116,16 @@ public class AddValueFn extends SemanticFn {
         String canonical = left.canonicalUtterance + " " + withToken + " " +
             invocation.name.getArgCanonical(currentArgname) + opPart
             + right.canonicalUtterance;
+        String nerCanonical = left.nerUtterance + " " + withToken + " "
+            + invocation.name.getArgCanonical(currentArgname) + opPart
+            + right.nerUtterance;
 
-        Derivation.Builder bld = new Derivation.Builder().withCallable(callable)
-            .formula(new ValueFormula<>(newInvocation)).type(SemType.entityType)
-            .canonicalUtterance(canonical);
+        Derivation.Builder bld = new Derivation.Builder()
+            .withCallable(callable)
+            .formula(new ValueFormula<>(newInvocation))
+            .type(SemType.entityType)
+            .canonicalUtterance(canonical)
+            .nerUtterance(nerCanonical);
         return bld.createDerivation();
       }
     }

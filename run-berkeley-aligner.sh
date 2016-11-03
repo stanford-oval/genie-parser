@@ -21,6 +21,7 @@ java -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
 	${LANGUAGE_TAG}
 
 # run the berkeley aligner
+test -f sabrina/berkeleydictionary.${LANGUAGE_TAG} && cp sabrina/berkeleydictionary.${LANGUAGE_TAG} berkeleyaligner.tmp/sabrina/dictionary
 ( cd ./berkeleyaligner.tmp ; java -ea -jar ${BERKELEYALIGNER}/berkeleyaligner.jar ++${SEMPREDIR}/sabrina/sabrina.berkeleyaligner.conf )
 paste ./berkeleyaligner.tmp/output/training.f \
       ./berkeleyaligner.tmp/output/training.e \
@@ -38,7 +39,6 @@ rm -fr ./berkeleyaligner.tmp
 java -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
 	-Dmodules=core,corenlp,overnight,thingtalk \
 	edu.stanford.nlp.sempre.overnight.PhraseAligner \
-	$CANONICALS \
+	./${MODULE}/${MODULE}.word_alignments.berkeley.source.${LANGUAGE_TAG} \
 	./${MODULE}/${MODULE}.phrase_alignments.${LANGUAGE_TAG} \
-	./${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
 	${LANGUAGE_TAG} 2

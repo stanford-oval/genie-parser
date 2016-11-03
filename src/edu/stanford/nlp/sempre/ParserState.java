@@ -6,8 +6,6 @@ import java.util.List;
 import fig.basic.*;
 import gnu.trove.map.TObjectDoubleMap;
 
-import fig.basic.*;
-
 /**
  * Actually does the parsing.  Main method is infer(), whose job is to fill in
  *
@@ -75,7 +73,7 @@ public abstract class ParserState {
     parser.extractor.extractLocal(ex, deriv);
 
     // Compute score
-    deriv.computeScoreLocal(params);
+    deriv.computeScore(params);
 
     if (parser.verbose(5)) {
       LogInfo.logs("featurizeAndScoreDerivation(score=%s) %s %s: %s [rule: %s]",

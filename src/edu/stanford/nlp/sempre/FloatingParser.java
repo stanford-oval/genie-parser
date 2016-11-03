@@ -124,7 +124,8 @@ class FloatingParserState extends ParserState {
     MapUtils.addToList(chart, cell, deriv);
   }
 
-  private void applyRule(Rule rule, int start, int end, int depth, Derivation child1, Derivation child2, String canonicalUtterance) {
+  private void applyRule(Rule rule, int start, int end, int depth, Derivation child1, Derivation child2,
+      String leftCanonical, String rightCanonical, String leftNer, String rightNer) {
     if (Parser.opts.verbose >= 5) logs("applyRule %s [%s:%s] depth=%s, %s %s", rule, start, end, depth, child1, child2);
     List<Derivation> children;
     if (child1 == null)  // 0-ary
@@ -146,38 +147,80 @@ class FloatingParserState extends ParserState {
       }
     }
 
-		DerivationStream results = rule.sem.call(ex,
-				new SemanticFn.CallInfo(rule.lhs, start, end, rule, children));
-		while (results.hasNext()) {
-			Derivation newDeriv = results.next();
-			// only overwrite canonical utterance if it's missing
-			// this handles derivations produced by thingtalk.ThingpediaLexiconFn,
-			// where the canonical is already set (and we don't want to mess it up)
-			if (newDeriv.canonicalUtterance == null || newDeriv.canonicalUtterance.length() == 0)
-				newDeriv.canonicalUtterance = canonicalUtterance;
+    DerivationStream results = rule.sem.call(ex,
+        new SemanticFn.CallInfo(rule.lhs, start, end, rule, children));
+    while (results.hasNext()) {
+      Derivation newDeriv = results.next();
 
-			// make sure we execute
-			if (FloatingParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
-				newDeriv.ensureExecuted(parser.executor, ex.context);
+      if (start != -1 && end != -1) {
+        newDeriv.spanStart = start;
+        newDeriv.spanEnd = end;
+      } else {
+        int newStart = Integer.MAX_VALUE;
+        int newEnd = Integer.MIN_VALUE;
 
-			if (pruner.isPruned(newDeriv))
-				continue;
-			// Avoid repetitive floating cells
-			addToChart(cell(rule.lhs, start, end, depth), newDeriv);
-			if (depth == -1) {
-				// In addition, anchored cells become floating
-				// at level 0
-				addToChart(floatingCell(rule.lhs, 0), newDeriv);
-			}
-		}
+        if (child1 != null && child1.spanStart != -1)
+          newStart = child1.spanStart;
+        if (child2 != null && child2.spanStart != -1)
+          newStart = Math.min(newStart, child2.spanStart);
+        if (child1 != null && child1.spanEnd != -1)
+          newEnd = child1.spanEnd;
+        if (child2 != null && child2.spanEnd != -1)
+          newEnd = Math.max(newEnd, child2.spanEnd);
+        if (newStart != Integer.MAX_VALUE)
+          newDeriv.spanStart = newStart;
+        else
+          newDeriv.spanStart = -1;
+        if (newEnd != Integer.MIN_VALUE)
+          newDeriv.spanEnd = newEnd;
+        else
+          newDeriv.spanEnd = -1;
+      }
+
+      // only overwrite canonical utterance if it's missing
+      // this handles derivations produced by thingtalk.ThingpediaLexiconFn,
+      // where the canonical is already set (and we don't want to mess it up)
+      boolean hadCanonical = newDeriv.canonicalUtterance != null;
+      if (newDeriv.canonicalUtterance == null) {
+        if (rightCanonical == null)
+          newDeriv.canonicalUtterance = leftCanonical;
+        else
+          newDeriv.canonicalUtterance = leftCanonical + " " + rightCanonical;
+      }
+      if (newDeriv.nerUtterance == null) {
+        if (hadCanonical)
+          newDeriv.nerUtterance = newDeriv.canonicalUtterance;
+        else if (rightCanonical == null)
+          newDeriv.nerUtterance = (leftNer != null ? leftNer : leftCanonical);
+        else
+          newDeriv.nerUtterance = (leftNer != null ? leftNer : leftCanonical) + " "
+              + (rightNer != null ? rightNer : rightCanonical);
+      }
+
+      // make sure we execute
+      if (FloatingParser.opts.executeAllDerivations && !(newDeriv.type instanceof FuncSemType))
+        newDeriv.ensureExecuted(parser.executor, ex.context);
+
+      if (pruner.isPruned(newDeriv))
+        continue;
+      // Avoid repetitive floating cells
+      addToChart(cell(rule.lhs, start, end, depth), newDeriv);
+      if (depth == -1) {
+        // In addition, anchored cells become floating
+        // at level 0
+        addToChart(floatingCell(rule.lhs, 0), newDeriv);
+      }
+    }
   }
 
-  private void applyAnchoredRule(Rule rule, int start, int end, Derivation child1, Derivation child2, String canonicalUtterance) {
-    applyRule(rule, start, end, -1, child1, child2, canonicalUtterance);
+  private void applyAnchoredRule(Rule rule, int start, int end, Derivation child1, Derivation child2,
+      String leftCanonical, String rightCanonical, String leftNer, String rightNer) {
+    applyRule(rule, start, end, -1, child1, child2, leftCanonical, rightCanonical, leftNer, rightNer);
   }
 
-  private void applyFloatingRule(Rule rule, int depth, Derivation child1, Derivation child2, String canonicalUtterance) {
-    applyRule(rule, -1, -1, depth, child1, child2, canonicalUtterance);
+  private void applyFloatingRule(Rule rule, int depth, Derivation child1, Derivation child2,
+      String leftCanonical, String rightCanonical, String leftNer, String rightNer) {
+    applyRule(rule, -1, -1, depth, child1, child2, leftCanonical, rightCanonical, leftNer, rightNer);
   }
 
   private List<Derivation> getDerivations(Object cell) {
@@ -195,7 +238,7 @@ class FloatingParserState extends ParserState {
       if (rule.rhs.size() != 1 || rule.isCatUnary()) continue;
       boolean match = (end - start == 1) && ex.token(start).equals(rule.rhs.get(0));
       if (match)
-        applyAnchoredRule(rule, start, end, null, null, rule.rhs.get(0));
+        applyAnchoredRule(rule, start, end, null, null, rule.rhs.get(0), null, rule.rhs.get(0), null);
     }
 
     // Apply binaries on spans (rule $A ($B $C)), ...
@@ -213,23 +256,26 @@ class FloatingParserState extends ParserState {
           if (match1) {
             List<Derivation> derivations = getDerivations(anchoredCell(rhs2, mid, end));
             for (Derivation deriv : derivations)
-              applyAnchoredRule(rule, start, end, deriv, null, rhs1 + " " + deriv.canonicalUtterance);
+              applyAnchoredRule(rule, start, end, deriv, null, rhs1, deriv.canonicalUtterance, rhs1,
+                  deriv.nerUtterance);
           }
         } else if (Rule.isCat(rhs1) && !Rule.isCat(rhs2)) {  // $Cat token
           if (match2) {
             List<Derivation> derivations = getDerivations(anchoredCell(rhs1, start, mid));
             for (Derivation deriv : derivations)
-              applyAnchoredRule(rule, start, end, deriv, null, deriv.canonicalUtterance + " " + rhs2);
+              applyAnchoredRule(rule, start, end, deriv, null, deriv.canonicalUtterance, rhs2, deriv.nerUtterance,
+                  rhs2);
           }
         } else if (!Rule.isCat(rhs1) && !Rule.isCat(rhs2)) {  // token token
           if (match1 && match2)
-            applyAnchoredRule(rule, start, end, null, null, rhs1 + " " + rhs2);
+            applyAnchoredRule(rule, start, end, null, null, rhs1, rhs2, rhs1, rhs2);
         } else {  // $Cat $Cat
           List<Derivation> derivations1 = getDerivations(anchoredCell(rhs1, start, mid));
           List<Derivation> derivations2 = getDerivations(anchoredCell(rhs2, mid, end));
           for (Derivation deriv1 : derivations1)
             for (Derivation deriv2 : derivations2)
-              applyAnchoredRule(rule, start, end, deriv1, deriv2, deriv1.canonicalUtterance + " " + deriv2.canonicalUtterance);
+              applyAnchoredRule(rule, start, end, deriv1, deriv2,
+                  deriv1.canonicalUtterance, deriv2.canonicalUtterance, deriv1.nerUtterance, deriv2.nerUtterance);
         }
       }
     }
@@ -240,7 +286,7 @@ class FloatingParserState extends ParserState {
       if (!rule.isAnchored()) continue;
       List<Derivation> derivations = getDerivations(anchoredCell(rule.rhs.get(0), start, end));
       for (Derivation deriv : derivations) {
-        applyAnchoredRule(rule, start, end, deriv, null, deriv.canonicalUtterance);
+        applyAnchoredRule(rule, start, end, deriv, null, deriv.canonicalUtterance, null, deriv.nerUtterance, null);
       }
     }
   }
@@ -252,7 +298,7 @@ class FloatingParserState extends ParserState {
       for (Rule rule : parser.grammar.rules) {
         if (!rule.isFloating()) continue;
         if (rule.rhs.size() != 1 || rule.isCatUnary()) continue;
-        applyFloatingRule(rule, depth, null, null, rule.rhs.get(0));
+        applyFloatingRule(rule, depth, null, null, rule.rhs.get(0), null, rule.rhs.get(0), null);
       }
     }
 
@@ -266,15 +312,15 @@ class FloatingParserState extends ParserState {
 
       if (!Rule.isCat(rhs1) && !Rule.isCat(rhs2)) {  // token token
         if (depth == 1)
-          applyFloatingRule(rule, depth, null, null, rhs1 + " " + rhs2);
+          applyFloatingRule(rule, depth, null, null, rhs1, rhs2, rhs1, rhs2);
       } else if (!Rule.isCat(rhs1) && Rule.isCat(rhs2)) {  // token $Cat
         List<Derivation> derivations = getDerivations(floatingCell(rhs2, depth - 1));
         for (Derivation deriv : derivations)
-          applyFloatingRule(rule, depth, deriv, null, rhs1 + " " + deriv.canonicalUtterance);
+          applyFloatingRule(rule, depth, deriv, null, rhs1, deriv.canonicalUtterance, rhs1, deriv.nerUtterance);
       } else if (Rule.isCat(rhs1) && !Rule.isCat(rhs2)) {  // $Cat token
         List<Derivation> derivations = getDerivations(floatingCell(rhs1, depth - 1));
         for (Derivation deriv : derivations)
-          applyFloatingRule(rule, depth, deriv, null, deriv.canonicalUtterance + " " + rhs2);
+          applyFloatingRule(rule, depth, deriv, null, deriv.canonicalUtterance, rhs2, deriv.nerUtterance, rhs2);
       } else {  // $Cat $Cat
         if (FloatingParser.opts.useSizeInsteadOfDepth) {
           for (int depth1 = 0; depth1 < depth; depth1++) {
@@ -283,7 +329,8 @@ class FloatingParserState extends ParserState {
             List<Derivation> derivations2 = getDerivations(floatingCell(rhs2, depth2));
             for (Derivation deriv1 : derivations1)
               for (Derivation deriv2 : derivations2)
-                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance + " " + deriv2.canonicalUtterance);
+                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance,
+                    deriv2.canonicalUtterance, deriv1.nerUtterance, deriv2.nerUtterance);
           }
         } else {
           for (int subDepth = 0; subDepth < depth; subDepth++) {  // depth-1 <=depth-1
@@ -291,14 +338,16 @@ class FloatingParserState extends ParserState {
             List<Derivation> derivations2 = getDerivations(floatingCell(rhs2, subDepth));
             for (Derivation deriv1 : derivations1)
               for (Derivation deriv2 : derivations2)
-                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance + " " + deriv2.canonicalUtterance);
+                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance,
+                    deriv2.canonicalUtterance, deriv1.nerUtterance, deriv2.nerUtterance);
           }
           for (int subDepth = 0; subDepth < depth - 1; subDepth++) {  // <depth-1 depth-1
             List<Derivation> derivations1 = getDerivations(floatingCell(rhs1, subDepth));
             List<Derivation> derivations2 = getDerivations(floatingCell(rhs2, depth - 1));
             for (Derivation deriv1 : derivations1)
               for (Derivation deriv2 : derivations2)
-                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance + " " + deriv2.canonicalUtterance);
+                applyFloatingRule(rule, depth, deriv1, deriv2, deriv1.canonicalUtterance,
+                    deriv2.canonicalUtterance, deriv1.nerUtterance, deriv2.nerUtterance);
           }
         }
       }
@@ -310,7 +359,7 @@ class FloatingParserState extends ParserState {
       if (!rule.isFloating()) continue;
       List<Derivation> derivations = getDerivations(floatingCell(rule.rhs.get(0), depth - 1));
       for (Derivation deriv : derivations)
-        applyFloatingRule(rule, depth, deriv, null, deriv.canonicalUtterance);
+        applyFloatingRule(rule, depth, deriv, null, deriv.canonicalUtterance, null, deriv.nerUtterance, null);
     }
   }
 

@@ -131,12 +131,6 @@ public class ThingpediaLexicon {
 
     @Override
     public void addFeatures(FeatureVector vec) {
-      vec.add("kinds", kind);
-
-      // this overfits wildly, but makes sure that certain words like xkcd or twitter
-      // (when they appear) are immediately recognized as the right kind so that we don't
-      // go in the woods because of a "get" that's too generic
-      vec.add("thingtalk_lexicon", search + "---" + this.kind);
     }
   }
 
@@ -368,8 +362,10 @@ public class ThingpediaLexicon {
   // the lexicon), but are not useful to lookup canonical forms
   // with FloatingParser, if the lookup word is in this array, we just return no
   // derivations
-  private static final String[] IGNORED_WORDS = { "in", "on", "a", "to", "with", "and",
-      "me", "the", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
+  private static final String[] IGNORED_WORDS = { "in", "is", "of", "or", "not", "my", "i",
+      "at", "as", "by",
+      "from", "for", "an", "on", "a", "to", "with", "and", "'s", "'", "s", "when",
+      "notify", "monitor", "it", "?", "me", "the", "if", "abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwz" };
   static {
     Arrays.sort(IGNORED_WORDS);
   }

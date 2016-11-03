@@ -78,6 +78,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     public final String data2;
     public final String stem2;
     public final String ner2;
+    private int hashData1;
+    private int hashData2;
+    private int hashStem1;
+    private int hashStem2;
 
     public Item(Tag tag, String data1, String stem1, String ner1) {
       this.tag = tag;
@@ -120,13 +124,41 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         return tag + ":" + data1 + " " + data2;
     }
 
+    private int ensureHash1() {
+      if (hashData1 != 0)
+        return hashData1;
+      return hashData1 = 1 + data1.hashCode();
+    }
+
+    private int ensureHash2() {
+      if (hashData2 != 0)
+        return hashData2;
+      if (data2 == null)
+        return hashData2 = 1;
+      return hashData2 = 2 + data2.hashCode();
+    }
+
+    private int ensureHashStem1() {
+      if (hashStem1 != 0)
+        return hashStem1;
+      return hashStem1 = 1 + stem1.hashCode();
+    }
+
+    private int ensureHashStem2() {
+      if (hashStem2 != 0)
+        return hashStem2;
+      if (stem2 == null)
+        return hashStem2 = 1;
+      return hashStem2 = 2 + stem2.hashCode();
+    }
+
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((data1 == null) ? 0 : data1.hashCode());
-      result = prime * result + ((data2 == null) ? 0 : data2.hashCode());
-      result = prime * result + ((tag == null) ? 0 : tag.hashCode());
+      result = prime * result + ensureHash1();
+      result = prime * result + ensureHash2();
+      result = prime * result + tag.hashCode();
       return result;
     }
 
@@ -144,6 +176,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         return true;
       if (tag != other.tag)
         return false;
+      if (ensureHash1() != other.ensureHash1() ||
+          ensureHash2() != other.ensureHash2())
+        return false;
       if (!data1.equals(other.data1))
         return false;
       if (data2 == null) {
@@ -158,6 +193,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       if (this == other)
         return true;
       if (tag != other.tag)
+        return false;
+      if (ensureHashStem1() != other.ensureHashStem1() ||
+          ensureHashStem2() != other.ensureHashStem2())
         return false;
       if (!stem1.equals(other.stem1))
         return false;
@@ -233,32 +271,14 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     if (deriv.rule.lhs != null && deriv.rule.lhs.equals("$StrValue"))
       return;
 
-    // Optimization: feature vector same as child, so don't do anything.
-    if (deriv.rule.isCatUnary()) {
-      if (deriv.isRootCat()) {
-        extractValueInFormulaFeature(deriv);
-
-        ItemList inputItems = computeInputItems(ex);
-        ItemList candidateItems = computeCandidateItems(ex, deriv);
-        extractRootFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
-      }
-      return;
-    }
-
-    // Important!  We want to define the global feature vector for this
-    // derivation, but we can only specify the local feature vector.  So to
-    // make things cancel out, we subtract out the unwanted feature vectors of
-    // descendents.
-    subtractDescendentsFeatures(deriv, deriv);
-
-    deriv.addFeature("paraphrase", "size", derivationSize(deriv));
+    deriv.addGlobalFeature("paraphrase", "size", derivationSize(deriv));
 
     ItemList inputItems = computeInputItems(ex);
     ItemList candidateItems = computeCandidateItems(ex, deriv);
 
     extractRootFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
     extractLexicalFeatures(ex, deriv, inputItems.unigrams, candidateItems.unigrams);
-    extractPhraseAlignmentFeatures(ex, deriv, candidateItems.unigrams);
+    extractPhraseAlignmentFeatures(ex, deriv);
     extractLogicalFormFeatures(ex, deriv);
 
     if (!opts.itemAnalysis) return;
@@ -272,25 +292,29 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       double match = 0;
       double ppdb = 0;
       for (Item candidate : candidateItems.unigrams) {
-        match = Math.max(match, computeMatch(input, candidate));
-        ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
+        int isMatch = computeMatch(input, candidate);
+        match = Math.max(match, isMatch);
+        if (isMatch == 0)
+          ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
-        deriv.addFeature("paraphrase", "match");
+        deriv.addGlobalFeature("paraphrase", "match");
       if (ppdb > 0 && hasPpdb)
-        deriv.addFeature("paraphrase", "ppdb");
+        deriv.addGlobalFeature("paraphrase", "ppdb");
     }
     for (Item input : inputItems.bigrams) {
       double match = 0;
       double ppdb = 0;
       for (Item candidate : candidateItems.bigrams) {
-        match = Math.max(match, computeMatch(input, candidate));
-        ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
+        int isMatch = computeMatch(input, candidate);
+        match = Math.max(match, isMatch);
+        if (isMatch == 0)
+          ppdb = Math.max(ppdb, computeParaphrase(input, candidate));
       }
       if (match > 0 && hasMatch)
-        deriv.addFeature("paraphrase", "match");
+        deriv.addGlobalFeature("paraphrase", "match");
       if (ppdb > 0 && hasPpdb)
-        deriv.addFeature("paraphrase", "ppdb");
+        deriv.addGlobalFeature("paraphrase", "ppdb");
     }
     for (Item input : inputItems.skipBigrams) {
       double skipBigram = 0;
@@ -300,9 +324,9 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           skipPpdb = Math.max(skipPpdb, computeParaphrase(input, candidate));
       }
       if (skipBigram > 0 && hasSkipBigram)
-        deriv.addFeature("paraphrase", "skip-bigram");
+        deriv.addGlobalFeature("paraphrase", "skip-bigram");
       if (skipPpdb > 0 && hasSkipPpdb)
-        deriv.addFeature("paraphrase", "skip-ppdb");
+        deriv.addGlobalFeature("paraphrase", "skip-ppdb");
     }
 
     if (opts.verbose >= 1) {
@@ -345,7 +369,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         Value formulaValue = ((ValueFormula<?>) f).value;
         String valueStr = (formulaValue instanceof StringValue) ? ((StringValue) formulaValue).value : formulaValue.toString();
         if (valueList.contains(valueStr))
-          deriv.addFeature("denotation", "value_in_formula");
+          deriv.addGlobalFeature("denotation", "value_in_formula");
       }
     }
   }
@@ -375,12 +399,13 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           matches++;
         }
       }
-      deriv.addFeature("root", "unmatched_input", filteredInputTokens.size() - matches);
-      deriv.addFeature("root", "unmatched_deriv", filteredDerivTokens.size() - matches);
+      deriv.addGlobalFeature("root", "unmatched_input", filteredInputTokens.size() - matches);
+      deriv.addGlobalFeature("root", "unmatched_deriv", filteredDerivTokens.size() - matches);
       if (deriv.value != null) {
         if (deriv.value instanceof ListValue) {
           ListValue list = (ListValue) deriv.value;
-          deriv.addFeature("root", String.format("pos0=%s&returnType=%s", ex.posTag(0), list.values.get(0).getClass()));
+          deriv.addGlobalFeature("root",
+              String.format("pos0=%s&returnType=%s", ex.posTag(0), list.values.get(0).getClass()));
         }
       }
     }
@@ -391,15 +416,15 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           if (i < filteredInputTokens.size()) {
             Item inputToken = filteredInputTokens.get(i);
             if (inputToken.ner1 != null)
-              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.ner1);
+              deriv.addGlobalFeature("root_lexical", "deleted_token=" + inputToken.ner1);
             else
-              deriv.addFeature("root_lexical", "deleted_token=" + inputToken.data1);
+              deriv.addGlobalFeature("root_lexical", "deleted_token=" + inputToken.data1);
           }
           else {
             Item derivToken = filteredDerivTokens.get(i - filteredInputTokens.size());
             // deriv tokens never get ner tags (because it would be too expensive to run ner on the
             // canonical utterance)
-            deriv.addFeature("root_lexical", "deleted_token=" + derivToken.data1);
+            deriv.addGlobalFeature("root_lexical", "deleted_token=" + derivToken.data1);
           }
         }
       }
@@ -425,7 +450,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         for (Formula callFormula: callFormulas) {
           String callFormulaDesc = callFormula.toString();
           //LogInfo.logs("SUPER: utterance=%s, formula=%s", ex.utterance, deriv.formula);
-          deriv.addFeature("lf", callFormulaDesc + "& superlative");
+          deriv.addGlobalFeature("lf", callFormulaDesc + "& superlative");
         }
       }
     }
@@ -436,40 +461,43 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       String desc = callFormula.func.toString();
       switch (desc) {
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.filter":
-          deriv.addFeature("simpleworld", "filter&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld", "filter&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.getProperty":
-          deriv.addFeature("simpleworld", "getProperty&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld", "getProperty&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.superlative":
-          deriv.addFeature("simpleworld", "superlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
+        deriv.addGlobalFeature("simpleworld", "superlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.countSuperlative":
-          deriv.addFeature("simpleworld", "countSuperlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
+        deriv.addGlobalFeature("simpleworld",
+            "countSuperlative&" + callFormula.args.get(1) + "&" + callFormula.args.get(2));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.countComparative":
-          deriv.addFeature("simpleworld", "countComparative&" + callFormula.args.get(2) + "&" + callFormula.args.get(1));
+        deriv.addGlobalFeature("simpleworld",
+            "countComparative&" + callFormula.args.get(2) + "&" + callFormula.args.get(1));
           break;
         case "edu.stanford.nlp.sempre.overnight.SimpleWorld.aggregate":
-          deriv.addFeature("simpleworld", "countComparative&" + callFormula.args.get(0));
+        deriv.addGlobalFeature("simpleworld", "countComparative&" + callFormula.args.get(0));
           break;
         default: break;
       }
     }
   }
 
-  private void extractPhraseAlignmentFeatures(Example ex, Derivation deriv, List<Item> derivTokens) {
+  private void extractPhraseAlignmentFeatures(Example ex, Derivation deriv) {
 
     if (!opts.featureDomains.contains("alignment")) return;
 
     //get the tokens
-    Set<String> inputSubspans = ex.languageInfo.getLowerCasedSpans();
+    Set<String> inputSubspans = ex.languageInfo.getNerSpans();
+    List<String> derivTokens = Arrays.asList(deriv.nerUtterance.split(" "));
 
     for (int i = 0; i < derivTokens.size(); ++i) {
-      for (int j = i + 1; j <= derivTokens.size() && j <= i + 4; ++j) {
+      for (int j = i + 1; j <= derivTokens.size() && j <= i + 6; ++j) {
 
-        String lhs = Joiner.on(' ').join(derivTokens.subList(i, j).stream().map(item -> item.data1).iterator());
-        if (entities.contains(lhs)) continue; //optimization
+        String lhs = Joiner.on(' ').join(derivTokens.subList(i, j));
+        //if (entities.contains(lhs)) continue; //optimization
 
         if (phraseTable.containsKey(lhs)) {
           Set<String> rhsCandidates = phraseTable.get(lhs);
@@ -520,21 +548,27 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       if (entities.contains(str2Token)) return;
 
     if (stopWords.contains(str1) || stopWords.contains(str2)) return;
-    deriv.addFeature(domain, str1 + "--" + str2);
+    deriv.addGlobalFeature(domain, str1 + "--" + str2);
   }
 
   private void addAndFilterLexicalFeature(Derivation deriv, String domain, Item str1, Item str2) {
     if ((str1.tag == Item.Tag.UNIGRAM && stopWords.contains(str1.data1)) ||
         (str2.tag == Item.Tag.UNIGRAM && stopWords.contains(str2.data1)))
       return;
+    if (str1.ner1 != null || str2.ner1 != null)
+      return;
+    if (str1.tag != Item.Tag.UNIGRAM && str1.ner2 != null)
+      return;
+    if (str2.tag != Item.Tag.UNIGRAM && str2.ner2 != null)
+      return;
 
-    String f1 = str1.ner1 != null ? str1.ner1 : str1.data1;
+    String f1 = str1.data1;
     if (str1.tag != Item.Tag.UNIGRAM)
-      f1 += " " + (str1.ner2 != null ? str1.ner2 : str1.data2);
-    String f2 = str2.ner1 != null ? str2.ner1 : str2.data1;
+      f1 += " " + str1.data2;
+    String f2 = str2.data1;
     if (str2.tag != Item.Tag.UNIGRAM)
-      f2 += " " + (str2.ner2 != null ? str2.ner2 : str2.data2);
-    deriv.addFeature(domain, f1 + "--" + f2);
+      f2 += " " + str2.data2;
+    deriv.addGlobalFeature(domain, f1 + "--" + f2);
   }
 
   private void extractLexicalFeatures(Example ex, Derivation deriv, ArrayList<Item> inputItems,
@@ -553,6 +587,29 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
     double[][] alignmentMatrix = buildLexicalAlignmentMatrix(filteredInputTokens, filteredDerivTokens);
     int[] assignment = bMatcher.findMaxWeightAssignment(alignmentMatrix);
+    
+    int countInOrder = 0;
+    int countReorder = 0;
+    int i0 = -1;
+    for (int i = 0; i < filteredInputTokens.size(); ++i) {
+      if (assignment[i] != i) {
+        i0 = i;
+        break;
+      }
+    }
+    if (i0 != -1) {
+      for (int i = i0 + 1; i < filteredInputTokens.size(); ++i) {
+        if (assignment[i] < assignment[i - 1])
+          countReorder++;
+        else
+          countInOrder++;
+      }
+      if (countReorder > 0)
+        deriv.addGlobalFeature("reorder", "anyInversion");
+      deriv.addGlobalFeature("reorder", "inversions", countReorder);
+      deriv.addGlobalFeature("reorder", "correct", countInOrder);
+    }
+    
     for (int i = 0; i < filteredInputTokens.size(); ++i) {
       if (assignment[i] != i) {
         int derivIndex = assignment[i] - filteredInputTokens.size();
@@ -595,10 +652,10 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
   private void extractStringSimilarityFeatures(Derivation deriv, String inputToken, String derivToken) {
     if (inputToken.startsWith(derivToken) || derivToken.startsWith(inputToken))
-      deriv.addFeature("lexical", "starts_with");
+      deriv.addGlobalFeature("lexical", "starts_with");
     else if (inputToken.length() > 4 && derivToken.length() > 4) {
       if (inputToken.substring(0, 4).equals(derivToken.substring(0, 4)))
-        deriv.addFeature("lexical", "common_prefix");
+        deriv.addGlobalFeature("lexical", "common_prefix");
     }
   }
 
@@ -774,22 +831,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return items;
   }
 
-  private static void subtractDescendentsFeatures(Derivation deriv, Derivation subderiv) {
-    if (subderiv.children != null) {
-      for (Derivation child : subderiv.children) {
-        deriv.getLocalFeatureVector().add(-1, child.getLocalFeatureVector(), new FeatureMatcher() {
-          @Override
-          public boolean matches(String feature) {
-            return feature.startsWith("paraphrase :: ") || feature.startsWith("lexical :: ")
-                || feature.startsWith("alignment :: ");
-          }
-
-        });
-        subtractDescendentsFeatures(deriv, child);
-      }
-    }
-  }
-
   // Return the "complexity" of the given derivation.
   private static int derivationSize(Derivation deriv) {
     if (deriv.rule.isAnchored())
@@ -803,7 +844,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return sum;
   }
 
-  private static double computeMatch(Item a, Item b) {
+  private static int computeMatch(Item a, Item b) {
     if (a.equals(b))
       return 1;
     if (a.stemEquals(b))
@@ -811,8 +852,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     return 0;
   }
 
-  private double computeParaphrase(Item a, Item b) {
-    if (computeMatch(a, b) >  0) return 0;
+  private int computeParaphrase(Item a, Item b) {
+    // we know that we never compare items that match
 
     // we know we never compare items of different types
     assert a.tag == b.tag;
@@ -821,7 +862,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     // if we're comparing unigrams, we don't need to check a.data1 == b.data1
     // because we just did it earlier when we called computeMatch
     if (a.tag == Item.Tag.UNIGRAM || (!a.data1.equals(b.data1) && !a.stem1.equals(b.stem1))) {
-      if (ppdbModel.get(a.data1, b.data1) > 0 || ppdbModel.get(a.stem1, b.stem1) > 0) {
+      if (ppdbModel.get(a.data1, b.data1) || ppdbModel.get(a.stem1, b.stem1)) {
         numPpdb++;
       } else {
         return 0;
@@ -829,13 +870,13 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     }
     if (a.tag != Item.Tag.UNIGRAM) {
       if (!a.data2.equals(b.data2) && !a.stem2.equals(b.stem2)) {
-        if (ppdbModel.get(a.data2, b.data2) > 0 || ppdbModel.get(a.stem2, b.stem2) > 0) {
+        if (ppdbModel.get(a.data2, b.data2) || ppdbModel.get(a.stem2, b.stem2)) {
           numPpdb++;
         } else {
           return 0;
         }
       }
     }
-    return numPpdb <= 1 ? 1d : 0d;
+    return numPpdb <= 1 ? 1 : 0;
   }
 }

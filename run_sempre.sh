@@ -10,6 +10,8 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               edu.stanford.nlp.sempre.api.APIServer \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
+               corenlp.QuotedStringEntityRecognizer \
+              -CoreNLPAnalyzer.regularExpressions 'USERNAME:[@](.+)' 'HASHTAG:[#](.+)' \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -Builder.parser FloatingParser \
               -Builder.executor JavaExecutor \
@@ -20,7 +22,6 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params zh:sabrina/sabrina.zh.params \
               -APIServer.utteranceLogFile sabrina/sabrina.log \
               -OnlineLearnExchangeState.testProbability 0.4 \
-              -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \

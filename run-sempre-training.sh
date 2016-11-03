@@ -19,6 +19,8 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -execDir ${WORKDIR}/sempre.tmp \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
+               corenlp.QuotedStringEntityRecognizer \
+              -CoreNLPAnalyzer.regularExpressions 'USERNAME:[@](.+)' 'HASHTAG:[#](.+)' \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG} \
               -Builder.parser FloatingParser \
@@ -28,7 +30,6 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -Builder.dataset thingtalk.ThingpediaDataset \
               -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar \
               -Grammar.tags floatingargs floatingnames floatingstrings \
-              -FeatureExtractor.featureDomains rule \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \

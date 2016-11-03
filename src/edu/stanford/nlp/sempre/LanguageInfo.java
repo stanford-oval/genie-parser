@@ -31,10 +31,11 @@ public class LanguageInfo implements MemUsage.Instrumented {
   public final List<String> nerTags;  // NER tags
   @JsonProperty
   public final List<String> nerValues;  // NER values (contains times, dates, etc.)
+  public final List<String> nerTokens; // NER tag if NER value != null, else token
 
   private Map<String, IntPair> lemmaSpans;
   private Set<String> lowercasedSpans;
-
+  private Set<String> nerSpans;
 
 
   public static class DependencyEdge {
@@ -80,7 +81,30 @@ public class LanguageInfo implements MemUsage.Instrumented {
     this.posTags = posTags;
     this.nerTags = nerTags;
     this.nerValues = nerValues;
+    this.nerTokens = new ArrayList<>();
     this.dependencyChildren = dependencyChildren;
+
+    computeNerTokens();
+  }
+
+  public void computeNerTokens() {
+    nerTokens.clear();
+
+    String previousTag = null;
+    for (int i = 0; i < tokens.size(); i++) {
+      String current;
+
+      if (nerValues.get(i) != null) {
+        current = nerTags.get(i);
+        if (current.equals(previousTag))
+          continue;
+        previousTag = nerTags.get(i);
+      } else {
+        current = tokens.get(i);
+        previousTag = null;
+      }
+      nerTokens.add(current);
+    }
   }
 
   // Return a string representing the tokens between start and end.
@@ -106,6 +130,10 @@ public class LanguageInfo implements MemUsage.Instrumented {
   }
   public String nerSeq(int start, int end) {
     return sliceSequence(nerTags, start, end);
+  }
+
+  public String nerPhrase(int start, int end) {
+    return sliceSequence(nerTokens, start, end);
   }
 
   private static String sliceSequence(List<String> items,
@@ -322,6 +350,17 @@ public class LanguageInfo implements MemUsage.Instrumented {
       }
     }
     return lowercasedSpans;
+  }
+
+  public Set<String> getNerSpans() {
+    if (nerSpans == null) {
+      nerSpans = new HashSet<>();
+      for (int i = 0; i < nerTokens.size(); ++i) {
+        for (int j = i + 1; j <= nerTokens.size(); ++j)
+          nerSpans.add(nerPhrase(i, j));
+      }
+    }
+    return nerSpans;
   }
 
   public boolean matchLemmas(List<WordInfo> wordInfos) {
