@@ -24,9 +24,6 @@ public class Learner {
     @Option(gloss = "Number of iterations to train")
     public int maxTrainIters = 0;
 
-    @Option(gloss = "When using mini-batch updates for SGD, this is the batch size")
-    public int batchSize = 1;  // Default is SGD
-
     @Option(gloss = "Write predDerivations to examples file (huge)")
     public boolean outputPredDerivations = false;
 
@@ -167,8 +164,6 @@ public class Learner {
             "Processing %s: %s examples", prefix, examples.size());
     LogInfo.begin_track("Examples");
 
-    TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
-    int batchSize = 0;
     for (int e = 0; e < examples.size(); e++) {
 
       Example ex = examples.get(e);
@@ -185,15 +180,7 @@ public class Learner {
           checkGradient(ex, state);
           LogInfo.end_track();
         }
-
-        SempreUtils.addToDoubleMap(counts, state.expectedCounts);
-
-        batchSize++;
-        if (batchSize >= opts.batchSize) {
-          // Gathered enough examples, update parameters
-          updateWeights(counts);
-          batchSize = 0;
-        }
+        updateWeights(state.expectedCounts);
       }
      // }
 
@@ -215,8 +202,6 @@ public class Learner {
       ex.predDerivations.clear();
     }
 
-    if (computeExpectedCounts && batchSize > 0)
-      updateWeights(counts);
     params.finalizeWeights();
     if (opts.sortOnFeedback && computeExpectedCounts)
       sortOnFeedback();
@@ -287,7 +272,6 @@ public class Learner {
     params.update(counts);
     if (opts.verbose >= 2)
       params.log();
-    counts.clear();
     LogInfo.end_track();
     StopWatchSet.end();
   }
