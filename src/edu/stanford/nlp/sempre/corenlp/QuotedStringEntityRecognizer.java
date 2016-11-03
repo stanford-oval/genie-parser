@@ -19,9 +19,10 @@ public class QuotedStringEntityRecognizer implements NamedEntityRecognizer {
           closed = true;
           break;
         }
-        if (j > i + 1)
+        String token = info.tokens.get(j);
+        if (j > i + 1 && !token.startsWith("'"))
           value.append(' ');
-        value.append(info.tokens.get(j));
+        value.append(token);
       }
       if (closed) {
         for (int k = i; k < j + 1; k++) {
