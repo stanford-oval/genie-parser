@@ -131,12 +131,6 @@ public class ThingpediaLexicon {
 
     @Override
     public void addFeatures(FeatureVector vec) {
-      vec.add("kinds", kind);
-
-      // this overfits wildly, but makes sure that certain words like xkcd or twitter
-      // (when they appear) are immediately recognized as the right kind so that we don't
-      // go in the woods because of a "get" that's too generic
-      vec.add("thingtalk_lexicon", search + "---" + this.kind);
     }
   }
 
