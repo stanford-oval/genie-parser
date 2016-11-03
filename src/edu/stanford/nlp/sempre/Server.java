@@ -288,10 +288,7 @@ public class Server {
 
       Params params = master.getParams();
       Map<String, Double> features;
-      if (local)
-        features = deriv.getLocalFeatureVector().toMap();
-      else
-        features = deriv.getFeatureMap();
+      features = deriv.getFeatureMap();
 
       List<Map.Entry<String, Double>> entries = Lists.newArrayList();
       double sumValue = 0;
@@ -321,16 +318,7 @@ public class Server {
       }
 
       String header;
-      if (local) {
-        double localScore = deriv.localScore(params);
-        double score = deriv.getScore();
-        if (deriv.children == null)
-          header = String.format("Local features (score = %s)", Fmt.D(score));
-        else
-          header = String.format("Local features (score = %s + %s = %s)", Fmt.D(score - localScore), Fmt.D(localScore), Fmt.D(score));
-      } else {
-        header = String.format("All features (score=%s, prob=%s)", Fmt.D(deriv.getScore()), Fmt.D(deriv.getProb()));
-      }
+      header = String.format("All features (score=%s, prob=%s)", Fmt.D(deriv.getScore()), Fmt.D(deriv.getProb()));
       return H.div()
               .child(H.span().cls("listHeader").child(header))
               .child(table);
