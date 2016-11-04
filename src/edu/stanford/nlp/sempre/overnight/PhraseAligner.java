@@ -86,9 +86,27 @@ public class PhraseAligner {
           for (int k = 0; k < i2 - i1; k++) {
             if (TP[k] < 0)
               continue;
-            if (TP[k] < jmin - 1 || TP[k] > jmax + 1) {
-              quasiConsecutive = false;
-              break;
+            if (TP[k] < jmin - 1) {
+              // check that all words between jmin-1 (inclusive) and TP[k] (exclusive) are not aligned
+              for (int z = jmin - 1; z > TP[k]; z--) {
+                if (originalAlignment[z] != -1) {
+                  quasiConsecutive = false;
+                  break;
+                }
+              }
+              if (!quasiConsecutive)
+                break;
+            }
+            if (TP[k] > jmax + 1) {
+              // check that all words between jmax+1 (inclusive) and TP[k] (exclusive) are not aligned
+              for (int z = jmax + 1; z < TP[k]; z++) {
+                if (originalAlignment[z] != -1) {
+                  quasiConsecutive = false;
+                  break;
+                }
+              }
+              if (!quasiConsecutive)
+                break;
             }
             if (TP[k] < jmin)
               jmin = TP[k];
