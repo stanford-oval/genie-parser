@@ -1,5 +1,7 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import edu.stanford.nlp.sempre.*;
@@ -11,15 +13,19 @@ public class JsonValueEvaluator implements ValueEvaluator {
     exact = new ExactValueEvaluator();
   }
 
+  private static BigDecimal fixDouble(double dbl) {
+    return new BigDecimal(dbl).setScale(1, RoundingMode.HALF_EVEN);
+  }
+
   @SuppressWarnings("unchecked")
-  private Set<Object> normalize(List<?> list) {
+  private static Set<Object> normalize(List<?> list) {
     ListIterator<?> li = list.listIterator();
     Set<Object> res = new HashSet<>();
 
     while (li.hasNext()) {
       Object o = li.next();
-      if (o instanceof Number && !(o instanceof Double)) {
-        res.add(((Number) o).doubleValue());
+      if (o instanceof Number) {
+        res.add(fixDouble(((Number) o).doubleValue()));
       } else if (o instanceof Map<?, ?>) {
         normalize((Map<?, Object>) o);
         res.add(o);
@@ -34,7 +40,7 @@ public class JsonValueEvaluator implements ValueEvaluator {
   }
 
   @SuppressWarnings("unchecked")
-  private void normalize(Map<?, Object> map) {
+  private static void normalize(Map<?, Object> map) {
     for (Map.Entry<?, Object> e : map.entrySet()) {
       Object v = e.getValue();
       if (v instanceof Number && !(v instanceof Double))
