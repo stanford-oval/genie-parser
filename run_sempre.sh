@@ -15,7 +15,7 @@ exec java -ea -Dmodules=core,corenlp,overnight,thingtalk,api \
               -Builder.executor JavaExecutor \
               -JavaExecutor.unpackValues false \
               -Grammar.languageInPaths en:sabrina/sabrina.en.grammar it:sabrina/sabrina.it.grammar es:sabrina/sabrina.es.grammar zh:sabrina/sabrina.zh.grammar \
-              -Grammar.tags floatingargs floatingnames \
+              -Grammar.tags includebookkeeping \
               -Builder.languageInParamsPath en:sabrina/sabrina.en.params it:sabrina/sabrina.it.params es:sabrina/sabrina.es.params zh:sabrina/sabrina.zh.params \
               -APIServer.utteranceLogFile sabrina/sabrina.log \
               -OnlineLearnExchangeState.testProbability 0.4 \

@@ -17,7 +17,7 @@ exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               -JavaExecutor.unpackValues false \
               -Builder.dataset thingtalk.ThingpediaDataset \
               -Grammar.inPaths sabrina/sabrina.en.grammar \
-              -Grammar.tags floatingargs floatingnames \
+              -Grammar.tags includebookkeeping \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
