@@ -39,10 +39,10 @@
 (when floatingstrings
 	(rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
 )
-(when (not floatingstrings)
-	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
-)
-(rule $StringValue (`` $StrValue '') (IdentityFn))
+#(when (not floatingstrings)
+#	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
+#)
+#(rule $StringValue (`` $StrValue '') (IdentityFn))
 
 (rule $StringValue ($PHRASE) (thingtalk.NerValueFn QUOTED_STRING String) (anchored 1))
 (rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME Username) (anchored 1))
@@ -201,11 +201,18 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
 # fallbacks on the client side)
 (rule $Special (failuretoparse) (ConstantFn tt:root.special.failed))
 
-(for @v @answer_values
+(when includebookkeeping
+  (for @v @answer_values
 	(rule $Answer (@v) (lambda value (call @ansForm (var value))))
+  )
+  (rule $ROOT ($Answer) (lambda cmd (call @jsonOut (var cmd))))
+  (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 )
 
-(for @v ($Command $Action $Notify $Query $Answer $TimeQueryRule $TimeActionRule $TimeQueryActionRule $IftttActionRule $IftttQueryRule $IftttQueryActionRule $IftttQueryActionChain)
+(for @v ($Action $Notify $Query $TimeQueryRule $TimeActionRule $TimeQueryActionRule $IftttActionRule $IftttQueryRule $IftttQueryActionRule $IftttQueryActionChain)
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
-(rule $ROOT ($Special) (lambda spl (call @special (var spl))))
+
+(when includebookkeping
+  (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
+)
