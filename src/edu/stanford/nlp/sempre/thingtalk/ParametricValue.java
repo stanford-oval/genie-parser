@@ -6,64 +6,6 @@ import edu.stanford.nlp.sempre.Value;
 import edu.stanford.nlp.sempre.Values;
 import fig.basic.LispTree;
 
-class ParamValueComparator implements Comparator<ParamValue>, Cloneable {
-  @Override
-  public int compare(ParamValue o1, ParamValue o2) {
-    return o1.name.argname.compareTo(o2.name.argname);
-  }
-}
-
-class SortedList<E> extends AbstractCollection<E> implements Cloneable {
-  private final Comparator<E> comp;
-  private ArrayList<E> backingStore = new ArrayList<>();
-
-  public SortedList(Comparator<E> comp) {
-    this.comp = comp;
-  }
-
-  public SortedList(Comparator<E> comp, Collection<? extends E> from) {
-    this(comp);
-    this.addAll(from);
-  }
-
-  @Override
-  public Iterator<E> iterator() {
-    return backingStore.iterator();
-  }
-
-  @Override
-  public int size() {
-    return backingStore.size();
-  }
-
-  @Override
-  public boolean addAll(Collection<? extends E> from) {
-    boolean changed = backingStore.addAll(from);
-    if (changed)
-      backingStore.sort(comp);
-    return changed;
-  }
-
-  @Override
-  public boolean add(E el) {
-    int i;
-    for (i = 0; i < backingStore.size(); i++) {
-      if (comp.compare(el, backingStore.get(i)) < 0)
-        break;
-    }
-    backingStore.add(i, el);
-    return true;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public SortedList<E> clone() throws CloneNotSupportedException {
-    SortedList<E> self = (SortedList<E>) super.clone();
-    self.backingStore = (ArrayList<E>) self.backingStore.clone();
-    return self;
-  }
-}
-
 /**
  * Base class for thingtalk entities that take parameters (actions, triggers,
  * queries)
@@ -73,7 +15,7 @@ class SortedList<E> extends AbstractCollection<E> implements Cloneable {
 public abstract class ParametricValue extends Value implements Cloneable {
   public final ChannelNameValue name;
 
-  public SortedList<ParamValue> params = new SortedList<>(new ParamValueComparator());
+  public ArrayList<ParamValue> params = new ArrayList<>();
 
   public ParametricValue(LispTree tree) {
     this.name = (ChannelNameValue) Values.fromLispTree(tree.child(1));
@@ -150,7 +92,7 @@ public abstract class ParametricValue extends Value implements Cloneable {
   public ParametricValue clone() {
     try {
       ParametricValue self = (ParametricValue) super.clone();
-      self.params = self.params.clone();
+      self.params = new ArrayList<>(self.params);
       return self;
     } catch (CloneNotSupportedException e) {
       throw new RuntimeException(e);
