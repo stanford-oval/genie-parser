@@ -28,6 +28,9 @@ public class Learner {
     @Option(gloss = "Number of threads to use; default is 1 (no multithreading)")
     public int numThreads = 1;
 
+    @Option(gloss = "When using mini-batch updates for SGD, this is the batch size")
+    public int batchSize = 1;  // Default is SGD
+
     @Option(gloss = "Write predDerivations to examples file (huge)")
     public boolean outputPredDerivations = false;
 
@@ -160,44 +163,61 @@ public class Learner {
     ArrayList<Callable<Void>> tasks = new ArrayList<>();
     final String prefix = "iter=" + iter + "." + group;
 
-    for (int i = 0; i < examples.size(); i++) {
-      final int e = i;
-      final Example ex = examples.get(e);
+    int batchSize = computeExpectedCounts ? opts.batchSize : 1;
+    int nbatches = (examples.size() + batchSize - 1) / batchSize;
+    for (int i = 0; i < nbatches; i++) {
+      final ArrayList<Example> minibatch = new ArrayList<>();
+      for (int j = 0; j < batchSize && i * batchSize + j < examples.size(); j++)
+        minibatch.add(examples.get(i * batchSize + j));
+
+      final int batchno = i;
       tasks.add(() -> {
         LogInfo.begin_track_printAll(
-            "%s: example %s/%s: %s", prefix, e, examples.size(), ex.id);
-        ex.log();
-        Execution.putOutput("example", e);
+            "%s: minibatch %s/%s", prefix, batchno, nbatches);
 
-        ParserState state = parseExample(params, ex, computeExpectedCounts);
-        if (computeExpectedCounts) {
-          if (opts.checkGradient) {
-            LogInfo.begin_track("Checking gradient");
-            checkGradient(ex, state);
-            LogInfo.end_track();
+        TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
+
+        for (Example ex : minibatch) {
+          LogInfo.begin_track_printAll(
+              "%s: example %s", prefix, ex.id);
+          ex.log();
+          //Execution.putOutput("example", ex);
+
+          ParserState state = parseExample(params, ex, computeExpectedCounts);
+          if (computeExpectedCounts) {
+            if (opts.checkGradient) {
+              LogInfo.begin_track("Checking gradient");
+              checkGradient(ex, state);
+              LogInfo.end_track();
+            }
+            SempreUtils.addToDoubleMap(counts, state.expectedCounts);
           }
-          updateWeights(state.expectedCounts);
-        }
-        // }
+          // }
 
-        synchronized (evaluation) {
-          LogInfo.logs("Current: %s", ex.evaluation.summary());
-          evaluation.add(ex.evaluation);
-          LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
+          synchronized (evaluation) {
+            LogInfo.logs("Current: %s", ex.evaluation.summary());
+            evaluation.add(ex.evaluation);
+            LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
+          }
+          LogInfo.end_track();
+          printLearnerEventsIter(ex, iter, group);
+
+          if (opts.addFeedback && computeExpectedCounts)
+            addFeedback(ex);
+
+          // Write out examples and predictions
+          if (opts.outputPredDerivations && Builder.opts.parser.equals("FloatingParser")) {
+            ExampleUtils.writeParaphraseSDF(iter, group, ex, opts.outputPredDerivations);
+          }
+
+          // To save memory
+          ex.predDerivations.clear();
         }
 
-        printLearnerEventsIter(ex, iter, group);
+        if (computeExpectedCounts)
+          updateWeights(counts);
+
         LogInfo.end_track();
-        if (opts.addFeedback && computeExpectedCounts)
-          addFeedback(ex);
-
-        // Write out examples and predictions
-        if (opts.outputPredDerivations && Builder.opts.parser.equals("FloatingParser")) {
-          ExampleUtils.writeParaphraseSDF(iter, group, ex, opts.outputPredDerivations);
-        }
-
-        // To save memory
-        ex.predDerivations.clear();
 
         return null;
       });
@@ -305,6 +325,7 @@ public class Learner {
     params.update(counts);
     if (opts.verbose >= 2)
       params.log();
+    counts.clear();
     LogInfo.end_track();
     StopWatchSet.end();
   }
