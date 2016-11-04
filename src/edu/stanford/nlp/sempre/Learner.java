@@ -176,6 +176,7 @@ public class Learner {
             "%s: minibatch %s/%s", prefix, batchno, nbatches);
 
         TObjectDoubleMap<String> counts = new TObjectDoubleHashMap<>();
+        Evaluation minibatchEval = new Evaluation();
 
         for (Example ex : minibatch) {
           LogInfo.begin_track_printAll(
@@ -194,11 +195,8 @@ public class Learner {
           }
           // }
 
-          synchronized (evaluation) {
-            LogInfo.logs("Current: %s", ex.evaluation.summary());
-            evaluation.add(ex.evaluation);
-            LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
-          }
+          LogInfo.logs("Current: %s", ex.evaluation.summary());
+          minibatchEval.add(ex.evaluation);
           LogInfo.end_track();
           printLearnerEventsIter(ex, iter, group);
 
@@ -216,6 +214,11 @@ public class Learner {
 
         if (computeExpectedCounts)
           updateWeights(counts);
+
+        synchronized (evaluation) {
+          evaluation.add(minibatchEval);
+          LogInfo.logs("Cumulative(%s): %s", prefix, evaluation.summary());
+        }
 
         LogInfo.end_track();
 
