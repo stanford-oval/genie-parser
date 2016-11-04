@@ -135,8 +135,8 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     // don't add operator features for actions (because their operators are
     // always "is" and don't really have any meaning)
-    if (pv instanceof ActionValue)
-      return;
+    //if (pv instanceof ActionValue)
+    //  return;
 
     for (ParamValue p : pv.params) {
       if (p.tt_type.equals("VarRef"))
