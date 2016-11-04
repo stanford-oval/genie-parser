@@ -36,9 +36,9 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               root_lexical \
               -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 8 \
+              -FloatingParser.maxDepth 10 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 8 \
+              -Parser.beamSize 16 \
               -Learner.maxTrainIters 2 \
               -wordAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
               -phraseAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.phrase_alignments \
