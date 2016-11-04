@@ -19,7 +19,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   // same thing, but more lenient with touch tones, if we have an explicit intl or area code prefix
   // parses things like 1-800-SABRINA, where the number part does not match NUMBER
   private static final Pattern LENIENT_NUMBER = Pattern
-      .compile("^([A-Za-z0-90-9*#\\-]{4,})$");
+      .compile("^([A-Za-z0-90-9*#\\-]{3,})$");
   // but don't recognize something that would be a legitimate number
   private static final Pattern DOUBLE_PATTERN = Pattern.compile("[+\\-]?([0-9]*\\.[0-9]+|[0-9]+)([eE][+-]?[0-9]+)?");
 
