@@ -94,6 +94,8 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       String token = tokens.get(startToken + tokenIdx);
       if (charIdx > 0)
         token = token.substring(charIdx);
+      if (charIdx == 0 && buffer.length() >= 7)
+        lenient = false;
 
       Matcher matcher = (lenient ? LENIENT_NUMBER : NUMBER).matcher(token);
       if (!matcher.matches())
