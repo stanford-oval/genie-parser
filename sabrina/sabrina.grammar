@@ -67,10 +67,8 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $StringValue))
 # which bypasses sempre
 # DO NOT put $Answer -> $StringValue here, it would catch everything and confuse the parser
 # NOTE 2: boolean answers are matched to yes/no, which are specials
-# but you still need to handle them here to match synonyms of true/false like on/off
-# that should not be learned as synonyms of yes/no
 (def @answer_values ($DateValue $TimeValue $NumValue
-$MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
+$MeasureValue $TimeIntervalValue $LocationValue
 $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
 
 # FIXME: Integrate this to improve the canonicals
@@ -213,6 +211,6 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
 
-(when includebookkeping
+(when includebookkeeping
   (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
 )
