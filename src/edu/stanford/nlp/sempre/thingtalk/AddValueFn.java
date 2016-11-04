@@ -48,12 +48,14 @@ public class AddValueFn extends SemanticFn {
   }
 
   private class AddValueStream extends MultipleDerivationStream {
+    private final Example ex;
     private final Callable callable;
     private final ParametricValue invocation;
     private final Iterator<String> argnameIter;
     private String currentArgname;
 
     public AddValueStream(Example ex, Callable callable) {
+      this.ex = ex;
       this.callable = callable;
 
       Derivation left = callable.child(0);
@@ -126,7 +128,14 @@ public class AddValueFn extends SemanticFn {
             .type(SemType.entityType)
             .canonicalUtterance(canonical)
             .nerUtterance(nerCanonical);
-        return bld.createDerivation();
+        Derivation deriv = bld.createDerivation();
+
+        int spanMin = callable.child(1).spanStart;
+        if (spanMin > 0)
+          deriv.addFeature("thingtalk_params_leftword",
+              ex.token(spanMin - 1) + "---" + pv.name.argname + "," + pv.operator);
+
+        return deriv;
       }
     }
   }
