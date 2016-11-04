@@ -271,7 +271,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     if (deriv.rule.lhs != null && deriv.rule.lhs.equals("$StrValue"))
       return;
 
-    deriv.addGlobalFeature("paraphrase", "size", derivationSize(deriv));
+    //deriv.addGlobalFeature("paraphrase", "size", derivationSize(deriv));
 
     ItemList inputItems = computeInputItems(ex);
     ItemList candidateItems = computeCandidateItems(ex, deriv);

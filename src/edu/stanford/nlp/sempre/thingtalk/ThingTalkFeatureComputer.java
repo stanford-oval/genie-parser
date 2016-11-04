@@ -135,8 +135,8 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     // don't add operator features for actions (because their operators are
     // always "is" and don't really have any meaning)
-    if (pv instanceof ActionValue)
-      return;
+    //if (pv instanceof ActionValue)
+    //  return;
 
     for (ParamValue p : pv.params) {
       if (p.tt_type.equals("VarRef"))
@@ -146,7 +146,8 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // this is to bias against certain operators that, while legal, don't make much
       // sense, for example @thermostat.temperature(value), value = 73 F, because it will never be exactly 73 F
 
-      deriv.addGlobalFeature("thingtalk_params", "operatortype=" + p.tt_type + ":" + p.operator);
+      if (!p.tt_type.equals("String"))
+          deriv.addGlobalFeature("thingtalk_params", "operatortype=" + p.tt_type + ":" + p.operator);
 
       // add a feature for the triple (argname, type, operator)
       // this is to bias towards certain operators for certain arguments

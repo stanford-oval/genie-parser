@@ -29,16 +29,16 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -JavaExecutor.unpackValues false \
               -Builder.dataset thingtalk.ThingpediaDataset \
               -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar \
-              -Grammar.tags floatingargs floatingnames floatingstrings \
+              -Grammar.tags includebookkeeping \
               -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
               -OvernightFeatureComputer.featureDomains \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 8 \
+              -FloatingParser.maxDepth 10 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 8 \
+              -Parser.beamSize 16 \
               -Learner.maxTrainIters 2 \
               -wordAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
               -phraseAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.phrase_alignments \

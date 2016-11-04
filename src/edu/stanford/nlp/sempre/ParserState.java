@@ -1,7 +1,6 @@
 package edu.stanford.nlp.sempre;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import fig.basic.*;
 import gnu.trove.map.TObjectDoubleMap;
@@ -20,6 +19,9 @@ public abstract class ParserState {
     public boolean pruneByProbDiff = false;
     @Option(gloss = "Difference in probability for pruning by prob diff")
     public double probDiffPruningThresh = 100;
+
+    @Option(gloss = "Whether to collapse derivations that have identical values, canonical and score")
+    public boolean collapseIdentical = true;
   }
   public static Options opts = new Options();
 
@@ -82,6 +84,12 @@ public abstract class ParserState {
     numOfFeaturizedDerivs++;
   }
 
+  private boolean indistinguishable(Derivation d1, Derivation d2) {
+    return Math.abs(d1.score - d2.score) < 0.000001 &&
+        d1.canonicalUtterance.equals(d2.canonicalUtterance) &&
+        Objects.equals(d1.value, d2.value);
+  }
+
   /**
    * Prune down the number of derivations in |derivations| to the beam size.
    * Sort the beam by score.
@@ -129,7 +137,7 @@ public abstract class ParserState {
     Derivation.sortByScore(derivations);
 
     // Print out information
-    if (parser.opts.verbose >= 3) {
+    if (Parser.opts.verbose >= 3) {
       LogInfo.begin_track("ParserState.pruneCell(%s): %d derivations", cellDescription, derivations.size());
       for (Derivation deriv : derivations) {
         LogInfo.logs("%s(%s,%s): %s, [score=%s]", deriv.cat, deriv.start, deriv.end,
@@ -152,8 +160,23 @@ public abstract class ParserState {
       i++;
     }
 
+    if (opts.collapseIdentical) {
+      ListIterator<Derivation> li = derivations.listIterator();
+      
+      if (li.hasNext()) {
+        Derivation current = li.next();
+        while (li.hasNext()) {
+          Derivation next = li.next();
+          if (indistinguishable(current, next))
+            li.remove();
+          else
+            next = current;
+        }
+      }
+    }
+
     //prune all d_i s.t  p(d_1) > CONST \cdot p(d_i)
-    if(ChartParserState.opts.pruneByProbDiff) {
+    if (opts.pruneByProbDiff) {
       double highestScore = derivations.get(0).score;
       while (highestScore - derivations.get(derivations.size()-1).score > Math.log(opts.probDiffPruningThresh)) {
         derivations.remove(derivations.size() - 1);
