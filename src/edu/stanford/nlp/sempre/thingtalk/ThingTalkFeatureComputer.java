@@ -84,6 +84,13 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // HACK: the root is a StringValue in json form, so we descend one level
       // to find the value
       value = deriv.child(0).value;
+
+      if (value instanceof TriggerValue)
+         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---trigger");
+      else if (value instanceof QueryValue)
+         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---query");
+      else if (value instanceof ActionValue)
+         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---action");
     }
 
     if (value instanceof ParametricValue) {
