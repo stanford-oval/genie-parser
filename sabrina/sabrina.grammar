@@ -49,6 +49,7 @@
 (rule $HashtagValue ($TOKEN) (thingtalk.NerValueFn HASHTAG Hashtag) (anchored 1))
 (rule $PhoneNumberValue ($PHRASE) (thingtalk.NerValueFn PHONE_NUMBER PhoneNumber) (anchored 1))
 (rule $EmailAddressValue ($TOKEN) (thingtalk.NerValueFn EMAIL_ADDRESS EmailAddress) (anchored 1))
+(rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL URL) (anchored 1))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
@@ -60,7 +61,7 @@
 
 (def @all_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
-$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $StringValue))
+$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $UrlValue $StringValue))
 
 # Answer handling
 # NOTE 1: string answers are handled by putting Sabrina in "raw" mode
@@ -69,7 +70,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $StringValue))
 # NOTE 2: boolean answers are matched to yes/no, which are specials
 (def @answer_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $LocationValue
-$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue))
+$PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))

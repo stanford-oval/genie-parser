@@ -8,7 +8,7 @@ exec java -Xmx12G -ea -Dmodules=core,corenlp,overnight,thingtalk \
               edu.stanford.nlp.sempre.Main \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
-               corenlp.QuotedStringEntityRecognizer \
+               corenlp.QuotedStringEntityRecognizer corenlp.URLEntityRecognizer \
               -CoreNLPAnalyzer.regularExpressions 'USERNAME:[@](.+)' 'HASHTAG:[#](.+)' \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -Builder.parser FloatingParser \

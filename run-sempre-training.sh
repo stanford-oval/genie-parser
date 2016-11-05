@@ -19,7 +19,7 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -execDir ${WORKDIR}/sempre.tmp \
               -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
               -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
-               corenlp.QuotedStringEntityRecognizer \
+               corenlp.QuotedStringEntityRecognizer corenlp.URLEntityRecognizer \
               -CoreNLPAnalyzer.regularExpressions 'USERNAME:[@](.+)' 'HASHTAG:[#](.+)' \
               -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
               -CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG} \
