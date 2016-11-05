@@ -148,18 +148,6 @@ public abstract class ParserState {
       LogInfo.end_track();
     }
 
-    // Max beam position (after sorting)
-    i = 0;
-    for (Derivation deriv : derivations) {
-      deriv.maxBeamPosition = i;
-      if (deriv.children != null) {
-        for (Derivation child : deriv.children)
-          deriv.maxBeamPosition = Math.max(deriv.maxBeamPosition, child.maxBeamPosition);
-      }
-      deriv.postSortBeamPosition = i;
-      i++;
-    }
-
     if (opts.collapseIdentical) {
       ListIterator<Derivation> li = derivations.listIterator();
       
@@ -173,6 +161,18 @@ public abstract class ParserState {
             next = current;
         }
       }
+    }
+
+    // Max beam position (after sorting)
+    i = 0;
+    for (Derivation deriv : derivations) {
+      deriv.maxBeamPosition = i;
+      if (deriv.children != null) {
+        for (Derivation child : deriv.children)
+          deriv.maxBeamPosition = Math.max(deriv.maxBeamPosition, child.maxBeamPosition);
+      }
+      deriv.postSortBeamPosition = i;
+      i++;
     }
 
     //prune all d_i s.t  p(d_1) > CONST \cdot p(d_i)
