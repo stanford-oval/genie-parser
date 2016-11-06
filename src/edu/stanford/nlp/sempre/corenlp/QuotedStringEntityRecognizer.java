@@ -20,7 +20,9 @@ public class QuotedStringEntityRecognizer implements NamedEntityRecognizer {
           break;
         }
         String token = info.tokens.get(j);
-        if (j > i + 1 && !token.startsWith("'"))
+        // HACK: fix CoreNLP splitting "it 's" and "gon na"
+        if (j > i + 1 && !token.startsWith("'") &&
+            !(token.equals("na") && info.tokens.get(j - 1).equals("gon")))
           value.append(' ');
         value.append(token);
       }
