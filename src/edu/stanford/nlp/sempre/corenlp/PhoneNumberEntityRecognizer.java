@@ -153,7 +153,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   public void recognize(LanguageInfo info) {
     int n = info.numTokens();
     for (int i = 0; i < n; i++) {
-      if (info.nerTags.get(i).equals("TIME"))
+      if (info.nerTags.get(i).equals("TIME") || info.nerTags.get(i).equals("DATE"))
         continue;
       PhoneNumberParser parser = new PhoneNumberParser(info.tokens, i);
       String parsed = parser.tryParse();
