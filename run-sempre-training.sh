@@ -38,7 +38,7 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
               -FloatingParser.maxDepth 10 \
               -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 16 \
+              -Parser.beamSize 14 \
               -Learner.maxTrainIters 2 \
               -wordAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
               -phraseAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.phrase_alignments \
