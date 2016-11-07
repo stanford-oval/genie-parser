@@ -71,7 +71,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   private static final Set<String> AUX_VERBS = new HashSet<>(Arrays.asList(AUX_VERB_ARR));
   private static final String AUX_VERB_TAG = "VBD-AUX";
 
-  private static final Set<String> NOT_A_NUMBER = Sets.newHashSet("9gag");
+  private static final Set<String> NOT_A_NUMBER = Sets.newHashSet("9gag", "score", "gross");
 
   private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
 
