@@ -35,7 +35,9 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               match ppdb skip-bigram skip-ppdb root alignment lexical \
               root_lexical \
               -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
+              -ThingTalkFeatureComputer.featureDomains \
+               thingtalk_root thingtalk_params \
+               thingtalk_composition thingtalk_params_leftword \
               -FloatingParser.maxDepth 10 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 14 \
