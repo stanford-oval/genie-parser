@@ -37,7 +37,7 @@ import fig.basic.Utils;
 public class CoreNLPAnalyzer extends LanguageAnalyzer {
   public static class Options {
     @Option(gloss = "What CoreNLP annotators to run")
-    public List<String> annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner", "parse");
+    public List<String> annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner");
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
