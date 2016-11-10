@@ -23,7 +23,10 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     if (opts.featureDomains.contains("strvalue"))
       extractStrValue(ex, deriv);
 
-    if (opts.featureDomains.contains("code"))
+    if (opts.featureDomains.contains("thingtalk_root"))
+      extractRootCodeFeatures(ex, deriv);
+
+    if (opts.featureDomains.contains("thingtalk_params"))
       extractCodeFeatures(ex, deriv);
   }
 
@@ -75,6 +78,22 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       deriv.addFeature("strvalue", "isEntity");
   }
 
+  private void extractRootCodeFeatures(Example ex, Derivation deriv) {
+    if (deriv.value == null)
+      return;
+    if (!deriv.isRootCat())
+      return;
+
+    Value value = deriv.child(0).value;
+
+    if (value instanceof TriggerValue)
+      deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---trigger");
+    else if (value instanceof QueryValue)
+      deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---query");
+    else if (value instanceof ActionValue)
+      deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---action");
+  }
+
   private void extractCodeFeatures(Example ex, Derivation deriv) {
     if (deriv.value == null)
       return;
@@ -84,13 +103,6 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       // HACK: the root is a StringValue in json form, so we descend one level
       // to find the value
       value = deriv.child(0).value;
-
-      if (value instanceof TriggerValue)
-         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---trigger");
-      else if (value instanceof QueryValue)
-         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---query");
-      else if (value instanceof ActionValue)
-         deriv.addGlobalFeature("thingtalk_root", ex.token(0) + "---action");
     }
 
     if (value instanceof ParametricValue) {
