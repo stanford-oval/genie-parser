@@ -95,34 +95,17 @@ public class AddEventFn extends SemanticFn {
         ParamValue nextPv = new ParamValue(actionParamName, "VarRef", "is",
             new NameValue("tt:param." + eventVar));
 
-        boolean substituted;
-        ParametricValue newInvocation;
         if (applyToAction)
-          newInvocation = clone.action;
+          clone.action.add(nextPv);
         else
-          newInvocation = clone.query;
-        substituted = newInvocation.add(nextPv, "it", "it");
-
-        Derivation left = callable.child(0).child(0);
-        Derivation right = callable.child(0).child(1);
-        Derivation full = callable.child(0);
-        Derivation with = callable.child(1);
-
-        String canonical, nerCanonical;
-        if (substituted) {
-          canonical = left.canonicalUtterance + " " + newInvocation.getCanonical();
-          nerCanonical = left.nerUtterance + " " + newInvocation.getNerCanonical();
-        } else {
-          canonical = full.canonicalUtterance + " " + with.canonicalUtterance + " "
-              + actionArgCanonical + " " + eventToken;
-          nerCanonical = full.nerUtterance + " " + with.canonicalUtterance + " "
-              + actionArgCanonical + " " + eventToken;
-        }
+          clone.query.add(nextPv);
 
         Derivation deriv = new Derivation.Builder().withCallable(callable).formula(new ValueFormula<>(clone))
             .type(SemType.entityType)
-            .canonicalUtterance(canonical)
-            .nerUtterance(nerCanonical)
+            .canonicalUtterance(callable.child(0).canonicalUtterance + " " + callable.child(1).canonicalUtterance + " "
+                    + actionArgCanonical + " " + eventToken)
+            .nerUtterance(callable.child(0).nerUtterance + " " + callable.child(1).nerUtterance + " "
+                + actionArgCanonical + " " + eventToken)
             .createDerivation();
 
         if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition")) {

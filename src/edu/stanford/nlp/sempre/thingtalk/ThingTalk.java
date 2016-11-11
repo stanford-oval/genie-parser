@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,10 +72,21 @@ public final class ThingTalk {
       throw new RuntimeException("Unexpected value " + value);
   }
 
+  public static ParamValue paramForm(ParamNameValue tt_arg, StringValue operator, Value value) {
+    return new ParamValue(tt_arg, typeFromValue(value), operator.value, value);
+  }
+
+  public static ParametricValue addParam(ParametricValue oldInvocation, ParamNameValue paramName, StringValue operator,
+      Value value) {
+    ParametricValue newInvocation = oldInvocation.clone();
+    newInvocation.add(paramForm(paramName, operator, value));
+    return newInvocation;
+  }
+
   //******************************************************************************************************************
   // Constructing the trigger value structure
   //******************************************************************************************************************
-  public static TriggerValue makeTrigger(ChannelNameValue triggerName) {
+  public static TriggerValue trigParam(ChannelNameValue triggerName) {
     TriggerValue triggerVal = new TriggerValue(triggerName);
     return triggerVal;
   }
@@ -82,7 +94,7 @@ public final class ThingTalk {
   //******************************************************************************************************************
   // Constructing the query value structure
   //******************************************************************************************************************
-  public static QueryValue makeQuery(ChannelNameValue queryName) {
+  public static QueryValue queryParam(ChannelNameValue queryName) {
     QueryValue queryVal = new QueryValue(queryName);
     return queryVal;
   }
@@ -90,7 +102,7 @@ public final class ThingTalk {
   //******************************************************************************************************************
   // Constructing the action value structure
   //******************************************************************************************************************
-  public static ActionValue makeAction(ChannelNameValue actionName) {
+  public static ActionValue actParam(ChannelNameValue actionName) {
     ActionValue actionVal = new ActionValue(actionName);
     return actionVal;
   }
@@ -128,6 +140,46 @@ public final class ThingTalk {
   //******************************************************************************************************************
   // Constructing the rule value structure
   //******************************************************************************************************************
+  public static RuleValue timeRule(DateValue time, Value action) {
+    if (action instanceof QueryValue)
+      return timeRule(time, (QueryValue) action, null);
+    else if (action instanceof ActionValue)
+      return timeRule(time, null, (ActionValue) action);
+    else
+      throw new RuntimeException();
+  }
+
+  public static RuleValue timeSpanRule(NumberValue time, Value action) {
+    if (action instanceof QueryValue)
+      return timeSpanRule(time, (QueryValue) action, null);
+    else if (action instanceof ActionValue)
+      return timeSpanRule(time, null, (ActionValue) action);
+    else
+      throw new RuntimeException();
+  }
+
+  public static RuleValue timeRule(DateValue time, QueryValue query, ActionValue action) {
+    ParamNameValue timeName = new ParamNameValue("time", "String");
+    ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
+    TriggerValue timeTrigger = new TriggerValue(
+        new ChannelNameValue("builtin", "at", Collections.singletonList("time"), Collections.singletonList("time"),
+            Collections.singletonList("String")),
+        Collections.singletonList(timeParam));
+
+    return new RuleValue(timeTrigger, query, action);
+  }
+
+  public static RuleValue timeSpanRule(NumberValue time, QueryValue query, ActionValue action) {
+    ParamNameValue timeName = new ParamNameValue("interval", "Measure(ms)");
+    ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
+    TriggerValue timeTrigger = new TriggerValue(new ChannelNameValue("builtin", "timer",
+        Collections.singletonList("interval"), Collections.singletonList("interval"),
+        Collections.singletonList("Measure(ms)")),
+        Collections.singletonList(timeParam));
+
+    return new RuleValue(timeTrigger, query, action);
+  }
+
   public static RuleValue ifttt(TriggerValue trigger, ActionValue action) {
     RuleValue ruleVal = new RuleValue(trigger, null, action);
     return ruleVal;

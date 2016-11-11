@@ -102,20 +102,15 @@ public class ThingpediaLexicon {
     private final List<String> argnames;
     private final List<String> argcanonicals;
     private final List<String> argtypes;
+    private final String search;
 
     public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
-        String argtypes)
+        String argtypes, String search)
         throws JsonProcessingException {
-      if (rawPhrase.startsWith("notify me if "))
-        rawPhrase = rawPhrase.substring("notify me if ".length());
-      else if (rawPhrase.startsWith("monitor if "))
-        rawPhrase = rawPhrase.substring("monitor if ".length());
-      else if (rawPhrase.startsWith("monitor "))
-        rawPhrase = rawPhrase.substring("monitor ".length());
-
       this.rawPhrase = rawPhrase;
       this.kind = kind;
       this.name = name;
+      this.search = search;
 
       TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {
       };
@@ -131,7 +126,7 @@ public class ThingpediaLexicon {
 
     @Override
     public Formula toFormula() {
-      return new ValueFormula<>(new ChannelNameValue(kind, name, rawPhrase, argnames, argcanonicals, argtypes));
+      return new ValueFormula<>(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
     }
 
     @Override
@@ -401,45 +396,59 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    if (Builder.opts.parser.equals("BeamParser"))
-      throw new RuntimeException("Cannot use BeamParser with ThingpediaLexicon");
-
-    String query = "select gr.rule,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from grammar_rule gr, device_schema_channels dsc, device_schema ds, "
-        + " device_schema_channel_canonicals dscc where gr.schema_id = ds.id and gr.version = dsc.version and gr.channel_name = dsc.name "
-        + " and dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
-        + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and gr.language = dscc.language and channel_type = ? "
-        + " and match (canonical,keywords) against (? in natural language mode) "
-        + " and ds.kind_type <> 'primary' limit "
-        + (3 * Parser.opts.beamSize)
-        + " union distinct (select gr.rule,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
-        + " grammar_rule gr, device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon lex "
-        + " where gr.schema_id = ds.id and gr.version = dsc.version and gr.channel_name = dsc.name and dsc.schema_id = ds.id "
-        + " and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and "
-        + " dscc.name = dsc.name and dscc.language = ? and channel_type = ? and gr.language = dscc.language and "
-        + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = dscc.language "
-        + " and lex.token in (?, ?) limit "
-        + (3 * Parser.opts.beamSize) + ")";
+    String query;
+    boolean isBeam;
+    if (Builder.opts.parser.equals("BeamParser")) {
+      isBeam = true;
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
+          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
+          + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
+    } else {
+      isBeam = false;
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
+          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
+          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
+          + " and match (canonical,keywords) against (? in natural language mode) "
+          + " and ds.kind_type <> 'primary' limit "
+          + (3 * Parser.opts.beamSize)
+          + " union distinct (select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
+          + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon lex "
+          + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
+          + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
+          + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
+          + " and lex.token in (?, ?) limit "
+          + (3 * Parser.opts.beamSize) + ")";
+    }
 
     long now = System.currentTimeMillis();
 
-    String search;
+    String search, key;
     try (Connection con = dataSource.getConnection(); PreparedStatement stmt = con.prepareStatement(query)) {
-      String channelType = channel_type.toString().toLowerCase();
-      String stemmed = LanguageUtils.stem(tokens[0]);
-      search = tokens[0] + " " + stemmed;
       stmt.setString(1, languageTag);
+      String channelType = channel_type.toString().toLowerCase();
       stmt.setString(2, channelType);
-      stmt.setString(3, search);
-      stmt.setString(4, languageTag);
-      stmt.setString(5, channelType);
-      stmt.setString(6, tokens[0]);
-      stmt.setString(7, stemmed);
+      if (isBeam) {
+        search = phrase;
+        key = phrase;
+        stmt.setString(3, phrase);
+      } else {
+        String stemmed = LanguageUtils.stem(tokens[0]);
+        key = tokens[0];
+        search = tokens[0] + " " + stemmed;
+        stmt.setString(3, search);
+        stmt.setString(4, languageTag);
+        stmt.setString(5, channelType);
+        stmt.setString(6, languageTag);
+        stmt.setString(7, tokens[0]);
+        stmt.setString(8, stemmed);
+      }
 
       entries = new LinkedList<>();
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next())
           entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
-              rs.getString(4), rs.getString(5), rs.getString(6)));
+              rs.getString(4), rs.getString(5), rs.getString(6), key));
       } catch (SQLException | JsonProcessingException e) {
         if (opts.verbose > 0)
           LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());

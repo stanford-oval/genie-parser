@@ -111,22 +111,16 @@ public class AddValueFn extends SemanticFn {
         ParamValue pv = new ParamValue(param, haveType, operator, toAdd);
 
         ParametricValue newInvocation = invocation.clone();
-        boolean substituted = newInvocation.add(pv, right.canonicalUtterance, right.nerUtterance);
+        newInvocation.add(pv);
 
         String opPart = opToken.length() > 0 ? " " + opToken + " " : " ";
 
-        String canonical, nerCanonical;
-        if (substituted) {
-          canonical = newInvocation.getCanonical();
-          nerCanonical = newInvocation.getNerCanonical();
-        } else {
-          canonical = left.canonicalUtterance + " " + withToken + " "
-              + invocation.name.getArgCanonical(currentArgname) + opPart
-              + right.canonicalUtterance;
-          nerCanonical = left.nerUtterance + " " + withToken + " "
-              + invocation.name.getArgCanonical(currentArgname) + opPart
-              + right.nerUtterance;
-        }
+        String canonical = left.canonicalUtterance + " " + withToken + " " +
+            invocation.name.getArgCanonical(currentArgname) + opPart
+            + right.canonicalUtterance;
+        String nerCanonical = left.nerUtterance + " " + withToken + " "
+            + invocation.name.getArgCanonical(currentArgname) + opPart
+            + right.nerUtterance;
 
         Derivation.Builder bld = new Derivation.Builder()
             .withCallable(callable)

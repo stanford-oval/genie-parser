@@ -393,22 +393,14 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
     if (opts.featureDomains.contains("root")) {
       //number of unmathced words based on exact match and ppdb
-      int unmatched_input = 0, unmatched_deriv = 0, unmatched_param = 0;
+      int matches = 0;
       for (int i = 0; i < filteredInputTokens.size(); ++i) {
-        if (assignment[i] == i)
-          unmatched_input++;
-      }
-      for (int i = 0; i < filteredDerivTokens.size(); ++i) {
-        if (assignment[i] == i) {
-          if (filteredDerivTokens.get(i).data1.startsWith("$"))
-            unmatched_param++;
-          else
-            unmatched_input++;
+        if (assignment[i] != i) {
+          matches++;
         }
       }
-      deriv.addGlobalFeature("root", "unmatched_input", unmatched_input);
-      deriv.addGlobalFeature("root", "unmatched_deriv", unmatched_deriv);
-      deriv.addGlobalFeature("root", "unmatched_param", unmatched_param);
+      deriv.addGlobalFeature("root", "unmatched_input", filteredInputTokens.size() - matches);
+      deriv.addGlobalFeature("root", "unmatched_deriv", filteredDerivTokens.size() - matches);
       if (deriv.value != null) {
         if (deriv.value instanceof ListValue) {
           ListValue list = (ListValue) deriv.value;
@@ -502,7 +494,7 @@ public final class OvernightFeatureComputer implements FeatureComputer {
     List<String> derivTokens = Arrays.asList(deriv.nerUtterance.split(" "));
 
     for (int i = 0; i < derivTokens.size(); ++i) {
-      for (int j = i + 1; j <= derivTokens.size() && j <= i + 4; ++j) {
+      for (int j = i + 1; j <= derivTokens.size() && j <= i + 6; ++j) {
 
         String lhs = Joiner.on(' ').join(derivTokens.subList(i, j));
         //if (entities.contains(lhs)) continue; //optimization
