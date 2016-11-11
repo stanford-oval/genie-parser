@@ -38,6 +38,7 @@ java -Xmx32G -ea -Dmodules=${MODULES} \
               -ThingTalkFeatureComputer.featureDomains \
                thingtalk_root thingtalk_params \
                thingtalk_composition thingtalk_params_leftword \
+              -DerivationPruner.pruningComputers thingtalk.ThingTalkDerivationPruner \
               -FloatingParser.maxDepth 10 \
               -FloatingParser.useAnchorsOnce \
               -Parser.beamSize 14 \
