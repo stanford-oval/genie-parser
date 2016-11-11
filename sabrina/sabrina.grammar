@@ -3,12 +3,10 @@
 
 (def @paramForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.paramForm)
 
-(def @trigParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.trigParam)
-(def @queryParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.queryParam)
-(def @actParam edu.stanford.nlp.sempre.thingtalk.ThingTalk.actParam)
+(def @makeTrigger edu.stanford.nlp.sempre.thingtalk.ThingTalk.makeTrigger)
+(def @makeQuery edu.stanford.nlp.sempre.thingtalk.ThingTalk.makeQuery)
+(def @makeAction edu.stanford.nlp.sempre.thingtalk.ThingTalk.makeAction)
 
-(def @timeRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeRule)
-(def @timeSpanRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeSpanRule)
 (def @ifttt edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt)
 
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
@@ -82,14 +80,14 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 # Action Handling
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
-(rule $Action ($ActionName) (lambda act (call @actParam (var act))))
+(rule $Action ($ActionName) (lambda act (call @makeAction (var act))))
 (for @v @all_values
 	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with "" is))
 )
 (rule $Action ($Action $With) (thingtalk.AddEnumFn))
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
-(rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
+(rule $Trigger ($TriggerName) (lambda trig (call @makeTrigger (var trig))))
 (for @v @all_values
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with "" is))
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @containing contains))
@@ -100,7 +98,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 (rule $Trigger ($Trigger $With) (thingtalk.AddEnumFn))
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
-(rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
+(rule $Query ($QueryName) (lambda query (call @makeQuery (var query))))
 (for @v @all_values
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with "" is))
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @containing contains))
@@ -112,16 +110,6 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 (rule $MonitorIf @monitor_if (ConstantFn (string "")))
 (rule $Notify ($MonitorIf $Trigger) (SelectFn 1))
-
-(rule $TimeRulePrefix @every_day_at (ConstantFn (string "")))
-(rule $TimeTrigger ($TimeRulePrefix $TimeValue) (SelectFn 1))
-
-(rule $TimeQueryRule  ($TimeTrigger $Query)               (thingtalk.CallFn @timeRule))
-(rule $TimeActionRule ($TimeTrigger $Action)              (thingtalk.CallFn @timeRule))
-(rule $TimeQueryRule  ($PeriodicTimeValue $Query)         (thingtalk.CallFn @timeSpanRule))
-(rule $TimeActionRule ($PeriodicTimeValue $Action)        (thingtalk.CallFn @timeSpanRule))
-
-(rule $TimeQueryActionRule ($TimeQueryRule @then $Action) (thingtalk.CallFn @ifttt))
 
 # use a shared category for the first part to reduce duplicate featurizations
 (rule $IfTriggerThen         (@if $Trigger @then)               (IdentityFn))
@@ -136,14 +124,6 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 # in particular, the binarized grammar will include an intermediate binary rule with SelectFn 0
 # and an unary cat rule with AddCompositionFn
 # AddCompositionFn takes care of adding the "foo that" part
-
-# NOTE: we don't compose TimeAction/TimeQuery, because passing the time to the action is not
-# particularly useful
-
-(rule $TimeQueryActionRule   ($TimeQueryActionRule $With)   (thingtalk.AddCompositionFn action))
-(rule $TimeQueryActionRule   ($TimeQueryActionRule $With)   (thingtalk.AddEventFn action "$event" @event ))
-#(rule $TimeQueryActionRule   ($TimeQueryActionRule $With)   (thingtalk.AddEventFn action "$event.title" @event_title ))
-#(rule $TimeQueryActionRule   ($TimeQueryActionRule $With)   (thingtalk.AddEventFn action "$event.body" @event_body ))
 
 (rule $IftttQueryRule        ($IftttQueryRule $With)        (thingtalk.AddCompositionFn query))
 (rule $IftttQueryRule        ($IftttQueryRule $With)        (thingtalk.AddEventFn query "$event" @event ))
@@ -208,7 +188,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
   (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 )
 
-(for @v ($Action $Notify $Query $TimeQueryRule $TimeActionRule $TimeQueryActionRule $IftttActionRule $IftttQueryRule $IftttQueryActionRule $IftttQueryActionChain)
+(for @v ($Action $Notify $Query $IftttActionRule $IftttQueryRule $IftttQueryActionRule $IftttQueryActionChain)
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
 

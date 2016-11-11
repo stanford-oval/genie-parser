@@ -67,13 +67,16 @@ public class ThingpediaDataset extends AbstractDataset {
           Value inner;
           switch (channelType) {
           case "action":
-            inner = ThingTalk.actParam(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
+            inner = ThingTalk
+                .makeAction(new ChannelNameValue(canonical, kind, name, argnames, argcanonicals, argtypes));
             break;
           case "trigger":
-            inner = ThingTalk.trigParam(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
+            inner = ThingTalk
+                .makeTrigger(new ChannelNameValue(canonical, kind, name, argnames, argcanonicals, argtypes));
             break;
           case "query":
-            inner = ThingTalk.queryParam(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
+            inner = ThingTalk
+                .makeQuery(new ChannelNameValue(canonical, kind, name, argnames, argcanonicals, argtypes));
             break;
           default:
             throw new RuntimeException("Invalid channel type " + channelType);
@@ -93,6 +96,7 @@ public class ThingpediaDataset extends AbstractDataset {
       }
     }
   }
+
 
   private void readFullExamples(Connection con) throws SQLException {
     int trainMaxExamples = getMaxExamplesForGroup("train");

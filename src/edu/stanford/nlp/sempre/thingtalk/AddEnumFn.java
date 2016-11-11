@@ -70,14 +70,18 @@ public class AddEnumFn extends SemanticFn {
         ParamValue pv = new ParamValue(param, "Enum", "is", toAdd);
 
         ParametricValue newInvocation = invocation.clone();
-        newInvocation.add(pv);
+        boolean substituted = newInvocation.add(pv, enumValue, enumValue);
 
-        String canonical = left.canonicalUtterance + " " + right.canonicalUtterance + " "
-            + invocation.name.getArgCanonical(currentArgname) + " "
-            + enumValue;
-        String nerCanonical = left.nerUtterance + " " + right.nerUtterance + " "
-            + invocation.name.getArgCanonical(currentArgname) + " "
-            + enumValue;
+        String canonical, nerCanonical;
+        if (substituted) {
+          canonical = newInvocation.getCanonical();
+          nerCanonical = newInvocation.getNerCanonical();
+        } else {
+          canonical = left.canonicalUtterance + " " + right.canonicalUtterance + " "
+              + invocation.name.getArgCanonical(currentArgname) + " " + enumValue;
+          nerCanonical = left.nerUtterance + " " + right.canonicalUtterance + " "
+              + invocation.name.getArgCanonical(currentArgname) + " " + enumValue;
+        }
 
         Derivation.Builder bld = new Derivation.Builder()
             .withCallable(callable)

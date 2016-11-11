@@ -6,6 +6,7 @@ import edu.stanford.nlp.sempre.Value;
 import fig.basic.LispTree;
 
 public class ChannelNameValue extends Value {
+  public final String rule;
   public final String kind;
   public final String channelName;
   public final Map<String, String> argtypes;
@@ -14,6 +15,7 @@ public class ChannelNameValue extends Value {
   public ChannelNameValue(LispTree tree) {
     this.kind = tree.child(1).value;
     this.channelName = tree.child(2).value;
+    this.rule = tree.child(3).value;
     this.argtypes = new HashMap<>();
     this.argcanonicals = new HashMap<>();
 
@@ -23,8 +25,10 @@ public class ChannelNameValue extends Value {
     }
   }
 
-  public ChannelNameValue(String kind, String channelName, List<String> argnames, List<String> argcanonicals,
+  public ChannelNameValue(String kind, String channelName, String rule, List<String> argnames,
+      List<String> argcanonicals,
       List<String> argtypes) {
+    this.rule = rule;
     this.kind = kind;
     this.channelName = channelName;
     this.argtypes = new HashMap<>();
@@ -58,6 +62,7 @@ public class ChannelNameValue extends Value {
     tree.addChild("channel");
     tree.addChild(kind);
     tree.addChild(channelName);
+    tree.addChild(rule);
     for (Map.Entry<String, String> e : argtypes.entrySet()) {
       LispTree child = LispTree.proto.newList();
       child.addChild(e.getKey());
