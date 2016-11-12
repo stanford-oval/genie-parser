@@ -130,8 +130,11 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       }
       
       // normalize 1-... to +1-...
-      if (buffer.substring(0, 2).equals("1-"))
+      if (buffer.substring(0, 1).equals("1"))
         buffer.insert(0, "+");
+      else if (buffer.charAt(0) != '+')
+        buffer.insert(0, "+1");
+
       // replace weird characters
       String str = buffer.toString().replaceAll("[()\\-]", "").toLowerCase();
 
