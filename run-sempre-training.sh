@@ -14,6 +14,7 @@ test ${SEMPREDIR} != "." && cp ${SEMPREDIR}/module-classes.txt .
 
 cat > ${WORKDIR}/sabrina/sabrina.training.conf <<EOF
 !include ${SEMPREDIR}/sabrina/sabrina.conf
+execDir ${WORKDIR}/sempre.tmp
 
 # Grammar
 Grammar.inPaths ${SEMPREDIR}/sabrina/sabrina.${LANGUAGE_TAG}.grammar
