@@ -10,6 +10,7 @@ out
 test-output
 
 .project
+.cproject
 .classpath
 .settings
 .idea
@@ -31,3 +32,11 @@ sabrina/sabrina.*.online_learn
 sabrina/sabrina.log
 sabrina/sabrina.phrase_alignments.*
 sabrina/sabrina-ppdb.txt
+
+ifttt/canonicals.tsv
+ifttt/entity_extraction.tsv
+ifttt/filtered.tsv
+ifttt/ifttt.phrase_alignments.en
+ifttt/ifttt.word_alignments.berkeley.en
+ifttt/test.tsv
+ifttt/train.tsv
