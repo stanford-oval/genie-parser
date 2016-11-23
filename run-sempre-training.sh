@@ -32,6 +32,7 @@ Dataset.splitDevFromTrain false
 FeatureExtractor.languageTag ${LANGUAGE_TAG}
 OvernightFeatureComputer.wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley
 OvernightFeatureComputer.phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments
+PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt
 
 # Training
 Learner.maxTrainIters 2
@@ -44,5 +45,5 @@ EOF
 ${SEMPREDIR}/run.sh training "$@"
 
 # move the generated file where APIServer will know to look for
-cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.params
+cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
 #rm -fr ${WORKDIR}/sempre.tmp
