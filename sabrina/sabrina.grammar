@@ -28,7 +28,7 @@
 	(rule $TimeUnit (@unit) (ConstantFn (string @unit)))
 )
 (rule $TimeIntervalValue ($NumValue $TimeUnit) (thingtalk.CallFn @measureValueCast))
-(for @unit (C F byte KB MB GB TB kg lb g oz)
+(for @unit (C F byte KB MB GB TB kg lb g oz mps kmph mph m km mm cm mi in kcal kJ)
 	(rule $Unit (@unit) (ConstantFn (string @unit)))
 )
 (rule $MeasureValue ($NumValue $Unit) (thingtalk.CallFn @measureValueCast))
@@ -39,10 +39,10 @@
 (when floatingstrings
 	(rule $StrValue ($PHRASE) (IdentityFn) (anchored 1))
 )
-(when (not floatingstrings)
-	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
-)
-(rule $StringValue (`` $StrValue '') (IdentityFn))
+#(when (not floatingstrings)
+#	(rule $StrValue ($TOKEN) (IdentityFn) (anchored 1))
+#)
+#(rule $StringValue (`` $StrValue '') (IdentityFn))
 
 (rule $StringValue ($PHRASE) (thingtalk.NerValueFn QUOTED_STRING String) (anchored 1))
 (rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME Username) (anchored 1))

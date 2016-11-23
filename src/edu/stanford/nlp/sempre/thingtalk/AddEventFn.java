@@ -108,16 +108,18 @@ public class AddEventFn extends SemanticFn {
                 + actionArgCanonical + " " + eventToken)
             .createDerivation();
 
-        deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + eventVar);
+        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition")) {
+          deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + eventVar);
 
-        // some triggers are more prone to formatting than others
-        // add a prior to that
-        if (applyToAction && rv.query != null)
-          deriv.addFeature("thingtalk_composition",
-              String.format("formatted_trigger=%s:%s", rv.query.name.kind, rv.query.name.channelName));
-        else
-          deriv.addFeature("thingtalk_composition",
-              String.format("formatted_trigger=%s:%s", rv.trigger.name.kind, rv.trigger.name.channelName));
+          // some triggers are more prone to formatting than others
+          // add a prior to that
+          if (applyToAction && rv.query != null)
+            deriv.addFeature("thingtalk_composition",
+                String.format("formatted_trigger=%s:%s", rv.query.name.kind, rv.query.name.channelName));
+          else
+            deriv.addFeature("thingtalk_composition",
+                String.format("formatted_trigger=%s:%s", rv.trigger.name.kind, rv.trigger.name.channelName));
+        }
 
         return deriv;
       }

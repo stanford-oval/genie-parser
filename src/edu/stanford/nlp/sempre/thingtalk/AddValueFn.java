@@ -131,7 +131,7 @@ public class AddValueFn extends SemanticFn {
         Derivation deriv = bld.createDerivation();
 
         int spanMin = callable.child(1).spanStart;
-        if (spanMin > 0)
+        if (spanMin > 0 && ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_params_leftword"))
           deriv.addFeature("thingtalk_params_leftword",
               ex.token(spanMin - 1) + "---" + pv.name.argname + "," + pv.operator);
 

@@ -3,53 +3,43 @@
 set -e
 set -x
 
-MODULE=${MODULE:-sabrina}
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 WORKDIR=`pwd`
+export WORKDIR
 SEMPREDIR=`dirname $0`
-
-MODULES=${MODULES:-core,corenlp,overnight,thingtalk}
+export SEMPREDIR
 
 rm -fr ${WORKDIR}/sempre.tmp
-cp ${SEMPREDIR}/module-classes.txt .
-java -Xmx32G -ea -Dmodules=${MODULES} \
-              -Djava.library.path=jni \
-              -cp "${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*" \
-              edu.stanford.nlp.sempre.Main \
-              -execDir ${WORKDIR}/sempre.tmp \
-              -LanguageAnalyzer corenlp.CoreNLPAnalyzer \
-              -CoreNLPAnalyzer.entityRecognizers corenlp.PhoneNumberEntityRecognizer corenlp.EmailEntityRecognizer \
-               corenlp.QuotedStringEntityRecognizer corenlp.URLEntityRecognizer \
-              -CoreNLPAnalyzer.regularExpressions 'USERNAME:[@](.+)' 'HASHTAG:[#](.+)' \
-              -CoreNLPAnalyzer.yearsAsNumbers -CoreNLPAnalyzer.splitHyphens false \
-              -CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG} \
-              -Builder.parser FloatingParser \
-              -Builder.executor JavaExecutor \
-              -Builder.valueEvaluator thingtalk.JsonValueEvaluator \
-              -JavaExecutor.unpackValues false \
-              -Builder.dataset thingtalk.ThingpediaDataset \
-              -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar \
-              -Grammar.tags includebookkeeping \
-              -FeatureExtractor.featureComputers overnight.OvernightFeatureComputer thingtalk.ThingTalkFeatureComputer \
-              -OvernightFeatureComputer.featureDomains \
-              match ppdb skip-bigram skip-ppdb root alignment lexical \
-              root_lexical \
-              -FeatureExtractor.languageTag ${LANGUAGE_TAG} \
-              -ThingTalkFeatureComputer.featureDomains anchorBoundaries code strvalue \
-              -FloatingParser.maxDepth 10 \
-              -FloatingParser.useAnchorsOnce \
-              -Parser.beamSize 16 \
-              -Learner.maxTrainIters 2 \
-              -wordAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.word_alignments.berkeley.${LANGUAGE_TAG} \
-              -phraseAlignmentPath ${WORKDIR}/${MODULE}/${MODULE}.phrase_alignments \
-              -PPDBModel.ppdbModelPath ${SEMPREDIR}/sabrina/sabrina-ppdb.txt \
-              -PPDBModel.ppdb false \
-              -ThingpediaDatabase.dbUrl jdbc:mysql://thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine \
-              -ThingpediaDatabase.dbUser sempre \
-              -ThingpediaDataset.languageTag ${LANGUAGE_TAG} \
-              -BeamParser.executeAllDerivations true \
-              -FloatingParser.executeAllDerivations true \
-              "$@"
+test ${SEMPREDIR} != "." && cp ${SEMPREDIR}/module-classes.txt .
+
+cat > ${WORKDIR}/sabrina/sabrina.training.conf <<EOF
+!include ${SEMPREDIR}/sabrina/sabrina.conf
+
+# Grammar
+Grammar.inPaths ${SEMPREDIR}/sabrina/sabrina.${LANGUAGE_TAG}.grammar
+
+# Dataset
+Builder.dataset thingtalk.ThingpediaDataset
+ThingpediaDataset.languageTag ${LANGUAGE_TAG}
+Dataset.devFrac 0.1
+Dataset.trainFrac 0.9
+# note that we don't set splitDevFromTrain here
+# run-manual-training-pipeline.sh would do that, if needed
+
+# Features
+FeatureExtractor.languageTag ${LANGUAGE_TAG}
+OvernightFeatureComputer.wordAlignmentPath ${WORKDIR}/sabrina/sabrina.word_alignments.berkeley
+OvernightFeatureComputer.phraseAlignmentPath ${WORKDIR}/sabrina/sabrina.phrase_alignments
+
+# Training
+Learner.maxTrainIters 2
+Learner.numThreads 8
+Learner.batchSize 75
+Params.l1Reg nonlazy
+Params.l1RegCoeff 0.0001
+EOF
+
+./run.sh training "$@"
 
 # move the generated file where APIServer will know to look for
 cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.params

@@ -23,6 +23,8 @@ public class ThingpediaDataset extends AbstractDataset {
     @Option
     public boolean includeTest = true;
     @Option
+    public Set<String> testTypes = Sets.newHashSet("test");
+    @Option
     public Set<String> trainTypes = Sets.newHashSet("thingpedia", "online", "turking", "generated");
   }
 
@@ -113,17 +115,20 @@ public class ThingpediaDataset extends AbstractDataset {
           String targetJson = set.getString(4);
           Value targetValue = new StringValue(targetJson);
 
-          if (type.equals("test")) {
+          boolean isTest;
+          if (opts.testTypes.contains(type)) {
             if (!opts.includeTest)
               continue;
+            isTest = true;
           } else {
             if (!opts.trainTypes.contains(type))
               continue;
+            isTest = false;
           }
 
           List<Example> group;
           int maxGroup;
-          if (type.equals("test")) {
+          if (isTest) {
             group = testExamples;
             maxGroup = testMaxExamples;
           } else {

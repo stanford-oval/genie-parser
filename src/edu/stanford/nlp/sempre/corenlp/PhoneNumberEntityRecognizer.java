@@ -94,7 +94,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       String token = tokens.get(startToken + tokenIdx);
       if (charIdx > 0)
         token = token.substring(charIdx);
-      if (charIdx == 0 && buffer.length() >= 7)
+      if (charIdx == 0 && buffer.length() >= 4)
         lenient = false;
 
       Matcher matcher = (lenient ? LENIENT_NUMBER : NUMBER).matcher(token);
@@ -130,8 +130,11 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       }
       
       // normalize 1-... to +1-...
-      if (buffer.substring(0, 2).equals("1-"))
+      if (buffer.substring(0, 1).equals("1"))
         buffer.insert(0, "+");
+      else if (buffer.charAt(0) != '+')
+        buffer.insert(0, "+1");
+
       // replace weird characters
       String str = buffer.toString().replaceAll("[()\\-]", "").toLowerCase();
 
@@ -153,7 +156,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   public void recognize(LanguageInfo info) {
     int n = info.numTokens();
     for (int i = 0; i < n; i++) {
-      if (info.nerTags.get(i).equals("TIME"))
+      if (info.nerTags.get(i).equals("TIME") || info.nerTags.get(i).equals("DATE"))
         continue;
       PhoneNumberParser parser = new PhoneNumberParser(info.tokens, i);
       String parsed = parser.tryParse();

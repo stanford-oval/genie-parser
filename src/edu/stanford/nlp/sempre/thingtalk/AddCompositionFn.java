@@ -147,27 +147,29 @@ public class AddCompositionFn extends SemanticFn {
                 + actionArgCanonical + " " + triggerArgCanonical)
             .createDerivation();
 
-        deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
-        deriv.addFeature("thingtalk_composition", "type = " + actionType);
+        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition")) {
+          deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
+          deriv.addFeature("thingtalk_composition", "type = " + actionType);
 
-        // note that it's a different feature compared to param=%s.%s:%s
-        // the latter is about values that are explicitly given by the user, this one is about values that
-        // can be extracted from the context and it's a still a good idea to extract
-        // param=%s.%s:%s in here would be a bad feature because it would overfit towards arguments that
-        // are easy to specify explicitly (of which we see plenty cases in the thingpedia dataset)
-        //
-        // the interesting example is "get cat picture then send picture on gmail with url is image url"
-        // because of the many examples of send picture on gmail that have message and subject prefilled,
-        // if we use param=%s.%s:%s here we first try to match those to one of the several values from "get cat picture"
-        // (eg image id, or link url), causing the good parse to fall off the beam
-        if (applyToAction)
-          deriv.addFeature("thingtalk_composition",
-              String.format("composed_param=%s.%s:%s", rv.action.name.kind, rv.action.name.channelName,
-                  currentActionArg));
-        else
-          deriv.addFeature("thingtalk_composition",
-              String.format("composed_param=%s.%s:%s", rv.query.name.kind, rv.query.name.channelName,
-                  currentActionArg));
+          // note that it's a different feature compared to param=%s.%s:%s
+          // the latter is about values that are explicitly given by the user, this one is about values that
+          // can be extracted from the context and it's a still a good idea to extract
+          // param=%s.%s:%s in here would be a bad feature because it would overfit towards arguments that
+          // are easy to specify explicitly (of which we see plenty cases in the thingpedia dataset)
+          //
+          // the interesting example is "get cat picture then send picture on gmail with url is image url"
+          // because of the many examples of send picture on gmail that have message and subject prefilled,
+          // if we use param=%s.%s:%s here we first try to match those to one of the several values from "get cat picture"
+          // (eg image id, or link url), causing the good parse to fall off the beam
+          if (applyToAction)
+            deriv.addFeature("thingtalk_composition",
+                String.format("composed_param=%s.%s:%s", rv.action.name.kind, rv.action.name.channelName,
+                    currentActionArg));
+          else
+            deriv.addFeature("thingtalk_composition",
+                String.format("composed_param=%s.%s:%s", rv.query.name.kind, rv.query.name.channelName,
+                    currentActionArg));
+        }
 
         return deriv;
       }
