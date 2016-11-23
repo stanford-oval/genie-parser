@@ -23,6 +23,7 @@ Builder.dataset thingtalk.ThingpediaDataset
 ThingpediaDataset.languageTag ${LANGUAGE_TAG}
 Dataset.devFrac 0.1
 Dataset.trainFrac 0.9
+Dataset.splitDevFromTrain false
 # note that we don't set splitDevFromTrain here
 # run-manual-training-pipeline.sh would do that, if needed
 
@@ -39,7 +40,7 @@ Params.l1Reg nonlazy
 Params.l1RegCoeff 0.0001
 EOF
 
-./run.sh training "$@"
+${SEMPREDIR}/run.sh training "$@"
 
 # move the generated file where APIServer will know to look for
 cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.params

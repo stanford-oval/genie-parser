@@ -6,13 +6,15 @@ usage() {
 	echo "run.sh: [interactive|training|server] [extra SEMPRE args...]"
 }
 
+SEMPREDIR=`dirname $0`
+
 MODE=$1
 shift
 
 EXTRA_ARGS="$@"
 
 JAVA=${JAVA:-java}
-BASE_ARGS="-ea $JAVA_ARGS -Dmodules=core,corenlp,overnight,thingtalk,api -cp libsempre/*:lib/*"
+BASE_ARGS="-ea $JAVA_ARGS -Dmodules=core,corenlp,overnight,thingtalk,api -cp ${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*"
 
 case $MODE in
 	interactive)
