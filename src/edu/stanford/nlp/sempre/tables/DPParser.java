@@ -4,6 +4,7 @@ import java.util.*;
 
 import edu.stanford.nlp.sempre.*;
 import fig.basic.*;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * A DPParser parses utterances like a FloatingParser,
@@ -554,7 +555,7 @@ class DPParserState extends ParserState {
     collectFinalDerivations();
     ensureExecuted();
     if (computeExpectedCounts) {
-      expectedCounts = new HashMap<>();
+      expectedCounts = new TObjectDoubleHashMap<>();
       ParserState.computeExpectedCounts(predDerivations, expectedCounts);
     }
     StopWatchSet.end();
@@ -562,7 +563,7 @@ class DPParserState extends ParserState {
   }
 
   private void runParsingPass() {
-    Set<String> categories = new HashSet<String>();
+    Set<String> categories = new HashSet<>();
     for (Rule rule : parser.grammar.getRules())
       categories.add(rule.lhs);
 

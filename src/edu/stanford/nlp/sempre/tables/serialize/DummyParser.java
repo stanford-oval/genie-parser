@@ -1,8 +1,7 @@
 package edu.stanford.nlp.sempre.tables.serialize;
 
-import java.util.*;
-
 import edu.stanford.nlp.sempre.*;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 public class DummyParser extends Parser {
 
@@ -32,7 +31,7 @@ class DummyParserState extends ParserState {
       predDerivations.add(deriv);
     }
     if (computeExpectedCounts) {
-      expectedCounts = new HashMap<>();
+      expectedCounts = new TObjectDoubleHashMap<>();
       ParserState.computeExpectedCounts(predDerivations, expectedCounts);
     }
   }

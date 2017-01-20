@@ -1,10 +1,12 @@
 package edu.stanford.nlp.sempre.tables.baseline;
 
-import java.util.*;
+import java.util.Collections;
 
 import edu.stanford.nlp.sempre.*;
-import edu.stanford.nlp.sempre.tables.*;
-import fig.basic.*;
+import edu.stanford.nlp.sempre.tables.TableKnowledgeGraph;
+import edu.stanford.nlp.sempre.tables.TableTypeSystem;
+import fig.basic.LogInfo;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 /**
  * Baseline parser for table.
@@ -46,7 +48,7 @@ class TableBaselineParserState extends ParserState {
     // Execute + Compute expected counts
     ensureExecuted();
     if (computeExpectedCounts) {
-      expectedCounts = new HashMap<>();
+      expectedCounts = new TObjectDoubleHashMap<>();
       ParserState.computeExpectedCounts(predDerivations, expectedCounts);
     }
     LogInfo.end_track();

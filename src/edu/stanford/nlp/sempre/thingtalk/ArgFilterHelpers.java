@@ -40,6 +40,24 @@ class ArgFilterHelpers {
     return ALLOWED_UNITS.get(want).contains(have);
   }
 
+  private static boolean isEntity(String type) {
+    if (type.startsWith("Entity("))
+      return true;
+
+    return type.equals("Username") || type.equals("Hashtag");
+  }
+
+  private static final Map<String, String> RENAMED_ENTITY_TYPES = new HashMap<>();
+
+  static {
+    RENAMED_ENTITY_TYPES.put("Username", "tt:username");
+    RENAMED_ENTITY_TYPES.put("Hashtag", "tt:hashtag");
+    RENAMED_ENTITY_TYPES.put("EmailAddress", "tt:email_address");
+    RENAMED_ENTITY_TYPES.put("Picture", "tt:picture");
+    RENAMED_ENTITY_TYPES.put("URL", "tt:url");
+    RENAMED_ENTITY_TYPES.put("PhoneNumber", "tt:phone_number");
+  }
+
   static boolean typeOk(String have, String want, Value value) {
     if (have.equals(want))
       return true;
@@ -52,12 +70,14 @@ class ArgFilterHelpers {
     if (have.equals("Bool") && want.equals("Boolean"))
       return true;
 
-    // String is acceptable for Username/Hashtag
-    if (have.equals("String") && (want.equals("Username") || want.equals("Hashtag")))
+    // String is acceptable for entity types
+    if (have.equals("String") && isEntity(want))
+      return true;
+    
+    // Renamed entity types
+    if (RENAMED_ENTITY_TYPES.containsKey(have) && want.equals("Entity(" + RENAMED_ENTITY_TYPES.get(have) + ")"))
       return true;
 
-    // FIXME be stricter in handling measures
-    // (not a problem for now because we only parse temperatures)
     if (have.equals("Measure") && want.startsWith("Measure(") && value instanceof NumberValue)
       return unitOk(((NumberValue) value).unit, want.substring("Measure(".length(), want.length() - 1));
 

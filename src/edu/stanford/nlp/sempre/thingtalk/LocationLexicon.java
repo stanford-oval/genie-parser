@@ -13,11 +13,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import edu.stanford.nlp.sempre.*;
+import edu.stanford.nlp.sempre.Json;
+import edu.stanford.nlp.sempre.ValueFormula;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
-public class LocationLexicon {
+public class LocationLexicon extends AbstractLexicon {
   public static class Options {
     @Option
     public String email = null;
@@ -26,16 +27,6 @@ public class LocationLexicon {
   }
 
   public static Options opts = new Options();
-
-  public static class Entry {
-    public final Formula formula;
-    public final String rawPhrase;
-
-    public Entry(Formula formula, String rawPhrase) {
-      this.formula = formula;
-      this.rawPhrase = rawPhrase;
-    }
-  }
 
   @JsonIgnoreProperties({ "boundingbox", "licence" })
   private static class NominatimEntry {
@@ -67,7 +58,6 @@ public class LocationLexicon {
   private static final Map<String, LocationLexicon> instances = new HashMap<>();
 
   private final String languageTag;
-  private final GenericObjectCache<String, Collection<Entry>> cache = new GenericObjectCache<>(256);
 
   private LocationLexicon(String languageTag) {
     this.languageTag = languageTag;
@@ -89,7 +79,8 @@ public class LocationLexicon {
     return to;
   }
 
-  private Collection<Entry> lookupCacheMiss(String rawPhrase) {
+  @Override
+  protected Collection<Entry> doLookup(String rawPhrase) {
     try {
       URL url = new URL(String.format(URL_TEMPLATE, languageTag, URLEncoder.encode(rawPhrase, "utf-8")));
       if (opts.verbose >= 3)
@@ -103,7 +94,7 @@ public class LocationLexicon {
         return map(Json.readValueHard(reader, new TypeReference<List<NominatimEntry>>() {
         }), (NominatimEntry entry) -> {
           String canonical = entry.display_name.toLowerCase().replaceAll("[,\\s+]", " ");
-          return new Entry(new ValueFormula<>(
+          return new Entry("LOCATION", new ValueFormula<>(
               new LocationValue(entry.lat, entry.lon)),
               canonical);
         });
@@ -112,25 +103,5 @@ public class LocationLexicon {
       LogInfo.logs("Failed to contact location server: %s", e.getMessage());
       return Collections.emptyList();
     }
-  }
-
-  public Iterator<Entry> lookup(String rawPhrase) {
-    if (opts.verbose >= 2)
-      LogInfo.logs("LocationLexicon.lookup %s", rawPhrase);
-    Collection<Entry> fromCache = cache.hit(rawPhrase);
-    if (fromCache != null) {
-      if (opts.verbose >= 3)
-        LogInfo.logs("LocationLexicon.cacheHit");
-      return fromCache.iterator();
-    }
-    if (opts.verbose >= 3)
-      LogInfo.logs("LocationLexicon.cacheMiss");
-
-    fromCache = lookupCacheMiss(rawPhrase);
-    // cache location lookups forever
-    // if memory pressure occcurs, the cache will automatically
-    // downsize itself
-    cache.store(rawPhrase, fromCache, Long.MAX_VALUE);
-    return fromCache.iterator();
   }
 }
