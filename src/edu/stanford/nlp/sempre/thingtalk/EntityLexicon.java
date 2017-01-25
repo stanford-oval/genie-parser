@@ -29,7 +29,7 @@ public class EntityLexicon extends AbstractLexicon {
     return instance;
   }
 
-  private static final String QUERY = "select entity_id,entity_value from entity_lexicon where language = ? and token in (?, ?)";
+  private static final String QUERY = "select entity_id,entity_value,entity_canonical from entity_lexicon where language = ? and token in (?, ?)";
 
   @Override
   protected Collection<Entry> doLookup(String rawPhrase) {
@@ -48,11 +48,12 @@ public class EntityLexicon extends AbstractLexicon {
         while (rs.next()) {
           String id = rs.getString(1);
           String entityValue = rs.getString(2);
+          String entityCanonical = rs.getString(3);
 
           String type = "Entity(" + id + ")";
           entries.add(new Entry("GENERIC_ENTITY_" + id,
               new ValueFormula<>(new TypedStringValue(type, entityValue)),
-              rawPhrase));
+              entityCanonical));
         }
       }
     } catch (SQLException e) {
