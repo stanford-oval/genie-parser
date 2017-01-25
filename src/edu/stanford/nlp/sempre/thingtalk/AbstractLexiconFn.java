@@ -40,7 +40,7 @@ public abstract class AbstractLexiconFn extends SemanticFn {
       Derivation deriv = new Derivation.Builder().withCallable(callable)
           .formula(entry.formula)
           .canonicalUtterance(entry.rawPhrase)
-          .nerUtterance(entry.nerTag)
+          .nerUtterance(entry.rawPhrase)
           .type(SemType.entityType)
           .createDerivation();
 

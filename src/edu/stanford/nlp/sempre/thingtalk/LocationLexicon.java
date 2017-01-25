@@ -95,7 +95,7 @@ public class LocationLexicon extends AbstractLexicon {
         }), (NominatimEntry entry) -> {
           String canonical = entry.display_name.toLowerCase().replaceAll("[,\\s+]", " ");
           return new Entry("LOCATION", new ValueFormula<>(
-              new LocationValue(entry.lat, entry.lon)),
+              new LocationValue(entry.lat, entry.lon, entry.display_name)),
               canonical);
         });
       }
