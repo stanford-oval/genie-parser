@@ -9,15 +9,24 @@ import fig.basic.LispTree;
 public class TypedStringValue extends Value {
   public final String type;
   public final String value;
+  public final String display;
 
   public TypedStringValue(String type, String value) {
     this.type = type;
     this.value = value;
+    this.display = null;
+  }
+
+  public TypedStringValue(String type, String value, String display) {
+    this.type = type;
+    this.value = value;
+    this.display = display;
   }
 
   public TypedStringValue(LispTree tree) {
     this.type = tree.child(1).value;
     this.value = tree.child(2).value;
+    this.display = tree.child(3).value;
   }
 
   @Override
@@ -26,6 +35,7 @@ public class TypedStringValue extends Value {
     tree.addChild("typedstring");
     tree.addChild(type);
     tree.addChild(value);
+    tree.addChild(display);
     return tree;
   }
 
@@ -37,6 +47,8 @@ public class TypedStringValue extends Value {
   public Map<String, Object> toJson() {
     Map<String, Object> json = new HashMap<>();
     json.put("value", value);
+    if (display != null)
+      json.put("display", display);
     return json;
   }
 

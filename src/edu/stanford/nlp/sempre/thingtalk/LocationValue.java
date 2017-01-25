@@ -14,17 +14,27 @@ public class LocationValue extends Value {
 	private final RelativeTag relativeTag;
 	private final double latitude;
 	private final double longitude;
+  private final String display;
 
 	public LocationValue(double latitude, double longitude) {
 		this.relativeTag = RelativeTag.ABSOLUTE;
 		this.latitude = latitude;
 		this.longitude = longitude;
+    this.display = null;
 	}
+
+  public LocationValue(double latitude, double longitude, String display) {
+    this.relativeTag = RelativeTag.ABSOLUTE;
+    this.latitude = latitude;
+    this.longitude = longitude;
+    this.display = display;
+  }
 
 	public LocationValue(RelativeTag relativeTag) {
 		this.relativeTag = relativeTag;
 		this.latitude = -1;
 		this.longitude = -1;
+    this.display = null;
 	}
 
 	public LocationValue(LispTree tree) {
@@ -32,9 +42,11 @@ public class LocationValue extends Value {
 		if (this.relativeTag == RelativeTag.ABSOLUTE) {
 			this.latitude = Double.parseDouble(tree.child(2).value);
 			this.longitude = Double.parseDouble(tree.child(3).value);
+      this.display = tree.child(4).value;
 		} else {
 			this.latitude = -1;
 			this.longitude = -1;
+      this.display = null;
 		}
 	}
 
@@ -54,6 +66,8 @@ public class LocationValue extends Value {
 		json.put("relativeTag", relativeTag.toString().toLowerCase());
 		json.put("latitude", latitude);
 		json.put("longitude", longitude);
+    if (display != null)
+      json.put("display", display);
 		return json;
 	}
 
