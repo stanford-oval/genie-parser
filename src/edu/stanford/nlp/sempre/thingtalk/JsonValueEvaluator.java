@@ -41,6 +41,13 @@ public class JsonValueEvaluator implements ValueEvaluator {
 
   @SuppressWarnings("unchecked")
   private static void normalize(Map<?, Object> map) {
+    // GIANT HACK
+    //
+    // ignore display strings in values
+    // if you ever use "display" for anything other than
+    // showing to the user this will need to change
+    map.remove("display");
+
     for (Map.Entry<?, Object> e : map.entrySet()) {
       Object v = e.getValue();
       if (v instanceof Number && !(v instanceof Double))
