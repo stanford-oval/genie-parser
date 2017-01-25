@@ -190,10 +190,10 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue $Ent
 # about language tags
 (rule $Special (@yes) (ConstantFn tt:root.special.yes))
 (rule $Special (@no) (ConstantFn tt:root.special.no))
-(rule $Special (@hello) (ConstantFn tt:root.special.hello))
-(rule $Special (@thanks) (ConstantFn tt:root.special.thankyou))
-(rule $Special (@sorry) (ConstantFn tt:root.special.sorry))
-(rule $Special (@cool) (ConstantFn tt:root.special.cool))
+#(rule $Special (@hello) (ConstantFn tt:root.special.hello))
+#(rule $Special (@thanks) (ConstantFn tt:root.special.thankyou))
+#(rule $Special (@sorry) (ConstantFn tt:root.special.sorry))
+#(rule $Special (@cool) (ConstantFn tt:root.special.cool))
 (rule $Special @never_mind (ConstantFn tt:root.special.nevermind))
 # this is a literal, it is not translated
 (rule $Special (debug) (ConstantFn tt:root.special.debug))
