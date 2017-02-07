@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.thingtalk.ThingpediaLexicon;
+import edu.stanford.nlp.sempre.thingtalk.EntityLexicon;
 import fig.basic.LogInfo;
 
 class ClearCacheExchangeState extends AdminHttpExchangeState {
@@ -39,6 +40,7 @@ class ClearCacheExchangeState extends AdminHttpExchangeState {
         this.server.langs.get(lang).cache.clear();
 
         ThingpediaLexicon.clearAllCaches();
+        EntityLexicon.clearAllCaches();
       }
 
       returnOk("Cache cleared");

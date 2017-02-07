@@ -51,5 +51,9 @@ public abstract class AbstractLexicon {
     cache.store(rawPhrase, fromCache, Long.MAX_VALUE);
     return fromCache.iterator();
   }
+
+  void clear() {
+    cache.clear();
+  }
 }
 

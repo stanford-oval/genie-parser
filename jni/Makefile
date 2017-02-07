@@ -1,5 +1,5 @@
 CLASS_PATH = ../classes
-JAVAHOME ?= /usr/lib/jvm/java-1.8.0-openjdk-amd64
+JAVAHOME ?= /usr/lib/jvm/java-1.8.0
 JNIPATH ?= $(JAVAHOME)/include/
 JNIPATH_MD ?= $(JAVAHOME)/include/linux
 

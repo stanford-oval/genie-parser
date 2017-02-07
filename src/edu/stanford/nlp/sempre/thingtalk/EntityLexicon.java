@@ -29,6 +29,11 @@ public class EntityLexicon extends AbstractLexicon {
     return instance;
   }
 
+  public synchronized static void clearAllCaches() {
+    for (EntityLexicon e : instances.values())
+      e.clear();
+  }
+
   private static final String QUERY = "select entity_id,entity_value,entity_canonical,entity_name from entity_lexicon where language = ? and token in (?, ?)";
 
   @Override
