@@ -191,6 +191,11 @@ public class Learner {
               checkGradient(ex, state);
               LogInfo.end_track();
             }
+
+            // If the training set says to weight this example more or less, adjust the
+            // gradient
+            if (ex.weight != 1)
+              state.expectedCounts.transformValues((w) -> w * ex.weight);
             SempreUtils.addToDoubleMap(counts, state.expectedCounts);
           }
           // }
