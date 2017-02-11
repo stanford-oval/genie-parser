@@ -108,7 +108,8 @@ public class AddEventFn extends SemanticFn {
                 + actionArgCanonical + " " + eventToken)
             .createDerivation();
 
-        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition")) {
+        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition") &&
+            ThingTalkFeatureComputer.opts.logicalFormFeatures) {
           deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + eventVar);
 
           // some triggers are more prone to formatting than others

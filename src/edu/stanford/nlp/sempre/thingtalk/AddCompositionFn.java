@@ -147,7 +147,8 @@ public class AddCompositionFn extends SemanticFn {
                 + actionArgCanonical + " " + triggerArgCanonical)
             .createDerivation();
 
-        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition")) {
+        if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_composition") &&
+            ThingTalkFeatureComputer.opts.logicalFormFeatures) {
           deriv.addFeature("thingtalk_composition", "names = " + currentActionArg + "---" + candidateTriggerArg);
           deriv.addFeature("thingtalk_composition", "type = " + actionType);
 
