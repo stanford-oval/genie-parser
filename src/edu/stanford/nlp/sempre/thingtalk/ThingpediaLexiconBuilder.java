@@ -104,6 +104,22 @@ public class ThingpediaLexiconBuilder implements Runnable {
       }
 
       // The lexicon itself
+      Map<String, Set<Function>> newLexicon = new HashMap<>();
+
+      // First import the old lexicon
+      try (Statement s = connection.createStatement()) {
+        try (ResultSet rs = s
+            .executeQuery("select token,schema_id,channel_name from lexicon where language = 'en'")) {
+          while (rs.next()) {
+            String token = LanguageUtils.stem(rs.getString(1));
+            int schemaId = rs.getInt(2);
+            String channelName = rs.getString(3);
+            newLexicon.computeIfAbsent(token, (key) -> new HashSet<>()).add(new Function(schemaId, channelName));
+          }
+        }
+      }
+
+      // The lexicon itself
       Map<String, Map<Function, Double>> lexicon = new HashMap<>();
       // The priors on the functions
       Map<Function, Double> priors = new HashMap<>();
@@ -113,7 +129,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
       int count = 0;
       try (PreparedStatement s = connection.prepareStatement(
           "select utterance,target_json from example_utterances where language = ? "
-              + "and (type = 'online' or type like 'turking%' or type = 'thingpedia') and not is_base "
+              + "and (type = 'thingpedia') and not is_base "
               + "lock in share mode")) {
         s.setString(1, opts.languageTag);
         try (ResultSet rs = s.executeQuery()) {
@@ -147,7 +163,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
             }
 
             double weight = 1. / invocations.size();
-            
+
             LanguageInfo utteranceInfo = analyzer.analyze(utterance);
 
             for (Map<String, Object> inv : invocations) {
@@ -163,7 +179,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
               } else {
                 int schemaId = schemaIdMap.get(kind);
                 Function fn = new Function(schemaId, channelName);
-                
+
                 priors.compute(fn, (existingFn, existingWeight) -> {
                   if (existingWeight == null)
                     return weight;
@@ -174,11 +190,13 @@ public class ThingpediaLexiconBuilder implements Runnable {
                 for (int i = 0; i < utteranceInfo.numTokens(); i++) {
                   if (utteranceInfo.nerValues.get(i) != null)
                     continue;
-                  
+
                   if (!LanguageUtils.isContentWord(utteranceInfo.posTags.get(i)))
                     continue;
+                  if (LexiconUtils.isIgnored(utteranceInfo.tokens.get(i)))
+                    continue;
                   String token = LanguageUtils.stem(utteranceInfo.tokens.get(i));
-                  
+
                   lexicon.compute(token, (tkn, functions) -> {
                     if (functions == null)
                       functions = new HashMap<>();
@@ -195,27 +213,33 @@ public class ThingpediaLexiconBuilder implements Runnable {
             }
           }
         }
-        
+
+        for (Map.Entry<String, Map<Function, Double>> entry : lexicon.entrySet()) {
+          String token = entry.getKey();
+          Map<Function, Double> functions = entry.getValue();
+          List<Pair<Function, Double>> functionList = new ArrayList<>();
+
+          functions.forEach((fn, weight) -> {
+            functionList.add(new Pair<>(fn, weight / priors.get(fn)));
+          });
+          functionList.sort((p1, p2) -> {
+            return (int) Math.signum(p2.getSecond() - p1.getSecond());
+          });
+
+          for (int i = 0; i < Math.min(20, functionList.size()); i++) {
+            Pair<Function, Double> p = functionList.get(i);
+            newLexicon.computeIfAbsent(token, (key) -> new HashSet<>()).add(p.getFirst());
+          }
+        }
+
         count = 0;
         try (PreparedStatement ps = connection.prepareStatement("insert into lexicon2 values (?, ?, ?, ?)")) {
-          for (Map.Entry<String, Map<Function, Double>> entry : lexicon.entrySet()) {
-            count++;
-            if (count % 10 == 0)
-              System.err.println("Token #" + count + "/" + lexicon.size());
+          count++;
+          if (count % 10 == 0)
+            System.err.println("Token #" + count + "/" + newLexicon.size());
+          for (Map.Entry<String, Set<Function>> entry : newLexicon.entrySet()) {
             String token = entry.getKey();
-            Map<Function, Double> functions = entry.getValue();
-            List<Pair<Function, Double>> functionList = new ArrayList<>();
-
-            functions.forEach((fn, weight) -> {
-              functionList.add(new Pair<>(fn, weight / priors.get(fn)));
-            });
-            functionList.sort((p1, p2) -> {
-              return (int) Math.signum(p2.getSecond() - p1.getSecond());
-            });
-
-            for (int i = 0; i < Math.min(20, functionList.size()); i++) {
-              Pair<Function, Double> p = functionList.get(i);
-              Function fn = p.getFirst();
+            for (Function fn : entry.getValue()) {
               //System.out.println(token + "\t" + fn.schemaId + "\t" + fn.name);
               ps.setString(1, opts.languageTag);
               ps.setString(2, token);
