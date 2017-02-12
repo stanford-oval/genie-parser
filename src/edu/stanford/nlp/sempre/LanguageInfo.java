@@ -430,27 +430,13 @@ public class LanguageInfo implements MemUsage.Instrumented {
       return pos;
     }
 
-    // Uses a few rules to stem tokens
     public static String stem(String a) {
       int i = a.indexOf(' ');
       if (i != -1)
         return stem(a.substring(0, i)) + ' ' + stem(a.substring(i + 1));
-      //Maybe we should just use the Stanford stemmer
-      String res = a;
-      //hard coded words
-      if (a.equals("having") || a.equals("has")) res = "have";
-      else if (a.equals("using")) res =  "use";
-      else if (a.equals("including")) res =  "include";
-      else if (a.equals("beginning")) res = "begin";
-      else if (a.equals("utilizing")) res = "utilize";
-      else if (a.equals("featuring")) res =  "feature";
-      else if (a.equals("preceding")) res =  "precede";
-      //rules
-      else if (a.endsWith("ing")) res =  a.substring(0, a.length() - 3);
-      else if (a.endsWith("s") && !a.equals("'s")) res =  a.substring(0, a.length() - 1);
-      //don't return an empty string
-      if (res.length() > 0) return res;
-      return a;
+
+      Stemmer stemmer = new Stemmer();
+      return stemmer.stem(a);
     }
 
   }

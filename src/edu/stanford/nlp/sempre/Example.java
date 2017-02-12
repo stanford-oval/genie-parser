@@ -50,6 +50,9 @@ public class Example {
   // Statistics relating to processing the example.
   public Evaluation evaluation;
 
+  //// Information for the learner
+  public double weight = 1.0;
+
   public static class Builder {
     private String id;
     private String utterance;
@@ -172,12 +175,12 @@ public class Example {
   }
 
   public void preprocess() {
-		this.preprocess(LanguageAnalyzer.getSingleton());
-	}
+    this.preprocess(LanguageAnalyzer.getSingleton());
+  }
 
-	public void preprocess(LanguageAnalyzer analyzer) {
-		this.languageInfo = analyzer.analyze(this.utterance);
-		this.targetValue = TargetValuePreprocessor.getSingleton().preprocess(this.targetValue);
+  public void preprocess(LanguageAnalyzer analyzer) {
+    this.languageInfo = analyzer.analyze(this.utterance);
+    this.targetValue = TargetValuePreprocessor.getSingleton().preprocess(this.targetValue);
   }
 
   public void log() {

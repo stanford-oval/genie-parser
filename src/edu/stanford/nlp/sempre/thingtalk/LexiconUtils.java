@@ -20,6 +20,11 @@ class LexiconUtils {
     Arrays.sort(IGNORED_WORDS);
   }
 
+  public static boolean isIgnored(String word) {
+    return Arrays.binarySearch(IGNORED_WORDS, word) >= 0 ||
+        ArgFilterHelpers.isUnit(word);
+  }
+
   public static String preprocessRawPhrase(String rawPhrase) {
     String[] tokens = rawPhrase.split(" ");
     if (Builder.opts.parser.equals("BeamParser")) {
@@ -31,7 +36,7 @@ class LexiconUtils {
     } else {
       if (tokens.length > 1)
         return null;
-      if (Arrays.binarySearch(IGNORED_WORDS, tokens[0]) >= 0)
+      if (isIgnored(tokens[0]))
         return null;
       return tokens[0];
     }

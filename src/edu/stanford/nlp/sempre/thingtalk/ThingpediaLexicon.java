@@ -19,12 +19,15 @@ public class ThingpediaLexicon {
   public static class Options {
     @Option
     public int verbose = 0;
+
+    @Option
+    public boolean useNewLexicon = false;
   }
 
   public static Options opts = new Options();
 
   public enum Mode {
-    APP, KIND, PARAM, TRIGGER, ACTION, QUERY;
+    APP, KIND, TRIGGER, ACTION, QUERY;
   };
 
   public static abstract class Entry {
@@ -230,13 +233,8 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    String query;
-    if (Builder.opts.parser.equals("BeamParser")) {
-      query = "select canonical,owner,appId from app where canonical = ? limit " + Parser.opts.beamSize;
-    } else {
-      query = "select canonical,owner,appId from app where match canonical against (? in natural language mode) limit "
+    String query = "select canonical,owner,appId from app where match canonical against (? in natural language mode) limit "
           + Parser.opts.beamSize;
-    }
 
     long now = System.currentTimeMillis();
 
@@ -271,14 +269,8 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    String query;
-    if (Builder.opts.parser.equals("BeamParser")) {
-      query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and kind = ? limit "
-          + Parser.opts.beamSize;
-    } else {
-      query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and match kind_canonical against (? "
+    String query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and match kind_canonical against (? "
           + " in natural language mode) limit " + Parser.opts.beamSize;
-    }
 
     long now = System.currentTimeMillis();
 
@@ -300,66 +292,6 @@ public class ThingpediaLexicon {
     }
   }
 
-  public Iterator<Entry> lookupParam(String phrase) throws SQLException {
-    if (opts.verbose >= 2)
-      LogInfo.logs("ThingpediaLexicon.lookupParam %s", phrase);
-
-    String query;
-    if (phrase == null) {
-      query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-          + "on schema_id = id and version = developer_version and kind_type <> 'primary' and language = ?";
-    } else {
-      String[] tokens = phrase.split(" ");
-      if (Builder.opts.parser.equals("BeamParser")) {
-        if (tokens.length > 4)
-          return Collections.emptyIterator();
-
-        query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = developer_version and language = ? and canonical = ? and kind_type <> 'primary' "
-            + "limit " + Parser.opts.beamSize;
-      } else {
-        if (tokens.length > 1)
-          return Collections.emptyIterator();
-
-        query = "select distinct canonical, argname, argtype from device_schema_arguments join device_schema "
-            + "on schema_id = id and version = developer_version and language = ? match canonical against (? in natural language "
-            + "mode) and kind_type <> 'primary' limit " + Parser.opts.beamSize;
-      }
-    }
-
-    List<Entry> entries = cache.hit(new LexiconKey(Mode.PARAM, phrase));
-    if (entries != null) {
-      if (opts.verbose >= 3)
-        LogInfo.logs("ThingpediaLexicon cacheHit");
-      return entries.iterator();
-    }
-    if (opts.verbose >= 3)
-      LogInfo.logs("ThingpediaLexicon cacheMiss");
-
-    long now = System.currentTimeMillis();
-
-    try (Connection con = dataSource.getConnection()) {
-      try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, languageTag);
-        if (phrase != null)
-          stmt.setString(2, phrase);
-
-        entries = new LinkedList<>();
-        try (ResultSet rs = stmt.executeQuery()) {
-          while (rs.next())
-            entries.add(new ParamEntry(rs.getString(1), rs.getString(2), rs.getString(3)));
-        } catch (SQLException e) {
-          if (opts.verbose > 0)
-            LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
-        }
-        cache.store(new LexiconKey(Mode.PARAM, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
-        return entries.iterator();
-      }
-    }
-  }
-
-
-
   public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {
     if (opts.verbose >= 2)
       LogInfo.logs("ThingpediaLexicon.lookupChannel(%s) %s", channel_type, phrase);
@@ -378,15 +310,16 @@ public class ThingpediaLexicon {
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
     String query;
-    boolean isBeam;
-    if (Builder.opts.parser.equals("BeamParser")) {
-      isBeam = true;
-      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
-          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
-          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
-          + " and canonical = ? and ds.kind_type <> 'primary' limit " + Parser.opts.beamSize;
+
+    if (opts.useNewLexicon) {
+      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
+          + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon2 lex "
+          + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
+          + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
+          + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
+          + " and lex.token = ? limit "
+          + (3 * Parser.opts.beamSize);
     } else {
-      isBeam = false;
       query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
           + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
           + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
@@ -409,13 +342,12 @@ public class ThingpediaLexicon {
       stmt.setString(1, languageTag);
       String channelType = channel_type.toString().toLowerCase();
       stmt.setString(2, channelType);
-      if (isBeam) {
-        search = phrase;
-        key = phrase;
-        stmt.setString(3, phrase);
+      String stemmed = LanguageUtils.stem(token);
+      key = token;
+      if (opts.useNewLexicon) {
+        stmt.setString(3, languageTag);
+        stmt.setString(4, stemmed);
       } else {
-        String stemmed = LanguageUtils.stem(token);
-        key = token;
         search = token + " " + stemmed;
         stmt.setString(3, search);
         stmt.setString(4, languageTag);

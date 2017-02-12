@@ -2,8 +2,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -13,6 +12,7 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.sempre.*;
 import fig.basic.LogInfo;
 import fig.basic.Option;
+import fig.basic.Pair;
 
 public class ThingpediaDataset extends AbstractDataset {
   public static class Options {
@@ -26,6 +26,9 @@ public class ThingpediaDataset extends AbstractDataset {
     public Set<String> testTypes = Sets.newHashSet("test");
     @Option
     public Set<String> trainTypes = Sets.newHashSet("thingpedia", "online", "turking", "generated");
+
+    @Option
+    public List<Pair<String, Double>> trainWeights = Collections.emptyList();
   }
 
   public static Options opts = new Options();
@@ -104,6 +107,15 @@ public class ThingpediaDataset extends AbstractDataset {
     if (trainMaxExamples == 0 && testMaxExamples == 0)
       return;
 
+    Map<String, Double> weights = new HashMap<>();
+    boolean applyWeights = false;
+
+    if (opts.trainWeights.size() > 0) {
+      applyWeights = true;
+      for (Pair<String, Double> pair : opts.trainWeights)
+        weights.put(pair.getFirst(), pair.getSecond());
+    }
+
     try (PreparedStatement stmt = con.prepareStatement(FULL_EXAMPLE_QUERY)) {
       stmt.setString(1, opts.languageTag);
       try (ResultSet set = stmt.executeQuery()) {
@@ -143,6 +155,9 @@ public class ThingpediaDataset extends AbstractDataset {
               .setUtterance(utterance)
               .setTargetValue(targetValue)
               .createExample();
+
+          if (applyWeights)
+            ex.weight = weights.getOrDefault(type, 1.0);
 
           addOneExample(ex, maxGroup, group);
         }

@@ -11,6 +11,9 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
   public static class Options {
     @Option(gloss = "Set of paraphrasing feature domains to include")
     public Set<String> featureDomains = new HashSet<>();
+
+    @Option
+    public boolean logicalFormFeatures = true;
   }
 
   public static Options opts = new Options();
@@ -26,7 +29,7 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
     if (opts.featureDomains.contains("thingtalk_root"))
       extractRootCodeFeatures(ex, deriv);
 
-    if (opts.featureDomains.contains("thingtalk_params"))
+    if (opts.featureDomains.contains("thingtalk_params") && opts.logicalFormFeatures)
       extractCodeFeatures(ex, deriv);
   }
 

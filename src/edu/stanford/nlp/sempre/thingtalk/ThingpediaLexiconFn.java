@@ -70,8 +70,6 @@ public class ThingpediaLexiconFn extends SemanticFn {
         entries = lexicon.lookupApp(phrase);
       else if (mode == ThingpediaLexicon.Mode.KIND)
         entries = lexicon.lookupKind(phrase);
-      else if (mode == ThingpediaLexicon.Mode.PARAM)
-        entries = lexicon.lookupParam(phrase);
       else
         entries = lexicon.lookupChannel(phrase, mode);
     } catch (SQLException e) {
