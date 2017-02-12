@@ -21,7 +21,8 @@ class LexiconUtils {
   }
 
   public static boolean isIgnored(String word) {
-    return Arrays.binarySearch(IGNORED_WORDS, word) >= 0;
+    return Arrays.binarySearch(IGNORED_WORDS, word) >= 0 ||
+        ArgFilterHelpers.isUnit(word);
   }
 
   public static String preprocessRawPhrase(String rawPhrase) {

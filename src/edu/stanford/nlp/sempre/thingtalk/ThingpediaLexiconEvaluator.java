@@ -15,17 +15,15 @@ import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
 import edu.stanford.nlp.sempre.Master;
 import edu.stanford.nlp.sempre.corenlp.CoreNLPAnalyzer;
 import fig.basic.Option;
-import fig.basic.Pair;
 import fig.exec.Execution;
 
 /**
- * Analyzes all the examples and builds a lexicon mapping
- * tokens to functions
+ * Analyzes all the examples and computes the recall of the lexicon
  * 
  * @author gcampagn
  *
  */
-public class ThingpediaLexiconBuilder implements Runnable {
+public class ThingpediaLexiconEvaluator implements Runnable {
   public static class Options {
     @Option
     public String languageTag = "en";
@@ -76,7 +74,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
     }
   }
 
-  private ThingpediaLexiconBuilder() {
+  private ThingpediaLexiconEvaluator() {
   }
 
   @Override
@@ -86,51 +84,39 @@ public class ThingpediaLexiconBuilder implements Runnable {
     DataSource db = ThingpediaDatabase.getSingleton();
 
     try (Connection connection = db.getConnection()) {
-      // start a transaction for the whole operation
-      // this effectively locks the whole db mostly read only but that's
-      // ok
-      connection.setAutoCommit(false);
-
       // Cache all mappings from kinds to schema IDs
       Map<String, Integer> schemaIdMap = new HashMap<>();
-
       try (Statement s = connection.createStatement()) {
         try (ResultSet rs = s
-            .executeQuery("select id,kind from device_schema where kind_type <> 'primary' lock in share mode")) {
+            .executeQuery("select id,kind from device_schema where kind_type <> 'primary'")) {
           while (rs.next()) {
             schemaIdMap.put(rs.getString(2), rs.getInt(1));
           }
         }
       }
 
-      // The lexicon itself
-      Map<String, Set<Function>> newLexicon = new HashMap<>();
-
-      // First import the old lexicon
-      try (Statement s = connection.createStatement()) {
-        try (ResultSet rs = s
-            .executeQuery("select token,schema_id,channel_name from lexicon where language = 'en'")) {
+      // Cache the whole lexicon
+      Map<String, Set<Function>> lexicon = new HashMap<>();
+      try (PreparedStatement s = connection.prepareStatement(
+          "select token,schema_id,channel_name from lexicon2 where language = ?")) {
+        s.setString(1, opts.languageTag);
+        try (ResultSet rs = s.executeQuery()) {
           while (rs.next()) {
             String token = LanguageUtils.stem(rs.getString(1));
             int schemaId = rs.getInt(2);
             String channelName = rs.getString(3);
-            newLexicon.computeIfAbsent(token, (key) -> new HashSet<>()).add(new Function(schemaId, channelName));
+            lexicon.computeIfAbsent(token, (key) -> new HashSet<>()).add(new Function(schemaId, channelName));
           }
         }
       }
 
-      // The lexicon itself
-      Map<String, Map<Function, Double>> lexicon = new HashMap<>();
-      // The priors on the functions
-      Map<Function, Double> priors = new HashMap<>();
-
       Pattern namePattern = Pattern.compile("^tt:([^\\.]+)\\.(.+)$");
 
+      int success = 0;
       int count = 0;
       try (PreparedStatement s = connection.prepareStatement(
           "select utterance,target_json from example_utterances where language = ? "
-              + "and (type = 'thingpedia') and not is_base "
-              + "lock in share mode")) {
+              + "and type like 'test%' and not is_base")) {
         s.setString(1, opts.languageTag);
         try (ResultSet rs = s.executeQuery()) {
           while (rs.next()) {
@@ -166,6 +152,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
 
             LanguageInfo utteranceInfo = analyzer.analyze(utterance);
 
+            boolean all = true;
             for (Map<String, Object> inv : invocations) {
               Map<String, Object> name = (Map<String, Object>) inv.get("name");
               Matcher match = namePattern.matcher((String) name.get("id"));
@@ -178,79 +165,39 @@ public class ThingpediaLexiconBuilder implements Runnable {
                 System.err.println("Invalid kind " + kind);
               } else {
                 int schemaId = schemaIdMap.get(kind);
-                Function fn = new Function(schemaId, channelName);
+                Function target = new Function(schemaId, channelName);
 
-                priors.compute(fn, (existingFn, existingWeight) -> {
-                  if (existingWeight == null)
-                    return weight;
-                  else
-                    return existingWeight + weight;
-                });
-
+                boolean found = false;
                 for (int i = 0; i < utteranceInfo.numTokens(); i++) {
                   if (utteranceInfo.nerValues.get(i) != null)
                     continue;
 
-                  if (!LanguageUtils.isContentWord(utteranceInfo.posTags.get(i)))
-                    continue;
                   if (LexiconUtils.isIgnored(utteranceInfo.tokens.get(i)))
                     continue;
                   String token = LanguageUtils.stem(utteranceInfo.tokens.get(i));
 
-                  lexicon.compute(token, (tkn, functions) -> {
-                    if (functions == null)
-                      functions = new HashMap<>();
-                    functions.compute(fn, (existingFn, existingWeigth) -> {
-                      if (existingWeigth == null)
-                        return weight;
-                      else
-                        return existingWeigth + weight;
-                    });
-                    return functions;
-                  });
+                  for (Function fn : lexicon.getOrDefault(token, Collections.emptySet())) {
+                    if (fn.equals(target)) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (found)
+                    break;
+                }
+                if (!found) {
+                  all = false;
+                  break;
                 }
               }
             }
+
+            if (all)
+              success++;
           }
+
+          System.err.println("Recall: " + (double) success / count);
         }
-
-        for (Map.Entry<String, Map<Function, Double>> entry : lexicon.entrySet()) {
-          String token = entry.getKey();
-          Map<Function, Double> functions = entry.getValue();
-          List<Pair<Function, Double>> functionList = new ArrayList<>();
-
-          functions.forEach((fn, weight) -> {
-            functionList.add(new Pair<>(fn, weight / priors.get(fn)));
-          });
-          functionList.sort((p1, p2) -> {
-            return (int) Math.signum(p2.getSecond() - p1.getSecond());
-          });
-
-          for (int i = 0; i < Math.min(20, functionList.size()); i++) {
-            Pair<Function, Double> p = functionList.get(i);
-            newLexicon.computeIfAbsent(token, (key) -> new HashSet<>()).add(p.getFirst());
-          }
-        }
-
-        count = 0;
-        try (PreparedStatement ps = connection.prepareStatement("insert into lexicon2 values (?, ?, ?, ?)")) {
-          count++;
-          if (count % 10 == 0)
-            System.err.println("Token #" + count + "/" + newLexicon.size());
-          for (Map.Entry<String, Set<Function>> entry : newLexicon.entrySet()) {
-            String token = entry.getKey();
-            for (Function fn : entry.getValue()) {
-              //System.out.println(token + "\t" + fn.schemaId + "\t" + fn.name);
-              ps.setString(1, opts.languageTag);
-              ps.setString(2, token);
-              ps.setInt(3, fn.schemaId);
-              ps.setString(4, fn.name);
-              ps.addBatch();
-            }
-          }
-          ps.executeBatch();
-        }
-        connection.commit();
       }
     } catch (SQLException e) {
       e.printStackTrace();
@@ -258,6 +205,6 @@ public class ThingpediaLexiconBuilder implements Runnable {
   }
 
   public static void main(String[] args) {
-    Execution.run(args, "Main", new ThingpediaLexiconBuilder(), Master.getOptionsParser());
+    Execution.run(args, "Main", new ThingpediaLexiconEvaluator(), Master.getOptionsParser());
   }
 }
