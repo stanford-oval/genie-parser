@@ -50,8 +50,8 @@ public class JsonValueEvaluator implements ValueEvaluator {
 
     for (Map.Entry<?, Object> e : map.entrySet()) {
       Object v = e.getValue();
-      if (v instanceof Number && !(v instanceof Double))
-        e.setValue(((Number) v).doubleValue());
+      if (v instanceof Number)
+        e.setValue(fixDouble(((Number) v).doubleValue()));
       else if (v instanceof List<?>)
         e.setValue(normalize((List<?>) v));
       else if (v instanceof Map<?, ?>)
