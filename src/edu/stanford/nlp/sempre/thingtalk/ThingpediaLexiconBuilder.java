@@ -129,7 +129,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
       int count = 0;
       try (PreparedStatement s = connection.prepareStatement(
           "select utterance,target_json from example_utterances where language = ? "
-              + "and (type = 'thingpedia') and not is_base "
+              + "and (type in ('thingpedia', 'online') or type like 'turking%') and not is_base "
               + "lock in share mode")) {
         s.setString(1, opts.languageTag);
         try (ResultSet rs = s.executeQuery()) {
@@ -233,7 +233,7 @@ public class ThingpediaLexiconBuilder implements Runnable {
         }
 
         count = 0;
-        try (PreparedStatement ps = connection.prepareStatement("insert into lexicon2 values (?, ?, ?, ?)")) {
+        try (PreparedStatement ps = connection.prepareStatement("insert into lexicon3 values (?, ?, ?, ?)")) {
           count++;
           if (count % 10 == 0)
             System.err.println("Token #" + count + "/" + newLexicon.size());

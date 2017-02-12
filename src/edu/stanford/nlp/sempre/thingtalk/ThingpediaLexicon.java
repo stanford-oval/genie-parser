@@ -309,31 +309,14 @@ public class ThingpediaLexicon {
     if (opts.verbose >= 3)
       LogInfo.logs("ThingpediaLexicon cacheMiss");
 
-    String query;
-
-    if (opts.useNewLexicon) {
-      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
-          + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon2 lex "
-          + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
-          + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
-          + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
-          + " and lex.token = ? limit "
-          + (3 * Parser.opts.beamSize);
-    } else {
-      query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
-          + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
-          + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? and channel_type = ? "
-          + " and match (canonical,keywords) against (? in natural language mode) "
-          + " and ds.kind_type <> 'primary' limit "
-          + (3 * Parser.opts.beamSize)
-          + " union distinct (select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
-          + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon lex "
-          + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
-          + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
-          + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
-          + " and lex.token in (?, ?) limit "
-          + (3 * Parser.opts.beamSize) + ")";
-    }
+    String query = "select dscc.canonical,ds.kind,dsc.name,dsc.argnames,dscc.argcanonicals,dsc.types from "
+        + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc,"
+        + (opts.useNewLexicon ? "lexicon3" : "lexicon2") + " lex "
+        + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
+        + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
+        + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
+        + " and lex.token = ? limit "
+        + (3 * Parser.opts.beamSize);
 
     long now = System.currentTimeMillis();
 
@@ -342,20 +325,10 @@ public class ThingpediaLexicon {
       stmt.setString(1, languageTag);
       String channelType = channel_type.toString().toLowerCase();
       stmt.setString(2, channelType);
+      stmt.setString(3, languageTag);
       String stemmed = LanguageUtils.stem(token);
-      key = token;
-      if (opts.useNewLexicon) {
-        stmt.setString(3, languageTag);
-        stmt.setString(4, stemmed);
-      } else {
-        search = token + " " + stemmed;
-        stmt.setString(3, search);
-        stmt.setString(4, languageTag);
-        stmt.setString(5, channelType);
-        stmt.setString(6, languageTag);
-        stmt.setString(7, token);
-        stmt.setString(8, stemmed);
-      }
+      stmt.setString(4, stemmed);
+      key = stemmed;
 
       entries = new LinkedList<>();
       try (ResultSet rs = stmt.executeQuery()) {
