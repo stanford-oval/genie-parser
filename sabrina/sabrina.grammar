@@ -72,7 +72,7 @@ $EntityValue $StringValue))
 # NOTE 2: boolean answers are matched to yes/no, which are specials
 (def @answer_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $LocationValue
-$PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue $EntityValue))
+$PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 # FIXME: Integrate this to improve the canonicals
 #(rule $PersonValue ($PHRASE) (FilterNerSpanFn PERSON) (anchored 1))
