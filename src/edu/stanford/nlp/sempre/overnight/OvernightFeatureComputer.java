@@ -238,6 +238,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
           "new york", "york", "beijing", "brown university", "ucla", "mckinsey", "google"));*/
   private static final Set<String> entities = Sets.newHashSet("QUOTED_STRING", "TIME", "DATE", "NUMBER", "PHONE_NUMBER",
       "EMAIL_ADDRESS", "HASHTAG", "USERNAME", "MONEY", "PERCENT");
+  // A set of words that are barred from forming lexical bigram features
+  private static final Set<String> prohibited_bigrams = Sets.newHashSet("with", "then");
 
   private final Map<String, Set<String>> phraseTable;
   private final Aligner aligner;
@@ -546,11 +548,16 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         (str2.tag == Item.Tag.UNIGRAM && stopWords.contains(str2.data1)))
       return;
 
+    // str1 is the input sentence, str2 is the canonical
+    // we only filter prohibited bigrams from the canonical, because only in the canonicals
+    // they are meaningless fillers added to make the canonical readable; in the sentence
+    // they are real words with meaning
+
     if (entities.contains(str1.data1))
       return;
     if (str1.tag != Item.Tag.UNIGRAM && entities.contains(str1.data1))
       return;
-    if (str2.tag != Item.Tag.UNIGRAM && entities.contains(str2.data2))
+    if (str2.tag != Item.Tag.UNIGRAM && (entities.contains(str2.data2) || prohibited_bigrams.contains(str2.data2)))
       return;
 
     String f1 = str1.data1;
