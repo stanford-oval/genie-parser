@@ -134,6 +134,8 @@ public class ThingpediaLexicon {
 
     @Override
     public void addFeatures(FeatureVector vec) {
+      if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_lexicon"))
+        vec.add("thingtalk_lexicon", search + "---" + kind);
     }
   }
 
