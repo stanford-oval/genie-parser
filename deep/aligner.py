@@ -12,14 +12,14 @@ from general_utils import get_minibatches
 
 class Config(object):
     max_length = 30
-    dropout = 0.5
+    dropout = 0.7
     #dropout = 1
-    embed_size = 50
-    hidden_size = 300
+    embed_size = 300
+    hidden_size = 150
     batch_size = 128
     #batch_size = 1
     n_epochs = 40
-    lr = 0.8
+    lr = 0.6
 
 
 class LSTMAligner(Model):
@@ -44,26 +44,26 @@ class LSTMAligner(Model):
 
     def add_prediction_op(self, training):
         xavier = tf.contrib.layers.xavier_initializer(seed=42)
-        
-        # first the embed the input
-        input_embed_matrix = tf.constant(self.pretrained_embeddings)
-        #input_embed_matrix = tf.get_variable('input_embedding', shape=(self.config.dictionary_size, self.config.embed_size), initializer=tf.constant_initializer(self.pretrained_embeddings))    
-        # dictionary size x embed_size
-        assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.embed_size)
-        
+
         with tf.variable_scope('embed', reuse=not training):
+            # first the embed the input
+            input_embed_matrix = tf.constant(self.pretrained_embeddings)
+            #input_embed_matrix = tf.get_variable('input_embedding', shape=(self.config.dictionary_size, self.config.embed_size), initializer=tf.constant_initializer(self.pretrained_embeddings))    
+            # dictionary size x embed_size
+            assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.embed_size)
+
+            # now embed the output
             #output_embed_matrix = tf.get_variable('output_embedding',
             #                                      shape=(self.config.output_size, self.config.embed_size),
             #                                      initializer=xavier)
             #assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.embed_size)
             output_embed_matrix = tf.eye(self.config.output_size)
-        
+
         inputs = tf.nn.embedding_lookup([input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.embed_size)
         
         # the encoder
-        
         with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training) as scope:
             lstm_enc = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
             lstm_enc = tf.contrib.rnn.DropoutWrapper(lstm_enc, input_keep_prob=self.dropout_placeholder, seed=7)
@@ -72,7 +72,7 @@ class LSTMAligner(Model):
             assert enc_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
             assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
             assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-            
+
         # the decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
             lstm_dec = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
@@ -86,11 +86,11 @@ class LSTMAligner(Model):
                 output_ids_with_go = tf.concat([go_vector, self.output_placeholder], axis=1)
                 outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
                 #assert outputs.get_shape()[1:] == (self.config.max_length+1, self.config.output_size)
-                
+
                 decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
                 dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(lstm_dec, decoder_fn,
                     inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
-            
+
                 assert dec_preds.get_shape()[2:] == (self.config.hidden_size,)
                 assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
                 assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
@@ -112,19 +112,22 @@ class LSTMAligner(Model):
                 preds = dec_preds
             #print preds.get_shape()
             #assert preds.get_shape()[2:] == (self.config.output_size,)
-            
+
         return preds
 
     def add_loss_op(self, preds):
         length_diff = tf.reshape(self.config.max_length - tf.shape(preds)[1], shape=(1,))
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
         preds = tf.pad(preds, padding, mode='constant')
+        #labels = tf.slice(self.output_placeholder, [0, 0], [-1, self.output_length_placeholder])
+        #labels = self.output_placeholder[:,:self.output_length_placeholder]
         labels = self.output_placeholder
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=preds, labels=labels)
         assert loss.get_shape()[1:] == (self.config.max_length,)
         output_mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length)
         loss = tf.boolean_mask(loss, output_mask)
         asserts = [tf.Assert(tf.reduce_any(loss > 0), [loss], name='loss_gt_0'),
+                   #tf.Assert(tf.shape(preds)[1:] == [self.config.max_length, self.config.output_size], [preds, tf.shape(preds)[1:]], name='shape_of_preds'),
                    tf.Assert(tf.reduce_any(output_mask != False), [output_mask], name='output_mask'),
                    tf.Assert(tf.reduce_all(tf.argmax(preds[:,0,:], axis=1) != self.config.eos), [preds[:,0,:]], name='assert_not_empty')]
         with tf.control_dependencies(asserts):
@@ -133,6 +136,7 @@ class LSTMAligner(Model):
             return loss
 
     def add_training_op(self, loss):
+        #optimizer = tf.train.AdamOptimizer(self.config.lr)
         optimizer = tf.train.AdagradOptimizer(self.config.lr)
         train_op = optimizer.minimize(loss)
         return train_op
@@ -165,38 +169,48 @@ class LSTMAligner(Model):
         self.pretrained_embeddings = pretrained_embeddings
         self.build()
 
-def vectorize(sentence, words, max_length, lower=True):
+unknown_tokens = set()
+
+def vectorize(sentence, words, max_length):
     vector = np.zeros((max_length,), dtype=np.int32)
     assert words['<<PAD>>'] == 0
     #vector[0] = words['<<GO>>']
     for i, word in enumerate(sentence.split(' ')):
         if i+1 == max_length:
             break
-        if lower:
-            word = word.lower()
-        else:
-            word = word
+        word = word.strip()
         if word in words:
             vector[i] = words[word]
         else:
+            unknown_tokens.add(word)
             vector[i] = words['<<UNK>>']
     vector[i] = words['<<EOS>>']
     return (vector, i+1)
 
-def load_dictionary(file, lower=True):
+ENTITIES = ['USERNAME', 'HASHTAG',
+            'QUOTED_STRING', 'NUMBER',
+            'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
+            'DATE', 'TIME', 'SET',
+            'PERCENT', 'DURATION', 'MONEY', 'ORDINAL']
+
+def load_dictionary(file):
     print "Loading dictionary from %s..." % (file,)
     words = dict()
+
+    # special tokens
     words['<<PAD>>'] = len(words)
     words['<<EOS>>'] = len(words)
     words['<<GO>>'] = len(words)
     words['<<UNK>>'] = len(words)
     reverse = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>']
+
+    for entity in ENTITIES:
+        words[entity] = len(words)
+        reverse.append(entity)
+
     with open(file, 'r') as word_file:
         for word in word_file:
-            if lower:
-                word = word.strip().lower()
-            else:
-                word = word.strip()
+            word = word.strip()
             if word not in words:
                 words[word] = len(words)
                 reverse.append(word)
@@ -208,7 +222,7 @@ def load_dictionary(file, lower=True):
             raise AssertionError
     return words, reverse
 
-def load_embeddings(words):
+def load_embeddings(words, config):
     print "Loading pretrained embeddings...",
     start = time.time()
     word_vectors = {}
@@ -216,12 +230,10 @@ def load_embeddings(words):
         sp = line.strip().split()
         word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     n_tokens = len(words)
-    embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, 50)), dtype='float32')
+    embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, config.embed_size)), dtype='float32')
     for token, id in words.iteritems():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]
-        elif token.lower() in word_vectors:
-            embeddings_matrix[id] = word_vectors[token.lower()]
     print "took {:.2f} seconds".format(time.time() - start)
     return embeddings_matrix
 
@@ -233,13 +245,13 @@ def load_data(input_words, output_words, input_reverse, output_reverse, max_leng
     with open(sys.argv[1], 'r') as data:
         for line in data:
             sentence, canonical = line.split('\t')
-            input, in_len = vectorize(sentence, input_words, max_length, lower=True)
+            input, in_len = vectorize(sentence, input_words, max_length)
             inputs.append(input)
             input_lengths.append(in_len)
-            label, label_len = vectorize(canonical, output_words, max_length, lower=False)
+            label, label_len = vectorize(canonical, output_words, max_length)
             labels.append(label)
             label_lengths.append(label_len)
-            #print "input", map(lambda x: input_reverse[x], inputs[-1])
+            #print "input", ' '.join(map(lambda x: input_reverse[x], inputs[-1]))
             #print "label", map(lambda x: output_reverse[x], labels[-1])
     return inputs, input_lengths, labels, label_lengths
 
@@ -266,8 +278,8 @@ def run():
     words, reverse = load_dictionary('words.txt')
     config.dictionary_size = len(words)
     print "%d words in dictionary" % (config.dictionary_size,)
-    embeddings_matrix = load_embeddings(words)
-    canonical_words, canonical_reverse = load_dictionary('canonical_tokens.txt', lower=False)
+    embeddings_matrix = load_embeddings(words, config)
+    canonical_words, canonical_reverse = load_dictionary('canonical_tokens.txt')
     config.output_size = len(canonical_words)
     print "%d output tokens" % (config.output_size,)
     config.sos = canonical_words['<<GO>>']
@@ -275,6 +287,7 @@ def run():
     inputs, input_lengths, labels, label_lengths = load_data(words, canonical_words,
                                                              reverse, canonical_reverse,
                                                              config.max_length)
+    print "unknown", unknown_tokens
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
