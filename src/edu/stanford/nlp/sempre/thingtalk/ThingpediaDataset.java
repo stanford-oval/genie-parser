@@ -83,7 +83,7 @@ public class ThingpediaDataset extends AbstractDataset {
           }
           Value targetValue = ThingTalk.jsonOut(inner);
           if (channelType.equals("trigger"))
-            canonical += "monitor if ";
+            canonical = "monitor if " + canonical;
 
           Example ex = new Example.Builder()
               .setId("canonical_" + kind + "_" + name)

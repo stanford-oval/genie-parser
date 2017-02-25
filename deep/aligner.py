@@ -237,12 +237,12 @@ def load_embeddings(words, config):
     print "took {:.2f} seconds".format(time.time() - start)
     return embeddings_matrix
 
-def load_data(input_words, output_words, input_reverse, output_reverse, max_length):
+def load_data(from_file, input_words, output_words, input_reverse, output_reverse, max_length):
     inputs = []
     input_lengths = []
     labels = []
     label_lengths = []
-    with open(sys.argv[1], 'r') as data:
+    with open(from_file, 'r') as data:
         for line in data:
             sentence, canonical = line.split('\t')
             input, in_len = vectorize(sentence, input_words, max_length)
@@ -272,6 +272,22 @@ def decode_output(sequence, config):
             output.append(word_idx)
     return output
 
+def print_stats(model, data, tag):
+    inputs, input_lengths, labels, _ = data
+    sequences = model.predict_on_batch(sess, inputs, input_lengths)
+            
+    ok_0 = 0
+    ok_full = 0
+    for i, seq in enumerate(sequences):
+        decoded = decode_output(seq, config)
+        print len(decoded), ' '.join(map(lambda x: canonical_reverse[x], decoded))
+        if decoded[0] == labels[i][0]:
+            ok_0 += 1
+        if len(decoded) == len(labels[i]) and np.all(decoded == labels[i]):
+            ok_full += 1
+    print tag, "ok 0:", float(ok_0)/len(labels)
+    print tag, "ok full:", float(ok_3)/len(labels)
+
 def run():
     config = Config()
     
@@ -284,9 +300,13 @@ def run():
     print "%d output tokens" % (config.output_size,)
     config.sos = canonical_words['<<GO>>']
     config.eos = canonical_words['<<EOS>>']
-    inputs, input_lengths, labels, label_lengths = load_data(words, canonical_words,
-                                                             reverse, canonical_reverse,
-                                                             config.max_length)
+    train_data = load_data(sys.argv[1], words, canonical_words,
+                           reverse, canonical_reverse,
+                           config.max_length)
+    if len(sys.argv) > 2:
+        dev_data = load_data(sys.argv[2], words, canonical_words,
+                             reverse, canonical_reverse,
+                             config.max_length)
     print "unknown", unknown_tokens
 
     # Tell TensorFlow that the model will be built into the default Graph.
@@ -304,21 +324,11 @@ def run():
             # Run the Op to initialize the variables.
             sess.run(init)
             # Fit the model
+            inputs, input_lengths, labels, label_lengths = train_data
             losses = model.fit(sess, inputs, input_lengths, labels, label_lengths)
             
-            sequences = model.predict_on_batch(sess, inputs, input_lengths)
-            
-            ok_0 = 0
-            ok_3 = 0
-            for i, seq in enumerate(sequences):
-                decoded = decode_output(seq, config)
-                print len(decoded), ' '.join(map(lambda x: canonical_reverse[x], decoded))
-                if decoded[0] == labels[i][0]:
-                    ok_0 += 1
-                if np.all(decoded[:3] == labels[i][:3]):
-                    ok_3 += 1
-            print "Ok 0:", float(ok_0)/len(labels)
-            print "Ok 3:", float(ok_3)/len(labels)
+            print_stats(model, train_data, "train")
+            print_stats(model, dev_data, "dev")
 
 if __name__ == "__main__":
     run()
