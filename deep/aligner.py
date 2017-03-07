@@ -11,8 +11,8 @@ from model import Model
 from general_utils import get_minibatches
 
 class Config(object):
-    max_length = 30
-    dropout = 0.7
+    max_length = 35
+    dropout = 0.5
     #dropout = 1
     embed_size = 300
     hidden_size = 150
@@ -20,6 +20,9 @@ class Config(object):
     #batch_size = 1
     n_epochs = 40
     lr = 0.6
+    train_input_embeddings = False
+    train_output_embeddings = False
+    output_embed_size = 50
 
 
 class LSTMAligner(Model):
@@ -47,17 +50,30 @@ class LSTMAligner(Model):
 
         with tf.variable_scope('embed', reuse=not training):
             # first the embed the input
-            input_embed_matrix = tf.constant(self.pretrained_embeddings)
-            #input_embed_matrix = tf.get_variable('input_embedding', shape=(self.config.dictionary_size, self.config.embed_size), initializer=tf.constant_initializer(self.pretrained_embeddings))    
+            if self.config.train_input_embeddings:
+                input_embed_matrix = tf.get_variable('input_embedding',
+                                                     shape=(self.config.dictionary_size, self.config.embed_size),
+                                                     initializer=tf.constant_initializer(self.pretrained_embeddings))    
+            else:
+                #input_variable_embeds = tf.get_variable('special_token_embedding',
+                #                                        shape=(self.config.variable_embeddings, self.config.embed_size),
+                #                                        initializer=xavier)
+                #input_constant_embeds = tf.constant(self.pretrained_embeddings[self.config.variable_embeddings:])
+                #input_embed_matrix = tf.concat((input_variable_embeds, input_constant_embeds), axis=0)
+                input_embed_matrix = tf.constant(self.pretrained_embeddings)
+
             # dictionary size x embed_size
             assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.embed_size)
 
             # now embed the output
-            #output_embed_matrix = tf.get_variable('output_embedding',
-            #                                      shape=(self.config.output_size, self.config.embed_size),
-            #                                      initializer=xavier)
-            #assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.embed_size)
-            output_embed_matrix = tf.eye(self.config.output_size)
+            if self.config.train_output_embeddings:
+                output_embed_matrix = tf.get_variable('output_embedding',
+                                                      shape=(self.config.output_size, self.config.output_embed_size),
+                                                      initializer=xavier)
+            else:
+                output_embed_matrix = tf.eye(self.config.output_size)
+                
+            assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
 
         inputs = tf.nn.embedding_lookup([input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
@@ -152,7 +168,8 @@ class LSTMAligner(Model):
             total_loss += self.train_on_batch(sess, *data_batch, **kw)
         return total_loss / n_minibatches
 
-    def fit(self, sess, inputs, input_lengths, labels, label_lengths):
+    def fit(self, sess, train_data, dev_data):
+        inputs, input_lengths, labels, label_lengths = train_data
         losses = []
         for epoch in range(self.config.n_epochs):
             start_time = time.time()
@@ -162,6 +179,9 @@ class LSTMAligner(Model):
             duration = time.time() - start_time
             print 'Epoch {:}: loss = {:.2f} ({:.3f} sec)'.format(epoch, average_loss, duration)
             losses.append(average_loss)
+            print_stats(sess, self, self.config, train_data, dict(), 'train', do_print=False)
+            print_stats(sess, self, self.config, dev_data, dict(), 'dev', do_print=False)
+            print
         return losses
 
     def __init__(self, config, pretrained_embeddings):
@@ -176,16 +196,21 @@ def vectorize(sentence, words, max_length):
     assert words['<<PAD>>'] == 0
     #vector[0] = words['<<GO>>']
     for i, word in enumerate(sentence.split(' ')):
-        if i+1 == max_length:
-            break
         word = word.strip()
         if word in words:
             vector[i] = words[word]
         else:
             unknown_tokens.add(word)
             vector[i] = words['<<UNK>>']
-    vector[i] = words['<<EOS>>']
-    return (vector, i+1)
+        if i+1 == max_length:
+            break
+    length = i+1
+    if length < max_length:
+        vector[length] = words['<<EOS>>']
+        length += 1
+    else:
+        print "truncated sentence", sentence
+    return (vector, length)
 
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
@@ -193,7 +218,7 @@ ENTITIES = ['USERNAME', 'HASHTAG',
             'DATE', 'TIME', 'SET',
             'PERCENT', 'DURATION', 'MONEY', 'ORDINAL']
 
-def load_dictionary(file):
+def load_dictionary(file, benchmark):
     print "Loading dictionary from %s..." % (file,)
     words = dict()
 
@@ -204,9 +229,10 @@ def load_dictionary(file):
     words['<<UNK>>'] = len(words)
     reverse = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>']
 
-    for entity in ENTITIES:
-        words[entity] = len(words)
-        reverse.append(entity)
+    if benchmark == "tt":
+        for entity in ENTITIES:
+            words[entity] = len(words)
+            reverse.append(entity)
 
     with open(file, 'r') as word_file:
         for word in word_file:
@@ -228,7 +254,8 @@ def load_embeddings(words, config):
     word_vectors = {}
     for line in open("embeddings.txt").readlines():
         sp = line.strip().split()
-        word_vectors[sp[0]] = [float(x) for x in sp[1:]]
+        if sp[0] in words:
+            word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     n_tokens = len(words)
     embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, config.embed_size)), dtype='float32')
     for token, id in words.iteritems():
@@ -251,8 +278,8 @@ def load_data(from_file, input_words, output_words, input_reverse, output_revers
             label, label_len = vectorize(canonical, output_words, max_length)
             labels.append(label)
             label_lengths.append(label_len)
-            #print "input", ' '.join(map(lambda x: input_reverse[x], inputs[-1]))
-            #print "label", map(lambda x: output_reverse[x], labels[-1])
+            #print "input", in_len, ' '.join(map(lambda x: input_reverse[x], inputs[-1]))
+            #print "label", label_len, ' '.join(map(lambda x: output_reverse[x], labels[-1]))
     return inputs, input_lengths, labels, label_lengths
 
 def softmax(x):
@@ -272,39 +299,85 @@ def decode_output(sequence, config):
             output.append(word_idx)
     return output
 
-def print_stats(model, data, tag):
+def print_stats(sess, model, config, data, dict_reverse, tag, do_print=True):
     inputs, input_lengths, labels, _ = data
     sequences = model.predict_on_batch(sess, inputs, input_lengths)
-            
+
     ok_0 = 0
     ok_full = 0
-    for i, seq in enumerate(sequences):
-        decoded = decode_output(seq, config)
-        print len(decoded), ' '.join(map(lambda x: canonical_reverse[x], decoded))
-        if decoded[0] == labels[i][0]:
-            ok_0 += 1
-        if len(decoded) == len(labels[i]) and np.all(decoded == labels[i]):
-            ok_full += 1
+    with open("stats_" + tag + ".txt", "w") as fp:
+        if do_print:
+            print "Writing decoded values to ", fp.name
+        for i, seq in enumerate(sequences):
+            decoded = list(decode_output(seq, config))
+            try:
+                decoded = decoded[:decoded.index(config.eos)]
+            except ValueError:
+                pass
+            
+            gold = list(labels[i])
+            try:
+                gold = gold[:gold.index(config.eos)]
+            except ValueError:
+                pass
+
+            if do_print:
+                gold_str = ' '.join(dict_reverse[l] for l in gold)
+                decoded_str = ' '.join(dict_reverse[l] for l in decoded)
+                print >>fp, gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str)
+
+            if decoded[0] == gold[0]:
+                ok_0 += 1            
+            if decoded == gold:
+                ok_full += 1
     print tag, "ok 0:", float(ok_0)/len(labels)
-    print tag, "ok full:", float(ok_3)/len(labels)
+    print tag, "ok full:", float(ok_full)/len(labels)
+
+def print_embed_matrix(matrix):
+    print matrix
+    avg = np.average(matrix, axis=1)
+    avg_x2 = np.average(matrix * matrix, axis=1)
+    stddev = avg_x2 - avg * avg
+    print "avg", avg
+    print "stddev", stddev
+    
+    avg = np.average(matrix)
+    avg_x2 = np.average(matrix * matrix)
+    stddev = avg_x2 - avg * avg
+    print "avg", avg
+    print "stddev", stddev
 
 def run():
+    if len(sys.argv) < 5:
+        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Output Vocab>> <<Train Set> [<<Dev Set>>]"
+        sys.exit(1)
+
+    np.random.seed(42)
     config = Config()
-    
-    words, reverse = load_dictionary('words.txt')
+
+    benchmark = sys.argv[1]
+
+    words, reverse = load_dictionary(sys.argv[2], benchmark)
+    if benchmark == "tt":
+        config.variable_embeddings = 4 + len(ENTITIES)
+    else:
+        config.variable_embeddings = 4
     config.dictionary_size = len(words)
     print "%d words in dictionary" % (config.dictionary_size,)
     embeddings_matrix = load_embeddings(words, config)
-    canonical_words, canonical_reverse = load_dictionary('canonical_tokens.txt')
+
+    canonical_words, canonical_reverse = load_dictionary(sys.argv[3], benchmark)
     config.output_size = len(canonical_words)
+    if not config.train_output_embeddings:
+        config.output_embed_size = config.output_size
     print "%d output tokens" % (config.output_size,)
     config.sos = canonical_words['<<GO>>']
     config.eos = canonical_words['<<EOS>>']
-    train_data = load_data(sys.argv[1], words, canonical_words,
+    train_data = load_data(sys.argv[4], words, canonical_words,
                            reverse, canonical_reverse,
                            config.max_length)
-    if len(sys.argv) > 2:
-        dev_data = load_data(sys.argv[2], words, canonical_words,
+    if len(sys.argv) > 5:
+        dev_data = load_data(sys.argv[5], words, canonical_words,
                              reverse, canonical_reverse,
                              config.max_length)
     print "unknown", unknown_tokens
@@ -324,11 +397,15 @@ def run():
             # Run the Op to initialize the variables.
             sess.run(init)
             # Fit the model
-            inputs, input_lengths, labels, label_lengths = train_data
-            losses = model.fit(sess, inputs, input_lengths, labels, label_lengths)
+            losses = model.fit(sess, train_data, dev_data)
             
-            print_stats(model, train_data, "train")
-            print_stats(model, dev_data, "dev")
+            print "Final result"
+            print_stats(sess, model, config, train_data, canonical_reverse, "train")
+            print_stats(sess, model, config, dev_data, canonical_reverse, "dev")
+            
+            #for var in tf.global_variables():
+            #    print var.name,
+            #    print var.value().eval(session=sess)
 
 if __name__ == "__main__":
     run()

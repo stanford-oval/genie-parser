@@ -14,13 +14,13 @@ public class PrepareSeq2Seq implements Runnable {
     public String languageTag = "en";
 
     @Option
-    public String trainFile = "train.tsv";
+    public String trainFile = "deep/train.tsv";
 
     @Option
-    public String testFile = "test.tsv";
+    public String testFile = "deep/test.tsv";
 
     @Option
-    public String devFile = "dev.tsv";
+    public String devFile = "deep/dev.tsv";
   }
 
   public static final Options opts = new Options();
@@ -62,16 +62,12 @@ public class PrepareSeq2Seq implements Runnable {
   private static void writeInvocation(Writer writer, String invocationType, Map<?, ?> invocation) throws IOException {
     Map<?, ?> name = (Map<?, ?>) invocation.get("name");
     writer.write(name.get("id").toString());
-    writer.write(" ");
 
     List<?> arguments = (List<?>) invocation.get("args");
-    boolean first = true;
     for (Object o : arguments) {
       Map<?, ?> arg = (Map<?, ?>) o;
       Map<?, ?> argName = (Map<?, ?>) arg.get("name");
-      if (!first)
-        writer.write(" ");
-      first = false;
+      writer.write(" ");
       writer.write(argName.get("id").toString());
       writer.write(" ");
       writer.write(arg.get("operator").toString());
