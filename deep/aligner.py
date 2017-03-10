@@ -13,15 +13,15 @@ from general_utils import get_minibatches
 import grammar
 
 class Config(object):
-    max_length = 35
-    dropout = 0.7
+    max_length = 40
+    dropout = 1
     #dropout = 1
     embed_size = 300
-    hidden_size = 150
-    batch_size = 128
+    hidden_size = 300
+    batch_size = 64
     #batch_size = 5
     n_epochs = 40
-    lr = 0.6
+    lr = 0.5
     train_input_embeddings = False
     train_output_embeddings = False
     output_embed_size = 50
@@ -171,14 +171,14 @@ class LSTMAligner(Model):
             U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size), initializer=xavier)
             b_y = tf.get_variable('b_y', shape=(self.config.output_size,), initializer=tf.constant_initializer(0, tf.float32))
             
-            if training and False:
+            if training:
                 go_vector = tf.ones((tf.shape(self.output_placeholder)[0], 1), dtype=tf.int32) * self.config.sos
                 output_ids_with_go = tf.concat([go_vector, self.output_placeholder], axis=1)
                 outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
                 #assert outputs.get_shape()[1:] == (self.config.max_length+1, self.config.output_size)
 
                 decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
-                dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(lstm_dec, decoder_fn,
+                dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn,
                     inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
 
                 assert dec_preds.get_shape()[2:] == (self.config.hidden_size,)
@@ -379,6 +379,7 @@ def print_stats(sess, model, config, data, tag, do_print=True):
     dict_reverse = config.grammar.tokens
 
     ok_0 = 0
+    ok_1 = 0
     ok_full = 0
     with open("stats_" + tag + ".txt", "w") as fp:
         if do_print:
@@ -403,9 +404,12 @@ def print_stats(sess, model, config, data, tag, do_print=True):
 
             if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
                 ok_0 += 1            
+            if len(decoded) > 1 and len(gold) > 1 and decoded[0:2] == gold[0:2]:
+                ok_1 += 1
             if decoded == gold:
                 ok_full += 1
     print tag, "ok 0:", float(ok_0)/len(labels)
+    print tag, "ok 1:", float(ok_1)/len(labels)
     print tag, "ok full:", float(ok_full)/len(labels)
 
 def print_embed_matrix(matrix):

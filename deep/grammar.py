@@ -386,7 +386,7 @@ class SimpleGrammar():
         if curr_state is None:
             return tf.ones((batch_size,), dtype=dtype) * self.start, ()
         else:
-            return tf.argmax(logits, axis=1), ()
+            return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
 
     def decode_output(self, sequence):
         output = []
