@@ -79,14 +79,14 @@ public class PrepareSeq2Seq implements Runnable {
   private static void writeRule(Writer writer, Map<?, ?> rule) throws IOException {
     writer.write("rule ");
     if (rule.containsKey("trigger")) {
-      writer.write("if ");
+      //writer.write("if ");
       writeInvocation(writer, "trigger", (Map<?, ?>) rule.get("trigger"));
-      writer.write(" then ");
+      writer.write(" ");
     }
     if (rule.containsKey("query")) {
       writeInvocation(writer, "query", (Map<?, ?>) rule.get("query"));
       if (rule.containsKey("action"))
-        writer.write(" then ");
+        writer.write(" ");
     }
     if (rule.containsKey("action")) {
       writeInvocation(writer, "action", (Map<?, ?>) rule.get("action"));

@@ -14,8 +14,8 @@ BEGIN_TOKENS = ['special', 'answer', 'command', 'rule', 'trigger', 'query', 'act
 SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.hello',
                   'tt:root.special.thankyou', 'tt:root.special.sorry', 'tt:root.special.cool',
                   'tt:root.special.nevermind', 'tt:root.special.debug', 'tt:root.special.failed']
-IF = 'if'
-THEN = 'then'
+#IF = 'if'
+#THEN = 'then'
 OPERATORS = ['is', 'contains', '>', '<', 'has']
 VALUES = ENTITIES + ['ENTITY', 'true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location']
 TYPES = {
@@ -57,8 +57,8 @@ class ThingtalkGrammar(object):
 
         tokens = set()
         tokens.update(BEGIN_TOKENS)
-        tokens.add(IF)
-        tokens.add(THEN)
+        #tokens.add(IF)
+        #tokens.add(THEN)
         tokens.update(OPERATORS)
         tokens.update(VALUES)
         tokens.update(COMMAND_TOKENS)
@@ -258,29 +258,37 @@ class ThingtalkGrammar(object):
         # rules
         rule_id = new_state('rule')
         transitions.append((self.start_state, rule_id, 'rule'))
-        if_id = new_state('if')
-        transitions.append((rule_id, if_id, 'if'))
-        then_to_query_id = new_state('then_to_query_or_action')
-        then_to_action_id = new_state('then_to_action')
+        #if_id = new_state('if')
+        #transitions.append((rule_id, if_id, 'if'))
+        #then_to_query_id = new_state('then_to_query_or_action')
+        #then_to_action_id = new_state('then_to_action')
+        trigger_ids = []
+        query_ids = []
         for trigger_name, params in triggers.iteritems():
             state_id = do_invocation(trigger_name, params, for_action=False)
-            transitions.append((if_id, state_id, trigger_name))
-            transitions.append((state_id, then_to_query_id, 'then'))
+            transitions.append((rule_id, state_id, trigger_name))
+            #transitions.append((state_id, then_to_query_id, 'then'))
+            trigger_ids.append(state_id)
         for query_name, params in queries.iteritems():
             state_id = do_invocation(query_name, params, for_action=False)
             transitions.append((rule_id, state_id, query_name))
-            transitions.append((state_id, then_to_action_id, 'then'))
-            
+            query_ids.append(state_id)
+
             state_id = do_invocation(query_name, params, for_action=False, can_have_scope=True)
-            transitions.append((then_to_query_id, state_id, query_name))
-            transitions.append((state_id, then_to_action_id, 'then'))
+            #transitions.append((state_id, then_to_action_id, 'then'))
+            for trigger_id in trigger_ids:
+                transitions.append((trigger_id, state_id, query_name))
+            query_ids.append(state_id)
             transitions.append((state_id, self.end_state, '<<EOS>>'))
+
         for action_name, params in actions.iteritems():
             state_id = do_invocation(action_name, params, for_action=True, can_have_scope=True)
-            transitions.append((then_to_query_id, state_id, action_name))
-            transitions.append((then_to_action_id, state_id, action_name))
+            for trigger_id in trigger_ids:
+                transitions.append((trigger_id, state_id, action_name))
+            for query_id in query_ids:
+                transitions.append((query_id, state_id, action_name))
             transitions.append((state_id, self.end_state, '<<EOS>>'))
-        
+
         # now build the actual DFA
         num_states = len(states)
         self.num_states = num_states
