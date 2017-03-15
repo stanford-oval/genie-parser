@@ -23,6 +23,8 @@ export DATABASE_URL
 
 set -x
 
+EMBEDDINGS=${EMBEDDINGS:-/srv/data/glove/glove.840B.300d.txt}
+
 SRCDIR=`dirname $0`
 SRCDIR=`realpath "${SRCDIR}"`
 SEMPRE=`dirname ${SRCDIR}`
@@ -53,9 +55,7 @@ python ${SRCDIR}/gen_grammar.py ${DATABASE_PW} | grep -v -E ':reddit\.|:hackerne
 
 # update the input tokens
 cat ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv | cut -f1 | tr ' ' '\n' | sort -u > ${WORKDIR}/input_words.txt
-
-# fetch the embeddings from the source dir
-ln -s ${SRCDIR}/tt_embeddings.txt ${WORKDIR}/embeddings.txt
+python ${SRCDIR}/trim_embeddings.py ${WORKDIR}/input_words.txt < ${EMBEDDINGS} > ${WORKDIR}/embeddings.txt
 
 # actually run the model
 cd ${WORKDIR}
