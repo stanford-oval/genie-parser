@@ -18,7 +18,7 @@ import edu.stanford.nlp.sempre.ValueFormula;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
-public class LocationLexicon extends AbstractLexicon {
+public class LocationLexicon extends AbstractLexicon<LocationValue> {
   public static class Options {
     @Option
     public String email = null;
@@ -80,7 +80,7 @@ public class LocationLexicon extends AbstractLexicon {
   }
 
   @Override
-  protected Collection<Entry> doLookup(String rawPhrase) {
+  protected Collection<Entry<LocationValue>> doLookup(String rawPhrase) {
     try {
       URL url = new URL(String.format(URL_TEMPLATE, languageTag, URLEncoder.encode(rawPhrase, "utf-8")));
       if (opts.verbose >= 3)
@@ -94,7 +94,7 @@ public class LocationLexicon extends AbstractLexicon {
         return map(Json.readValueHard(reader, new TypeReference<List<NominatimEntry>>() {
         }), (NominatimEntry entry) -> {
           String canonical = entry.display_name.toLowerCase().replaceAll("[,\\s+]", " ");
-          return new Entry("LOCATION", new ValueFormula<>(
+          return new Entry<>("LOCATION", new ValueFormula<>(
               new LocationValue(entry.lat, entry.lon, entry.display_name)),
               canonical);
         });

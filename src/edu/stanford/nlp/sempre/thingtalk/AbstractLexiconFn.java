@@ -4,26 +4,26 @@ import java.util.Iterator;
 
 import edu.stanford.nlp.sempre.*;
 
-public abstract class AbstractLexiconFn extends SemanticFn {
-  private AbstractLexicon lexicon;
+public abstract class AbstractLexiconFn<E extends Value> extends SemanticFn {
+  private AbstractLexicon<E> lexicon;
 
-  protected void setLexicon(AbstractLexicon lexicon) {
+  protected void setLexicon(AbstractLexicon<E> lexicon) {
     this.lexicon = lexicon;
   }
 
   @Override
   public DerivationStream call(Example ex, Callable c) {
     String phrase = c.childStringValue(0);
-    return new LexiconDerivationStream(ex, c, lexicon.lookup(phrase), phrase);
+    return new LexiconDerivationStream<>(ex, c, lexicon.lookup(phrase), phrase);
   }
 
-  public class LexiconDerivationStream extends MultipleDerivationStream {
+  public class LexiconDerivationStream<E extends Value> extends MultipleDerivationStream {
     private Example ex;
     private Callable callable;
-    private Iterator<AbstractLexicon.Entry> entries;
+    private Iterator<AbstractLexicon.Entry<E>> entries;
     private String phrase;
 
-    public LexiconDerivationStream(Example ex, Callable c, Iterator<AbstractLexicon.Entry> entries,
+    public LexiconDerivationStream(Example ex, Callable c, Iterator<AbstractLexicon.Entry<E>> entries,
         String phrase) {
       this.ex = ex;
       this.callable = c;
@@ -36,7 +36,7 @@ public abstract class AbstractLexiconFn extends SemanticFn {
       if (!entries.hasNext())
         return null;
 
-      LocationLexicon.Entry entry = entries.next();
+      LocationLexicon.Entry<E> entry = entries.next();
       Derivation deriv = new Derivation.Builder().withCallable(callable)
           .formula(entry.formula)
           .canonicalUtterance(entry.rawPhrase)

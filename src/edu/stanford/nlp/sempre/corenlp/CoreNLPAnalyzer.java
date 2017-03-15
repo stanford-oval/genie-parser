@@ -2,6 +2,7 @@ package edu.stanford.nlp.sempre.corenlp;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
@@ -181,6 +182,8 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     return buf.toString();
   }
 
+  private static final Pattern BETWEEN_PATTERN = Pattern.compile("(-?[0-9]+.[0-9]+)-(-?[0-9]+.[0-9]+)");
+
   @Override
   public LanguageInfo analyze(String utterance) {
     LanguageInfo languageInfo = new LanguageInfo();
@@ -237,6 +240,44 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
       languageInfo.nerTags.add(nerTag);
       languageInfo.nerValues.add(nerValue);
+    }
+
+    // fix corenlp's tokenizer being weird around "/"
+    boolean inquote = false;
+    int n = languageInfo.tokens.size();
+    for (int i = 0; i < n; i++) {
+      String token = languageInfo.tokens.get(i);
+      if ("``".equals(token)) {
+        inquote = true;
+        continue;
+      }
+      if ("''".equals(token)) {
+        if (inquote) {
+          inquote = false;
+          continue;
+        }
+        if (i < n - 2 && languageInfo.tokens.get(i + 1).equals("/") && languageInfo.tokens.get(i + 2).equals("''")) {
+          languageInfo.tokens.set(i, "``");
+          inquote = true;
+        }
+      }
+    }
+    
+    // fix corenlp NER being weird around "between X and Y"
+    for (int i = 0; i < n; i++) {
+      String nerTag = languageInfo.nerTags.get(i);
+      if (nerTag.equals("NUMBER") && languageInfo.nerValues.get(i) != null) {
+        Matcher matcher = BETWEEN_PATTERN.matcher(languageInfo.nerValues.get(i)); 
+        if (matcher.matches()) {
+          if (i < n-2 &&
+              (languageInfo.tokens.get(i + 1).equals("and") || languageInfo.tokens.get(i + 1).equals("to"))) {
+            languageInfo.nerTags.set(i + 1, "O");
+            languageInfo.nerValues.set(i, matcher.group(1));
+            languageInfo.nerValues.set(i + 2, matcher.group(2));
+            i += 2;
+          }
+        }
+      }
     }
 
     // Run additional entity recognizers

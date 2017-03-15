@@ -25,4 +25,9 @@ def main():
     for row in cursor.fetchall():
         print 'device', 'tt:device.' + row['kind']
         
+    cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+    cursor.execute("select id from entity_names where not is_well_known")
+    for row in cursor.fetchall():
+        print 'entity', row['id']
+        
 main()
