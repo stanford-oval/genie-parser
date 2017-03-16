@@ -17,7 +17,7 @@ class Config(object):
     dropout = 1
     #dropout = 1
     embed_size = 300
-    hidden_size = 300
+    hidden_size = 400
     batch_size = 64
     #batch_size = 5
     n_epochs = 40
@@ -65,7 +65,7 @@ def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
                 cell_output = tf.zeros((num_decoder_symbols,),
                                         dtype=tf.float32)
             else:
-                cell_output = output_fn(cell_output)
+                cell_output = output_fn(cell_output, cell_state)
             next_input_id, next_state = grammar.constrain(cell_output, context_state, batch_size, dtype=dtype)
             next_input = tf.gather(embeddings, next_input_id)
             done = tf.equal(next_input_id, end_of_sequence_id)
@@ -139,24 +139,27 @@ class LSTMAligner(Model):
                 cell_enc = tf.contrib.rnn.GRUCell(self.config.hidden_size)
             else:
                 raise ValueError("Invalid input cell")
+
+            cell_enc = tf.contrib.rnn.AttentionCellWrapper(cell_enc, 5, state_is_tuple=(self.config.input_cell == "lstm"))
             #cell_enc = tf.contrib.rnn.DropoutWrapper(cell_enc, input_keep_prob=self.dropout_placeholder, seed=7)
             enc_preds, enc_final_state = tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
                                                            dtype=tf.float32, scope=scope)
             assert enc_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
+            print enc_final_state[1]
             if self.config.input_cell == "lstm":
-                assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+                assert enc_final_state[0][0].get_shape()[1:] == (self.config.hidden_size,)
+                assert enc_final_state[0][1].get_shape()[1:] == (self.config.hidden_size,)
             else:
                 assert enc_final_state.get_shape()[1:] == (self.config.hidden_size,)
 
         # apply dropout on the final state
         if self.config.apply_state_dropout:
             if self.config.input_cell == "lstm":
-                enc_final_state_0 = tf.nn.dropout(enc_final_state[0], self.dropout_placeholder, seed=1234)
-                enc_final_state_1 = tf.nn.dropout(enc_final_state[1], self.dropout_placeholder, seed=1235)
+                enc_final_state_0 = tf.nn.dropout(enc_final_state[0][0], self.dropout_placeholder, seed=1234)
+                enc_final_state_1 = tf.nn.dropout(enc_final_state[0][1], self.dropout_placeholder, seed=1235)
                 enc_final_state = tf.contrib.rnn.LSTMStateTuple(enc_final_state_0, enc_final_state_1)
             else:
-                enc_final_state = tf.nn.dropout(enc_final_state, self.dropout_placeholder, seed=1234)
+                enc_final_state = tf.nn.dropout(enc_final_state[0], self.dropout_placeholder, seed=1234)
 
         # the decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
@@ -169,6 +172,7 @@ class LSTMAligner(Model):
             cell_dec = tf.contrib.rnn.DropoutWrapper(cell_dec, output_keep_prob=self.dropout_placeholder, seed=8)
             
             U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size), initializer=xavier)
+            #V = tf.get_variable('V', shape=(self.config.hidden_size, self.config.output_size), initializer=xavier)
             b_y = tf.get_variable('b_y', shape=(self.config.output_size,), initializer=tf.constant_initializer(0, tf.float32))
             
             if training:
@@ -177,27 +181,57 @@ class LSTMAligner(Model):
                 outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
                 #assert outputs.get_shape()[1:] == (self.config.max_length+1, self.config.output_size)
 
-                decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
+                decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state[0])
                 dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn,
                     inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
 
                 assert dec_preds.get_shape()[2:] == (self.config.hidden_size,)
-                if self.config.output_cell == "lstm":
-                    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-                else:
-                    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
+                # hidden_dec_final_state = dec_final_state
+                # if self.config.output_cell == "lstm":
+                #     assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
+                #     assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+                #     hidden_dec_final_state = dec_final_state[1]
+                # else:
+                #     assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
+                #
+                # hidden_enc_final_state = enc_final_state
+                # if self.config.input_cell == "lstm":
+                #     hidden_enc_final_state = enc_final_state[1]
+
+                # Attention mechanism
+                #print hidden_dec_final_state.get_shape()
+                #raw_att_score = tf.matmul(hidden_dec_final_state, hidden_enc_final_state, transpose_b = True)
+                #norm_att_score = tf.nn.softmax(raw_att_score)
+                #att_context = tf.matmul(norm_att_score, hidden_enc_final_state)
+
+                #preds = tf.tensordot(dec_preds, U, [[2], [0]]) + tf.tensordot(att_context, V, [[2], [0]]) + b_y
                 preds = tf.tensordot(dec_preds, U, [[2], [0]]) + b_y
             else:
-                def output_fn(cell_output):
+                def output_fn(cell_output, enc_final_state):
                     assert cell_output.get_shape()[1:] == (self.config.hidden_size,)
+                    #hidden_final_state = enc_final_state
+                    #if self.config.input_cell == "lstm":
+                    #    assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
+                    #    assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+                    #    hidden_final_state = enc_final_state[1]
+                    #else:
+                    #    assert enc_final_state.get_shape()[1:] == (self.config.hidden_size,)
+
+                    ## Attention mechanism
+                    #raw_att_score = tf.matmul(cell_output, hidden_final_state, transpose_b = True)
+                    #print raw_att_score.get_shape()
+                    #norm_att_score = tf.nn.softmax(raw_att_score)
+                    #att_context = tf.matmul(norm_att_score, hidden_final_state)
+
+                    #result = tf.matmul(cell_output, U) + tf.matmul(att_context, V) + b_y
                     result = tf.matmul(cell_output, U) + b_y
+
                     assert result.get_shape()[1:] == (self.config.output_size,)
                     return result
 
                 #decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_inference(output_fn, enc_final_state,
                 #    output_embed_matrix, self.config.sos, self.config.eos, self.config.max_length-1, self.config.output_size)
-                decoder_fn = grammar_decoder_fn_inference(output_fn, enc_final_state, output_embed_matrix,
+                decoder_fn = grammar_decoder_fn_inference(output_fn, enc_final_state[0], output_embed_matrix,
                                                           self.config.max_length-1, self.config.grammar)
                 dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn, scope=scope)
 
@@ -284,6 +318,7 @@ def vectorize(sentence, words, max_length):
             vector[i] = words[word]
         else:
             unknown_tokens.add(word)
+            print "sentence: ", sentence, "; word: ", word
             vector[i] = words['<<UNK>>']
         if i+1 == max_length:
             break
@@ -331,11 +366,11 @@ def load_dictionary(file, benchmark):
             raise AssertionError
     return words, reverse
 
-def load_embeddings(words, config):
+def load_embeddings(from_file, words, config):
     print "Loading pretrained embeddings...",
     start = time.time()
     word_vectors = {}
-    for line in open("embeddings.txt").readlines():
+    for line in open(from_file).readlines():
         sp = line.strip().split()
         if sp[0] in words:
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
@@ -427,8 +462,8 @@ def print_embed_matrix(matrix):
     print "stddev", stddev
 
 def run():
-    if len(sys.argv) < 4:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Train Set> [<<Dev Set>>]"
+    if len(sys.argv) < 5:
+        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Word Embeddings>> <<Train Set> [<<Dev Set>>]"
         sys.exit(1)
 
     np.random.seed(42)
@@ -452,7 +487,7 @@ def run():
         config.variable_embeddings = 4
     config.dictionary_size = len(words)
     print "%d words in dictionary" % (config.dictionary_size,)
-    embeddings_matrix = load_embeddings(words, config)
+    embeddings_matrix = load_embeddings(sys.argv[3], words, config)
 
     config.output_size = config.grammar.output_size
     if not config.train_output_embeddings:
@@ -460,11 +495,11 @@ def run():
     print "%d output tokens" % (config.output_size,)
     config.sos = config.grammar.start
     config.eos = config.grammar.end
-    train_data = load_data(sys.argv[3], words, config.grammar.dictionary,
+    train_data = load_data(sys.argv[4], words, config.grammar.dictionary,
                            reverse, config.grammar.tokens,
                            config.max_length)
-    if len(sys.argv) > 4:
-        dev_data = load_data(sys.argv[4], words, config.grammar.dictionary,
+    if len(sys.argv) > 5:
+        dev_data = load_data(sys.argv[5], words, config.grammar.dictionary,
                              reverse, config.grammar.tokens,
                              config.max_length)
     else:
