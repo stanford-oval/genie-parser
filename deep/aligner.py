@@ -17,7 +17,7 @@ class Config(object):
     dropout = 1
     #dropout = 1
     embed_size = 300
-    hidden_size = 50
+    hidden_size = 150
     batch_size = 64
     #batch_size = 5
     n_epochs = 40
@@ -377,7 +377,8 @@ def softmax(x):
 
 def print_stats(sess, model, config, data, tag, do_print=True):
     inputs, input_lengths, labels, _ = data
-    sequences = model.predict_on_batch(sess, inputs, input_lengths)
+    sequences = []
+    
     dict_reverse = config.grammar.tokens
 
     ok_0 = 0
@@ -386,30 +387,34 @@ def print_stats(sess, model, config, data, tag, do_print=True):
     with open("stats_" + tag + ".txt", "w") as fp:
         if do_print:
             print "Writing decoded values to ", fp.name
-        for i, seq in enumerate(sequences):
-            decoded = list(config.grammar.decode_output(seq))
-            try:
-                decoded = decoded[:decoded.index(config.eos)]
-            except ValueError:
-                pass
+
+        for input_batch, input_length_batch, label_batch in get_minibatches([inputs, input_lengths, labels], config.batch_size):
+            sequences = list(model.predict_on_batch(sess, input_batch, input_length_batch))
+
+            for i, seq in enumerate(sequences):
+                decoded = list(config.grammar.decode_output(seq))
+                try:
+                    decoded = decoded[:decoded.index(config.eos)]
+                except ValueError:
+                    pass
             
-            gold = list(labels[i])
-            try:
-                gold = gold[:gold.index(config.eos)]
-            except ValueError:
-                pass
+                gold = list(label_batch[i])
+                try:
+                    gold = gold[:gold.index(config.eos)]
+                except ValueError:
+                    pass
 
-            if do_print:
-                gold_str = ' '.join(dict_reverse[l] for l in gold)
-                decoded_str = ' '.join(dict_reverse[l] for l in decoded)
-                print >>fp, gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str)
+                if do_print:
+                    gold_str = ' '.join(dict_reverse[l] for l in gold)
+                    decoded_str = ' '.join(dict_reverse[l] for l in decoded)
+                    print >>fp, gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str)
 
-            if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
-                ok_0 += 1            
-            if len(decoded) > 1 and len(gold) > 1 and decoded[0:2] == gold[0:2]:
-                ok_1 += 1
-            if decoded == gold:
-                ok_full += 1
+                if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
+                    ok_0 += 1            
+                if len(decoded) > 1 and len(gold) > 1 and decoded[0:2] == gold[0:2]:
+                    ok_1 += 1
+                if decoded == gold:
+                    ok_full += 1
     print tag, "ok 0:", float(ok_0)/len(labels)
     print tag, "ok 1:", float(ok_1)/len(labels)
     print tag, "ok full:", float(ok_full)/len(labels)
