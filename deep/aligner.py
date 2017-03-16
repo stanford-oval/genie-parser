@@ -14,14 +14,14 @@ import grammar
 
 class Config(object):
     max_length = 40
-    dropout = 1
+    dropout = 0.9
     #dropout = 1
     embed_size = 300
-    hidden_size = 150
-    batch_size = 64
+    hidden_size = 300
+    batch_size = 256
     #batch_size = 5
-    n_epochs = 40
-    lr = 0.5
+    n_epochs = 120
+    lr = 0.001
     train_input_embeddings = False
     train_output_embeddings = False
     output_embed_size = 50
@@ -261,7 +261,8 @@ class LSTMAligner(Model):
 
     def add_training_op(self, loss):
         #optimizer = tf.train.AdamOptimizer(self.config.lr)
-        optimizer = tf.train.AdagradOptimizer(self.config.lr)
+        #optimizer = tf.train.AdagradOptimizer(self.config.lr)
+        optimizer = tf.train.RMSPropOptimizer(self.config.lr, decay=0.95)
         train_op = optimizer.minimize(loss)
         return train_op
 
