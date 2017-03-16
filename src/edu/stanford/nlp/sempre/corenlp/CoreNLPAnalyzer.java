@@ -227,6 +227,13 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         nerValue = null;
       }
 
+      boolean addComma = false;
+      if (word.endsWith(",") && !",".equals(word)) {
+        word = word.substring(0, word.length() - 1);
+        wordLower = wordLower.substring(0, wordLower.length() - 1);
+        addComma = true;
+      }
+
       if (LanguageAnalyzer.opts.lowerCaseTokens) {
         languageInfo.tokens.add(wordLower);
       } else {
@@ -240,6 +247,14 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
       languageInfo.nerTags.add(nerTag);
       languageInfo.nerValues.add(nerValue);
+
+      if (addComma) {
+        languageInfo.tokens.add(",");
+        languageInfo.posTags.add(",");
+        languageInfo.lemmaTokens.add(",");
+        languageInfo.nerTags.add("O");
+        languageInfo.nerValues.add(null);
+      }
     }
 
     // fix corenlp's tokenizer being weird around "/"
@@ -312,6 +327,10 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
   // Test on example sentence.
   public static void main(String[] args) {
+    CoreNLPAnalyzer.opts.annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner");
+    CoreNLPAnalyzer.opts.entityRecognizers = Lists.newArrayList("corenlp.PhoneNumberEntityRecognizer",
+        "corenlp.EmailEntityRecognizer", "corenlp.QuotedStringEntityRecognizer", "corenlp.URLEntityRecognizer");
+    CoreNLPAnalyzer.opts.regularExpressions = Lists.newArrayList("USERNAME:[@](.+)", "HASHTAG:[#](.+)");
     CoreNLPAnalyzer analyzer = new CoreNLPAnalyzer();
     while (true) {
       try {

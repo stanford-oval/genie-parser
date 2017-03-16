@@ -332,6 +332,9 @@ public class PrepareSeq2Seq implements Runnable {
     if (entity.equals("giants"))
       return new Pair<>("GENERIC_ENTITY_sportradar:mlb_team",
           new TypedStringValue("Entity(sportradar:mlb_team)", "sf", "San Francisco Giants"));
+    if (entity.equals("cubs"))
+      return new Pair<>("GENERIC_ENTITY_sportradar:mlb_team",
+          new TypedStringValue("Entity(sportradar:mlb_team)", "chc", "Chicago Cubs"));
 
     String tokens[] = entity.split("\\s+");
 
@@ -440,7 +443,9 @@ public class PrepareSeq2Seq implements Runnable {
     case "MONEY":
     case "PERCENT":
       try {
-        if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
+        if (nerValue.startsWith(">=") || nerValue.startsWith("<="))
+          nerValue = nerValue.substring(3);
+        else if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
           nerValue = nerValue.substring(2);
         else
           nerValue = nerValue.substring(1);
@@ -451,7 +456,9 @@ public class PrepareSeq2Seq implements Runnable {
 
     case "NUMBER":
       try {
-        if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
+        if (nerValue.startsWith(">=") || nerValue.startsWith("<="))
+          nerValue = nerValue.substring(2);
+        else if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
           nerValue = nerValue.substring(1);
         return new Pair<>(nerType, Double.valueOf(nerValue));
       } catch (NumberFormatException e) {
@@ -522,7 +529,7 @@ public class PrepareSeq2Seq implements Runnable {
 
       if (token.equals("san") && i < utteranceInfo.tokens.size() - 2
           && utteranceInfo.tokens.get(i + 1).equals("jose")
-          && utteranceInfo.tokens.get(i + 2).equals("earthquakes")) {
+          && utteranceInfo.tokens.get(i + 2).startsWith("earthquake")) {
         tag = "ORGANIZATION";
         utteranceInfo.nerTags.set(i + 1, tag);
         utteranceInfo.nerTags.set(i + 2, tag);
@@ -589,6 +596,9 @@ public class PrepareSeq2Seq implements Runnable {
       case "stan":
       case "microsoft":
       case "juventus":
+      case "msft":
+      case "goog":
+      case "cubs":
 
         // in our dataset, Barcellona refers to the team
       case "barcellona":
@@ -616,7 +626,8 @@ public class PrepareSeq2Seq implements Runnable {
           fullEntity.append(" ");
         fullEntity.append(token);
         if (i < utteranceInfo.tokens.size() - 1 &&
-            utteranceInfo.nerTags.get(i + 1).equals(tag))
+            utteranceInfo.nerTags.get(i + 1).equals(tag) &&
+            Objects.equals(utteranceInfo.nerValues.get(i), utteranceInfo.nerValues.get(i + 1)))
           continue;
 
         Pair<String, Object> value = nerValueToThingTalkValue(ex, tag, utteranceInfo.nerValues.get(i),
