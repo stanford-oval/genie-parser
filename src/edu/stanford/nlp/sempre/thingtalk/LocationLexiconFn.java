@@ -6,7 +6,7 @@ import edu.stanford.nlp.sempre.Example;
 import fig.basic.LispTree;
 import fig.basic.Option;
 
-public class LocationLexiconFn extends AbstractLexiconFn {
+public class LocationLexiconFn extends AbstractLexiconFn<LocationValue> {
   public static class Options {
     @Option(gloss = "Filter by CoreNLP NER tag")
     public boolean filterNerTag = true;

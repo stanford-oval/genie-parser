@@ -18,11 +18,11 @@ public class TimeFn extends SemanticFn {
         if (dateValue == null)
           return null;
         return new Derivation.Builder()
-                .withCallable(c)
-                .formula(new ValueFormula<>(dateValue))
-                .type(SemType.dateType)
+            .withCallable(c)
+            .formula(new ValueFormula<>(dateValue))
+            .type(SemType.dateType)
             .nerUtterance("TIME")
-                .createDerivation();
+            .createDerivation();
       }
     };
   }

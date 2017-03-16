@@ -9,7 +9,7 @@ import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
 import edu.stanford.nlp.sempre.ValueFormula;
 import fig.basic.LogInfo;
 
-public class EntityLexicon extends AbstractLexicon {
+public class EntityLexicon extends AbstractLexicon<TypedStringValue> {
   private static final Map<String, EntityLexicon> instances = new HashMap<>();
 
   private final String languageTag;
@@ -32,12 +32,12 @@ public class EntityLexicon extends AbstractLexicon {
   private static final String QUERY = "select entity_id,entity_value,entity_canonical,entity_name from entity_lexicon where language = ? and token in (?, ?)";
 
   @Override
-  protected Collection<Entry> doLookup(String rawPhrase) {
+  protected Collection<Entry<TypedStringValue>> doLookup(String rawPhrase) {
     String token = LexiconUtils.preprocessRawPhrase(rawPhrase);
     if (token == null)
       return Collections.emptySet();
   
-    Collection<Entry> entries = new LinkedList<>();
+    Collection<Entry<TypedStringValue>> entries = new LinkedList<>();
 
     try (Connection con = dataSource.getConnection(); PreparedStatement stmt = con.prepareStatement(QUERY)) {
       stmt.setString(1, languageTag);
@@ -52,7 +52,7 @@ public class EntityLexicon extends AbstractLexicon {
           String entityName = rs.getString(4);
 
           String type = "Entity(" + id + ")";
-          entries.add(new Entry("GENERIC_ENTITY_" + id,
+          entries.add(new Entry<>("GENERIC_ENTITY_" + id,
               new ValueFormula<>(new TypedStringValue(type, entityValue, entityName)),
               entityCanonical));
         }

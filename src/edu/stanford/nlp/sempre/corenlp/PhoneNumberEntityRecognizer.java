@@ -96,6 +96,8 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
         token = token.substring(charIdx);
       if (charIdx == 0 && buffer.length() >= 4)
         lenient = false;
+      else if (buffer.length() < 5) // 1-800-... => +1800...
+        lenient = false;
 
       Matcher matcher = (lenient ? LENIENT_NUMBER : NUMBER).matcher(token);
       if (!matcher.matches())

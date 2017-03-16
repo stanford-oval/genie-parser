@@ -7,8 +7,8 @@ import sys
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
             'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
-            'DATE', 'TIME', 'SET',
-            'PERCENT', 'DURATION', 'MONEY', 'ORDINAL']
+            'DATE', 'TIME', 'SET', 'DURATION',
+            'LOCATION']
 
 BEGIN_TOKENS = ['special', 'answer', 'command', 'rule', 'trigger', 'query', 'action']
 SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.hello',
@@ -17,10 +17,9 @@ SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.
 #IF = 'if'
 #THEN = 'then'
 OPERATORS = ['is', 'contains', '>', '<', 'has']
-VALUES = ENTITIES + ['ENTITY', 'true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location']
+VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location']
 TYPES = {
-    'Entity': (['is'], ['ENTITY', 'QUOTED_STRING']),
-    'Location': (['is'], ['absolute', 'rel_current_location', 'rel_work', 'rel_home']),
+    'Location': (['is'], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
     'Boolean':  (['is'], ['true', 'false']),
     'Bool': (['is'], ['true', 'false']),
     'String': (['is', 'contains'], ['QUOTED_STRING']),
@@ -46,6 +45,8 @@ UNITS = dict(C=["C", "F"],
 
 COMMAND_TOKENS = ['list', 'help', 'generic', 'device', 'command', 'make', 'rule', 'configure', 'discover']
 
+MAX_ARG_VALUES = 10
+
 class ThingtalkGrammar(object):
     def __init__(self):
         triggers = dict()
@@ -63,6 +64,11 @@ class ThingtalkGrammar(object):
         tokens.update(VALUES)
         tokens.update(COMMAND_TOKENS)
         tokens.update(SPECIAL_TOKENS)
+        
+        for i in xrange(MAX_ARG_VALUES):
+            for entity in ENTITIES:
+                tokens.add(entity + "_" + str(i))
+        
         for unitlist in UNITS.itervalues():
             tokens.update(unitlist)
         tokens.add('tt:param.$event')
@@ -79,7 +85,11 @@ class ThingtalkGrammar(object):
                     devices.append(function)
                     tokens.add(function)
                     continue
-                
+                if function_type == 'entity':
+                    for i in xrange(MAX_ARG_VALUES):
+                        tokens.add('GENERIC_ENTITY_' + function + "_" + str(i))
+                    continue
+
                 parameters = line[2:]
                 paramlist = []
                 functions[function_type][function] = paramlist
@@ -88,12 +98,6 @@ class ThingtalkGrammar(object):
                 for i in xrange(len(parameters)/2):
                     param = parameters[2*i]
                     type = parameters[2*i+1]
-                    
-                    # lose the entity type information for now, to keep the mess manageable
-                    if type.startswith('Entity('):
-                        type = 'Entity'
-                    if type.startswith('Array(Entity('):
-                        type = 'Array(Entity)'
                     
                     paramlist.append((param, type))
                     tokens.add('tt:param.' + param)
@@ -181,6 +185,9 @@ class ThingtalkGrammar(object):
         transitions.append((self.start_state, answer_id, 'answer'))
         for v in VALUES:
             transitions.append((answer_id, self.before_end_state, v))
+        for v in ENTITIES:
+            for i in xrange(MAX_ARG_VALUES):
+                transitions.append((answer_id, self.before_end_state, v + '_' + str(i)))
         
         # primitives
         actions_id = new_state('action')
@@ -208,10 +215,14 @@ class ThingtalkGrammar(object):
                 if elementtype.startswith('Measure('):
                     is_measure = True
                     operators = ['is', '<', '>']
-                    values = UNITS[elementtype[len('Measure('):-1]]
+                    base_unit = elementtype[len('Measure('):-1]
+                    values = UNITS[base_unit]
                 elif elementtype.startswith('Enum('):
                     operators = ['is']
                     values = enum_types[elementtype]
+                elif elementtype.startswith('Entity('):
+                    operators = ['is']
+                    values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
                 else:
                     operators, values = TYPES[elementtype]
                 if is_array:
@@ -230,12 +241,21 @@ class ThingtalkGrammar(object):
                     transitions.append((before_op, before_value, op))
                 if is_measure:
                     before_unit = new_state(invocation_name + '_tt:param.' + param_name + '_unit')
-                    transitions.append((before_value, before_unit, 'NUMBER'))
+                    for i in xrange(MAX_ARG_VALUES):
+                        transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
                     for unit in values:
                         transitions.append((before_unit, state_id, unit))
                 else:
                     for v in values:
-                        transitions.append((before_value, state_id, v))
+                        if v[0].isupper():
+                            for i in xrange(MAX_ARG_VALUES):
+                                transitions.append((before_value, state_id, v + '_' + str(i)))
+                        else:
+                            transitions.append((before_value, state_id, v))
+                if is_measure and base_unit == 'ms':
+                    for i in xrange(MAX_ARG_VALUES):
+                        transitions.append((before_value, state_id, 'SET_' + str(i)))
+                        transitions.append((before_value, state_id, 'DURATION_' + str(i)))
                 if can_have_scope:
                     for v in trigger_or_query_params:
                         transitions.append((before_value, state_id, v))

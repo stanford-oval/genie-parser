@@ -44,6 +44,10 @@ class ArgFilterHelpers {
     return ALL_UNITS.contains(unit);
   }
 
+  public static boolean isTimeUnit(String unit) {
+    return TIME_UNITS.contains(unit);
+  }
+
   private static boolean unitOk(String have, String want) {
     if (!ALLOWED_UNITS.containsKey(want))
       throw new RuntimeException("Invalid required unit " + want);
