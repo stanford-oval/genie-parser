@@ -17,7 +17,7 @@ class Config(object):
     dropout = 1
     #dropout = 1
     embed_size = 300
-    hidden_size = 300
+    hidden_size = 50
     batch_size = 64
     #batch_size = 5
     n_epochs = 40
@@ -25,9 +25,8 @@ class Config(object):
     train_input_embeddings = False
     train_output_embeddings = False
     output_embed_size = 50
-    input_cell = "lstm"
-    output_cell = "lstm"
-    apply_state_dropout = False
+    rnn_cell_type = "lstm"
+    rnn_layers = 2
     grammar = None
 
 def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
@@ -41,10 +40,9 @@ def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
         end_of_sequence_id = tf.convert_to_tensor(grammar.end, dtype)
         maximum_length = tf.convert_to_tensor(maximum_length, dtype)
         num_decoder_symbols = tf.convert_to_tensor(grammar.output_size, dtype)
-        if isinstance(encoder_state, tuple):
-            encoder_info = encoder_state[0]
-        else:
-            encoder_info = encoder_state
+        encoder_info = encoder_state
+        while isinstance(encoder_info, tuple):
+            encoder_info = encoder_info[0]
         batch_size = encoder_info.get_shape()[0].value
         if output_fn is None:
             output_fn = lambda x: x
@@ -131,42 +129,33 @@ class LSTMAligner(Model):
         # batch size x max length x embed_size
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.embed_size)
         
+        def make_rnn_cell(id):
+            with tf.variable_scope('Layer_' + str(id)):
+                if self.config.rnn_cell_type == "lstm":
+                    cell = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
+                elif self.config.input_cell == "gru":
+                    cell = tf.contrib.rnn.GRUCell(self.config.hidden_size)
+                else:
+                    raise ValueError("Invalid RNN Cell type")
+                cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder, seed=8 + 33 * id)
+            return cell
+        
         # the encoder
         with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training) as scope:
-            if self.config.input_cell == "lstm":
-                cell_enc = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
-            elif self.config.input_cell == "gru":
-                cell_enc = tf.contrib.rnn.GRUCell(self.config.hidden_size)
-            else:
-                raise ValueError("Invalid input cell")
+            cell_enc = tf.contrib.rnn.MultiRNNCell([make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
             #cell_enc = tf.contrib.rnn.DropoutWrapper(cell_enc, input_keep_prob=self.dropout_placeholder, seed=7)
             enc_preds, enc_final_state = tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
                                                            dtype=tf.float32, scope=scope)
             assert enc_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
-            if self.config.input_cell == "lstm":
-                assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-            else:
-                assert enc_final_state.get_shape()[1:] == (self.config.hidden_size,)
-
-        # apply dropout on the final state
-        if self.config.apply_state_dropout:
-            if self.config.input_cell == "lstm":
-                enc_final_state_0 = tf.nn.dropout(enc_final_state[0], self.dropout_placeholder, seed=1234)
-                enc_final_state_1 = tf.nn.dropout(enc_final_state[1], self.dropout_placeholder, seed=1235)
-                enc_final_state = tf.contrib.rnn.LSTMStateTuple(enc_final_state_0, enc_final_state_1)
-            else:
-                enc_final_state = tf.nn.dropout(enc_final_state, self.dropout_placeholder, seed=1234)
+            #if self.config.rnn_cell_type == "lstm":
+            #    assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
+            #    assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+            #else:
+            #    assert enc_final_state.get_shape()[1:] == (self.config.hidden_size,)
 
         # the decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
-            if self.config.output_cell == "lstm":
-                cell_dec = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
-            elif self.config.output_cell == "gru":
-                cell_dec = tf.contrib.rnn.GRUCell(self.config.hidden_size)
-            else:
-                raise ValueError("Invalid input cell")
-            cell_dec = tf.contrib.rnn.DropoutWrapper(cell_dec, output_keep_prob=self.dropout_placeholder, seed=8)
+            cell_dec = tf.contrib.rnn.MultiRNNCell([make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
             
             U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size), initializer=xavier)
             b_y = tf.get_variable('b_y', shape=(self.config.output_size,), initializer=tf.constant_initializer(0, tf.float32))
@@ -182,11 +171,11 @@ class LSTMAligner(Model):
                     inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
 
                 assert dec_preds.get_shape()[2:] == (self.config.hidden_size,)
-                if self.config.output_cell == "lstm":
-                    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-                else:
-                    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
+                #if self.config.rnn_cell_type == "lstm":
+                #    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
+                #    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+                #else:
+                #    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
                 preds = tf.tensordot(dec_preds, U, [[2], [0]]) + b_y
             else:
                 def output_fn(cell_output):
@@ -202,11 +191,11 @@ class LSTMAligner(Model):
                 dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn, scope=scope)
 
                 assert dec_preds.get_shape()[2:] == (self.config.output_size,)
-                if self.config.output_cell == "lstm":
-                    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-                else:
-                    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
+                #if self.config.rnn_cell_type == "lstm":
+                #    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
+                #    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
+                #else:
+                #    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
                 preds = dec_preds
             #print preds.get_shape()
             #assert preds.get_shape()[2:] == (self.config.output_size,)
