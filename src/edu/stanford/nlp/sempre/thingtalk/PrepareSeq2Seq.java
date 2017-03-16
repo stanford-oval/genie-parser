@@ -534,6 +534,18 @@ public class PrepareSeq2Seq implements Runnable {
         utteranceInfo.nerTags.set(i + 1, tag);
         utteranceInfo.nerTags.set(i + 2, tag);
       }
+      if (token.equals("nevada") && i < utteranceInfo.tokens.size() - 2
+          && utteranceInfo.tokens.get(i + 1).equals("wolf")
+          && utteranceInfo.tokens.get(i + 2).startsWith("pack")) {
+        tag = "ORGANIZATION";
+        utteranceInfo.nerTags.set(i + 1, tag);
+        utteranceInfo.nerTags.set(i + 2, tag);
+      }
+      if (token.equals("wolf") && i < utteranceInfo.tokens.size() - 1
+          && utteranceInfo.tokens.get(i + 1).startsWith("pack")) {
+        tag = "ORGANIZATION";
+        utteranceInfo.nerTags.set(i + 1, tag);
+      }
       if (token.equals("red") && i < utteranceInfo.tokens.size() - 1
           && utteranceInfo.tokens.get(i+1).equals("hat")) {
         tag = "ORGANIZATION";

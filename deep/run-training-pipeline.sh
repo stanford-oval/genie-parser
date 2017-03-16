@@ -54,12 +54,12 @@ cd ${SRCDIR}
 python ${SRCDIR}/gen_grammar.py ${DATABASE_PW} | grep -v -E ':reddit\.|:hackernews\.' > ${WORKDIR}/thingpedia.txt
 
 # update the input tokens
-cat ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv | cut -f1 | tr ' ' '\n' | sort -u > ${WORKDIR}/input_words.txt
+cat ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv ${WORKDIR}/test.tsv | cut -f1 | tr ' ' '\n' | sort -u > ${WORKDIR}/input_words.txt
 python ${SRCDIR}/trim_embeddings.py ${WORKDIR}/input_words.txt < ${EMBEDDINGS} > ${WORKDIR}/embeddings.txt
 
 # actually run the model
 cd ${WORKDIR}
-python ${SRCDIR}/aligner.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/embeddings.txt ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv > ${WORKDIR}/model.log 2>&1
+#python ${SRCDIR}/aligner.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv > ${WORKDIR}/model.log 2>&1
 
 # copy the workdir back to where we started
 for i in `seq 1 10`; do

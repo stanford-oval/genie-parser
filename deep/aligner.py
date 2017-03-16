@@ -20,13 +20,13 @@ class Config(object):
     hidden_size = 300
     batch_size = 256
     #batch_size = 5
-    n_epochs = 120
+    n_epochs = 40
     lr = 0.001
     train_input_embeddings = False
     train_output_embeddings = False
     output_embed_size = 50
     rnn_cell_type = "lstm"
-    rnn_layers = 2
+    rnn_layers = 1
     grammar = None
 
 def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
