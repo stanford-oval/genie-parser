@@ -252,9 +252,22 @@ class LSTMAligner(Model):
 
     def fit(self, sess, train_data, dev_data):
         inputs, input_lengths, labels, label_lengths = train_data
+        inputs = np.array(inputs)
+        input_lengths = np.reshape(np.array(input_lengths, dtype=np.int32), (len(inputs), 1))
+        labels = np.array(labels)
+        label_lengths = np.reshape(np.array(label_lengths, dtype=np.int32), (len(inputs), 1))
+        stacked_train_data = np.concatenate((inputs, input_lengths, labels, label_lengths), axis=1)
+        assert stacked_train_data.shape == (len(train_data[0]), self.config.max_length + 1 + self.config.max_length + 1)
         losses = []
         for epoch in range(self.config.n_epochs):
             start_time = time.time()
+            shuffled = np.array(stacked_train_data, copy=True)
+            np.random.shuffle(shuffled)
+            inputs = shuffled[:,:self.config.max_length]
+            input_lengths = shuffled[:,self.config.max_length]
+            labels = shuffled[:,self.config.max_length + 1:-1]
+            label_lengths = shuffled[:,-1]
+            
             average_loss = self.run_epoch(sess, inputs, input_lengths,
                                           labels, label_lengths,
                                           dropout=self.config.dropout)
