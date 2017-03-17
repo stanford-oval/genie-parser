@@ -385,38 +385,6 @@ class ThingtalkGrammar(object):
             curr_state = self.transition_matrix[curr_state, word_idx]
         return output
 
-class SimpleGrammar():
-    def __init__(self, filename):
-        tokens = set()
-        with open(filename, 'r') as fp:
-            for line in fp.readlines():
-                tokens.add(line.strip().lower())
-        
-        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>'] + list(tokens)
-        self.dictionary = dict()
-        for i, token in enumerate(self.tokens):
-            self.dictionary[token] = i
-            
-        self.output_size = len(self.tokens)
-        
-        self.start = self.dictionary['<<GO>>']
-        self.end = self.dictionary['<<EOS>>']
-        
-    def constrain(self, logits, curr_state, batch_size, dtype=tf.int32):
-        if curr_state is None:
-            return tf.ones((batch_size,), dtype=dtype) * self.start, ()
-        else:
-            return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
-
-    def decode_output(self, sequence):
-        output = []
-        for logits in sequence:
-            assert logits.shape == (self.output_size,)
-            word_idx = np.argmax(logits)
-            if word_idx > 0:
-                output.append(word_idx)
-        return output
-
 if __name__ == '__main__':
     grammar = ThingtalkGrammar()
     #grammar.dump_tokens()
