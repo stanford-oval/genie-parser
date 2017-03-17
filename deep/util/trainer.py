@@ -4,6 +4,7 @@ Created on Mar 16, 2017
 @author: gcampagn
 '''
 
+import os
 import numpy as np
 import time
 
@@ -14,7 +15,7 @@ class Trainer(object):
     Train a model on data
     '''
 
-    def __init__(self, model, train_data, train_eval, dev_eval, max_length=40, batch_size=256, n_epochs=40, dropout=1):
+    def __init__(self, model, train_data, train_eval, dev_eval, saver, model_dir='./model', max_length=40, batch_size=256, n_epochs=40, dropout=1):
         '''
         Constructor
         '''
@@ -31,7 +32,9 @@ class Trainer(object):
         
         self.train_eval = train_eval
         self.dev_eval = dev_eval
+        self.saver = saver
         
+        self._model_dir = model_dir
         self._max_length = max_length
         self._batch_size = batch_size
         self._n_epochs = n_epochs
@@ -49,9 +52,8 @@ class Trainer(object):
         return total_loss / n_minibatches
 
     def fit(self, sess):
-        
-        losses = []
-        for epoch in range(self._n_epochs):
+        best = None
+        for epoch in xrange(self._n_epochs):
             start_time = time.time()
             shuffled = np.array(self.train_data, copy=True)
             np.random.shuffle(shuffled)
@@ -65,9 +67,13 @@ class Trainer(object):
                                           dropout=self._dropout)
             duration = time.time() - start_time
             print 'Epoch {:}: loss = {:.2f} ({:.3f} sec)'.format(epoch, average_loss, duration)
-            losses.append(average_loss)
+            self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
+            
             self.train_eval.eval(sess, save_to_file=False)
             if self.dev_eval is not None:
-                self.dev_eval.eval(sess, save_to_file=False)
+                dev_acc = self.dev_eval.eval(sess, save_to_file=False)
+                if best is None or dev_acc > best:
+                    print 'Found new best model'
+                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                    best = dev_acc
             print
-        return losses

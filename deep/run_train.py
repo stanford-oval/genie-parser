@@ -1,4 +1,5 @@
 
+import os
 import sys
 import numpy as np
 import tensorflow as tf
@@ -10,24 +11,29 @@ from util.loader import unknown_tokens, load_data
 from model import LSTMAligner, initialize
 
 def run():
-    if len(sys.argv) < 5:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Word Embeddings>> <<Train Set> [<<Dev Set>>]"
+    if len(sys.argv) < 6:
+        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
         sys.exit(1)
 
     np.random.seed(42)
-    config, words, reverse, embeddings_matrix = initialize(benchmark=sys.argv[1], input_words=sys.argv[2], embedding_file=sys.argv[3]);
-    
-    train_data = load_data(sys.argv[4], words, config.grammar.dictionary,
+    benchmark = sys.argv[1]
+    config, words, reverse, embeddings_matrix = initialize(benchmark=benchmark, input_words=sys.argv[2], embedding_file=sys.argv[3]);
+    model_dir = sys.argv[4]
+    train_data = load_data(sys.argv[5], words, config.grammar.dictionary,
                            reverse, config.grammar.tokens,
                            config.max_length)
-    if len(sys.argv) > 5:
-        dev_data = load_data(sys.argv[5], words, config.grammar.dictionary,
+    if len(sys.argv) > 6:
+        dev_data = load_data(sys.argv[6], words, config.grammar.dictionary,
                              reverse, config.grammar.tokens,
                              config.max_length)
     else:
         dev_data = None
     print "unknown", unknown_tokens
     
+    try:
+        os.mkdir(model_dir)
+    except OSError:
+        pass
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
@@ -36,9 +42,12 @@ def run():
         model = LSTMAligner(config, embeddings_matrix)
         init = tf.global_variables_initializer()
         
+        saver = tf.train.Saver(max_to_keep=config.n_epochs)
+        
         train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', batch_size=config.batch_size)
         dev_eval = Seq2SeqEvaluator(model, config.grammar, dev_data, 'dev', batch_size=config.batch_size)
-        trainer = Trainer(model, train_data, train_eval, dev_eval,
+        trainer = Trainer(model, train_data, train_eval, dev_eval, saver,
+                          model_dir=model_dir,
                           max_length=config.max_length,
                           batch_size=config.batch_size,
                           n_epochs=config.n_epochs,
@@ -48,6 +57,7 @@ def run():
         with tf.Session() as sess:
             # Run the Op to initialize the variables.
             sess.run(init)
+            
             # Fit the model
             trainer.fit(sess)
             

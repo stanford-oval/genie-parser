@@ -59,8 +59,8 @@ python ${SRCDIR}/trim_embeddings.py ${WORKDIR}/input_words.txt < ${EMBEDDINGS} >
 
 # actually run the model
 cd ${WORKDIR}
-python ${SRCDIR}/run_train.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv > ${WORKDIR}/train.log 2>&1
-python ${SRCDIR}/run_test.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/test.tsv > ${WORKDIR}/test.log 2>&1
+python ${SRCDIR}/run_train.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/embeddings.txt ${WORKDIR}/model ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv > ${WORKDIR}/train.log 2>&1
+python ${SRCDIR}/run_test.py tt ${WORKDIR}/input_words.txt ${WORKDIR}/embeddings.txt ${WORKDIR}/model ${WORKDIR}/test.tsv > ${WORKDIR}/test.log 2>&1
 
 # copy the workdir back to where we started
 for i in `seq 1 10`; do
