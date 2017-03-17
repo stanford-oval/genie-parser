@@ -7,7 +7,7 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.sempre.NumberValue;
 import edu.stanford.nlp.sempre.Value;
 
-class ArgFilterHelpers {
+public class ArgFilterHelpers {
   private ArgFilterHelpers() {
   }
 

@@ -1,7 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
 import java.util.Collection;
-import java.util.Iterator;
 
 import edu.stanford.nlp.sempre.GenericObjectCache;
 import edu.stanford.nlp.sempre.Value;
@@ -70,14 +69,14 @@ public abstract class AbstractLexicon<E extends Value> {
 
   protected abstract Collection<Entry<E>> doLookup(String rawPhrase);
 
-  public Iterator<Entry<E>> lookup(String rawPhrase) {
+  public Collection<Entry<E>> lookup(String rawPhrase) {
     if (opts.verbose >= 2)
       LogInfo.logs("AbstractLexicon.lookup %s", rawPhrase);
     Collection<Entry<E>> fromCache = cache.hit(rawPhrase);
     if (fromCache != null) {
       if (opts.verbose >= 3)
         LogInfo.logs("AbstractLexicon.cacheHit");
-      return fromCache.iterator();
+      return fromCache;
     }
     if (opts.verbose >= 3)
       LogInfo.logs("AbstractLexicon.cacheMiss");
@@ -87,7 +86,7 @@ public abstract class AbstractLexicon<E extends Value> {
     // if memory pressure occcurs, the cache will automatically
     // downsize itself
     cache.store(rawPhrase, fromCache, Long.MAX_VALUE);
-    return fromCache.iterator();
+    return fromCache;
   }
 }
 

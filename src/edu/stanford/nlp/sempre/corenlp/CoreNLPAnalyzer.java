@@ -219,6 +219,13 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
       }
       String posTag = token.get(PartOfSpeechAnnotation.class);
 
+      boolean addComma = false;
+      if (word.endsWith(",") && !",".equals(word)) {
+        word = word.substring(0, word.length() - 1);
+        wordLower = wordLower.substring(0, wordLower.length() - 1);
+        addComma = true;
+      }
+
       if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches()) {
         nerTag = "NUMBER";
       } else if (nerTag.equals("NUMBER") && NOT_A_NUMBER.contains(wordLower)) {
@@ -227,11 +234,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         nerValue = null;
       }
 
-      boolean addComma = false;
-      if (word.endsWith(",") && !",".equals(word)) {
-        word = word.substring(0, word.length() - 1);
-        wordLower = wordLower.substring(0, wordLower.length() - 1);
-        addComma = true;
+      if (wordLower.equals("everyday")) {
+        nerTag = "SET";
+        nerValue = "P1D";
       }
 
       if (LanguageAnalyzer.opts.lowerCaseTokens) {

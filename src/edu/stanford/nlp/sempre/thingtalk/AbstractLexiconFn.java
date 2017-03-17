@@ -14,7 +14,7 @@ public abstract class AbstractLexiconFn<E extends Value> extends SemanticFn {
   @Override
   public DerivationStream call(Example ex, Callable c) {
     String phrase = c.childStringValue(0);
-    return new LexiconDerivationStream<>(ex, c, lexicon.lookup(phrase), phrase);
+    return new LexiconDerivationStream<>(ex, c, lexicon.lookup(phrase).iterator(), phrase);
   }
 
   public class LexiconDerivationStream<E extends Value> extends MultipleDerivationStream {
