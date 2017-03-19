@@ -32,22 +32,6 @@ class Config(object):
     grammar = None
     l2_regularization = 0.005
 
-def length_limited_softmax(values, lengths, num_decoder, num_encoder):
-    '''
-    A softmax operation that, for row `i` of the matrix, only considers
-    elements up to `lengths[i]`.
-    The result has the same shape as `values`, but elements past the
-    length are undefined.
-    '''
-    exp = tf.exp(values)
-    #assert exp.get_shape() == values.get_shape()
-    
-    mask = tf.to_float(tf.sequence_mask(lengths, num_encoder))
-    # pack num_decoder copies of the mask
-    mask = tf.stack([mask for _ in xrange(num_decoder)], axis=1)
-    sum = tf.reduce_sum(exp, axis=2, keep_dims=True)
-    return exp/sum
-
 class LSTMAligner(Model):
     def add_placeholders(self):
         # batch size x number of words in the sentence
@@ -117,7 +101,6 @@ class LSTMAligner(Model):
 
             enc_hidden_states, enc_final_state = tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
                                                                    dtype=tf.float32, scope=scope)
-            enc_hidden_states.set_shape((None, self.config.max_length, self.config.hidden_size))
             # assert enc_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
             # if self.config.input_cell == "lstm":
             #     assert enc_final_state[0][0].get_shape()[1:] == (self.config.hidden_size,)
@@ -147,6 +130,8 @@ class LSTMAligner(Model):
                 decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
                 dec_hidden_states, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn,
                     inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
+
+                assert dec_hidden_states.get_shape()[2:] == (self.config.hidden_size,)
                 dec_hidden_states.set_shape((None, self.config.max_length, self.config.hidden_size))
 
                 # hidden_dec_final_state = dec_final_state
@@ -166,7 +151,7 @@ class LSTMAligner(Model):
                     raw_att_score = tf.matmul(dec_hidden_states, enc_hidden_states, transpose_b=True)
                     assert raw_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
                 
-                    norm_att_score = length_limited_softmax(raw_att_score, self.input_length_placeholder, self.config.max_length, self.config.max_length)
+                    norm_att_score = tf.nn.softmax(raw_att_score)
                     assert norm_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
                 
                     context_vectors = tf.matmul(norm_att_score, enc_hidden_states)
@@ -200,9 +185,8 @@ class LSTMAligner(Model):
                         raw_att_score = tf.matmul(tf.reshape(cell_output, (batch_size, 1, self.config.hidden_size)), enc_hidden_states, transpose_b=True)
                         assert raw_att_score.get_shape()[1:] == (1, self.config.max_length)
                     
-                        norm_att_score = length_limited_softmax(raw_att_score, self.input_length_placeholder, 1, self.config.max_length)
-                        norm_att_score.set_shape((None, 1, self.config.max_length))
-                        #assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
+                        norm_att_score = tf.nn.softmax(raw_att_score)
+                        assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
                     
                         context_vector = tf.matmul(norm_att_score, enc_hidden_states)
                         assert context_vector.get_shape()[1:] == (1, self.config.hidden_size)
