@@ -28,8 +28,14 @@ def run():
                              config.max_length)
     else:
         dev_data = None
+    config.dropout = float(sys.argv[7])
+    config.hidden_size = int(sys.argv[8])
+    config.rnn_cell_type = sys.argv[9]
+    config.rnn_layers = int(sys.argv[10])
+    config.l2_regularization = float(sys.argv[11])
+    if len(sys.argv) > 12:
+        config.apply_attention = (sys.argv[12] == "yes")
     print "unknown", unknown_tokens
-    
     try:
         os.mkdir(model_dir)
     except OSError:
@@ -58,13 +64,20 @@ def run():
             # Run the Op to initialize the variables.
             sess.run(init)
             
-            # Fit the model
-            trainer.fit(sess)
+            #for var in tf.trainable_variables():
+            #    print var.name
+            #    print var.get_shape()
+            #sys.exit(0)
             
-            print "Final result"
-            train_eval.eval(sess, save_to_file=True)
-            if dev_data is not None:
-                dev_eval.eval(sess, save_to_file=True)
+            # Fit the model
+            best_dev, best_train = trainer.fit(sess)
+            
+            #print "Final result"
+            #train_eval.eval(sess, save_to_file=True)
+            #if dev_data is not None:
+            #    dev_eval.eval(sess, save_to_file=True)
+            print "best train", best_train
+            print "best dev", best_dev
 
 if __name__ == "__main__":
     run()

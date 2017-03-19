@@ -26,21 +26,29 @@ def run():
     test_data = load_data(sys.argv[5], words, config.grammar.dictionary,
                           reverse, config.grammar.tokens,
                           config.max_length)
+    config.dropout = float(sys.argv[6])
+    config.hidden_size = int(sys.argv[7])
+    config.rnn_cell_type = sys.argv[8]
+    config.rnn_layers = int(sys.argv[9])
+    config.l2_regularization = float(sys.argv[10])
+    if len(sys.argv) > 12:
+        config.apply_attention = (sys.argv[12] == "yes")
     print "unknown", unknown_tokens
-    
+
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
     with tf.Graph().as_default():
-        # Build the model and add the variable initializer Op
-        model = LSTMAligner(config, embeddings_matrix)
+        with tf.device('/cpu:0'):
+            # Build the model and add the variable initializer Op
+            model = LSTMAligner(config, embeddings_matrix)
         
-        test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', batch_size=config.batch_size)
-        loader = tf.train.Saver()
+            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', batch_size=config.batch_size)
+            loader = tf.train.Saver()
 
-        # Create a session for running Ops in the Graph
-        with tf.Session() as sess:
-            loader.restore(sess, os.path.join(model_dir, 'best'))
-            test_eval.eval(sess, save_to_file=True)
+            # Create a session for running Ops in the Graph
+            with tf.Session() as sess:
+                loader.restore(sess, os.path.join(model_dir, 'best'))
+                test_eval.eval(sess, save_to_file=True)
             
 if __name__ == '__main__':
     run()

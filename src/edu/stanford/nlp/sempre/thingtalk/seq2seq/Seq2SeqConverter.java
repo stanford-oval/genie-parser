@@ -204,6 +204,7 @@ class Seq2SeqConverter {
       case "msft":
       case "goog":
       case "cubs":
+      case "aapl":
 
         // in our dataset, Barcellona refers to the team
       case "barcellona":
@@ -508,7 +509,7 @@ class Seq2SeqConverter {
       return null;
 
     // (scare quotes) MACHINE LEARNING!
-    int nfootball = 1;
+    int nfootball = 0;
     int nbasketball = 0;
     int nbaseball = 0;
     for (String token : ex.getTokens()) {
@@ -530,6 +531,14 @@ class Seq2SeqConverter {
         nbaseball++;
         break;
       }
+    }
+    if (entity.equals("california bears")) {
+      if (nfootball > nbasketball)
+        return new Pair<>("GENERIC_ENTITY_sportradar:ncaafb_team",
+            new TypedStringValue("Entity(sportradar:ncaafb_team)", "cal", "California Bears"));
+      else if (nfootball < nbasketball)
+        return new Pair<>("GENERIC_ENTITY_sportradar:ncaambb_team",
+            new TypedStringValue("Entity(sportradar:ncaambb_team)", "cal", "California Golden Bears"));
     }
 
     List<Pair<Pair<String, Object>, Double>> weights = new ArrayList<>();
@@ -602,6 +611,8 @@ class Seq2SeqConverter {
     case "MONEY":
     case "PERCENT":
       try {
+        if (nerValue == null)
+          return null;
         if (nerValue.startsWith(">=") || nerValue.startsWith("<="))
           nerValue = nerValue.substring(3);
         else if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
@@ -614,6 +625,8 @@ class Seq2SeqConverter {
       }
 
     case "NUMBER":
+      if (nerValue == null)
+        return null;
       try {
         if (nerValue.startsWith(">=") || nerValue.startsWith("<="))
           nerValue = nerValue.substring(2);
@@ -661,7 +674,10 @@ class Seq2SeqConverter {
 
     case "SET":
     case "DURATION":
-      return new Pair<>(nerType, NumberValue.parseDurationValue(nerValue));
+      if (nerValue != null)
+        return new Pair<>(nerType, NumberValue.parseDurationValue(nerValue));
+      else
+        return null;
     }
 
     return null;

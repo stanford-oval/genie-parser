@@ -4,6 +4,8 @@ Created on Mar 16, 2017
 @author: gcampagn
 '''
 
+import sys
+import json
 import os
 import numpy as np
 import time
@@ -53,6 +55,8 @@ class Trainer(object):
 
     def fit(self, sess):
         best = None
+        best_train = None
+        stats = []
         for epoch in xrange(self._n_epochs):
             start_time = time.time()
             shuffled = np.array(self.train_data, copy=True)
@@ -69,11 +73,20 @@ class Trainer(object):
             print 'Epoch {:}: loss = {:.2f} ({:.3f} sec)'.format(epoch, average_loss, duration)
             self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
             
-            self.train_eval.eval(sess, save_to_file=False)
+            train_acc = self.train_eval.eval(sess, save_to_file=False)
             if self.dev_eval is not None:
                 dev_acc = self.dev_eval.eval(sess, save_to_file=False)
                 if best is None or dev_acc > best:
                     print 'Found new best model'
                     self.saver.save(sess, os.path.join(self._model_dir, 'best'))
                     best = dev_acc
+                    best_train = train_acc
+                stats.append((average_loss, train_acc, dev_acc))
+            else:
+                stats.append((average_loss, train_acc))
             print
+            sys.stdout.flush()
+        return best, best_train
+
+        with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
+            json.dump(stats, fp)

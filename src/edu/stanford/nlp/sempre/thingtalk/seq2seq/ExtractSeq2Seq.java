@@ -29,7 +29,7 @@ public class ExtractSeq2Seq implements Runnable {
 
   private static String addTypesToQuery() {
     return String.format(QUERY_TMPL, opts.types.stream()
-        .map((t) -> "'" + t + "'").collect(Collectors.joining(".")));
+        .map((t) -> "'" + t + "'").collect(Collectors.joining(",")));
   }
 
   @Override

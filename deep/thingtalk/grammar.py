@@ -330,16 +330,23 @@ class ThingtalkGrammar(object):
         for token in self.tokens:
             print token
 
-    def parse(self, program):
-        curr_state = self.start_state
-        for token in program:
+    def vectorize(self, program):
+        seq = [None] * len(program)
+        for i in xrange(len(program)):
+            token = program[i]
             try:
                 token_id = self.dictionary[token]
             except KeyError:
-                raise ValueError("Unknown token " + token + " in " + (' '.join(program)) + " (in state " + self.state_names[curr_state] + ")")
+                raise ValueError("Unknown token " + token + " in " + (' '.join(program)))
+            seq[i] = token_id
+        return seq
+
+    def parse(self, program):
+        curr_state = self.start_state
+        for token_id in program:
             next = self.transition_matrix[curr_state, token_id]
             if next == 0:
-                raise ValueError("Unexpected token " + token + " in " + (' '.join(program)) + " (in state " + self.state_names[curr_state] + ")")
+                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join(map(lambda x:self.tokens[x], program))) + " (in state " + self.state_names[curr_state] + ")")
             curr_state = next
             
         if curr_state != self.end_state:
@@ -350,7 +357,7 @@ class ThingtalkGrammar(object):
             try:
                 program = line.strip().split()
                 program.append('<<EOS>>')
-                self.parse(program)
+                self.parse(self.vectorize(program))
             except ValueError, e:
                 print e
 
@@ -363,7 +370,7 @@ class ThingtalkGrammar(object):
         allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
         assert allowed_tokens.get_shape()[1:] == (self.output_size,)
         
-        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 100000
+        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+20
         choice = tf.cast(tf.argmax(constrained_logits, axis=1), dtype=dtype)
         indices = tf.stack((tf.range(0, batch_size), choice), axis=1)
             
@@ -378,16 +385,94 @@ class ThingtalkGrammar(object):
         for logits in sequence:
             assert logits.shape == (self.output_size,)
             allowed_tokens = self.allowed_token_matrix[curr_state]
-            constrained_logits = logits - np.logical_not(allowed_tokens).astype(np.float32) * 100000
+            constrained_logits = logits - np.logical_not(allowed_tokens).astype(np.float32) * 1e+20
             word_idx = np.argmax(constrained_logits)
             if word_idx > 0:
                 output.append(word_idx)
             curr_state = self.transition_matrix[curr_state, word_idx]
         return output
+    
+    def _normalize_invocation(self, seq, start):
+        if start >= len(seq):
+            # truncated output
+            return start
+        assert self.tokens[seq[start]].startswith('tt:')
+        assert not self.tokens[seq[start]].startswith('tt:param.')
+        start += 1
+        end = start
+        
+        params = []
+        while end < len(seq) and self.tokens[seq[end]].startswith('tt:param.'):
+            param_id = seq[end]
+            end += 1
+            if end >= len(seq):
+                # truncated output
+                return end
+            operator = seq[end]
+            end += 1
+            if end >= len(seq):
+                # this can occur at training time, if the output is truncated
+                #raise AssertionError("missing value for " + self.tokens[param_id])
+                params.append((param_id, operator, []))
+                continue
+            param_value = [seq[end]]
+            end += 1
+            while end < len(seq) and not self.tokens[seq[end]].startswith('tt:'):
+                param_value.append(seq[end])
+                end += 1
+            params.append((param_id, operator, param_value))
+        params.sort(key=lambda x: x[0])
+        assert end <= len(seq)
+
+        i = start
+        for param_id, operator, param_value in params:
+            seq[i] = param_id
+            seq[i+1] = operator
+            seq[i+2:i+2+len(param_value)] = param_value
+            i += 2 + len(param_value)
+            assert i <= end
+        
+        return end
+    
+    def _normalize_sequence(self, seq):
+        i = 0
+        if seq[0] == self.dictionary['rule']:
+            i += 1
+            i = self._normalize_invocation(seq, i)
+            i = self._normalize_invocation(seq, i)
+            if i < len(seq):
+                i = self._normalize_invocation(seq, i)
+        elif seq[0] in (self.dictionary['action'], self.dictionary['trigger'], self.dictionary['query']):
+            self._normalize_invocation(seq, 1)
+    
+    def normalize_all(self, fp):
+        for line in fp.readlines():
+            try:
+                program = line.strip().split()
+                seq = self.vectorize(program)
+                seq2 = list(seq)
+                self._normalize_sequence(seq2)
+                seq2.append(self.end)
+                self.parse(seq2)
+                seq2.pop()
+                if seq != seq2:
+                    print "was", ' '.join(map(lambda x: self.tokens[x], seq))
+                    print "now", ' '.join(map(lambda x: self.tokens[x], seq2))
+            except ValueError, e:
+                print e
+    
+    def compare(self, seq1, seq2):
+        seq1 = list(seq1)
+        seq2 = list(seq2)
+        #self._normalize_sequence(seq1)
+        #self._normalize_sequence(seq2)
+        return seq1 == seq2
+        
 
 if __name__ == '__main__':
     grammar = ThingtalkGrammar()
     #grammar.dump_tokens()
+    #grammar.normalize_all(sys.stdin)
     grammar.parse_all(sys.stdin)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name

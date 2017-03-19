@@ -19,10 +19,22 @@ class AbstractGrammar(object):
         self.end = 0
     
     def constrain(self, logits, curr_state, batch_size, dtype=tf.int32):
-        raise NotImplementedError
-    
+        if curr_state is None:
+            return tf.ones((batch_size,), dtype=dtype) * self.start, ()
+        else:
+            return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
+
     def decode_output(self, sequence):
-        raise NotImplementedError
+        output = []
+        for logits in sequence:
+            assert logits.shape == (self.output_size,)
+            word_idx = np.argmax(logits)
+            if word_idx > 0:
+                output.append(word_idx)
+        return output
+    
+    def compare(self, seq1, seq2):
+        return seq1 == seq2
 
 
 class SimpleGrammar(AbstractGrammar):
@@ -41,21 +53,6 @@ class SimpleGrammar(AbstractGrammar):
         
         self.start = self.dictionary['<<GO>>']
         self.end = self.dictionary['<<EOS>>']
-        
-    def constrain(self, logits, curr_state, batch_size, dtype=tf.int32):
-        if curr_state is None:
-            return tf.ones((batch_size,), dtype=dtype) * self.start, ()
-        else:
-            return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
-
-    def decode_output(self, sequence):
-        output = []
-        for logits in sequence:
-            assert logits.shape == (self.output_size,)
-            word_idx = np.argmax(logits)
-            if word_idx > 0:
-                output.append(word_idx)
-        return output
 
 
 def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
@@ -124,7 +121,8 @@ class Seq2SeqEvaluator(object):
         dict_reverse = self.grammar.tokens
 
         ok_0 = 0
-        ok_1 = 0
+        ok_fn = 0
+        ok_ch = 0
         ok_full = 0
         fp = None
         if save_to_file:
@@ -154,13 +152,23 @@ class Seq2SeqEvaluator(object):
                         print >>fp, gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str)
 
                     if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
-                        ok_0 += 1            
-                    if len(decoded) > 1 and len(gold) > 1 and decoded[0:2] == gold[0:2]:
-                        ok_1 += 1
-                    if decoded == gold:
+                        ok_0 += 1
+
+                    def get_functions(seq):
+                        return set(filter(lambda x:x.startswith('tt:') and not x.startswith('tt:param.'), map(lambda x: self.grammar.tokens[x], seq)))
+                    gold_functions = get_functions(gold)
+                    decoded_functions = get_functions(decoded)
+                    gold_channels = set(map(lambda x:x[x.index('.')+1:], gold_functions))
+                    decoded_channels = set(map(lambda x:x[x.index('.')+1:], decoded_functions))
+                    if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
+                        ok_fn += 1
+                    if gold_channels == decoded_channels:
+                        ok_ch += 1
+                    if self.grammar.compare(gold, decoded):
                         ok_full += 1
             print self.tag, "ok 0:", float(ok_0)/len(labels)
-            print self.tag, "ok 1:", float(ok_1)/len(labels)
+            print self.tag, "ok channel:", float(ok_ch)/len(labels)
+            print self.tag, "ok function:", float(ok_fn)/len(labels)
             print self.tag, "ok full:", float(ok_full)/len(labels)
         finally:
             if fp is not None:

@@ -13,9 +13,9 @@ export LANGUAGE_TAG
 test -n "${LANGUAGE_TAG}" || die "language must be specified as an argument to this script"
 
 # default to everything, run-all-experiments.sh will override
-TRAINING=${TRAINING:-thingpedia,turking-prim0,turking-prim1,turking-prim2,turking-prim3,turking-compound0,turking-compound1,turking-compound2,turking-compound3,turking-compound4,turking3-compound0,turking3-compound1,turking3-compound2,turking3-compound3,turking3-compound4,turking3-compound5,turking3-compound6,online,online-bookkeeping}
+TRAINING=${TRAINING:-thingpedia,turking-prim0,turking-prim1,turking-prim2,turking-prim3,turking-compound0,turking-compound1,turking-compound2,turking-compound3,turking-compound4,turking3-compound0,turking3-compound1,turking3-compound2,turking3-compound3,turking3-compound4,turking3-compound5,turking3-compound6,online,online-bookkeeping,ifttt-train}
 export TRAINING
-TESTING=${TESTING:-test-prim0,test-prim1,test-prim2,test-prim3,test-compound0,test-compound1,test-compound2,test-compound3,test-compound4,test3-compound0,test3-compound1,test3-compound2,test3-compound3,test3-compound4,test3-compound4,test3-compound5,test3-compound6}
+TESTING=${TESTING:-test-prim0,test-prim1,test-prim2,test-prim3,test-compound0,test-compound1,test-compound2,test-compound3,test-compound4,test3-compound0,test3-compound1,test3-compound2,test3-compound3,test3-compound4,test3-compound4,test3-compound5,test3-compound6,ifttt-test}
 export TESTING
 
 DATABASE_URL="mysql://sempre:${DATABASE_PW}@thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com:3306/thingengine?charset=utf8mb4_bin&ssl=Amazon%20RDS"
