@@ -32,9 +32,20 @@ class Config(object):
     grammar = None
     l2_regularization = 0.005
 
-def length_limited_softmax(values, mask):
+def length_limited_softmax(values, lengths, num_decoder, num_encoder):
+    '''
+    A softmax operation that, for row `i` of the matrix, only considers
+    elements up to `lengths[i]`.
+    The result has the same shape as `values`, but elements past the
+    length are undefined.
+    '''
     exp = tf.exp(values)
-    sum = tf.reduce_sum(exp * mask, axis=2, keep_dims=True)
+    #assert exp.get_shape() == values.get_shape()
+    
+    mask = tf.to_float(tf.sequence_mask(lengths, num_encoder))
+    # pack num_decoder copies of the mask
+    mask = tf.stack([mask for _ in xrange(num_decoder)], axis=1)
+    sum = tf.reduce_sum(exp, axis=2, keep_dims=True)
     return exp/sum
 
 class LSTMAligner(Model):
@@ -152,22 +163,10 @@ class LSTMAligner(Model):
 
                 # Attention mechanism
                 if self.config.apply_attention:
-                    # pad decoder hidden states
-                    length_diff = tf.reshape(self.config.max_length - tf.shape(dec_hidden_states)[1], shape=(1,))
-                    padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
-                    dec_hidden_states = tf.pad(dec_hidden_states, padding, mode='constant')
-                    
                     raw_att_score = tf.matmul(dec_hidden_states, enc_hidden_states, transpose_b=True)
-                    raw_att_score.set_shape((None, self.config.max_length, self.config.max_length))
-                    #assert raw_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
+                    assert raw_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
                 
-                    mask = tf.to_float(tf.sequence_mask(self.input_length_placeholder, self.config.max_length))
-                    mask.set_shape((None, self.config.max_length))
-                    # pack self.config.max_length copies of the mask
-                    mask = tf.stack([mask for _ in xrange(self.config.max_length)], axis=1)
-                    mask.set_shape((None, self.config.max_length, self.config.max_length))
-                
-                    norm_att_score = length_limited_softmax(raw_att_score, mask)
+                    norm_att_score = length_limited_softmax(raw_att_score, self.input_length_placeholder, self.config.max_length, self.config.max_length)
                     assert norm_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
                 
                     context_vectors = tf.matmul(norm_att_score, enc_hidden_states)
@@ -186,12 +185,6 @@ class LSTMAligner(Model):
                 #assert preds.get_shape()[1:] == (self.config.max_length, self.config.output_size)
 
             else:
-                mask = tf.to_float(tf.sequence_mask(self.input_length_placeholder, self.config.max_length))
-                mask.set_shape((None, self.config.max_length))
-                # pack self.config.max_length copies of the mask
-                mask = tf.expand_dims(mask, axis=1)
-                mask.set_shape((None, 1, self.config.max_length))
-                
                 def output_fn(cell_output, dec_cell_state, batch_size):
                     assert cell_output.get_shape()[1:] == (self.config.hidden_size,)
                     #hidden_final_state = enc_final_state
@@ -207,7 +200,7 @@ class LSTMAligner(Model):
                         raw_att_score = tf.matmul(tf.reshape(cell_output, (batch_size, 1, self.config.hidden_size)), enc_hidden_states, transpose_b=True)
                         assert raw_att_score.get_shape()[1:] == (1, self.config.max_length)
                     
-                        norm_att_score = length_limited_softmax(raw_att_score, mask)
+                        norm_att_score = length_limited_softmax(raw_att_score, self.input_length_placeholder, 1, self.config.max_length)
                         norm_att_score.set_shape((None, 1, self.config.max_length))
                         #assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
                     
