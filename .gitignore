@@ -11,6 +11,7 @@ test-output
 
 .project
 .cproject
+.pydevproject
 .classpath
 .settings
 .idea

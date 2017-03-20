@@ -50,8 +50,12 @@ function handleOne(map, line, output) {
     
     if (ifttt.startsWith('date___time.every_day_at+')) {
         var time = findEntity(entities, "TIME");
-        if (time && /T[0-9]{2}:[0-9]{2}/.test(time))
-            json.rule.trigger.args.push(makeArg("time", time.substr(1), "Time", "is"));
+        if (time && /T[0-9]{2}:[0-9]{2}/.test(time)) {
+            var arg = { name: { id: 'tt:param.time' },
+                value: {"year":-1,"month":-1,"day":-1,"hour": parseInt(time.substring(1,3)),"minute": parseInt(time.substring(4,6)),"second":0}, type: "Time",
+                operator: "is" };
+            json.rule.trigger.args.push(arg);
+        }
     }
     if (ifttt.endsWith('+gmail.send_an_email')) {
         var email = findEntity(entities, "EMAIL_ADDRESS");
@@ -66,9 +70,9 @@ function handleOne(map, line, output) {
            return;
        }
        if (json.rule)
-           json.rule.trigger.args.push(makeArg("hashtags", hashtag, "String", "has"));
+           json.rule.trigger.args.push(makeArg("hashtags", hashtag, "Hashtag", "has"));
        else
-           json.trigger.args.push(makeArg("hashtags", hashtag, "String", "has"));
+           json.trigger.args.push(makeArg("hashtags", hashtag, "Hashtag", "has"));
     }
     if (ifttt.startsWith('twitter.new_tweet_by_a_specific_user+')) {
        var user = findEntity(entities, "USER");
@@ -77,9 +81,9 @@ function handleOne(map, line, output) {
            return;
        }
        if (json.rule)
-           json.rule.trigger.args.push(makeArg("from", user, "String", "is"));
+           json.rule.trigger.args.push(makeArg("from", user, "Username", "is"));
        else
-           json.trigger.args.push(makeArg("from", user, "String", "is"));
+           json.trigger.args.push(makeArg("from", user, "Username", "is"));
     }
     
     // I self identify as an IFTTT rule, my pronouns are...

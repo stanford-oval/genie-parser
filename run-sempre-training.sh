@@ -16,6 +16,9 @@ cat > ${WORKDIR}/sabrina/sabrina.training.conf <<EOF
 !include ${SEMPREDIR}/sabrina/sabrina.conf
 execDir ${WORKDIR}/sempre.tmp
 
+# CoreNLP
+CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG}
+
 # Grammar
 Grammar.inPaths ${SEMPREDIR}/sabrina/sabrina.${LANGUAGE_TAG}.grammar
 

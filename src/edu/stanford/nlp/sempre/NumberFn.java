@@ -46,6 +46,10 @@ public class NumberFn extends SemanticFn {
         if (request("NUMBER")) {
           String value = ex.languageInfo.getNormalizedNerSpan("NUMBER", c.getStart(), c.getEnd());
           if (value != null) {
+            if (value.startsWith(">=") || value.startsWith("<="))
+              value = value.substring(2);
+            else if (value.startsWith(">") || value.startsWith("<") || value.startsWith("~"))
+              value = value.substring(1);
             try {
               NumberValue numberValue = new NumberValue(Double.parseDouble(value));
               SemType type = numberValue.value == (int) numberValue.value ? SemType.intType : SemType.floatType;
@@ -87,9 +91,16 @@ public class NumberFn extends SemanticFn {
           String value = ex.languageInfo.getNormalizedNerSpan("PERCENT", c.getStart(), c.getEnd());
           if (value != null) {
             try {
+              if (value.startsWith(">=") || value.startsWith("<="))
+                value = value.substring(3);
+              else if (value.startsWith(">") || value.startsWith("<") || value.startsWith("~"))
+                value = value.substring(2);
+              else
+                value = value.substring(1);
+              
               NumberValue numberValue = (opts.unitless ?
-                  new NumberValue(Double.parseDouble(value.substring(1))) :
-                    new NumberValue(0.01 * Double.parseDouble(value.substring(1))));
+                  new NumberValue(Double.parseDouble(value)) :
+                    new NumberValue(0.01 * Double.parseDouble(value)));
               SemType type = SemType.floatType;
               return new Derivation.Builder()
                       .withCallable(c)
@@ -108,9 +119,17 @@ public class NumberFn extends SemanticFn {
           String value = ex.languageInfo.getNormalizedNerSpan("MONEY", c.getStart(), c.getEnd());
           if (value != null) {
             try {
+              if (value.startsWith(">=") || value.startsWith("<="))
+                value = value.substring(3);
+              else if (value.startsWith(">") || value.startsWith("<") || value.startsWith("~"))
+                value = value.substring(2);
+              else
+                value = value.substring(1);
+              
               NumberValue numberValue = (opts.unitless ?
-                  new NumberValue(Double.parseDouble(value.substring(1))) :
-                    new NumberValue(Double.parseDouble(value.substring(1)), "fb:en.dollar"));
+                  new NumberValue(Double.parseDouble(value))
+                  :
+                    new NumberValue(Double.parseDouble(value), "fb:en.dollar"));
               SemType type = SemType.floatType;
               return new Derivation.Builder()
                       .withCallable(c)

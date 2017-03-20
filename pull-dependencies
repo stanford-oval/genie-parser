@@ -51,7 +51,7 @@ def pullAfs(sourcePath, dir=nil, opts={})
 
   if $isPublic
     # Download url => localPath
-    url = 'https://web.stanford.edu/~gcampagn/sempre/' + sourcePath + ext
+    url = 'http://parmesan.stanford.edu/corenlp/' + sourcePath + ext
     localPath = destDir + '/' + name + ext
     if File.exists?(localPath)
       return

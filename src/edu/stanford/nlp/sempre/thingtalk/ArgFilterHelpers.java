@@ -7,7 +7,7 @@ import com.google.common.collect.Sets;
 import edu.stanford.nlp.sempre.NumberValue;
 import edu.stanford.nlp.sempre.Value;
 
-class ArgFilterHelpers {
+public class ArgFilterHelpers {
   private ArgFilterHelpers() {
   }
 
@@ -42,6 +42,10 @@ class ArgFilterHelpers {
 
   public static boolean isUnit(String unit) {
     return ALL_UNITS.contains(unit);
+  }
+
+  public static boolean isTimeUnit(String unit) {
+    return TIME_UNITS.contains(unit);
   }
 
   private static boolean unitOk(String have, String want) {
