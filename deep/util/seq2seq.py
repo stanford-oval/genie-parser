@@ -117,6 +117,14 @@ class Seq2SeqEvaluator(object):
     def eval(self, session, save_to_file=False):
         inputs, input_lengths, labels, _ = self.data
         sequences = []
+        gold_programs = set()
+        correct_programs = set()
+        for gold in labels:
+            try:
+                gold = gold[:list(gold).index(self.grammar.end)]
+            except ValueError:
+                pass
+            gold_programs.add(tuple(gold))
     
         dict_reverse = self.grammar.tokens
 
@@ -139,6 +147,7 @@ class Seq2SeqEvaluator(object):
                         decoded = decoded[:decoded.index(self.grammar.end)]
                     except ValueError:
                         pass
+                    decoded_tuple = tuple(decoded)
             
                     gold = list(label_batch[i])
                     try:
@@ -165,11 +174,13 @@ class Seq2SeqEvaluator(object):
                     if gold_channels == decoded_channels:
                         ok_ch += 1
                     if self.grammar.compare(gold, decoded):
+                        correct_programs.add(decoded_tuple)
                         ok_full += 1
             print self.tag, "ok 0:", float(ok_0)/len(labels)
             print self.tag, "ok channel:", float(ok_ch)/len(labels)
             print self.tag, "ok function:", float(ok_fn)/len(labels)
             print self.tag, "ok full:", float(ok_full)/len(labels)
+            print self.tag, "recall:", float(len(correct_programs))/len(gold_programs)
         finally:
             if fp is not None:
                 fp.close()

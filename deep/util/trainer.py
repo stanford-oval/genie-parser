@@ -86,7 +86,6 @@ class Trainer(object):
                 stats.append((average_loss, train_acc))
             print
             sys.stdout.flush()
-        return best, best_train
-
         with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
             json.dump(stats, fp)
+        return best, best_train
