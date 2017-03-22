@@ -31,8 +31,8 @@ def run():
     config.rnn_cell_type = sys.argv[8]
     config.rnn_layers = int(sys.argv[9])
     config.l2_regularization = float(sys.argv[10])
-    if len(sys.argv) > 12:
-        config.apply_attention = (sys.argv[12] == "yes")
+    if len(sys.argv) > 11:
+        config.apply_attention = (sys.argv[11] == "yes")
     print "unknown", unknown_tokens
 
     # Tell TensorFlow that the model will be built into the default Graph.
