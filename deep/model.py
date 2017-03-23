@@ -155,13 +155,13 @@ class BaseAligner(Model):
                 if self.config.apply_attention:
                     raw_att_score = tf.matmul(tf.reshape(cell_output, (batch_size, 1, self.config.hidden_size)), enc_hidden_states, transpose_b=True)
                     assert raw_att_score.get_shape()[1:] == (1, self.config.max_length)
-                    if self.capture_attention:
-                        if context_state is None:
-                            context_state = attention_ta
-                        context_state = context_state.write(time-1, raw_att_score)
                 
                     norm_att_score = tf.nn.softmax(raw_att_score)
                     assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
+                    if self.capture_attention:
+                        if context_state is None:
+                            context_state = attention_ta
+                        context_state = context_state.write(time-1, norm_att_score)
                 
                     context_vector = tf.matmul(norm_att_score, enc_hidden_states)
                     assert context_vector.get_shape()[1:] == (1, self.config.hidden_size)

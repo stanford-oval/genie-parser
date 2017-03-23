@@ -19,17 +19,19 @@ from util.seq2seq import Seq2SeqEvaluator
 from util.loader import vectorize, unknown_tokens, load_data
 from model import initialize
 
-def show_heatmap(input, output, attention):
-    data = np.transpose(attention[:len(input),:len(output)])
+def show_heatmap(x, y, attention):
+    #print attention[:len(y),:len(x)]
+    #print attention[:len(y),:len(x)].shape
+    data = np.transpose(attention[:len(y),:len(x)])
     
     #ax = plt.axes(aspect=0.4)
     ax = plt.axes()
     heatmap = plt.pcolor(data, cmap=plt.cm.Blues)
 
-    xticks = np.arange(len(input)) + 0.5
-    xlabels = input
-    yticks = np.arange(len(output)) + 0.5
-    ylabels = output
+    xticks = np.arange(len(y)) + 0.5
+    xlabels = y
+    yticks = np.arange(len(x)) + 0.5
+    ylabels = x
     ax.set_xticks(xticks)
     ax.set_xticklabels(xlabels)
     ax.set_yticks(yticks)
