@@ -21,7 +21,7 @@ class Config(object):
     hidden_size = 300
     batch_size = 256
     #batch_size = 5
-    n_epochs = 40
+    n_epochs = 80
     lr = 0.001
     train_input_embeddings = False
     train_output_embeddings = False
@@ -75,7 +75,7 @@ class BaseAligner(Model):
     def add_encoder_op(self, inputs, training):
         raise NotImplementedError()
 
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
         cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
             
         U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size))
@@ -95,7 +95,7 @@ class BaseAligner(Model):
 
             decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
             dec_hidden_states, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn,
-                inputs=outputs, sequence_length=self.output_length_placeholder)
+                inputs=outputs, sequence_length=self.output_length_placeholder, scope=scope)
 
             assert dec_hidden_states.get_shape()[2:] == (self.config.hidden_size,)
             dec_hidden_states.set_shape((None, self.config.max_length, self.config.hidden_size))
@@ -136,7 +136,12 @@ class BaseAligner(Model):
             #assert preds.get_shape()[1:] == (self.config.max_length, self.config.output_size)
 
         else:
-            def output_fn(cell_output, dec_cell_state, batch_size):
+            if self.capture_attention:
+                attention_ta = tf.TensorArray(tf.float32, self.config.max_length)
+            else:
+                attention_ta = None
+                
+            def output_fn(time, cell_output, dec_cell_state, batch_size, context_state):
                 assert cell_output.get_shape()[1:] == (self.config.hidden_size,)
                 #hidden_final_state = enc_final_state
                 #if self.config.input_cell == "lstm":
@@ -150,6 +155,10 @@ class BaseAligner(Model):
                 if self.config.apply_attention:
                     raw_att_score = tf.matmul(tf.reshape(cell_output, (batch_size, 1, self.config.hidden_size)), enc_hidden_states, transpose_b=True)
                     assert raw_att_score.get_shape()[1:] == (1, self.config.max_length)
+                    if self.capture_attention:
+                        if context_state is None:
+                            context_state = attention_ta
+                        context_state = context_state.write(time-1, raw_att_score)
                 
                     norm_att_score = tf.nn.softmax(raw_att_score)
                     assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
@@ -165,13 +174,14 @@ class BaseAligner(Model):
                 assert result.get_shape()[1:] == (self.config.hidden_size,)
                 result = tf.matmul(result, U) + b_y
                 assert result.get_shape()[1:] == (self.config.output_size,)
-                return result
+                return result, context_state
 
             #decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_inference(output_fn, enc_final_state,
             #    output_embed_matrix, self.config.sos, self.config.eos, self.config.max_length-1, self.config.output_size)
             decoder_fn = grammar_decoder_fn_inference(output_fn, enc_final_state, output_embed_matrix,
-                                                      self.config.max_length-1, self.config.grammar)
-            dec_preds, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn)
+                                                      self.config.max_length-1, self.config.grammar,
+                                                      first_output_state=attention_ta)
+            dec_preds, dec_final_state, (_, final_attention_ta) = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn, scope=scope)
 
             assert dec_preds.get_shape()[2:] == (self.config.output_size,)
             #if self.config.rnn_cell_type == "lstm":
@@ -180,6 +190,16 @@ class BaseAligner(Model):
             #else:
             #    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
             preds = dec_preds
+            
+            if self.capture_attention:
+                batch_size = tf.shape(dec_preds)[0]
+                max_time = tf.shape(dec_preds)[1]
+                attention_scores = final_attention_ta.gather(tf.range(0, max_time))
+                attention_scores = tf.reshape(attention_scores, (max_time, batch_size, self.config.max_length))
+                self.attention_scores = tf.transpose(attention_scores, [1, 0, 2])
+            else:
+                self.attention_scores = None
+            
         #print preds.get_shape()
         #assert preds.get_shape()[2:] == (self.config.output_size,)
         return preds
@@ -214,12 +234,12 @@ class BaseAligner(Model):
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.embed_size)
         
         # the encoder
-        with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training):
-            enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs, training=training)
+        with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training) as scope:
+            enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs, training=training, scope=scope)
         
         # the decoder
-        with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training):
-            preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=training)
+        with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
+            preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=training, scope=scope)
 
         return preds
 
@@ -258,15 +278,16 @@ class BaseAligner(Model):
     def __init__(self, config, pretrained_embeddings):
         self.config = config
         self.pretrained_embeddings = pretrained_embeddings
+        self.capture_attention = False
 
 
 class LSTMAligner(BaseAligner):
-    def add_encoder_op(self, inputs, training):
+    def add_encoder_op(self, inputs, training, scope=None):
         cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
         #cell_enc = tf.contrib.rnn.AttentionCellWrapper(cell_enc, 5, state_is_tuple=True)
 
         return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
-                                 dtype=tf.float32)
+                                 dtype=tf.float32, scope=scope)
         # assert enc_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
         # if self.config.input_cell == "lstm":
         #     assert enc_final_state[0][0].get_shape()[1:] == (self.config.hidden_size,)
