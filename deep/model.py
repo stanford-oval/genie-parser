@@ -236,7 +236,12 @@ class BaseAligner(Model):
         # the encoder
         with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training) as scope:
             enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs, training=training, scope=scope)
-        
+            if not training:
+                if self.capture_final_encoder_state:
+                    self.final_encoder_state = enc_final_state
+                else:
+                    self.final_encoder_state = None
+
         # the decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
             preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=training, scope=scope)
@@ -279,6 +284,7 @@ class BaseAligner(Model):
         self.config = config
         self.pretrained_embeddings = pretrained_embeddings
         self.capture_attention = False
+        self.capture_final_encoder_state = False
 
 
 class LSTMAligner(BaseAligner):
@@ -297,7 +303,7 @@ class LSTMAligner(BaseAligner):
 
 
 class BagOfWordsAligner(BaseAligner):
-    def add_encoder_op(self, inputs, training):
+    def add_encoder_op(self, inputs, training, scope=None):
         W = tf.get_variable('W', (self.config.embed_size, self.config.hidden_size))
         b = tf.get_variable('b', shape=(self.config.hidden_size,), initializer=tf.constant_initializer(0, tf.float32))
 
