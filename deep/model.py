@@ -10,18 +10,21 @@ from util.model import Model
 from util.seq2seq import grammar_decoder_fn_inference
 from util.loader import load_dictionary, load_embeddings
 
+from util.beam_search import beam_decoder
+
 from util.seq2seq import SimpleGrammar
 from thingtalk.grammar import ThingtalkGrammar
 
 class Config(object):
     max_length = 60
-    dropout = 0.7
+    dropout = 0.5
     #dropout = 1
     embed_size = 300
-    hidden_size = 300
+    hidden_size = 175
     batch_size = 256
-    #batch_size = 5
-    n_epochs = 80
+    #batch_size = 1
+    beam_size = 4
+    n_epochs = 40
     lr = 0.001
     train_input_embeddings = False
     train_output_embeddings = False
@@ -30,7 +33,7 @@ class Config(object):
     rnn_layers = 1
     apply_attention = True
     grammar = None
-    l2_regularization = 0.005
+    l2_regularization = 0
     
     def apply_cmdline(self, cmdline):
         self.dropout = float(cmdline[0])
@@ -86,7 +89,8 @@ class BaseAligner(Model):
             V2 = tf.get_variable('V2', shape=(self.config.hidden_size, self.config.hidden_size))
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, V2)
         b_y = tf.get_variable('b_y', shape=(self.config.output_size,), initializer=tf.constant_initializer(0, tf.float32))
-            
+        tf.add_to_collection(tf.GraphKeys.BIASES, b_y)
+
         if training:
             go_vector = tf.ones((tf.shape(self.output_placeholder)[0], 1), dtype=tf.int32) * self.config.sos
             output_ids_with_go = tf.concat([go_vector, self.output_placeholder], axis=1)
@@ -99,18 +103,6 @@ class BaseAligner(Model):
 
             assert dec_hidden_states.get_shape()[2:] == (self.config.hidden_size,)
             dec_hidden_states.set_shape((None, self.config.max_length, self.config.hidden_size))
-
-            # hidden_dec_final_state = dec_final_state
-            # if self.config.output_cell == "lstm":
-            #     assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-            #     assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-            #     hidden_dec_final_state = dec_final_state[1]
-            # else:
-            #     assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
-            #
-            # hidden_enc_final_state = enc_final_state
-            # if self.config.input_cell == "lstm":
-            #     hidden_enc_final_state = enc_final_state[1]
 
             # Attention mechanism
             if self.config.apply_attention:
@@ -143,13 +135,6 @@ class BaseAligner(Model):
                 
             def output_fn(time, cell_output, dec_cell_state, batch_size, context_state):
                 assert cell_output.get_shape()[1:] == (self.config.hidden_size,)
-                #hidden_final_state = enc_final_state
-                #if self.config.input_cell == "lstm":
-                #    assert enc_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-                #    assert enc_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-                #    hidden_final_state = enc_final_state[1]
-                #else:
-                #    assert enc_final_state.get_shape()[1:] == (self.config.hidden_size,)
 
                 ## Attention mechanism
                 if self.config.apply_attention:
@@ -184,11 +169,6 @@ class BaseAligner(Model):
             dec_preds, dec_final_state, (_, final_attention_ta) = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn, scope=scope)
 
             assert dec_preds.get_shape()[2:] == (self.config.output_size,)
-            #if self.config.rnn_cell_type == "lstm":
-            #    assert dec_final_state[0].get_shape()[1:] == (self.config.hidden_size,)
-            #    assert dec_final_state[1].get_shape()[1:] == (self.config.hidden_size,)
-            #else:
-            #    assert dec_final_state.get_shape()[1:] == (self.config.hidden_size,)
             preds = dec_preds
             
             if self.capture_attention:
@@ -286,6 +266,146 @@ class BaseAligner(Model):
         self.capture_attention = False
         self.capture_final_encoder_state = False
 
+class BeamSearchAligner(BaseAligner):
+    def add_encoder_op(self, inputs, training, scope=None):
+        cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+
+        return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
+                                 dtype=tf.float32, scope=scope)
+
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
+        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+
+        U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size))
+        tf.add_to_collection(tf.GraphKeys.WEIGHTS, U)
+        if self.config.apply_attention:
+            V1 = tf.get_variable('V1', shape=(self.config.hidden_size, self.config.hidden_size))
+            tf.add_to_collection(tf.GraphKeys.WEIGHTS, V1)
+            V2 = tf.get_variable('V2', shape=(self.config.hidden_size, self.config.hidden_size))
+            tf.add_to_collection(tf.GraphKeys.WEIGHTS, V2)
+        b_y = tf.get_variable('b_y', shape=(self.config.output_size,),
+                              initializer=tf.constant_initializer(0, tf.float32))
+        tf.add_to_collection(tf.GraphKeys.BIASES, b_y)
+
+        if training:
+            go_vector = tf.ones((tf.shape(self.output_placeholder)[0], 1), dtype=tf.int32) * self.config.sos
+            output_ids_with_go = tf.concat([go_vector, self.output_placeholder], axis=1)
+            outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
+            # assert outputs.get_shape()[1:] == (self.config.max_length+1, self.config.output_size)
+
+            decoder_fn = tf.contrib.seq2seq.simple_decoder_fn_train(enc_final_state)
+            dec_hidden_states, dec_final_state, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn,
+                                                                                           inputs=outputs,
+                                                                                           sequence_length=self.output_length_placeholder,
+                                                                                           scope=scope)
+
+            assert dec_hidden_states.get_shape()[2:] == (self.config.hidden_size,)
+            dec_hidden_states.set_shape((None, self.config.max_length, self.config.hidden_size))
+
+            # Attention mechanism
+            if self.config.apply_attention:
+                raw_att_score = tf.matmul(dec_hidden_states, enc_hidden_states, transpose_b=True)
+                assert raw_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
+
+                norm_att_score = tf.nn.softmax(raw_att_score)
+                assert norm_att_score.get_shape()[1:] == (self.config.max_length, self.config.max_length)
+
+                context_vectors = tf.matmul(norm_att_score, enc_hidden_states)
+                assert context_vectors.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
+
+                dec_preds = tf.tanh(tf.tensordot(dec_hidden_states, V1, [[2], [0]]) +
+                                    tf.tensordot(context_vectors, V2, [[2], [0]]))
+                dec_preds.set_shape((None, self.config.max_length, self.config.hidden_size))
+                # assert dec_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
+            else:
+                dec_preds = dec_hidden_states
+                assert dec_preds.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
+
+            preds = tf.tensordot(dec_preds, U, [[2], [0]]) + b_y
+            preds.set_shape((None, self.config.max_length, self.config.output_size))
+            # assert preds.get_shape()[1:] == (self.config.max_length, self.config.output_size)
+
+        else:
+            # if self.capture_attention:
+            #     attention_ta = tf.TensorArray(tf.float32, self.config.max_length)
+            # else:
+            #     attention_ta = None
+            #
+            batch_size = tf.shape(enc_final_state[0][0])[0]
+
+            if self.config.apply_attention:
+                tensor_shape = enc_hidden_states.get_shape().with_rank_at_least(1)
+
+                dynamic_tensor_shape = tf.unstack(tf.shape(enc_hidden_states))
+                enc_hidden_states = tf.expand_dims(enc_hidden_states, 1)
+                enc_hidden_states = tf.tile(enc_hidden_states, [1, self.config.beam_size] + [1] * (tensor_shape.ndims - 1))
+                enc_hidden_states = tf.reshape(enc_hidden_states, [batch_size * self.config.beam_size] + list(dynamic_tensor_shape[1:]))
+                #enc_hidden_states.set_shape(new_tensor_shape)
+
+            def output_fn(time, cell_state, cell_input, cell_output, context_state):
+                #assert cell_output.get_shape()[1:] == (self.config.hidden_size,)
+
+                cell_output = tf.reshape(cell_output, (batch_size * self.config.beam_size, self.config.hidden_size))
+
+                ## Attention mechanism
+                if self.config.apply_attention:
+                    raw_att_score = tf.matmul(tf.reshape(cell_output, (batch_size * self.config.beam_size, 1, self.config.hidden_size)),
+                                              enc_hidden_states, transpose_b=True)
+                    #assert raw_att_score.get_shape()[1:] == (1, self.config.max_length)
+
+                    norm_att_score = tf.nn.softmax(raw_att_score)
+                    #assert norm_att_score.get_shape()[1:] == (1, self.config.max_length)
+
+                    context_vector = tf.matmul(norm_att_score, enc_hidden_states)
+                    #assert context_vector.get_shape()[1:] == (1, self.config.hidden_size)
+
+                    # result = tf.matmul(cell_output, U) + tf.matmul(att_context, V) + b_y
+                    result = tf.tanh(tf.matmul(cell_output, V1) +
+                                     tf.matmul(tf.reshape(context_vector, (batch_size * self.config.beam_size, self.config.hidden_size)), V2))
+                else:
+                    result = cell_output
+                    #   assert result.get_shape()[1:] == (self.config.hidden_size,)
+
+                result = tf.matmul(result, U) + b_y
+                result = tf.reshape(result, (batch_size, self.config.beam_size, self.config.output_size))
+                #assert result.get_shape()[1:] == (self.config.output_size,)
+
+                result = tf.nn.log_softmax(result)
+                return result, context_state
+
+            go_vector = tf.ones((batch_size,), dtype=tf.int32) * self.config.sos
+            initial_input = tf.nn.embedding_lookup([output_embed_matrix], go_vector)
+
+            dec_sparse, dec_logprobs = beam_decoder(cell=cell_dec, beam_size=self.config.beam_size, stop_token=self.config.eos,
+                                                    initial_state=enc_final_state, initial_input=initial_input,
+                                                    outputs_to_score_fn=output_fn,
+                                                    tokens_to_inputs_fn=lambda x: tf.gather(output_embed_matrix, x),
+                                                    max_len=self.config.max_length, cell_transform='flatten', output_dense=True, scope=scope)
+
+            print dec_sparse.get_shape()
+            #beam_preds = tf.reshape(dec_sparse, [batch_size, self.config.beam_size, -1])
+            #dec_preds = beam_preds[0]
+            dec_preds = dec_sparse
+
+            # dec_preds, dec_final_state, (_, final_attention_ta) = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec,
+            #                                                                                              decoder_fn,
+            #                                                                                              scope=scope)
+
+            #assert dec_preds.get_shape()[2:] == (self.config.output_size,)
+            preds = dec_preds
+
+            # if self.capture_attention:
+            #     batch_size = tf.shape(dec_preds)[0]
+            #     max_time = tf.shape(dec_preds)[1]
+            #     attention_scores = final_attention_ta.gather(tf.range(0, max_time))
+            #     attention_scores = tf.reshape(attention_scores, (max_time, batch_size, self.config.max_length))
+            #     self.attention_scores = tf.transpose(attention_scores, [1, 0, 2])
+            # else:
+            #     self.attention_scores = None
+
+        # print preds.get_shape()
+        # assert preds.get_shape()[2:] == (self.config.output_size,)
+        return preds
 
 class LSTMAligner(BaseAligner):
     def add_encoder_op(self, inputs, training, scope=None):
@@ -318,13 +438,15 @@ class BagOfWordsAligner(BaseAligner):
         
         return enc_hidden_states, enc_final_state
 
-
 def initialize(benchmark, model_type, input_words, embedding_file):
     config = Config()
 
     if benchmark == "tt":
         print "Loading ThingTalk Grammar"
         config.grammar = ThingtalkGrammar()
+
+        #Uncomment this for separate channel
+        #config.grammar = SimpleGrammar("/srv/data/deep-sempre/workdir.sepchannel/output_tokens.txt")
     elif benchmark == "geo":
         print "Loading Geoqueries Grammar"
         config.grammar = SimpleGrammar("geoqueries/output_tokens.txt")
@@ -347,6 +469,8 @@ def initialize(benchmark, model_type, input_words, embedding_file):
         model = BagOfWordsAligner(config, embeddings_matrix)
     elif model_type == 'seq2seq':
         model = LSTMAligner(config, embeddings_matrix)
+    elif model_type == 'beamsearch':
+        model = BeamSearchAligner(config, embeddings_matrix)
     else:
         raise ValueError("Invalid model type %s" % (model_type,))
     

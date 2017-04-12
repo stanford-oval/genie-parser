@@ -42,7 +42,7 @@ class SimpleGrammar(AbstractGrammar):
         tokens = set()
         with open(filename, 'r') as fp:
             for line in fp.readlines():
-                tokens.add(line.strip().lower())
+                tokens.add(line.strip())
         
         self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>'] + list(tokens)
         self.dictionary = dict()
@@ -84,7 +84,7 @@ def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
             if cell_input is not None:
                 raise ValueError("Expected cell_input to be None, but saw: %s" %
                                  cell_input)
-            
+
             if cell_output is None:
                 # invariant that this is time == 0
                 cell_state = encoder_state
@@ -95,6 +95,7 @@ def grammar_decoder_fn_inference(output_fn, encoder_state, embeddings,
             else:
                 grammar_state, output_state = context_state
                 cell_output, next_output_state = output_fn(time, cell_output, cell_state, batch_size, output_state)
+
             next_input_id, next_grammar_state = grammar.constrain(cell_output, grammar_state, batch_size, dtype=dtype)
             next_input = tf.gather(embeddings, next_input_id)
             done = tf.equal(next_input_id, end_of_sequence_id)
@@ -144,7 +145,9 @@ class Seq2SeqEvaluator(object):
 
         try:
             for input_batch, input_length_batch, label_batch in get_minibatches([inputs, input_lengths, labels], self._batch_size):
-                sequences = list(self.model.predict_on_batch(session, input_batch, input_length_batch))
+                sequences = self.model.predict_on_batch(session, input_batch, input_length_batch)
+                #print sequences.shape
+                #print sequences
 
                 for i, seq in enumerate(sequences):
                     decoded = list(self.grammar.decode_output(seq))

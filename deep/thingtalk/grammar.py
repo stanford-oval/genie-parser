@@ -383,10 +383,14 @@ class ThingtalkGrammar(object):
         output = []
         curr_state = self.start_state
         for logits in sequence:
-            assert logits.shape == (self.output_size,)
-            allowed_tokens = self.allowed_token_matrix[curr_state]
-            constrained_logits = logits - np.logical_not(allowed_tokens).astype(np.float32) * 1e+20
-            word_idx = np.argmax(constrained_logits)
+            #print logits
+            if logits.shape == ():
+                word_idx = logits
+            else:
+                assert logits.shape == (self.output_size,)
+                allowed_tokens = self.allowed_token_matrix[curr_state]
+                constrained_logits = logits - np.logical_not(allowed_tokens).astype(np.float32) * 1e+20
+                word_idx = np.argmax(constrained_logits)
             if word_idx > 0:
                 output.append(word_idx)
             curr_state = self.transition_matrix[curr_state, word_idx]

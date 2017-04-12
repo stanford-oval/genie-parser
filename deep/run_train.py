@@ -12,7 +12,8 @@ from model import initialize
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
+        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>>" \
+                                                  " <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
         sys.exit(1)
 
     np.random.seed(42)
