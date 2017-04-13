@@ -379,6 +379,28 @@ class ThingtalkGrammar(object):
         next_state = tf.gather_nd(transitions, indices)
         return choice, next_state
 
+    def get_init_state(self, batch_size):
+        return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
+
+    def constrain_logits(self, logits, curr_state):
+        allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
+        assert allowed_tokens.get_shape()[1:] == (self.output_size,)
+
+        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+20
+
+        return constrained_logits
+
+    def transition(self, curr_state, next_symbols, batch_size):
+        if curr_state is None:
+            return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
+
+        transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
+        assert transitions.get_shape()[1:] == (self.output_size,)
+
+        indices = tf.stack((tf.range(0, batch_size), next_symbols), axis=1)
+        next_state = tf.gather_nd(transitions, indices)
+        return next_state
+
     def decode_output(self, sequence):
         output = []
         curr_state = self.start_state

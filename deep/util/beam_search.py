@@ -297,6 +297,7 @@ class BeamSearchHelper(object):
             tokens_to_inputs_fn=None,
             initial_context_state=None,
             cell_transform='default',
+            grammar=None,
             scope=None
             ):
         self.beam_size = beam_size
@@ -378,6 +379,9 @@ class BeamSearchHelper(object):
 
         self.batch_size_times_beam_size = self.batch_size * self.beam_size
 
+        # Adding grammar constraints
+        self.grammar = grammar
+
     def outputs_to_score_fn(self, time, cell_state, cell_input, cell_output, context_state):
         return tf.nn.log_softmax(cell_output), None
 
@@ -402,6 +406,8 @@ class BeamSearchHelper(object):
             tf.fill([self.batch_size_times_beam_size], self.INVALID_SCORE)
         )
 
+        grammar_states = self.grammar.get_init_state(self.batch_size_times_beam_size)
+
         # Set up correct dimensions for maintaining loop invariants.
         # Note that the last dimension (initialized to zero) is not a loop invariant,
         # so we need to clear it. TODO(nikita): is there a public API for clearing shape
@@ -410,6 +416,7 @@ class BeamSearchHelper(object):
         cand_logprobs._shape = tf.TensorShape((self.inferred_batch_size,))
         beam_symbols._shape = tf.TensorShape((self.inferred_batch_size_times_beam_size, None))
         beam_logprobs._shape = tf.TensorShape((self.inferred_batch_size_times_beam_size,))
+        grammar_states._shape = tf.TensorShape((self.inferred_batch_size_times_beam_size,))
 
         next_loop_state = (
             self.initial_context_state,
@@ -417,6 +424,7 @@ class BeamSearchHelper(object):
             cand_logprobs,
             beam_symbols,
             beam_logprobs,
+            grammar_states,
         )
 
         emit_output = tf.zeros(self.cell.output_size)
@@ -432,6 +440,7 @@ class BeamSearchHelper(object):
             past_cand_logprobs,# [batch_size]
             past_beam_symbols, # [batch_size*beam_size, time-1], right-aligned
             past_beam_logprobs,# [batch_size*beam_size]
+            past_grammar_states, # [batch_size*beam_size]
                 ) = loop_state
 
         # We don't actually use this, but emit_output is required to match the
@@ -441,12 +450,15 @@ class BeamSearchHelper(object):
         # 1. Get scores for all candidate sequences
 
         logprobs, next_output_loop_state = self.outputs_to_score_fn(time, cell_state, None, cell_output, output_loop_state)
-
         try:
             num_classes = int(logprobs.get_shape()[-1])
         except:
             # Shape inference failed
             num_classes = tf.shape(logprobs)[-1]
+
+        logprobs = self.grammar.constrain_logits(tf.reshape(logprobs, (self.batch_size_times_beam_size, num_classes)), past_grammar_states)
+        logprobs = tf.nn.log_softmax(logprobs)
+        logprobs = tf.reshape(logprobs, (self.batch_size, self.beam_size, num_classes))
 
         logprobs_batched = tf.reshape(logprobs + tf.expand_dims(tf.reshape(past_beam_logprobs, [self.batch_size, self.beam_size]), 2),
                                       [self.batch_size, self.beam_size * num_classes])
@@ -454,12 +466,13 @@ class BeamSearchHelper(object):
         # 2. Determine which states to pass to next iteration
 
         # TODO(nikita): consider using slice+fill+concat instead of adding a mask
-        nondone_mask = tf.reshape(
-            tf.cast(tf.equal(tf.range(num_classes), self.stop_token), tf.float32) * self.INVALID_SCORE,
-            [1, 1, num_classes])
+        #nondone_mask = tf.reshape(
+        #   tf.cast(tf.equal(tf.range(num_classes), self.stop_token), tf.float32) * self.INVALID_SCORE,
+        #    [1, 1, num_classes])
 
-        nondone_mask = tf.reshape(tf.tile(nondone_mask, [1, self.beam_size, 1]),
-            [-1, self.beam_size*num_classes])
+        #nondone_mask = tf.reshape(tf.tile(nondone_mask, [1, self.beam_size, 1]),
+        #    [-1, self.beam_size*num_classes])
+        nondone_mask = 0
 
         beam_logprobs, indices = tf.nn.top_k(logprobs_batched + nondone_mask, self.beam_size)
         beam_logprobs = tf.reshape(beam_logprobs, [-1])
@@ -470,6 +483,10 @@ class BeamSearchHelper(object):
 
         symbols_history = flat_batch_gather(past_beam_symbols, parent_refs, batch_size=self.batch_size, options_size=self.beam_size)
         beam_symbols = tf.concat([symbols_history, tf.reshape(symbols, [-1, 1])], 1)
+
+        grammar_state_history = flat_batch_gather(past_grammar_states, parent_refs, batch_size=self.batch_size, options_size=self.beam_size)
+        next_grammar_states = self.grammar.transition(grammar_state_history, tf.reshape(symbols, (self.batch_size_times_beam_size,)), self.batch_size_times_beam_size)
+        next_grammar_states.set_shape((None,))
 
         # Handle the output and the cell state shuffling
         next_cell_state = nest_map(
@@ -523,7 +540,7 @@ class BeamSearchHelper(object):
         for tensor in [cand_symbols, cand_logprobs, elements_finished]:
             tensor.set_shape(tf.TensorShape((self.inferred_batch_size,)).concatenate(tensor.get_shape()[1:]))
 
-        for tensor in [beam_symbols, beam_logprobs]:
+        for tensor in [beam_symbols, beam_logprobs, next_grammar_states]:
             tensor.set_shape(tf.TensorShape((self.inferred_batch_size_times_beam_size,)).concatenate(tensor.get_shape()[1:]))
 
         next_loop_state = (
@@ -532,6 +549,7 @@ class BeamSearchHelper(object):
             cand_logprobs,
             beam_symbols,
             beam_logprobs,
+            next_grammar_states,
         )
 
         return (elements_finished, next_input, next_cell_state,
@@ -545,11 +563,11 @@ class BeamSearchHelper(object):
 
     def decode_dense(self):
         emit_ta, final_state, final_loop_state = tf.nn.raw_rnn(self.cell, self.loop_fn, scope=self.scope)
-        final_output_context_state, cand_symbols, cand_logprobs, beam_symbols, beam_logprobs = final_loop_state
-        return cand_symbols, cand_logprobs
+        final_output_context_state, cand_symbols, cand_logprobs, beam_symbols, beam_logprobs, final_grammar_state = final_loop_state
+        return cand_symbols, cand_logprobs, beam_symbols, beam_logprobs
 
     def decode_sparse(self, include_stop_tokens=True):
-        dense_symbols, logprobs = self.decode_dense()
+        dense_symbols, logprobs, _, _ = self.decode_dense()
         mask = tf.not_equal(dense_symbols, self.stop_token)
         if include_stop_tokens:
             mask = tf.concat([tf.ones_like(mask[:,:1]), mask[:,:-1]], 1)
@@ -568,6 +586,7 @@ def beam_decoder(
         max_len=None,
         cell_transform='default',
         output_dense=False,
+        grammar=None,
         scope=None
         ):
     """Beam search decoder
@@ -625,6 +644,7 @@ def beam_decoder(
               and BasicRNNCell. For all other cell types, it selects 'replicate'
         output_dense: (default False) toggles returning the decoded sequence as
             dense tensor.
+        grammar: (default None) uses grammar to constrain the logits before decode
         scope: VariableScope for the created subgraph; defaults to "RNN".
 
     Returns:
@@ -647,6 +667,7 @@ def beam_decoder(
             score_upper_bound=score_upper_bound,
             max_len=max_len,
             cell_transform=cell_transform,
+            grammar=grammar,
             scope=varscope
         )
 

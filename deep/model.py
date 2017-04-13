@@ -23,7 +23,7 @@ class Config(object):
     hidden_size = 175
     batch_size = 256
     #batch_size = 1
-    beam_size = 4
+    beam_size = 10
     n_epochs = 40
     lr = 0.001
     train_input_embeddings = False
@@ -90,6 +90,8 @@ class BaseAligner(Model):
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, V2)
         b_y = tf.get_variable('b_y', shape=(self.config.output_size,), initializer=tf.constant_initializer(0, tf.float32))
         tf.add_to_collection(tf.GraphKeys.BIASES, b_y)
+
+        batch_size = tf.shape(self.input_placeholder)[0]
 
         if training:
             go_vector = tf.ones((tf.shape(self.output_placeholder)[0], 1), dtype=tf.int32) * self.config.sos
@@ -169,7 +171,7 @@ class BaseAligner(Model):
             dec_preds, dec_final_state, (_, final_attention_ta) = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec, decoder_fn, scope=scope)
 
             assert dec_preds.get_shape()[2:] == (self.config.output_size,)
-            preds = dec_preds
+            preds = tf.reshape(dec_preds, [batch_size, 1, -1, self.config.output_size])
             
             if self.capture_attention:
                 batch_size = tf.shape(dec_preds)[0]
@@ -370,22 +372,29 @@ class BeamSearchAligner(BaseAligner):
                 result = tf.reshape(result, (batch_size, self.config.beam_size, self.config.output_size))
                 #assert result.get_shape()[1:] == (self.config.output_size,)
 
-                result = tf.nn.log_softmax(result)
                 return result, context_state
 
             go_vector = tf.ones((batch_size,), dtype=tf.int32) * self.config.sos
             initial_input = tf.nn.embedding_lookup([output_embed_matrix], go_vector)
 
-            dec_sparse, dec_logprobs = beam_decoder(cell=cell_dec, beam_size=self.config.beam_size, stop_token=self.config.eos,
-                                                    initial_state=enc_final_state, initial_input=initial_input,
-                                                    outputs_to_score_fn=output_fn,
-                                                    tokens_to_inputs_fn=lambda x: tf.gather(output_embed_matrix, x),
-                                                    max_len=self.config.max_length, cell_transform='flatten', output_dense=True, scope=scope)
+            cand_symbols, cand_logprobs, beam_symbols, beam_logprobs = beam_decoder(cell=cell_dec,
+                                                                                    beam_size=self.config.beam_size,
+                                                                                    stop_token=self.config.eos,
+                                                                                    initial_state=enc_final_state,
+                                                                                    initial_input=initial_input,
+                                                                                    outputs_to_score_fn=output_fn,
+                                                                                    tokens_to_inputs_fn=lambda x: tf.gather(output_embed_matrix, x),
+                                                                                    max_len=self.config.max_length,
+                                                                                    cell_transform='flatten',
+                                                                                    output_dense=True,
+                                                                                    grammar=self.config.grammar,
+                                                                                    scope=scope)
 
-            print dec_sparse.get_shape()
+            #print dec_sparse.get_shape()
             #beam_preds = tf.reshape(dec_sparse, [batch_size, self.config.beam_size, -1])
             #dec_preds = beam_preds[0]
-            dec_preds = dec_sparse
+            dec_preds = tf.reshape(beam_symbols, [batch_size, self.config.beam_size, -1])
+            #dec_preds = tf.reshape(cand_symbols, [batch_size, 1, -1])
 
             # dec_preds, dec_final_state, (_, final_attention_ta) = tf.contrib.seq2seq.dynamic_rnn_decoder(cell_dec,
             #                                                                                              decoder_fn,
