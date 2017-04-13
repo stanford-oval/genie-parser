@@ -155,13 +155,13 @@ class Seq2SeqEvaluator(object):
                 #print sequences
 
                 for i, seq in enumerate(sequences):
-                    print
+                    #print
                     gold = list(label_batch[i])
                     try:
                         gold = gold[:gold.index(self.grammar.end)]
                     except ValueError:
                         pass
-                    print "GOLD:", ' '.join(dict_reverse[l] for l in gold)
+                    #print "GOLD:", ' '.join(dict_reverse[l] for l in gold)
                     gold_functions = get_functions(gold)
                     gold_channels = set(map(lambda x: x[x.index('.') + 1:], gold_functions))
 
@@ -173,7 +173,7 @@ class Seq2SeqEvaluator(object):
                             decoded = decoded[:decoded.index(self.grammar.end)]
                         except ValueError:
                             pass
-                        print "TOP%d:"%(beam_pos), ' '.join(dict_reverse[l] for l in decoded)
+                        #print "TOP%d:"%(beam_pos), ' '.join(dict_reverse[l] for l in decoded)
 
                         decoded_tuple = tuple(decoded)
 

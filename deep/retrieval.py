@@ -41,32 +41,43 @@ def run():
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
     with tf.Graph().as_default():
-        input_embed_matrix = tf.constant(embeddings_matrix)
-        train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[0]))
-        train_encoded = tf.reduce_sum(train_inputs, axis=1)
-        
-        test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[0]))
-        test_encoded = tf.reduce_sum(test_inputs, axis=1)
-        
-        distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
-        indices = tf.argmin(distances, axis=1)
-
-        ok_0 = 0
-        ok_ch = 0
-        ok_fn = 0
-        ok_full = 0
-        correct_programs = set()
-        gold_programs = set()
-        for gold in test_data[2]:
-            try:
-                gold = gold[:list(gold).index(grammar.end)]
-            except ValueError:
-                pass
-            gold_programs.add(tuple(gold))
-
         # Create a session for running Ops in the Graph
         with tf.Session() as sess:
+            input_embed_matrix = tf.constant(embeddings_matrix)
+            train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[0]))
+            train_encoded = tf.reduce_sum(train_inputs, axis=1)
+            #print train_encoded.eval()
+            train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
+
+            test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[0]))
+            test_encoded = tf.reduce_sum(test_inputs, axis=1)
+            test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
+            #print test_encoded.eval()
+
+            #print (train_encoded - test_encoded).eval()
+        
+            distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
+            distances /= tf.reshape(train_norm, (1, -1))
+            distances /= tf.reshape(test_norm, (-1, 1))
+            #print distances.eval()
+            indices = tf.argmax(distances, axis=1)
+            #print indices.eval()
+
+            ok_0 = 0
+            ok_ch = 0
+            ok_fn = 0
+            ok_full = 0
+            correct_programs = set()
+            gold_programs = set()
+            for gold in test_data[2]:
+                try:
+                    gold = gold[:list(gold).index(grammar.end)]
+                except ValueError:
+                    pass
+                gold_programs.add(tuple(gold))
+
             indices = indices.eval(session=sess)
+            print indices.shape
             
             for test_i, train_i in enumerate(indices):
                 gold = list(test_data[2][test_i])
@@ -82,11 +93,14 @@ def run():
                 except ValueError:
                     pass
                 
+                #print "GOLD:", ' '.join(grammar.tokens[l] for l in gold)
+                #print "DECODED:", ' '.join(grammar.tokens[l] for l in decoded)
+
                 if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
                     ok_0 += 1
 
                 def get_functions(seq):
-                    return set(filter(lambda x:x.startswith('tt:') and not x.startswith('tt:param.'), map(lambda x: self.grammar.tokens[x], seq)))
+                    return set(filter(lambda x:x.startswith('tt:') and not x.startswith('tt:param.'), map(lambda x: grammar.tokens[x], seq)))
                 gold_functions = get_functions(gold)
                 decoded_functions = get_functions(decoded)
                 gold_channels = set(map(lambda x:x[x.index('.')+1:], gold_functions))
@@ -99,10 +113,10 @@ def run():
                     correct_programs.add(decoded_tuple)
                     ok_full += 1
         
-        print "ok 0:", float(ok_0)/len(test_data)
-        print "ok channel:", float(ok_ch)/len(test_data)
-        print "ok function:", float(ok_fn)/len(test_data)
-        print "ok full:", float(ok_full)/len(test_data)
+        print "ok 0:", float(ok_0)/len(test_data[0])
+        print "ok channel:", float(ok_ch)/len(test_data[0])
+        print "ok function:", float(ok_fn)/len(test_data[0])
+        print "ok full:", float(ok_full)/len(test_data[0])
         print "recall:", float(len(correct_programs))/len(gold_programs)
 
 
