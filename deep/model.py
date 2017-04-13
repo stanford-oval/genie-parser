@@ -22,7 +22,6 @@ class Config(object):
     embed_size = 300
     hidden_size = 175
     batch_size = 256
-    #batch_size = 1
     beam_size = 10
     n_epochs = 40
     lr = 0.001
@@ -465,7 +464,7 @@ def initialize(benchmark, model_type, input_words, embedding_file):
     words, reverse = load_dictionary(input_words, benchmark)
     config.dictionary_size = len(words)
     print "%d words in dictionary" % (config.dictionary_size,)
-    embeddings_matrix = load_embeddings(embedding_file, words, config)
+    embeddings_matrix = load_embeddings(embedding_file, words, embed_size=config.embed_size)
 
     config.output_size = config.grammar.output_size
     if not config.train_output_embeddings:

@@ -191,7 +191,7 @@ class Seq2SeqConverter {
       }
 
       switch (token) {
-      case "google":
+      //case "google":
       case "warriors":
       case "stanford":
       case "apple":
