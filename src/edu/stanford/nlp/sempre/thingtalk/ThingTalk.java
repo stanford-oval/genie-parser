@@ -99,6 +99,11 @@ public final class ThingTalk {
     return queryVal;
   }
 
+  public static QueryValue queryParam(TypedStringValue personName, ChannelNameValue queryName) {
+    QueryValue queryVal = new QueryValue(personName, queryName);
+    return queryVal;
+  }
+
   //******************************************************************************************************************
   // Constructing the action value structure
   //******************************************************************************************************************

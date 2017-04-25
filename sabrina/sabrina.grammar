@@ -52,6 +52,8 @@
 (rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL URL) (anchored 1))
 (rule $EntityValue ($TOKEN) (thingtalk.EntityLexiconFn @language_tag) (anchored 1))
 
+(rule $PersonValue ($TOKEN) (thingtalk.NerValueFn PERSON Person) (anchored 1))
+
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
@@ -103,6 +105,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
+(rule $Query ($PersonValue $QueryName) (lambda person (lambda query (call @queryParam (var person) (var query)))))
 (for @v @all_values
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with "" is))
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @containing contains))
