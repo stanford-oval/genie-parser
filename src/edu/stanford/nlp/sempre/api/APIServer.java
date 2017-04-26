@@ -215,12 +215,19 @@ public class APIServer implements Runnable {
           new ReloadParametersExchangeState(APIServer.this, exchange).run();
         }
       };
+      HttpHandler updateLexicon = new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          new IncrementalUpdateLexiconExchangeState(APIServer.this, exchange).run();
+        }
+      };
 
       if (server != null) {
         server.createContext("/query", query);
         server.createContext("/learn", learn);
         server.createContext("/admin/clear-cache", clearCache);
         server.createContext("/admin/reload", reload);
+        server.createContext("/admin/update-lexicon", updateLexicon);
         server.setExecutor(pool);
         server.start();
         LogInfo.logs("Server started at http://%s:%s/", hostname, opts.port);
@@ -230,6 +237,7 @@ public class APIServer implements Runnable {
         ssl_server.createContext("/learn", learn);
         ssl_server.createContext("/admin/clear-cache", clearCache);
         ssl_server.createContext("/admin/reload", reload);
+        ssl_server.createContext("/admin/update-lexicon", updateLexicon);
 
         ssl_server.setExecutor(pool);
         ssl_server.start();

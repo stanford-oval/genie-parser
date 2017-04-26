@@ -218,8 +218,12 @@ public class ThingpediaLexicon {
 
   public synchronized static void clearAllCaches() {
     for (ThingpediaLexicon lexicon : instances.values()) {
-      lexicon.cache.clear();
+      lexicon.clear();
     }
+  }
+
+  public void clear() {
+    cache.clear();
   }
 
   public Iterator<Entry> lookupApp(String phrase) throws SQLException {
