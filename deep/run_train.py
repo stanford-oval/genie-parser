@@ -8,33 +8,29 @@ from util.seq2seq import Seq2SeqEvaluator
 from util.trainer import Trainer
 
 from util.loader import unknown_tokens, load_data
-from model import LSTMAligner, initialize
+from model import initialize
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
+        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>>" \
+                                                  " <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
         sys.exit(1)
 
     np.random.seed(42)
     benchmark = sys.argv[1]
-    config, words, reverse, embeddings_matrix = initialize(benchmark=benchmark, input_words=sys.argv[2], embedding_file=sys.argv[3]);
-    model_dir = sys.argv[4]
-    train_data = load_data(sys.argv[5], words, config.grammar.dictionary,
+    config, words, reverse, model = initialize(benchmark=benchmark, model_type=sys.argv[2], input_words=sys.argv[3], embedding_file=sys.argv[4]);
+    model_dir = sys.argv[5]
+    train_data = load_data(sys.argv[6], words, config.grammar.dictionary,
                            reverse, config.grammar.tokens,
                            config.max_length)
-    if len(sys.argv) > 6:
-        dev_data = load_data(sys.argv[6], words, config.grammar.dictionary,
+    if len(sys.argv) > 7:
+        dev_data = load_data(sys.argv[7], words, config.grammar.dictionary,
                              reverse, config.grammar.tokens,
                              config.max_length)
     else:
         dev_data = None
-    config.dropout = float(sys.argv[7])
-    config.hidden_size = int(sys.argv[8])
-    config.rnn_cell_type = sys.argv[9]
-    config.rnn_layers = int(sys.argv[10])
-    config.l2_regularization = float(sys.argv[11])
-    if len(sys.argv) > 12:
-        config.apply_attention = (sys.argv[12] == "yes")
+    if len(sys.argv) > 8:
+        config.apply_cmdline(sys.argv[8:])
     print "unknown", unknown_tokens
     try:
         os.mkdir(model_dir)
@@ -45,7 +41,7 @@ def run():
     # (not required but good practice)
     with tf.Graph().as_default():
         # Build the model and add the variable initializer Op
-        model = LSTMAligner(config, embeddings_matrix)
+        model.build()
         init = tf.global_variables_initializer()
         
         saver = tf.train.Saver(max_to_keep=config.n_epochs)

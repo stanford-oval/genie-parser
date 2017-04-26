@@ -67,7 +67,7 @@ def load_dictionary(file, benchmark):
             raise AssertionError
     return words, reverse
 
-def load_embeddings(from_file, words, config):
+def load_embeddings(from_file, words, embed_size=300):
     print "Loading pretrained embeddings...",
     start = time.time()
     word_vectors = {}
@@ -76,7 +76,7 @@ def load_embeddings(from_file, words, config):
         if sp[0] in words:
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     n_tokens = len(words)
-    embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, config.embed_size)), dtype='float32')
+    embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, embed_size)), dtype='float32')
     for token, id in words.iteritems():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]

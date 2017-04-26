@@ -20,6 +20,10 @@ public class TriggerValue extends ParametricValue {
 		super(name);
     }
 
+	public TriggerValue(TypedStringValue person, ChannelNameValue name) {
+		super(person, name);
+	}
+
 	@Override
 	public String getLabel() {
 		return "trigger";

@@ -17,6 +17,10 @@ public class QueryValue extends ParametricValue {
 		super(name);
     }
 
+    public QueryValue(TypedStringValue person, ChannelNameValue name) {
+		super(person, name);
+	}
+
 	@Override
 	public String getLabel() {
 		return "query";
