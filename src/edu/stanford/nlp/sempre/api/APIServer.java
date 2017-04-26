@@ -182,6 +182,12 @@ public class APIServer implements Runnable {
           new ReloadParametersExchangeState(APIServer.this, exchange).run();
         }
       });
+      server.createContext("/admin/update-lexicon", new HttpHandler() {
+        @Override
+        public void handle(HttpExchange exchange) {
+          new IncrementalUpdateLexiconExchangeState(APIServer.this, exchange).run();
+        }
+      });
       server.setExecutor(pool);
       server.start();
       LogInfo.logs("Server started at http://%s:%s/sempre", hostname, opts.port);

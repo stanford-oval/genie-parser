@@ -67,6 +67,10 @@ public abstract class AbstractLexicon<E extends Value> {
 
   private final GenericObjectCache<String, Collection<Entry<E>>> cache = new GenericObjectCache<>(256);
 
+  public void clear() {
+    cache.clear();
+  }
+
   protected abstract Collection<Entry<E>> doLookup(String rawPhrase);
 
   public Collection<Entry<E>> lookup(String rawPhrase) {

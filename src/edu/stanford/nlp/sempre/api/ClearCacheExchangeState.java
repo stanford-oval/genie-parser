@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import com.sun.net.httpserver.HttpExchange;
 
+import edu.stanford.nlp.sempre.thingtalk.EntityLexicon;
 import edu.stanford.nlp.sempre.thingtalk.ThingpediaLexicon;
 import fig.basic.LogInfo;
 
@@ -21,24 +22,26 @@ class ClearCacheExchangeState extends AdminHttpExchangeState {
       return;
 
     try {
-      String lang = reqParams.get("locale");
-      if (lang == null) {
+      String localeTag = reqParams.get("locale");
+      if (localeTag == null) {
         returnError(400, new IllegalArgumentException("locale argument missing"));
         return;
       }
 
       String utterance = reqParams.get("q");
+      LanguageContext ctx = localeToLanguage(server.langs, localeTag);
 
       if (utterance != null) {
         if (APIServer.opts.verbose >= 3)
-          LogInfo.logs("Removing %s (locale = %s) from query cache", utterance, lang);
-        this.server.langs.get(lang).cache.clear(utterance);
+          LogInfo.logs("Removing %s (locale = %s) from query cache", utterance, ctx.tag);
+        ctx.cache.clear(utterance);
       } else {
         if (APIServer.opts.verbose >= 3)
-          LogInfo.logs("Clearing query cache for locale = %s", lang);
-        this.server.langs.get(lang).cache.clear();
+          LogInfo.logs("Clearing query cache for locale = %s", ctx.tag);
+        ctx.cache.clear();
 
-        ThingpediaLexicon.clearAllCaches();
+        ThingpediaLexicon.getForLanguage(ctx.tag).clear();
+        EntityLexicon.getForLanguage(ctx.tag).clear();
       }
 
       returnOk("Cache cleared");
