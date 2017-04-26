@@ -19,11 +19,15 @@ from util.seq2seq import Seq2SeqEvaluator
 from util.loader import vectorize, unknown_tokens, load_data
 from model import initialize
 
+plt.rc('font', size=20)
+
 def show_heatmap(x, y, attention):
     #print attention[:len(y),:len(x)]
     #print attention[:len(y),:len(x)].shape
-    data = np.transpose(attention[:len(y),:len(x)])
-    
+    #data = np.transpose(attention[:len(y),:len(x)])
+    data = attention[:len(y),:len(x)]
+    x, y = y, x
+
     #ax = plt.axes(aspect=0.4)
     ax = plt.axes()
     heatmap = plt.pcolor(data, cmap=plt.cm.Blues)
@@ -32,8 +36,7 @@ def show_heatmap(x, y, attention):
     xlabels = y
     yticks = np.arange(len(x)) + 0.5
     ylabels = x
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xlabels)
+    plt.xticks(xticks, xlabels, rotation='vertical')
     ax.set_yticks(yticks)
     ax.set_yticklabels(ylabels)
     
@@ -45,6 +48,7 @@ def show_heatmap(x, y, attention):
     plt.colorbar(heatmap)
     
     plt.show()
+    #plt.savefig('./attention-out.pdf')
 
 def run():
     if len(sys.argv) < 6:
@@ -97,7 +101,7 @@ def run():
                         assert len(predictions) == 2
                         assert len(attention_scores) == 2
                         
-                        decoded = list(config.grammar.decode_output(predictions[0]))
+                        decoded = list(config.grammar.decode_output(predictions[0,0]))
                         try:
                             decoded = decoded[:decoded.index(config.grammar.end)]
                         except ValueError:

@@ -164,6 +164,11 @@ class Seq2SeqConverter {
         tag = "LOCATION";
         utteranceInfo.nerTags.set(i + 1, tag);
       }
+      if (token.equals("palm") && i < utteranceInfo.tokens.size() - 1
+          && utteranceInfo.tokens.get(i + 1).equals("springs")) {
+        tag = "LOCATION";
+        utteranceInfo.nerTags.set(i + 1, tag);
+      }
       if (token.equals("san") && i < utteranceInfo.tokens.size() - 1
           && utteranceInfo.tokens.get(i + 1).equals("francisco")) {
         tag = "LOCATION";
@@ -424,7 +429,7 @@ class Seq2SeqConverter {
           new DateValue((Integer) value.get("year"), (Integer) value.get("month"), (Integer) value.get("day"),
               value.containsKey("hour") ? (int) (Integer) value.get("hour") : 0,
               value.containsKey("minute") ? (int) (Integer) value.get("minute") : 0,
-              value.containsKey("second") ? (int) (Integer) value.get("second") : 0));
+              value.containsKey("second") ? (int) (double) (Double) value.get("second") : 0));
       break;
 
     case "Time":
@@ -497,6 +502,9 @@ class Seq2SeqConverter {
     if (entity.equals("cubs"))
       return new Pair<>("GENERIC_ENTITY_sportradar:mlb_team",
           new TypedStringValue("Entity(sportradar:mlb_team)", "chc", "Chicago Cubs"));
+    if (entity.equals("wolf pack") || entity.equals("nevada wolf pack"))
+      return new Pair<>("GENERIC_ENTITY_sportradar:ncaafb_team",
+          new TypedStringValue("Entity(sportradar:ncaafb_team)", "nev", "Nevada Wolf Pack"));
 
     String tokens[] = entity.split("\\s+");
 
