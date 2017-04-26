@@ -91,6 +91,11 @@ public final class ThingTalk {
     return triggerVal;
   }
 
+  public static TriggerValue trigParam(TypedStringValue personName, ChannelNameValue triggerName) {
+    TriggerValue triggerVal = new TriggerValue(personName, triggerName);
+    return triggerVal;
+  }
+
   //******************************************************************************************************************
   // Constructing the query value structure
   //******************************************************************************************************************
@@ -109,6 +114,11 @@ public final class ThingTalk {
   //******************************************************************************************************************
   public static ActionValue actParam(ChannelNameValue actionName) {
     ActionValue actionVal = new ActionValue(actionName);
+    return actionVal;
+  }
+
+  public static ActionValue actParam(TypedStringValue personName, ChannelNameValue actionName) {
+    ActionValue actionVal = new ActionValue(personName, actionName);
     return actionVal;
   }
 

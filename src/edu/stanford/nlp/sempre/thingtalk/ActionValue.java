@@ -21,6 +21,10 @@ public class ActionValue extends ParametricValue {
 		super(name);
     }
 
+	public ActionValue(TypedStringValue person, ChannelNameValue name) {
+		super(person, name);
+	}
+
 	@Override
 	public String getLabel() {
 		return "action";

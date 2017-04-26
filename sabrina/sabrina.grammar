@@ -52,7 +52,7 @@
 (rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL URL) (anchored 1))
 (rule $EntityValue ($TOKEN) (thingtalk.EntityLexiconFn @language_tag) (anchored 1))
 
-(rule $PersonValue ($TOKEN) (thingtalk.NerValueFn PERSON Person) (anchored 1))
+#(rule $PersonValue ($TOKEN) (thingtalk.NerValueFn PERSON Person) (anchored 1))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))
@@ -87,6 +87,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 # Action Handling
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
+(rule $Action ($ActionName of $Username) (lambda act (lambda person (call @actParam (var person) (var act)))))
 (for @v @all_values
 	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with "" is))
 )
@@ -94,6 +95,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
+(rule $Trigger ($TriggerName of $Username) (lambda trig (lambda person (call @trigParam (var person) (var trig)))))
 (for @v @all_values
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with "" is))
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @containing contains))
@@ -105,7 +107,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 (rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
-(rule $Query ($PersonValue $QueryName) (lambda person (lambda query (call @queryParam (var person) (var query)))))
+(rule $Query ($QueryName of $UsernameValue) (lambda query (lambda person (call @queryParam (var person) (var query)))))
 (for @v @all_values
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with "" is))
 	(rule $Query ($Query @v) (thingtalk.AddValueFn query @with @containing contains))
