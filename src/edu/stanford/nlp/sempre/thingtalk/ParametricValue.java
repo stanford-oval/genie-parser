@@ -13,14 +13,16 @@ import fig.basic.LispTree;
  * @author Rakesh Ramesh & Giovanni Campagna
  */
 public abstract class ParametricValue extends Value implements Cloneable {
+  public final TypedStringValue person; // null if its me or else value supplied
   public final ChannelNameValue name;
-
   public ArrayList<ParamValue> params = new ArrayList<>();
 
   public ParametricValue(LispTree tree) {
-    this.name = (ChannelNameValue) Values.fromLispTree(tree.child(1));
+    this.person = (TypedStringValue) Values.fromLispTree(tree.child(1));
 
-    for (int i = 2; i < tree.children.size(); i++) {
+    this.name = (ChannelNameValue) Values.fromLispTree(tree.child(2));
+
+    for (int i = 3; i < tree.children.size(); i++) {
       this.params.add(((ParamValue) Values.fromLispTree(tree.child(i))));
     }
   }
@@ -28,10 +30,17 @@ public abstract class ParametricValue extends Value implements Cloneable {
   public ParametricValue(ChannelNameValue name, List<ParamValue> params) {
     this.name = name;
     this.params.addAll(params);
+    this.person = null;
+  }
+
+  public ParametricValue(TypedStringValue person, ChannelNameValue name) {
+    this.name = name;
+    this.person = person;
   }
 
   public ParametricValue(ChannelNameValue name) {
     this.name = name;
+    this.person = null;
   }
 
   protected abstract String getLabel();
@@ -53,6 +62,7 @@ public abstract class ParametricValue extends Value implements Cloneable {
   public LispTree toLispTree() {
     LispTree tree = LispTree.proto.newList();
     tree.addChild(getLabel());
+    tree.addChild(person.toLispTree());
     tree.addChild(name.toLispTree());
     for (ParamValue param : this.params)
       tree.addChild(param.toLispTree());
@@ -62,6 +72,7 @@ public abstract class ParametricValue extends Value implements Cloneable {
   @Override
   public Map<String, Object> toJson() {
     Map<String, Object> json = new HashMap<>();
+    if(this.person != null) json.put("person", person.value);
     json.put("name", name.toJson());
     List<Object> args = new ArrayList<>();
     json.put("args", args);
@@ -78,14 +89,16 @@ public abstract class ParametricValue extends Value implements Cloneable {
     if (o == null || getClass() != o.getClass())
       return false;
     ParametricValue that = (ParametricValue) o;
-    if (!name.equals(that.name) || !params.equals(that.params))
+    if (!name.equals(that.name) || !params.equals(that.params) || (person != null && that.person != null && !person.equals(that.person)))
       return false;
     return true;
   }
 
   @Override
   public int hashCode() {
-    return name.hashCode() ^ params.hashCode();
+    int hashCode = name.hashCode() ^ params.hashCode();
+    if(this.person != null) hashCode = hashCode ^ person.hashCode();
+    return hashCode;
   }
 
   @Override
