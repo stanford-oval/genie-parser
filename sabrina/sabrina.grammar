@@ -11,6 +11,8 @@
 (def @timeSpanRule edu.stanford.nlp.sempre.thingtalk.ThingTalk.timeSpanRule)
 (def @ifttt edu.stanford.nlp.sempre.thingtalk.ThingTalk.ifttt)
 
+(def @setupForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.setupForm)
+
 (def @cmdForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.cmdForm)
 
 (def @ansForm edu.stanford.nlp.sempre.thingtalk.ThingTalk.ansForm)
@@ -87,7 +89,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 # Action Handling
 (rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
-(rule $Action ($ActionName of $Username) (lambda act (lambda person (call @actParam (var person) (var act)))))
+(rule $Action ($ActionName of $UsernameValue) (lambda act (lambda person (call @actParam (var person) (var act)))))
 (for @v @all_values
 	(rule $Action ($Action @v) (thingtalk.AddValueFn action @with "" is))
 )
@@ -95,7 +97,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 (rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
-(rule $Trigger ($TriggerName of $Username) (lambda trig (lambda person (call @trigParam (var person) (var trig)))))
+(rule $Trigger ($TriggerName of $UsernameValue) (lambda trig (lambda person (call @trigParam (var person) (var trig)))))
 (for @v @all_values
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with "" is))
 	(rule $Trigger ($Trigger @v) (thingtalk.AddValueFn trigger @with @containing contains))
@@ -172,10 +174,18 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 #(rule $IftttQueryActionChain ($IftttQueryActionChain $With) (thingtalk.AddEventFn action "$event.title" @event_title ))
 #(rule $IftttQueryActionChain ($IftttQueryActionChain $With) (thingtalk.AddEventFn action "$event.body" @event_body ))
 
+(def @primitive_types ($Action $Notify $Query))
+(def @compound_types ($TimeQueryRule $TimeActionRule $TimeQueryActionRule $IftttActionRule $IftttQueryRule
+                  $IftttQueryActionRule $IftttQueryActionChain))
 
-(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
+# Sending rules to a different person
+(for @v @compound_types
+    (rule $SetupRule (setup at $UsernameValue rule @v) (lambda person (lambda rule (call @setupForm (var person) (var rule)))))
+)
 
 # Command handling
+(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
+
 (rule $Command (@discover)          (ConstantFn (call @cmdForm   (string "discover")  (string "generic"))))
 (rule $Command (@help)              (ConstantFn (call @cmdForm   (string "help")      (string "generic"))))
 (rule $Command (@help $Device)      (lambda value (call @cmdForm (string "help")      (var value))))
@@ -215,9 +225,15 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
   (rule $ROOT ($Command) (lambda cmd (call @jsonOut (var cmd))))
 )
 
-(for @v ($Action $Notify $Query $TimeQueryRule $TimeActionRule $TimeQueryActionRule $IftttActionRule $IftttQueryRule $IftttQueryActionRule $IftttQueryActionChain)
+(for @v @primitive_types
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
+
+(for @v @compound_types
+	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
+)
+
+(rule $ROOT ($SetupRule) (lambda cmd (call @jsonOut (var cmd))))
 
 (when includebookkeeping
   (rule $ROOT ($Special) (lambda spl (call @special (var spl))))
