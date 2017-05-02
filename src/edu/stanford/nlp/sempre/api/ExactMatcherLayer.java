@@ -56,9 +56,9 @@ class ExactMatcherLayer {
   }
 
   public void load() throws IOException {
-    ThingpediaDataset.getRawExamples(languageTag, (utterance, json) -> {
-      mem.put(new ExactMatchKey(analyzer, utterance), json);
-    });
+    //ThingpediaDataset.getRawExamples(languageTag, (utterance, json) -> {
+    //  mem.put(new ExactMatchKey(analyzer, utterance), json);
+    //});
   }
 
   public void store(Example ex, String targetJson) {

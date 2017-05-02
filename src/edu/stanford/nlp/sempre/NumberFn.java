@@ -46,12 +46,8 @@ public class NumberFn extends SemanticFn {
         if (request("NUMBER")) {
           String value = ex.languageInfo.getNormalizedNerSpan("NUMBER", c.getStart(), c.getEnd());
           if (value != null) {
-            if (value.startsWith(">=") || value.startsWith("<="))
-              value = value.substring(2);
-            else if (value.startsWith(">") || value.startsWith("<") || value.startsWith("~"))
-              value = value.substring(1);
             try {
-              NumberValue numberValue = new NumberValue(Double.parseDouble(value));
+              NumberValue numberValue = NumberValue.parseNumber(value);
               SemType type = numberValue.value == (int) numberValue.value ? SemType.intType : SemType.floatType;
               return new Derivation.Builder()
                       .withCallable(c)

@@ -24,6 +24,14 @@ public class NumberValue extends Value {
 
   public static final Pattern PATTERN = Pattern.compile("(P|PT)([0-9]+)([MSDHYW])");
 
+  public static NumberValue parseNumber(String value) {
+    if (value.startsWith(">=") || value.startsWith("<="))
+      value = value.substring(2);
+    else if (value.startsWith(">") || value.startsWith("<") || value.startsWith("~"))
+      value = value.substring(1);
+    return new NumberValue(Double.parseDouble(value));
+  }
+
   public static NumberValue parseDurationValue(String durationStr) {
     if(!PATTERN.matcher(durationStr).matches())
       return null;

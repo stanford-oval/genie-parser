@@ -23,6 +23,7 @@ public class ArgFilterHelpers {
       "TiB");
   private static final Map<String, Set<String>> ALLOWED_UNITS = new HashMap<>();
   private static final Set<String> ALL_UNITS = new HashSet<>();
+  private static final Map<String, String> ALL_LOWERCASE_UNITS = new HashMap<>();
   static {
     ALLOWED_UNITS.put("ms", TIME_UNITS);
     ALLOWED_UNITS.put("C", TEMP_UNITS);
@@ -35,13 +36,19 @@ public class ArgFilterHelpers {
     ALLOWED_UNITS.put("byte", FILESIZE_UNITS);
 
     ALLOWED_UNITS.forEach((type, units) -> {
-      for (String unit : units)
+      for (String unit : units) {
         ALL_UNITS.add(unit);
+        ALL_LOWERCASE_UNITS.put(unit.toLowerCase(), unit);
+      }
     });
   }
 
   public static boolean isUnit(String unit) {
     return ALL_UNITS.contains(unit);
+  }
+
+  public static String getUnitCaseless(String unit) {
+    return ALL_LOWERCASE_UNITS.get(unit);
   }
 
   public static boolean isTimeUnit(String unit) {
