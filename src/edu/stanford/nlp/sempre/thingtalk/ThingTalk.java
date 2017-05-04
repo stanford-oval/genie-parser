@@ -144,6 +144,13 @@ public final class ThingTalk {
   }
 
   //******************************************************************************************************************
+  // Constructing the setup value structure
+  //******************************************************************************************************************
+  public static SetupValue setupForm(TypedStringValue personName, RuleValue ruleValue) {
+    return new SetupValue(personName, ruleValue);
+  }
+
+  //******************************************************************************************************************
   // Specials handler -- Fragile!! Handle with care
   //******************************************************************************************************************
   public static StringValue special(NameValue spl) {
@@ -233,6 +240,8 @@ public final class ThingTalk {
       label = "query";
     else if (val instanceof ParamValue)
       label = "answer";
+    else if (val instanceof SetupValue)
+      label = "setup";
     else
       label = "error"; // FIXME: Error flow
     json.put(label, val.toJson());

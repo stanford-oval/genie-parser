@@ -40,6 +40,8 @@ public final class Values {
     if ("command".equals(type)) return new CommandValue(tree);
     if ("location".equals(type)) return new LocationValue(tree);
     if ("typedstring".equals(type)) return new TypedStringValue(tree);
+    if ("rule".equals(type)) return new RuleValue(tree);
+    if ("setup".equals(type)) return new SetupValue(tree);
     return null;
   }
 

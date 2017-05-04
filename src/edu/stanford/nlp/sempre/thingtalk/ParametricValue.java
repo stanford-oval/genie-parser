@@ -20,9 +20,11 @@ public abstract class ParametricValue extends Value implements Cloneable {
   public ParametricValue(LispTree tree) {
     this.person = (TypedStringValue) Values.fromLispTree(tree.child(1));
 
-    this.name = (ChannelNameValue) Values.fromLispTree(tree.child(2));
+    int index = 2;
+    if(this.person == null) index = 1;
+    this.name = (ChannelNameValue) Values.fromLispTree(tree.child(index));
 
-    for (int i = 3; i < tree.children.size(); i++) {
+    for (int i = index+1; i < tree.children.size(); i++) {
       this.params.add(((ParamValue) Values.fromLispTree(tree.child(i))));
     }
   }
@@ -62,7 +64,7 @@ public abstract class ParametricValue extends Value implements Cloneable {
   public LispTree toLispTree() {
     LispTree tree = LispTree.proto.newList();
     tree.addChild(getLabel());
-    tree.addChild(person.toLispTree());
+    if(person != null) tree.addChild(person.toLispTree());
     tree.addChild(name.toLispTree());
     for (ParamValue param : this.params)
       tree.addChild(param.toLispTree());
