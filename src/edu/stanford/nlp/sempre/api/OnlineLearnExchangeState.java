@@ -133,14 +133,15 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
         // ... but we always save the example in the database, just in case
         // potentially this allows someone to DDOS our server with bad data
         // we just hope the ML model is resilient to that (and it should be)
-
-        // reuse the CoreNLP analysis if possible
-        if (ex != null)
-          language.exactMatch.store(ex, targetJson);
-        else
-          language.exactMatch.store(query, targetJson);
         type = "online";
       }
+
+      // reuse the CoreNLP analysis if possible
+      if (ex != null)
+        language.exactMatch.store(ex, targetJson);
+      else
+        language.exactMatch.store(query, targetJson);
+
       ThingpediaDataset.storeExample(query, targetJson, language.tag, type, schemas);
 
       // we would need to remove all entries from the cache that are affected by this learning step

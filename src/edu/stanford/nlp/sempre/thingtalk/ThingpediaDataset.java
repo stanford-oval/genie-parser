@@ -41,7 +41,7 @@ public class ThingpediaDataset extends AbstractDataset {
       + " and canonical is not null and ds.kind_type <> 'primary'";
   private static final String FULL_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ?";
   private static final String RAW_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ? "
-      + "and type not in ('ifttt', 'thingpedia')";
+      + "and type in ('online', 'test')";
   private static final String INSERT_QUERY = "insert into example_utterances(type, language, utterance, target_json) values (?, ?, ?, ?)";
   private static final String INSERT_SCHEMA_REF_QUERY = "insert into example_rule_schema(example_id, schema_id) select ?, id from device_schema where kind = ?";
 
