@@ -122,7 +122,7 @@ public class OnlineLearnExchangeState extends AbstractHttpExchangeState {
           ex = session.lastEx;
 
           ex.targetValue = new StringValue(targetJson);
-          language.learner.onlineLearnExample(ex);
+          //language.learner.onlineLearnExample(ex);
         }
       }
 

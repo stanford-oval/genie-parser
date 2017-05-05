@@ -9,6 +9,9 @@ import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.Derivation.Cacheability;
+import edu.stanford.nlp.sempre.thingtalk.ArgFilterHelpers;
+import edu.stanford.nlp.sempre.thingtalk.ThingTalk;
+import fig.basic.LogInfo;
 
 class QueryExchangeState extends AbstractHttpExchangeState {
   private final APIServer server;
@@ -56,7 +59,33 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     return json;
   }
 
-  private List<Derivation> handleUtterance(Session session, LanguageContext language, String query) {
+  private NumberValue findNumber(Example ex, boolean withUnit) {
+    LanguageInfo info = ex.languageInfo;
+    try {
+      for (int i = 0; i < ex.numTokens(); i++) {
+        if (info.nerTags.get(i).equals("NUMBER")) {
+          NumberValue value = NumberValue.parseNumber(info.nerValues.get(i));
+          if (!withUnit)
+            return value;
+          if (i < ex.numTokens() - 1) {
+            String unit = ex.token(i + 1);
+            unit = ArgFilterHelpers.getUnitCaseless(unit);
+            if (unit != null) {
+              value = new NumberValue(value.value, unit);
+              return value;
+            }
+          }
+          return value;
+        }
+      }
+    } catch (NumberFormatException e) {
+      LogInfo.warnings("NumberFn: Cannot convert NerSpan to a number");
+    }
+
+    return null;
+  }
+
+  private List<Derivation> handleUtterance(Session session, LanguageContext language, String query, String expect) {
     session.updateContext();
 
     // Create example
@@ -66,6 +95,15 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     b.setContext(session.context);
     Example ex = b.createExample();
     ex.preprocess(language.analyzer);
+
+    Value hackAnswer = null;
+    if (expect != null) {
+      if (expect.equals("Number")) {
+        hackAnswer = findNumber(ex, false);
+      } else if (expect.startsWith("Measure(")) {
+        hackAnswer = findNumber(ex, true);
+      }
+    }
 
     // try from cache
     List<Derivation> derivations = language.cache.hit(query);
@@ -88,17 +126,27 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     session.lastEx = ex;
     session.updateContext(ex, 1);
 
-    // now try the exact match, and if it succeeds replace the choice in front
-    String exactMatch = language.exactMatch.hit(ex);
-    if (exactMatch != null) {
-      Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
-          .value(new StringValue(exactMatch)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
+    // now put the hack answer if we have
+    if (hackAnswer != null) {
+      StringValue hackAnswerJson = (StringValue)ThingTalk.jsonOut(ThingTalk.ansForm(hackAnswer));
 
-      // make a copy of the derivation list, so that we don't put
-      // semi-garbage in the query cache or later when trying to online
-      // learn
+      Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
+              .value(hackAnswerJson).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
       derivations = new ArrayList<>(derivations);
       derivations.add(0, deriv);
+    } else {
+      // now try the exact match, and if it succeeds replace the choice in front
+      String exactMatch = language.exactMatch.hit(ex);
+      if (exactMatch != null) {
+        Derivation deriv = new Derivation.Builder().canonicalUtterance(query).score(Double.POSITIVE_INFINITY).prob(1.0)
+                .value(new StringValue(exactMatch)).meetCache(Cacheability.NON_DETERMINISTIC).createDerivation();
+
+        // make a copy of the derivation list, so that we don't put
+        // semi-garbage in the query cache or later when trying to online
+        // learn
+        derivations = new ArrayList<>(derivations);
+        derivations.add(0, deriv);
+      }
     }
 
     return derivations;
@@ -117,6 +165,12 @@ class QueryExchangeState extends AbstractHttpExchangeState {
     int limit = 0;
     String strLongResponse = reqParams.get("long");
     boolean longResponse = "1".equals(strLongResponse);
+
+    // From ValueCategory on the client
+    String expect = reqParams.get("expect");
+
+    if(expect != null)
+      logs("expect : " + expect);
 
     try {
       if (query == null)
@@ -139,7 +193,7 @@ class QueryExchangeState extends AbstractHttpExchangeState {
         session.lang = language.tag;
         session.remoteHost = remoteHost;
 
-        derivations = handleUtterance(session, language, query);
+        derivations = handleUtterance(session, language, query, reqParams.get("expect"));
         server.logUtterance(language.tag, query);
       }
       exitStatus = 200;

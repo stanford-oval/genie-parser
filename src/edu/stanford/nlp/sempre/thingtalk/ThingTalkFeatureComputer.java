@@ -31,6 +31,19 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
 
     if (opts.featureDomains.contains("thingtalk_params") && opts.logicalFormFeatures)
       extractCodeFeatures(ex, deriv);
+
+    extractMeasureFeatures(ex, deriv);
+  }
+
+  private void extractMeasureFeatures(Example ex, Derivation deriv) {
+    if (!deriv.getCat().equals("$MeasureValue"))
+      return;
+
+    Derivation numberDeriv = deriv.child(0);
+    Derivation unitDeriv = deriv.child(1);
+
+    NumberValue nv = (NumberValue)deriv.value;
+    deriv.addFeature("units", nv.unit + "---" + tokenAfter(ex, numberDeriv));
   }
 
   private String tokenBefore(Example ex, Derivation deriv) {
