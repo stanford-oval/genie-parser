@@ -147,8 +147,22 @@ public final class ThingTalk {
   // Constructing the setup value structure
   //******************************************************************************************************************
   public static SetupValue setupForm(TypedStringValue personName, RuleValue ruleValue) {
-    return new SetupValue(personName, ruleValue);
+    return new SetupValue(personName, ruleValue, null, null, null);
   }
+
+  public static SetupValue setupForm(TypedStringValue personName, TriggerValue trigValue) {
+    return new SetupValue(personName, null, trigValue, null, null);
+  }
+
+  public static SetupValue setupForm(TypedStringValue personName, QueryValue queryValue) {
+    return new SetupValue(personName, null, null, queryValue, null);
+  }
+
+  public static SetupValue setupForm(TypedStringValue personName, ActionValue actValue) {
+    return new SetupValue(personName, null, null, null, actValue);
+  }
+
+
 
   //******************************************************************************************************************
   // Specials handler -- Fragile!! Handle with care
