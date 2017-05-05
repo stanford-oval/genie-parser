@@ -180,7 +180,11 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 
 # Sending rules to a different person
 (for @v @compound_types
-    (rule $SetupRule (setup at $UsernameValue rule @v) (lambda person (lambda rule (call @setupForm (var person) (var rule)))))
+    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda rule (call @setupForm (var person) (var rule)))))
+)
+
+(for @v @primitive_types
+    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda prim (call @setupForm (var person) (var prim)))))
 )
 
 # Command handling
