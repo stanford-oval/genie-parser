@@ -27,6 +27,7 @@ case $MODE in
 		;;
 	server)
 		TARGET=edu.stanford.nlp.sempre.api.APIServer
+		BASE_ARGS="${BASE_ARGS} -Djava.library.path=jni"
 		MODE_ARGS="++sabrina/sabrina.server.conf"
 		;;
 	interactive)

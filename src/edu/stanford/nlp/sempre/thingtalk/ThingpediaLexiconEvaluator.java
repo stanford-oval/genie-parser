@@ -98,7 +98,7 @@ public class ThingpediaLexiconEvaluator implements Runnable {
       // Cache the whole lexicon
       Map<String, Set<Function>> lexicon = new HashMap<>();
       try (PreparedStatement s = connection.prepareStatement(
-          "select token,schema_id,channel_name from lexicon3 where language = ?")) {
+          "select token,schema_id,channel_name from lexicon2 where language = ?")) {
         s.setString(1, opts.languageTag);
         try (ResultSet rs = s.executeQuery()) {
           while (rs.next()) {

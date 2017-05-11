@@ -210,12 +210,12 @@ public class LexiconBuilder {
 
         if (deletePrevious) {
           try (Statement stmt = connection.createStatement()) {
-            stmt.execute("delete from lexicon3");
+            stmt.execute("delete from lexicon2");
           }
         }
 
         count = 0;
-        try (PreparedStatement ps = connection.prepareStatement("insert ignore into lexicon3 values (?, ?, ?, ?)")) {
+        try (PreparedStatement ps = connection.prepareStatement("insert ignore into lexicon2 values (?, ?, ?, ?)")) {
           count++;
           if (count % 10 == 0)
             System.err.println("Token #" + count + "/" + newLexicon.size());

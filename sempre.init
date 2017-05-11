@@ -22,7 +22,8 @@ DESC="sempre"
 NAME=sempre
 PROC_NAME=java
 DAEMON=/opt/sempre/run_sempre.sh
-
+DAEMON_ARGS="-APIServer.chuid thingengine -APIServer.port 80 -APIServer.ssl_port 443"
+JAVA_ARGS=""
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -31,6 +32,7 @@ SCRIPTNAME=/etc/init.d/$NAME
 
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
+export JAVA_ARGS
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
@@ -53,10 +55,10 @@ do_start()
 		--name $PROC_NAME --test > /dev/null \
 		|| return 1
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON \
-		--name $PROC_NAME -- $DAEMON_ARGS \
+		--name $PROC_NAME \
                 --background --make-pidfile \
-		--chdir /srv/thingengine --chuid thingengine  \
-		-- $DAEMON_ARGS >> /var/log/thingengine 2>&1 \
+		--chdir /opt/sempre -C \
+		-- $DAEMON_ARGS > /var/log/sempre 2>&1 \
 		|| return 2
 
 	# Add code here, if necessary, that waits for the process to be ready

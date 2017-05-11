@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 
 import edu.stanford.nlp.sempre.thingtalk.EntityLexicon;
 import edu.stanford.nlp.sempre.thingtalk.ThingpediaLexicon;
+import edu.stanford.nlp.sempre.thingtalk.EntityLexicon;
 import fig.basic.LogInfo;
 
 class ClearCacheExchangeState extends AdminHttpExchangeState {
