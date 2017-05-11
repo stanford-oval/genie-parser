@@ -179,13 +179,13 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
                   $IftttQueryActionRule $IftttQueryActionChain))
 
 # Sending rules to a different person
-(for @v @compound_types
-    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda rule (call @setupForm (var person) (var rule)))))
-)
+#(for @v @compound_types
+#    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda rule (call @setupForm (var person) (var rule)))))
+#)
 
-(for @v @primitive_types
-    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda prim (call @setupForm (var person) (var prim)))))
-)
+#(for @v @primitive_types
+#    (rule $SetupRule (tell $UsernameValue @v) (lambda person (lambda prim (call @setupForm (var person) (var prim)))))
+#)
 
 # Command handling
 (rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
