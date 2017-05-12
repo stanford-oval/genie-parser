@@ -237,7 +237,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 	(rule $ROOT (@v) (lambda cmd (call @jsonOut (var cmd))))
 )
 
-(rule $ROOT ($SetupRule) (lambda cmd (call @jsonOut (var cmd))))
+#(rule $ROOT ($SetupRule) (lambda cmd (call @jsonOut (var cmd))))
 
 (when includebookkeeping
   (rule $ROOT ($Special) (lambda spl (call @special (var spl))))

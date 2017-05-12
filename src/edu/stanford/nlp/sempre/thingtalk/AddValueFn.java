@@ -72,6 +72,8 @@ public class AddValueFn extends SemanticFn {
         lastArg = deriv.child(1);
       else
         return null;
+      if (lastArg.getCat().equals("$PersonValue"))
+        return null;
       if (lastArg.spanStart == -1 || lastArg.spanEnd == -1)
         return findLastAnchoredArg(deriv.child(0));
       else
