@@ -14,7 +14,7 @@ shift
 EXTRA_ARGS="$@"
 
 JAVA=${JAVA:-java}
-BASE_ARGS="-ea $JAVA_ARGS -Dmodules=core,corenlp,overnight,thingtalk,api -cp ${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*"
+BASE_ARGS="-ea $JAVA_ARGS -Djava.library.path=${SEMPREDIR}/jni -Dmodules=core,corenlp,overnight,thingtalk,api -cp ${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*"
 
 case $MODE in
 	interactive)
@@ -27,7 +27,6 @@ case $MODE in
 		;;
 	server)
 		TARGET=edu.stanford.nlp.sempre.api.APIServer
-		BASE_ARGS="${BASE_ARGS} -Djava.library.path=jni"
 		MODE_ARGS="++sabrina/sabrina.server.conf"
 		;;
 	interactive)

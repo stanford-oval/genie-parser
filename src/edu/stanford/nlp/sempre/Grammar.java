@@ -371,9 +371,9 @@ public class Grammar {
       return newRules;
     }
 
-    // Binaries with ConstantFn: don't need to binarize, even if one is not
+    // Binaries with ConstantFn or SelectFn: don't need to binarize, even if one is not
     // a required category
-    if (rule.rhs.size() == 2 && rule.sem instanceof ConstantFn) {
+    if (rule.rhs.size() == 2 && (rule.sem instanceof ConstantFn || rule.sem instanceof SelectFn)) {
       newRules.add(rule);
       return newRules;
     }

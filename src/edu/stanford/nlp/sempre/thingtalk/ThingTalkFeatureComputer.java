@@ -33,6 +33,24 @@ public class ThingTalkFeatureComputer implements FeatureComputer {
       extractCodeFeatures(ex, deriv);
 
     extractMeasureFeatures(ex, deriv);
+    extractPersonFeatures(ex, deriv);
+  }
+
+  private void extractPersonFeatures(Example ex, Derivation deriv) {
+    if (!deriv.getCat().equals("$PersonValue"))
+      return;
+
+    Derivation usernameDeriv = deriv.child(0);
+    int usernameTokenPos = usernameDeriv.getStart();
+    assert usernameTokenPos >= 0;
+    if (usernameTokenPos < ex.numTokens() - 1) {
+      String nextToken = ex.token(usernameTokenPos + 1);
+      deriv.addFeature("username_bigram", "USERNAME " + nextToken);
+    }
+    if (usernameTokenPos > 0) {
+      String previousToken = ex.token(usernameTokenPos - 1);
+      deriv.addFeature("username_bigram", previousToken + " USERNAME");
+    }
   }
 
   private void extractMeasureFeatures(Example ex, Derivation deriv) {
