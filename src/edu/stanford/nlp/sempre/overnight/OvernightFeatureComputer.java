@@ -214,32 +214,17 @@ public final class OvernightFeatureComputer implements FeatureComputer {
 
   // TODO(yushi): make this less hacky
   private static final Set<String> ENGLISH_STOP_WORDS = Sets
-      .newHashSet("\' \" `` ` \'\' a an the that which . what ? is are am be of on at me my".split(" "));
+      .newHashSet("\' \" `` ` \'\' a an the that which . what ?".split(" "));
   // FIXME: I don't particularly agree that all these words are stop words...
   private static final Set<String> ITALIAN_STOP_WORDS = Sets
       .newHashSet(
-          "\' \" `` ` \'\' un uno il l\' lo la i gli le che quale cosa . ? è sono sei di su a al me mio mia miei"
+          "\' \" `` ` \'\' un uno il l\' lo la i gli le che quale cosa . ?"
               .split(" "));
   private static final Map<String, Set<String>> STOP_WORDS = new HashMap<>();
   static {
     STOP_WORDS.put("en", ENGLISH_STOP_WORDS);
     STOP_WORDS.put("it", ITALIAN_STOP_WORDS);
   }
-  /*private static final Set<String> entities = new HashSet<>(
-      Arrays.asList("alice", "bob", "greenberg", "greenberg cafe", "central office",
-          "sacramento", "austin", "california", "texas", "colorado", "colorado river", "red river", "lake tahoe",
-          "tahoe", "lake huron", "huron", "mount whitney", "whitney", "mount rainier", "rainier", "death valley",
-          "pacific ocean", "pacific",
-          "sesame", "mission ave", "mission", "chelsea",
-          "multivariate data analysis", "multivariate data", "data analysis", "multivariate", "data", "efron", "lakoff",
-          "annals of statistics", "annals", "annals of", "of statistics", "statistics", "computational linguistics",
-          "computational", "linguistics",
-          "thai cafe", "pizzeria juno",
-          "new york", "york", "beijing", "brown university", "ucla", "mckinsey", "google"));*/
-  private static final Set<String> entities = Sets.newHashSet("QUOTED_STRING", "TIME", "DATE", "NUMBER", "PHONE_NUMBER",
-      "EMAIL_ADDRESS", "HASHTAG", "USERNAME", "MONEY", "PERCENT");
-  // A set of words that are barred from forming lexical bigram features
-  private static final Set<String> prohibited_bigrams = Sets.newHashSet("with", "then");
 
   private final Map<String, Set<String>> phraseTable;
   private final Aligner aligner;
@@ -531,13 +516,8 @@ public final class OvernightFeatureComputer implements FeatureComputer {
   }
 
   private void addAndFilterLexicalFeature(Derivation deriv, String domain, String str1, String str2) {
-
     String[] str1Tokens = str1.split("\\s+");
     String[] str2Tokens = str2.split("\\s+");
-    for (String str1Token: str1Tokens)
-      if (entities.contains(str1Token)) return;
-    for (String str2Token: str2Tokens)
-      if (entities.contains(str2Token)) return;
 
     if (stopWords.contains(str1) || stopWords.contains(str2)) return;
     deriv.addGlobalFeature(domain, str1 + "--" + str2);
@@ -549,16 +529,6 @@ public final class OvernightFeatureComputer implements FeatureComputer {
       return;
 
     // str1 is the input sentence, str2 is the canonical
-    // we only filter prohibited bigrams from the canonical, because only in the canonicals
-    // they are meaningless fillers added to make the canonical readable; in the sentence
-    // they are real words with meaning
-
-    if (entities.contains(str1.data1))
-      return;
-    if (str1.tag != Item.Tag.UNIGRAM && entities.contains(str1.data1))
-      return;
-    if (str2.tag != Item.Tag.UNIGRAM && (entities.contains(str2.data2) || prohibited_bigrams.contains(str2.data2)))
-      return;
 
     String f1 = str1.data1;
     if (str1.tag != Item.Tag.UNIGRAM)
@@ -614,35 +584,40 @@ public final class OvernightFeatureComputer implements FeatureComputer {
         Item inputToken = filteredInputTokens.get(i);
 
         assert inputToken.tag == Item.Tag.UNIGRAM;
-        if (entities.contains(inputToken.data1))
-          continue; //optimization - stop here
 
         Item derivToken = filteredDerivTokens.get(derivIndex);
         if (!inputToken.equals(derivToken)) {
           addAndFilterLexicalFeature(deriv, "lexical", inputToken, derivToken);
           extractStringSimilarityFeatures(deriv, inputToken.data1, derivToken.data1);
+        }
 
-          //2:2 features
-          if (i < filteredInputTokens.size() - 1) {
-            if (assignment[i + 1] == assignment[i] + 1) {
-              Item inputBigram = new Item(Item.Tag.BIGRAM, inputToken, filteredInputTokens.get(i + 1));
-              Item derivBigram = new Item(Item.Tag.BIGRAM, derivToken, filteredDerivTokens.get(derivIndex + 1));
-              if (!inputBigram.equals(derivBigram)) {
-                addAndFilterLexicalFeature(deriv, "lexical", inputBigram, derivBigram);
-              }
+        //2:2 features
+        if (i < filteredInputTokens.size() - 1) {
+          if (assignment[i + 1] == assignment[i] + 1) {
+            Item inputBigram = new Item(Item.Tag.BIGRAM, inputToken, filteredInputTokens.get(i + 1));
+            Item derivBigram = new Item(Item.Tag.BIGRAM, derivToken, filteredDerivTokens.get(derivIndex + 1));
+            if (!inputBigram.equals(derivBigram)) {
+              addAndFilterLexicalFeature(deriv, "lexical", inputBigram, derivBigram);
             }
           }
-          //1:2 features
-          if (derivIndex > 0) {
-            addAndFilterLexicalFeature(deriv, "lexical", inputToken,
-                new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex - 1),
-                    filteredDerivTokens.get(derivIndex)));
+        }
+        if (derivIndex > 0 && i < filteredInputTokens.size() - 1) {
+          Item inputBigram = new Item(Item.Tag.BIGRAM, inputToken, filteredInputTokens.get(i + 1));
+          Item derivBigram = new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex - 1), derivToken);
+          if (!inputBigram.equals(derivBigram)) {
+            addAndFilterLexicalFeature(deriv, "lexical", inputBigram, derivBigram);
           }
-          if (derivIndex < filteredDerivTokens.size() - 1) {
-            addAndFilterLexicalFeature(deriv, "lexical", inputToken,
-                new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex),
-                    filteredDerivTokens.get(derivIndex + 1)));
-          }
+        }
+        //1:2 features
+        if (derivIndex > 0) {
+          addAndFilterLexicalFeature(deriv, "lexical", inputToken,
+              new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex - 1),
+                  filteredDerivTokens.get(derivIndex)));
+        }
+        if (derivIndex < filteredDerivTokens.size() - 1) {
+          addAndFilterLexicalFeature(deriv, "lexical", inputToken,
+              new Item(Item.Tag.BIGRAM, filteredDerivTokens.get(derivIndex),
+                  filteredDerivTokens.get(derivIndex + 1)));
         }
       }
     }
