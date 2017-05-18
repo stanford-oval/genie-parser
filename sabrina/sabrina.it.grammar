@@ -13,6 +13,7 @@
 (def @greater_than (maggiore di))
 (def @less_than (minore di))
 
+(def @of di)
 (def @with con)
 (def @and e)
 (def @monitor_if (osserva se))

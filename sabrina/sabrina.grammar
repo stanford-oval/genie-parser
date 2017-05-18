@@ -54,7 +54,7 @@
 (rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL URL) (anchored 1))
 (rule $EntityValue ($TOKEN) (thingtalk.EntityLexiconFn @language_tag) (anchored 1))
 
-(rule $PersonValue (of $UsernameValue) (SelectFn 0))
+(rule $PersonValue (@of $UsernameValue) (SelectFn 0))
 
 (rule $LocationValue ($PHRASE) (thingtalk.LocationLexiconFn @language_tag) (anchored 1))
 (rule $LocationValue (@here) (ConstantFn (location rel_current_location -1 -1) fb:type.any))

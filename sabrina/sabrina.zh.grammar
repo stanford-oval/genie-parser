@@ -24,6 +24,7 @@
 (def @event (the event))
 (def @event_title (the event title))
 (def @event_body (the event body)) 
+(def @of "的")
 
 (def @help "帮助")
 (def @discover "搜索")
