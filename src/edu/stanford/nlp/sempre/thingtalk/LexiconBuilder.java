@@ -167,8 +167,8 @@ public class LexiconBuilder {
                   if (utteranceInfo.nerValues.get(i) != null)
                     continue;
 
-                  if (!LanguageUtils.isContentWord(utteranceInfo.posTags.get(i)))
-                    continue;
+                  //if (!LanguageUtils.isContentWord(utteranceInfo.posTags.get(i)))
+                  //  continue;
                   if (LexiconUtils.isIgnored(utteranceInfo.tokens.get(i)))
                     continue;
                   String token = LanguageUtils.stem(utteranceInfo.tokens.get(i));

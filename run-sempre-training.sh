@@ -45,8 +45,13 @@ Params.l1Reg nonlazy
 Params.l1RegCoeff 0.0001
 EOF
 
+# update the lexicon
+#/opt/sempre/run-lexicon-builder.sh -ThingpediaDatabase.dbPw ${DATABASE_PW}
+#rm -fr ${WORKDIR}/sempre.tmp
+
+# run sempre
 ${SEMPREDIR}/run.sh training "$@"
 
-# move the generated file where APIServer will know to look for
+# move the gxenerated file where APIServer will know to look for
 cp ${WORKDIR}/sempre.tmp/params.2 ${WORKDIR}/sabrina/sabrina.${LANGUAGE_TAG}.params
 #rm -fr ${WORKDIR}/sempre.tmp
