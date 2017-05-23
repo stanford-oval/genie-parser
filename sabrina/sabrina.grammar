@@ -198,7 +198,6 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 (rule $Command (@list @commands)    (ConstantFn (call @cmdForm   (string "list")      (string "command"))))
 (rule $Command (@configure)         (ConstantFn (call @cmdForm   (string "configure") (string "generic"))))
 (rule $Command (@configure $Device) (lambda value (call @cmdForm (string "configure") (var value))))
-(rule $Command @make_rule           (ConstantFn (call @cmdForm   (string "make")      (string "rule"))))
 
 # special handling
 # this used to be in SimpleLexicon but we moved it here for two reasons:
@@ -210,8 +209,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 (rule $Special (@yes) (ConstantFn tt:root.special.yes))
 (rule $Special (@no) (ConstantFn tt:root.special.no))
 (rule $Special @never_mind (ConstantFn tt:root.special.nevermind))
-# this is a literal, it is not translated
-(rule $Special (debug) (ConstantFn tt:root.special.debug))
+(rule $Special @make_rule (ConstantFn tt:root.special.makerule))
 # this is a special token that should never be matched
 # it represents the failure to parse meaningfully (which triggers
 # fallbacks on the client side)
