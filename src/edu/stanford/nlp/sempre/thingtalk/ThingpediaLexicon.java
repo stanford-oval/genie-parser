@@ -24,7 +24,7 @@ public class ThingpediaLexicon {
   public static Options opts = new Options();
 
   public enum Mode {
-    APP, KIND, TRIGGER, ACTION, QUERY;
+    TRIGGER, ACTION, QUERY;
   };
 
   public static abstract class Entry {
@@ -221,78 +221,6 @@ public class ThingpediaLexicon {
 
   public void clear() {
     cache.clear();
-  }
-
-  public Iterator<Entry> lookupApp(String phrase) throws SQLException {
-    if (opts.verbose >= 2)
-      LogInfo.logs("ThingpediaLexicon.lookupApp %s", phrase);
-
-    List<Entry> entries = cache.hit(new LexiconKey(Mode.APP, phrase));
-    if (entries != null) {
-      if (opts.verbose >= 3)
-        LogInfo.logs("ThingpediaLexicon cacheHit");
-      return entries.iterator();
-    }
-    if (opts.verbose >= 3)
-      LogInfo.logs("ThingpediaLexicon cacheMiss");
-
-    String query = "select canonical,owner,appId from app where match canonical against (? in natural language mode) limit "
-          + Parser.opts.beamSize;
-
-    long now = System.currentTimeMillis();
-
-    try (Connection con = dataSource.getConnection()) {
-      try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, phrase);
-
-        entries = new LinkedList<>();
-        try (ResultSet rs = stmt.executeQuery()) {
-          while (rs.next())
-            entries.add(new AppEntry(rs.getString(1), rs.getLong(2), rs.getString(3)));
-        } catch (SQLException e) {
-          if (opts.verbose > 0)
-            LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
-        }
-        cache.store(new LexiconKey(Mode.APP, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
-        return entries.iterator();
-      }
-    }
-  }
-
-  public Iterator<Entry> lookupKind(String phrase) throws SQLException {
-    if (opts.verbose >= 2)
-      LogInfo.logs("ThingpediaLexicon.lookupKind %s", phrase);
-
-    List<Entry> entries = cache.hit(new LexiconKey(Mode.KIND, phrase));
-    if (entries != null) {
-      if (opts.verbose >= 3)
-        LogInfo.logs("ThingpediaLexicon cacheHit");
-      return entries.iterator();
-    }
-    if (opts.verbose >= 3)
-      LogInfo.logs("ThingpediaLexicon cacheMiss");
-
-    String query = "select kind_canonical, kind from device_schema where kind_type <> 'primary' and match kind_canonical against (? "
-          + " in natural language mode) limit " + Parser.opts.beamSize;
-
-    long now = System.currentTimeMillis();
-
-    try (Connection con = dataSource.getConnection()) {
-      try (PreparedStatement stmt = con.prepareStatement(query)) {
-        stmt.setString(1, phrase);
-
-        entries = new LinkedList<>();
-        try (ResultSet rs = stmt.executeQuery()) {
-          while (rs.next())
-            entries.add(new KindEntry(rs.getString(1), rs.getString(2)));
-        } catch (SQLException e) {
-          if (opts.verbose > 0)
-            LogInfo.logs("SQL exception during lexicon lookup: %s", e.getMessage());
-        }
-        cache.store(new LexiconKey(Mode.KIND, phrase), Collections.unmodifiableList(entries), now + CACHE_AGE);
-        return entries.iterator();
-      }
-    }
   }
 
   public Iterator<Entry> lookupChannel(String phrase, Mode channel_type) throws SQLException {

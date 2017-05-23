@@ -66,12 +66,7 @@ public class ThingpediaLexiconFn extends SemanticFn {
       phrase = null;
     Iterator<ThingpediaLexicon.Entry> entries;
     try {
-      if (mode == ThingpediaLexicon.Mode.APP)
-        entries = lexicon.lookupApp(phrase);
-      else if (mode == ThingpediaLexicon.Mode.KIND)
-        entries = lexicon.lookupKind(phrase);
-      else
-        entries = lexicon.lookupChannel(phrase, mode);
+      entries = lexicon.lookupChannel(phrase, mode);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

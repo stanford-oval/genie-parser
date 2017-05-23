@@ -188,7 +188,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 #)
 
 # Command handling
-(rule $Device ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag kind) (anchored 1))
+(rule $Device ($EntityValue) (thingtalk.FilterDeviceEntityType) (anchored 1))
 
 (rule $Command (@discover)          (ConstantFn (call @cmdForm   (string "discover")  (string "generic"))))
 (rule $Command (@help)              (ConstantFn (call @cmdForm   (string "help")      (string "generic"))))
