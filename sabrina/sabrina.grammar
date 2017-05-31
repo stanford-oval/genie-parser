@@ -47,12 +47,12 @@
 #(rule $StringValue (`` $StrValue '') (IdentityFn))
 
 (rule $StringValue ($PHRASE) (thingtalk.NerValueFn QUOTED_STRING String) (anchored 1))
-(rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME "Entity(tt:username)") (anchored 1))
+(rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME "Username") (anchored 1))
 (rule $ContactNameValue ($TOKEN) (thingtalk.NerValueFn USERNAME "Entity(tt:contact_name)") (anchored 1))
-(rule $HashtagValue ($TOKEN) (thingtalk.NerValueFn HASHTAG "Entity(tt:hashtag)") (anchored 1))
-(rule $PhoneNumberValue ($PHRASE) (thingtalk.NerValueFn PHONE_NUMBER "Entity(tt:phone_number)") (anchored 1))
-(rule $EmailAddressValue ($TOKEN) (thingtalk.NerValueFn EMAIL_ADDRESS "Entity(tt:email_address)") (anchored 1))
-(rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL "Entity(tt:url)") (anchored 1))
+(rule $HashtagValue ($TOKEN) (thingtalk.NerValueFn HASHTAG "Hashtag") (anchored 1))
+(rule $PhoneNumberValue ($PHRASE) (thingtalk.NerValueFn PHONE_NUMBER "PhoneNumber") (anchored 1))
+(rule $EmailAddressValue ($TOKEN) (thingtalk.NerValueFn EMAIL_ADDRESS "EmailAddress") (anchored 1))
+(rule $UrlValue ($TOKEN) (thingtalk.NerValueFn URL "URL") (anchored 1))
 (rule $EntityValue ($TOKEN) (thingtalk.EntityLexiconFn @language_tag) (anchored 1))
 
 (rule $PersonValue (@of $UsernameValue) (SelectFn 0))
