@@ -48,6 +48,7 @@
 
 (rule $StringValue ($PHRASE) (thingtalk.NerValueFn QUOTED_STRING String) (anchored 1))
 (rule $UsernameValue ($TOKEN) (thingtalk.NerValueFn USERNAME "Entity(tt:username)") (anchored 1))
+(rule $ContactNameValue ($TOKEN) (thingtalk.NerValueFn USERNAME "Entity(tt:contact_name)") (anchored 1))
 (rule $HashtagValue ($TOKEN) (thingtalk.NerValueFn HASHTAG "Entity(tt:hashtag)") (anchored 1))
 (rule $PhoneNumberValue ($PHRASE) (thingtalk.NerValueFn PHONE_NUMBER "Entity(tt:phone_number)") (anchored 1))
 (rule $EmailAddressValue ($TOKEN) (thingtalk.NerValueFn EMAIL_ADDRESS "Entity(tt:email_address)") (anchored 1))
@@ -66,7 +67,7 @@
 
 (def @all_values ($DateValue $TimeValue $NumValue
 $MeasureValue $TimeIntervalValue $BooleanValue $LocationValue
-$PhoneNumberValue $EmailAddressValue $UsernameValue $HashtagValue $UrlValue 
+$PhoneNumberValue $EmailAddressValue $UsernameValue $ContactNameValue $HashtagValue $UrlValue 
 $EntityValue $StringValue))
 
 # Answer handling
