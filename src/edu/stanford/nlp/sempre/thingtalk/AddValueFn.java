@@ -31,17 +31,17 @@ public class AddValueFn extends SemanticFn {
     return new AddValueStream(ex, c);
   }
 
-  private static boolean operatorOk(String paramType, String operator) {
+  private static boolean operatorOk(Type paramType, String operator) {
     switch (operator) {
     case "is":
-      return !paramType.startsWith("Array(");
+      return !(paramType instanceof Type.Array);
     case "contains":
-      return paramType.equals("String");
+      return paramType == Type.String;
     case "has":
-      return paramType.startsWith("Array(");
+      return paramType instanceof Type.Array;
     case ">":
     case "<":
-      return paramType.equals("Number") || paramType.startsWith("Measure(");
+      return paramType == Type.Number || paramType instanceof Type.Measure;
     default:
       return true;
     }
@@ -104,13 +104,14 @@ public class AddValueFn extends SemanticFn {
         Derivation left = callable.child(0);
         Derivation right = callable.child(1);
         Value toAdd = right.value;
-        String haveType = ThingTalk.typeFromValue(toAdd);
+        String sempreType = ThingTalk.typeFromValue(toAdd);
+        Type haveType = Type.fromString(sempreType);
 
         if (!ArgFilterHelpers.typeOk(haveType, param.type, toAdd) &&
             !ArgFilterHelpers.typeOkArray(haveType, param.type, toAdd))
           continue;
 
-        ParamValue pv = new ParamValue(param, haveType, operator, toAdd);
+        ParamValue pv = new ParamValue(param, sempreType, operator, toAdd);
 
         ParametricValue newInvocation = invocation.clone();
         newInvocation.add(pv);

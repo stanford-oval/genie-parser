@@ -3,6 +3,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -66,7 +67,8 @@ public class ThingpediaDataset extends AbstractDataset {
           String channelType = set.getString(4);
           List<String> argnames = Json.readValueHard(set.getString(5), typeRef);
           List<String> argcanonicals = Json.readValueHard(set.getString(6), typeRef);
-          List<String> argtypes = Json.readValueHard(set.getString(7), typeRef);
+          List<Type> argtypes = Json.readValueHard(set.getString(7), typeRef).stream().map((s) -> Type.fromString(s))
+              .collect(Collectors.toList());
           Value inner;
           switch (channelType) {
           case "action":

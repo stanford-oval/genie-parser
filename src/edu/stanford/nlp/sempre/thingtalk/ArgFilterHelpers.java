@@ -61,83 +61,13 @@ public class ArgFilterHelpers {
     return ALLOWED_UNITS.get(want).contains(have);
   }
 
-  private static boolean isEntity(String type) {
-    if (type.startsWith("Entity("))
-      return true;
-
-    return type.equals("Username") || type.equals("Hashtag");
+  static boolean typeOk(Type have, Type want, Value value) {
+    if (have instanceof Type.Measure && want instanceof Type.Measure && value instanceof NumberValue)
+      return unitOk(((NumberValue) value).unit, ((Type.Measure) want).getUnit());
+    return want.isAssignable(have);
   }
 
-  private static final Map<String, String> RENAMED_ENTITY_TYPES = new HashMap<>();
-
-  static {
-    RENAMED_ENTITY_TYPES.put("Username", "tt:username");
-    RENAMED_ENTITY_TYPES.put("Hashtag", "tt:hashtag");
-    RENAMED_ENTITY_TYPES.put("EmailAddress", "tt:email_address");
-    RENAMED_ENTITY_TYPES.put("Picture", "tt:picture");
-    RENAMED_ENTITY_TYPES.put("URL", "tt:url");
-    RENAMED_ENTITY_TYPES.put("PhoneNumber", "tt:phone_number");
+  static boolean typeOkArray(Type have, Type argtype, Value value) {
+    return argtype instanceof Type.Array && typeOk(have, ((Type.Array) argtype).getElementType(), value);
   }
-
-  static boolean typeOk(String have, String want, Value value) {
-    if (have.equals(want))
-      return true;
-
-    if (have.equals("Enum") && want.startsWith("Enum("))
-      return true;
-
-    // a mistake in the naming that is in too many places
-    // to fix now
-    if (have.equals("Bool") && want.equals("Boolean"))
-      return true;
-
-    // String is acceptable for entity types
-    if (have.equals("String") && isEntity(want))
-      return true;
-    
-    // Renamed entity types
-    if (RENAMED_ENTITY_TYPES.containsKey(have) && want.equals("Entity(" + RENAMED_ENTITY_TYPES.get(have) + ")"))
-      return true;
-
-    if (have.equals("Measure") && want.startsWith("Measure(") && value instanceof NumberValue)
-      return unitOk(((NumberValue) value).unit, want.substring("Measure(".length(), want.length() - 1));
-
-    return false;
-  }
-
-  static boolean typeOkArray(String have, String argtype, Value value) {
-    if (!argtype.startsWith("Array("))
-      return false;
-
-    // remove initial Array( and final )
-    String eltype = argtype.substring("Array(".length(), argtype.length() - 1);
-    return typeOk(have, eltype, value);
-  }
-
-  private static boolean operatorOk(String type, String operator) {
-    switch (operator) {
-    case "is":
-      return true;
-    case "contains":
-      return type.equals("String");
-    case ">":
-    case "<":
-      return type.equals("Number") || type.equals("Measure");
-    default:
-      throw new RuntimeException("Unexpected operator " + operator);
-    }
-  }
-
-  static boolean valueOk(Value value) {
-    if (!(value instanceof ParamValue))
-      return true;
-
-    ParamValue pv = (ParamValue) value;
-
-    if (pv.operator.equals("has"))
-      return typeOkArray(pv.tt_type, pv.name.type, pv.value);
-    return typeOk(pv.tt_type, pv.name.type, pv.value) &&
-        operatorOk(pv.tt_type, pv.operator);
-  }
-
 }

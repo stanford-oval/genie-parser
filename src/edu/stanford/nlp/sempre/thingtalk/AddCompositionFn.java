@@ -22,7 +22,7 @@ public class AddCompositionFn extends SemanticFn {
   private class CompositionStream extends MultipleDerivationStream {
     private final List<String> actionArgs;
     private final Iterator<String> actionArgsIter;
-    private final Map<String, String> scope;
+    private final Map<String, Type> scope;
     private final Map<String, String> canonicals;
     private String currentActionArg;
     private Iterator<String> triggerArgs;
@@ -111,9 +111,9 @@ public class AddCompositionFn extends SemanticFn {
         }
 
         String candidateTriggerArg = triggerArgs.next();
-        String triggerType = scope.get(candidateTriggerArg);
+        Type triggerType = scope.get(candidateTriggerArg);
 
-        String actionType;
+        Type actionType;
         if (applyToAction)
           actionType = rv.action.name.getArgType(currentActionArg);
         else

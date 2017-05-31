@@ -64,10 +64,6 @@ public final class ThingTalk {
       return "Bool";
     else if (value instanceof LocationValue)
       return "Location";
-    else if (value instanceof EmailAddressValue)
-      return "EmailAddress";
-    else if (value instanceof PhoneNumberValue)
-      return "PhoneNumber";
     else
       throw new RuntimeException("Unexpected value " + value);
   }
@@ -134,7 +130,7 @@ public final class ThingTalk {
   // Answers
   //******************************************************************************************************************
   public static ParamValue ansForm(StringValue type, Value val) {
-    return new ParamValue(new ParamNameValue("answer", type.value), type.value, "is", val);
+    return new ParamValue(new ParamNameValue("answer", null), type.value, "is", val);
   }
 
   public static ParamValue ansForm(Value val) {
@@ -195,22 +191,22 @@ public final class ThingTalk {
   }
 
   public static RuleValue timeRule(DateValue time, QueryValue query, ActionValue action) {
-    ParamNameValue timeName = new ParamNameValue("time", "String");
+    ParamNameValue timeName = new ParamNameValue("time", Type.String);
     ParamValue timeParam = new ParamValue(timeName, "Time", "is", time);
     TriggerValue timeTrigger = new TriggerValue(
         new ChannelNameValue("builtin", "at", Collections.singletonList("time"), Collections.singletonList("time"),
-            Collections.singletonList("String")),
+            Collections.singletonList(Type.String)),
         Collections.singletonList(timeParam));
 
     return new RuleValue(timeTrigger, query, action);
   }
 
   public static RuleValue timeSpanRule(NumberValue time, QueryValue query, ActionValue action) {
-    ParamNameValue timeName = new ParamNameValue("interval", "Measure(ms)");
+    ParamNameValue timeName = new ParamNameValue("interval", new Type.Measure("ms"));
     ParamValue timeParam = new ParamValue(timeName, "Measure", "is", time);
     TriggerValue timeTrigger = new TriggerValue(new ChannelNameValue("builtin", "timer",
         Collections.singletonList("interval"), Collections.singletonList("interval"),
-        Collections.singletonList("Measure(ms)")),
+        Collections.singletonList(new Type.Measure("ms"))),
         Collections.singletonList(timeParam));
 
     return new RuleValue(timeTrigger, query, action);

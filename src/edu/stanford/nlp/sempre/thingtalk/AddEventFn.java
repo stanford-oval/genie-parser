@@ -58,16 +58,16 @@ public class AddEventFn extends SemanticFn {
       actionArgs = new ArrayList<>();
       if (applyToAction) {
         for (String name : rv.action.name.getArgNames()) {
-          String type = rv.action.name.getArgType(name);
-          if (!type.equals("String"))
+          Type type = rv.action.name.getArgType(name);
+          if (type != Type.String)
             continue;
           if (!usedArgs.contains(name))
             actionArgs.add(name);
         }
       } else {
         for (String name : rv.query.name.getArgNames()) {
-          String type = rv.query.name.getArgType(name);
-          if (!type.equals("String"))
+          Type type = rv.query.name.getArgType(name);
+          if (type != Type.String)
             continue;
           if (!usedArgs.contains(name))
             actionArgs.add(name);
@@ -84,7 +84,7 @@ public class AddEventFn extends SemanticFn {
           return null;
 
         String currentActionArg = actionArgsIter.next();
-        ParamNameValue actionParamName = new ParamNameValue(currentActionArg, "String");
+        ParamNameValue actionParamName = new ParamNameValue(currentActionArg, Type.String);
         String actionArgCanonical;
         if (applyToAction)
           actionArgCanonical = rv.action.name.argcanonicals.get(currentActionArg);

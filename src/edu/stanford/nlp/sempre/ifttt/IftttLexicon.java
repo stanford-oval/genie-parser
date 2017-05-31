@@ -2,6 +2,7 @@ package edu.stanford.nlp.sempre.ifttt;
 
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -12,6 +13,7 @@ import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.LanguageInfo.LanguageUtils;
 import edu.stanford.nlp.sempre.thingtalk.ChannelNameValue;
 import edu.stanford.nlp.sempre.thingtalk.ThingpediaDatabase;
+import edu.stanford.nlp.sempre.thingtalk.Type;
 import fig.basic.LogInfo;
 import fig.basic.Option;
 
@@ -53,7 +55,7 @@ public class IftttLexicon {
     private final String name;
     private final List<String> argnames;
     private final List<String> argcanonicals;
-    private final List<String> argtypes;
+    private final List<Type> argtypes;
     private final String search;
 
     public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
@@ -68,7 +70,8 @@ public class IftttLexicon {
       };
       this.argnames = Json.readValueHard(argnames, typeRef);
       this.argcanonicals = Json.readValueHard(argcanonicals, typeRef);
-      this.argtypes = Json.readValueHard(argtypes, typeRef);
+      this.argtypes = Json.readValueHard(argtypes, typeRef).stream().map((s) -> Type.fromString(s))
+          .collect(Collectors.toList());
     }
 
     @Override

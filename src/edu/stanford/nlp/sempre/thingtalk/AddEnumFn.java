@@ -1,6 +1,5 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
-import java.util.Arrays;
 import java.util.Iterator;
 
 import edu.stanford.nlp.sempre.*;
@@ -48,12 +47,11 @@ public class AddEnumFn extends SemanticFn {
           if (invocation.hasParamName(currentArgname))
             continue;
 
-          String enumType = invocation.name.getArgType(currentArgname);
-          if (!enumType.startsWith("Enum("))
+          Type enumType = invocation.name.getArgType(currentArgname);
+          if (!(enumType instanceof Type.Enum))
             continue;
 
-          String[] enumList = enumType.substring("Enum(".length(), enumType.length()-1).split(",");
-          currentEnumIter = Arrays.asList(enumList).iterator();
+          currentEnumIter = ((Type.Enum) enumType).getEntries().iterator();
         }
         if (!currentEnumIter.hasNext()) {
           currentEnumIter = null;

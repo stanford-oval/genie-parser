@@ -8,7 +8,7 @@ import fig.basic.LispTree;
 public class ChannelNameValue extends Value {
   public final String kind;
   public final String channelName;
-  public final Map<String, String> argtypes;
+  public final Map<String, Type> argtypes;
   public final Map<String, String> argcanonicals;
 
   public ChannelNameValue(LispTree tree) {
@@ -18,20 +18,20 @@ public class ChannelNameValue extends Value {
     this.argcanonicals = new HashMap<>();
 
     for (int i = 3; i < tree.children.size(); i++) {
-      argtypes.put(tree.child(i).child(0).value, tree.child(i).child(2).value);
-      argtypes.put(tree.child(i).child(0).value, tree.child(i).child(1).value);
+      argtypes.put(tree.child(i).child(0).value, Type.fromString(tree.child(i).child(2).value));
+      argcanonicals.put(tree.child(i).child(0).value, tree.child(i).child(1).value);
     }
   }
 
   public ChannelNameValue(String kind, String channelName, List<String> argnames, List<String> argcanonicals,
-      List<String> argtypes) {
+      List<Type> argtypes) {
     this.kind = kind;
     this.channelName = channelName;
     this.argtypes = new HashMap<>();
     this.argcanonicals = new HashMap<>();
 
     Iterator<String> nameit = argnames.iterator();
-    Iterator<String> typeit = argtypes.iterator();
+    Iterator<Type> typeit = argtypes.iterator();
     Iterator<String> canonicalit = argcanonicals.iterator();
     while (typeit.hasNext() && nameit.hasNext() && canonicalit.hasNext()) {
       String name = nameit.next();
@@ -44,7 +44,7 @@ public class ChannelNameValue extends Value {
     return argtypes.keySet();
   }
 
-  public String getArgType(String name) {
+  public Type getArgType(String name) {
     return argtypes.get(name);
   }
 
@@ -58,11 +58,11 @@ public class ChannelNameValue extends Value {
     tree.addChild("channel");
     tree.addChild(kind);
     tree.addChild(channelName);
-    for (Map.Entry<String, String> e : argtypes.entrySet()) {
+    for (Map.Entry<String, Type> e : argtypes.entrySet()) {
       LispTree child = LispTree.proto.newList();
       child.addChild(e.getKey());
       child.addChild(argcanonicals.get(e.getKey()));
-      child.addChild(e.getValue());
+      child.addChild(e.getValue().toString());
       tree.addChild(child);
     }
     return tree;

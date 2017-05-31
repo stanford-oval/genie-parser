@@ -2,6 +2,7 @@ package edu.stanford.nlp.sempre.thingtalk;
 
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -27,84 +28,16 @@ public class ThingpediaLexicon {
     TRIGGER, ACTION, QUERY;
   };
 
-  public static abstract class Entry {
-    public abstract Formula toFormula();
-
-    public abstract String getRawPhrase();
-
-    public void addFeatures(FeatureVector vec) {
-    }
-
-    public boolean applyFilter(Object filter) {
-      return true;
-    }
-
-    @Override
-    public String toString() {
-      return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
-    }
-  }
-
-  private static class ParamEntry extends Entry {
-    private final String rawPhrase;
-    private final String argname;
-    private final String type;
-
-    public ParamEntry(String rawPhrase, String argname, String type) {
-      this.rawPhrase = rawPhrase;
-      this.argname = argname;
-      this.type = type;
-    }
-
-    @Override
-    public String getRawPhrase() {
-      return rawPhrase;
-    }
-
-    @Override
-    public boolean applyFilter(Object filter) {
-      return type.equals(filter);
-    }
-
-    @Override
-    public Formula toFormula() {
-      return new ValueFormula<>(
-          new ParamNameValue(argname, type));
-    }
-  }
-
-  private static class AppEntry extends Entry {
-    private final String rawPhrase;
-    private final long userId;
-    private final String appId;
-
-    public AppEntry(String rawPhrase, long userId, String appId) {
-      this.rawPhrase = rawPhrase;
-      this.userId = userId;
-      this.appId = appId;
-    }
-
-    @Override
-    public String getRawPhrase() {
-      return rawPhrase;
-    }
-
-    @Override
-    public Formula toFormula() {
-      return new ValueFormula<>(new NameValue("tt:app." + userId + "." + appId));
-    }
-  }
-
-  private static class ChannelEntry extends Entry {
+  public static class Entry {
     private final String rawPhrase;
     private final String kind;
     private final String name;
     private final List<String> argnames;
     private final List<String> argcanonicals;
-    private final List<String> argtypes;
+    private final List<Type> argtypes;
     private final String search;
 
-    public ChannelEntry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
+    private Entry(String rawPhrase, String kind, String name, String argnames, String argcanonicals,
         String argtypes, String search)
         throws JsonProcessingException {
       this.rawPhrase = rawPhrase;
@@ -116,43 +49,30 @@ public class ThingpediaLexicon {
       };
       this.argnames = Json.readValueHard(argnames, typeRef);
       this.argcanonicals = Json.readValueHard(argcanonicals, typeRef);
-      this.argtypes = Json.readValueHard(argtypes, typeRef);
+      this.argtypes = Json.readValueHard(argtypes, typeRef).stream().map((s) -> Type.fromString(s))
+          .collect(Collectors.toList());
     }
 
-    @Override
     public String getRawPhrase() {
       return rawPhrase;
     }
 
-    @Override
     public Formula toFormula() {
       return new ValueFormula<>(new ChannelNameValue(kind, name, argnames, argcanonicals, argtypes));
     }
 
-    @Override
     public void addFeatures(FeatureVector vec) {
       if (ThingTalkFeatureComputer.opts.featureDomains.contains("thingtalk_lexicon"))
         vec.add("thingtalk_lexicon", search + "---" + kind);
     }
-  }
 
-  private static class KindEntry extends Entry {
-    private final String kindCanonical;
-    private final String kind;
-
-    public KindEntry(String kindCanonical, String kind) {
-      this.kindCanonical = kindCanonical;
-      this.kind = kind;
+    public boolean applyFilter(Object filter) {
+      return true;
     }
 
     @Override
-    public String getRawPhrase() {
-      return kindCanonical;
-    }
-
-    @Override
-    public Formula toFormula() {
-      return new ValueFormula<>(new NameValue("tt:device." + kind));
+    public String toString() {
+      return "[ " + getRawPhrase() + " => " + toFormula() + " ]";
     }
   }
 
@@ -263,7 +183,7 @@ public class ThingpediaLexicon {
       entries = new LinkedList<>();
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next())
-          entries.add(new ChannelEntry(rs.getString(1), rs.getString(2), rs.getString(3),
+          entries.add(new Entry(rs.getString(1), rs.getString(2), rs.getString(3),
               rs.getString(4), rs.getString(5), rs.getString(6), key));
       } catch (SQLException | JsonProcessingException e) {
         if (opts.verbose > 0)
