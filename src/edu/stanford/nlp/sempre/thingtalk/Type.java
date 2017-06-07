@@ -1,5 +1,6 @@
 package edu.stanford.nlp.sempre.thingtalk;
 
+import fig.basic.LogInfo;
 import java.util.*;
 
 import com.google.common.base.Joiner;
@@ -291,8 +292,8 @@ public class Type {
       return true;
     if (this instanceof Entity && other == String)
       return true;
-    if (this == String && other instanceof Entity)
-      return true;
+    //if (this == String && other instanceof Entity)
+    //  return true;
     if (this instanceof Entity && other instanceof Entity)
       return entitySubType(((Entity) this).entityType, (((Entity) other).entityType));
     return false;
