@@ -75,7 +75,7 @@ public class APIServer implements Runnable {
     @Option
     public List<String> languages = Arrays.asList(new String[] { "en", "it", "es", "zh" });
     @Option
-    public String accessToken = null;
+    public String accessToken = "admin";
     @Option
     public String utteranceLogFile = null;
   }

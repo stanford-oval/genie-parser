@@ -209,8 +209,9 @@ public class LexiconBuilder {
         }
 
         if (deletePrevious) {
-          try (Statement stmt = connection.createStatement()) {
-            stmt.execute("delete from lexicon2");
+          try (PreparedStatement stmt = connection.prepareStatement("delete from lexicon2 where language = ?")) {
+            stmt.setString(1, languageTag);
+            stmt.execute();
           }
         }
 

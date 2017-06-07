@@ -32,6 +32,9 @@ public class ExtractSeq2Seq implements Runnable {
         .map((t) -> "'" + t + "'").collect(Collectors.joining(",")));
   }
 
+  private ExtractSeq2Seq() {
+  }
+
   @Override
   public void run() {
     Seq2SeqConverter converter = new Seq2SeqConverter(opts.languageTag);

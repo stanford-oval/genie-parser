@@ -239,6 +239,8 @@ addModule('thingtalk', 'ThingTalk & Sabrina', lambda {
   pullAfs('commons-pool2-2.4.2.jar')
   pullAfs('commons-pool2-2.4.2-javadoc.jar')
   pullAfs('mysql-connector-java.jar')
+  pullAfs('trove4j-3.0.3.jar')
+  pullAfs('trove4j-3.0.3-javadoc.jar')
 })
 
 ############################################################

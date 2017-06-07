@@ -56,6 +56,10 @@ public class Grammar {
   // Verbatim copy of all the lines read, so we can preserve the grammar file.
   List<String> statements = new ArrayList<>();
 
+  public LispTree getMacro(String var) {
+    return macros.get(var);
+  }
+
   public void read() {
     LogInfo.begin_track("Grammar.read");
     read(opts.inPaths);

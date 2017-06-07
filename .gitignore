@@ -25,15 +25,15 @@ semparse.iml
 java.hprof.txt
 /bin/
 
-sabrina/sabrina.canonicals.tsv
-sabrina/sabrina.*.params
-sabrina/sabrina.word_alignments.berkeley.source.*
-sabrina/sabrina.word_alignments.berkeley.*
-sabrina/sabrina.*.online_learn
-sabrina/sabrina.log
-sabrina/sabrina.phrase_alignments.*
-sabrina/sabrina-ppdb.txt
-sabrina/sabrina.training.conf
+data/ppdb.txt
+
+almond/almond.canonicals.tsv
+almond/almond.*.params
+almond/almond.word_alignments.berkeley.source.*
+almond/almond.word_alignments.berkeley.*
+almond/almond.*.online_learn
+almond/almond.log
+almond/almond.phrase_alignments.*
 
 ifttt/canonicals.tsv
 ifttt/entity_extraction.tsv

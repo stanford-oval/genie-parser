@@ -2,7 +2,8 @@
 
 set -x
 
-SEMPREDIR=`dirname $0`
+SEMPREDIR=`dirname $0`/..
+SEMPREDIR=`realpath ${SEMPREDIR}`
 
 EXTRA_ARGS="$@"
 
