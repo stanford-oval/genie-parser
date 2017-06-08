@@ -1,5 +1,5 @@
 #!/bin/sh
 
-scp pepperjack.stanford.edu:/opt/sempre/sabrina/sabrina.en.params ./sabrina/
-scp pepperjack.stanford.edu:/opt/sempre/sabrina/sabrina.word_alignments.\* ./sabrina/
-scp pepperjack.stanford.edu:/opt/sempre/sabrina/sabrina.phrase_alignments.\* ./sabrina/
+scp pepperjack.stanford.edu:/opt/sempre/almond/almond.en.params ./almond/
+scp pepperjack.stanford.edu:/opt/sempre/almond/almond.word_alignments.\* ./almond/
+scp pepperjack.stanford.edu:/opt/sempre/almond/almond.phrase_alignments.\* ./almond/

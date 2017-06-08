@@ -43,4 +43,4 @@
 (def @cool "酷")
 (def @never_mind ("算了"))
 
-(include "./sabrina.grammar")
+(include "./almond.grammar")

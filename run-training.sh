@@ -16,7 +16,7 @@ export LANGUAGE_TAG
 test -n "${LANGUAGE_TAG}" || die "language must be specified as an argument to this script"
 
 ADMIN_TOKEN=admin
-MODULE=${MODULE:-sabrina}
+MODULE=${MODULE:-almond}
 SEMPRE_SERVER=${SEMPRE_SERVER:-127.0.0.1}
 SEMPRE_PORT=${SEMPRE_PORT:-8400}
 SEMPRE_USER=${SEMPRE_USER:-sempre-training}

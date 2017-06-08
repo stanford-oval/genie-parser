@@ -6,7 +6,7 @@ usage() {
 
 SEMPREDIR=`dirname $0`
 SEMPREDIR=`realpath $SEMPREDIR`
-MODULE=${MODULE:-sabrina}
+MODULE=${MODULE:-almond}
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 WORKDIR=${WORKDIR:-.}
 

@@ -231,7 +231,7 @@ addModule('overnight', 'Creating a parser for multiple domains', lambda {
   pull('/u/nlp/data/semparse/overnight/calendar/eval/calendar.test.turk.examples', 'data/overnight/', {:symlink => true})
 })
 
-addModule('thingtalk', 'ThingTalk & Sabrina', lambda {
+addModule('thingtalk', 'ThingTalk & Almond', lambda {
   pullAfs('commons-dbcp2-2.1.1.jar')
   pullAfs('commons-dbcp2-2.1.1-javadoc.jar')
   pullAfs('commons-logging-1.2.jar')

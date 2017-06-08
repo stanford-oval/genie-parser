@@ -3,7 +3,7 @@
 set -e
 set -x
 
-MODULE=${MODULE:-sabrina}
+MODULE=${MODULE:-almond}
 CANONICALS=${1:-./${MODULE}/${MODULE}.canonicals.tsv}
 SEMPREDIR=`dirname $0`/..
 SEMPREDIR=`realpath ${SEMPREDIR}`

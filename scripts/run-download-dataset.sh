@@ -5,7 +5,7 @@ set -x
 LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 SEMPREDIR=`dirname $0`/..
 SEMPREDIR=`realpath ${SEMPREDIR}`
-MODULE=${MODULE:-sabrina}
+MODULE=${MODULE:-almond}
 OUTPUT="$1"
 shift
 
