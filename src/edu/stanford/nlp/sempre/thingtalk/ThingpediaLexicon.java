@@ -21,6 +21,8 @@ public class ThingpediaLexicon {
   public static class Options {
     @Option
     public int verbose = 0;
+    @Option
+    public Set<String> subset = new HashSet<>();
   }
 
   public static Options opts = new Options();
@@ -226,9 +228,12 @@ public class ThingpediaLexicon {
 
       entries = new LinkedList<>();
       try (ResultSet rs = stmt.executeQuery()) {
-        while (rs.next())
-          entries.add(new Entry(rs.getString(1), rs.getString(2), rs.getString(3),
-              rs.getString(4), rs.getString(5), rs.getString(6), key));
+        while (rs.next()) {
+          Entry entry = new Entry(rs.getString(1), rs.getString(2), rs.getString(3),
+              rs.getString(4), rs.getString(5), rs.getString(6), key);
+          if (maybeFilterSubset(entry))
+            entries.add(entry);
+        }
       } catch (SQLException | JsonProcessingException e) {
         if (opts.verbose > 0)
           LogInfo.logs("Exception during lexicon lookup: %s", e.getMessage());
@@ -237,5 +242,11 @@ public class ThingpediaLexicon {
           now + CACHE_AGE);
       return entries.iterator();
     }
+  }
+
+  private boolean maybeFilterSubset(Entry entry) {
+    if (opts.subset.isEmpty())
+      return true;
+    return opts.subset.contains(entry.kind);
   }
 }
