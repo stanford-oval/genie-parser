@@ -11,9 +11,11 @@ Download dependencies:
     ./pull-dependencies thingtalk
 
 Build the core:
+
     JAVAHOME=<path to java> ant thingtalk
 
 Build the HTTP server:
+
     JAVAHOME=<path to java> ant api
 
 `JAVAHOME` should be set to the path to your Java installation, eg. `/usr/lib/jvm/openjdk-1.8.0`.
