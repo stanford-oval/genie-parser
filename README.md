@@ -8,7 +8,7 @@ of the form when-get-do
 
 Download dependencies:
 
-    ./pull-dependencies thingtalk
+    ./pull-dependencies core corenlp thingtalk
 
 Build the core:
 
@@ -24,8 +24,8 @@ Java 1.8 is required. A working C compiler must also be installed.
 ## Running TT-SEMPRE interactively
 
     ./run.sh interactive -ThingpediaDatabase.dbPw <DATABASE_PW> -ThingpediaLexicon.subset <SUBSET>
-    
-Where <DATABASE_PW> is the password to the Thingpedia Database, and <SUBSET> is a space separated
+
+Where `<DATABASE_PW>` is the password to the Thingpedia Database, and `<SUBSET>` is a space separated
 list of devices to limit the scope of Thingpedia (e.g. `twitter instagram`).
 
 In interactive mode, it is possible to type sentences and check how they are parsed.
@@ -33,7 +33,7 @@ In interactive mode, it is possible to type sentences and check how they are par
 ## Training
 
     ./run-training.sh -ThingpediaDatabase.dbPw <DATABASE_PW> -ThingpediaLexicon.subset <SUBSET>
-    
+
 This command will fetch the data from the Thingpedia dataset and run a full session of training.
 The trained model (.params file) will be saved under `./almond`.
 
@@ -52,18 +52,18 @@ be reloaded.
 ## Running the server
 
     ./run.sh server -ThingpediaDatabase.dbPw <DATABASE_PW> -ThingpediaLexicon.subset <SUBSET>
-    
+
 The server runs on port 8400 by default. Use `-APIServer.port <X>` and `-APIServer.ssl_port <X>`
 to change the ports and to enable TLS.
 
 ### Querying the server
 
     http://127.0.0.1:8400/query?q=<query>&locale=<lang>&limit=<x>
-    
-Set <query> to the sentence to parse, <lang> to the locale code (eg. `en-US`) and `<x>` to the
+
+Set `<query>` to the sentence to parse, `<lang>` to the locale code (eg. `en-US`) and `<x>` to the
 maximum number of results to report. If limit is unspecified it defaults to 20. If the locale
 is unspecified it defaults to `en-US` (American English).
-    
+
 Result:
 
     {"sessionId":"....",
@@ -71,4 +71,3 @@ Result:
         {"prob":0.5,"score":1,"answer":"..."},
         {"prob":0.5,"score":1,"answer":"..."},
      ]}
-
