@@ -51,11 +51,11 @@ cd ${SEMPRE}
 
 cd ${SRCDIR}
 # update the grammar, remove reddit and hackernews 
-python ${SRCDIR}/gen_grammar.py ${DATABASE_PW} | grep -v -E ':reddit\.|:hackernews\.' > ${WORKDIR}/thingpedia.txt
+python ${SRCDIR}/scripts/gen_grammar.py ${DATABASE_PW} | grep -v -E ':reddit\.|:hackernews\.' > ${WORKDIR}/thingpedia.txt
 
 # update the input tokens
 cat ${WORKDIR}/train.tsv ${WORKDIR}/dev.tsv ${WORKDIR}/test.tsv | cut -f1 | tr ' ' '\n' | sort -u > ${WORKDIR}/input_words.txt
-python ${SRCDIR}/trim_embeddings.py ${WORKDIR}/input_words.txt < ${EMBEDDINGS} > ${WORKDIR}/embeddings.txt
+python ${SRCDIR}/scripts/trim_embeddings.py ${WORKDIR}/input_words.txt < ${EMBEDDINGS} > ${WORKDIR}/embeddings.txt
 
 # actually run the model
 cd ${WORKDIR}
