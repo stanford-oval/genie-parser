@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 '''
 Created on Mar 29, 2017
 
@@ -37,7 +37,7 @@ def reconstruct_sentences(inputs, end_of_string, reverse):
             input = input[:input.index(end_of_string)]
         except ValueError:
             pass
-        sentences[i] = ' '.join(map(lambda x: reverse[x], input))
+        sentences[i] = ' '.join([reverse[x] for x in input])
         
         if len(sentences[i]) > 50:
             sentences[i] = sentences[i][:50] + '...'
@@ -46,7 +46,7 @@ def reconstruct_sentences(inputs, end_of_string, reverse):
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Train Set>> <<PCA Set>>"
+        print("** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Train Set>> <<PCA Set>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -62,7 +62,7 @@ def run():
                          config.max_length)
     config.apply_cmdline(sys.argv[8:])
     
-    print "unknown", unknown_tokens
+    print("unknown", unknown_tokens)
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)

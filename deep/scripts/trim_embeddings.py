@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 
@@ -10,4 +10,4 @@ with open(sys.argv[1], 'r') as fp:
 for line in sys.stdin.readlines():
     sp = line.strip().split()
     if sp[0] in words:
-        print line.strip()
+        print(line.strip())

@@ -1,3 +1,4 @@
+#/!usr/bin/python3
 
 import os
 import sys
@@ -12,8 +13,8 @@ from model import initialize
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>>" \
-                                                  " <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]"
+        print("** Usage: python3 " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>>" \
+                                                  " <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]")
         sys.exit(1)
 
     np.random.seed(42)
@@ -31,7 +32,7 @@ def run():
         dev_data = None
     if len(sys.argv) > 8:
         config.apply_cmdline(sys.argv[8:])
-    print "unknown", unknown_tokens
+    print("unknown", unknown_tokens)
     try:
         os.mkdir(model_dir)
     except OSError:
@@ -72,8 +73,8 @@ def run():
             #train_eval.eval(sess, save_to_file=True)
             #if dev_data is not None:
             #    dev_eval.eval(sess, save_to_file=True)
-            print "best train", best_train
-            print "best dev", best_dev
+            print("best train", best_train)
+            print("best dev", best_dev)
 
 if __name__ == "__main__":
     run()

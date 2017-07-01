@@ -19,7 +19,7 @@ def vectorize(sentence, words, max_length):
             vector[i] = words[word]
         else:
             unknown_tokens.add(word)
-            print "sentence: ", sentence, "; word: ", word
+            print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<<UNK>>']
         if i+1 == max_length:
             break
@@ -28,7 +28,7 @@ def vectorize(sentence, words, max_length):
         vector[length] = words['<<EOS>>']
         length += 1
     else:
-        print "truncated sentence", sentence
+        print("truncated sentence", sentence)
     return (vector, length)
 
 ENTITIES = ['USERNAME', 'HASHTAG',
@@ -38,7 +38,7 @@ ENTITIES = ['USERNAME', 'HASHTAG',
             'PERCENT', 'DURATION', 'MONEY', 'ORDINAL']
 
 def load_dictionary(file, benchmark):
-    print "Loading dictionary from %s..." % (file,)
+    print("Loading dictionary from %s..." % (file,))
     words = dict()
 
     # special tokens
@@ -59,16 +59,16 @@ def load_dictionary(file, benchmark):
             if word not in words:
                 words[word] = len(words)
                 reverse.append(word)
-    for id in xrange(len(reverse)):
+    for id in range(len(reverse)):
         if words[reverse[id]] != id:
-            print "found problem at", id
-            print "word: ", reverse[id]
-            print "expected: ", words[reverse[id]]
+            print("found problem at", id)
+            print("word: ", reverse[id])
+            print("expected: ", words[reverse[id]])
             raise AssertionError
     return words, reverse
 
 def load_embeddings(from_file, words, embed_size=300):
-    print "Loading pretrained embeddings...",
+    print("Loading pretrained embeddings...", end=' ')
     start = time.time()
     word_vectors = {}
     for line in open(from_file).readlines():
@@ -77,10 +77,10 @@ def load_embeddings(from_file, words, embed_size=300):
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     n_tokens = len(words)
     embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, embed_size)), dtype='float32')
-    for token, id in words.iteritems():
+    for token, id in words.items():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix
 
 def load_data(from_file, input_words, output_words, input_reverse, output_reverse, max_length):

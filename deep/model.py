@@ -78,7 +78,7 @@ class BaseAligner(Model):
         raise NotImplementedError()
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in range(self.config.rnn_layers)])
             
         U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size))
         tf.add_to_collection(tf.GraphKeys.WEIGHTS, U)
@@ -249,7 +249,7 @@ class BaseAligner(Model):
             assert loss.get_shape() == ()
         
         if self.config.l2_regularization > 0:
-            weights = tf.get_collection(tf.GraphKeys.WEIGHTS) + filter(lambda v : v.name.endswith('/weights:0'), tf.trainable_variables())
+            weights = tf.get_collection(tf.GraphKeys.WEIGHTS) + [v for v in tf.trainable_variables() if v.name.endswith('/weights:0')]
             loss += tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(self.config.l2_regularization), weights)
             
         return loss
@@ -269,13 +269,13 @@ class BaseAligner(Model):
 
 class BeamSearchAligner(BaseAligner):
     def add_encoder_op(self, inputs, training, scope=None):
-        cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+        cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in range(self.config.rnn_layers)])
 
         return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
                                  dtype=tf.float32, scope=scope)
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in range(self.config.rnn_layers)])
 
         U = tf.get_variable('U', shape=(self.config.hidden_size, self.config.output_size))
         tf.add_to_collection(tf.GraphKeys.WEIGHTS, U)
@@ -417,7 +417,7 @@ class BeamSearchAligner(BaseAligner):
 
 class LSTMAligner(BaseAligner):
     def add_encoder_op(self, inputs, training, scope=None):
-        cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in xrange(self.config.rnn_layers)])
+        cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in range(self.config.rnn_layers)])
         #cell_enc = tf.contrib.rnn.AttentionCellWrapper(cell_enc, 5, state_is_tuple=True)
 
         return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=self.input_length_placeholder,
@@ -450,26 +450,26 @@ def initialize(benchmark, model_type, input_words, embedding_file):
     config = Config()
 
     if benchmark == "tt":
-        print "Loading ThingTalk Grammar"
+        print("Loading ThingTalk Grammar")
         config.grammar = ThingtalkGrammar()
 
         #Uncomment this for separate channel
         #config.grammar = SimpleGrammar("/srv/data/deep-sempre/workdir.sepchannel/output_tokens.txt")
     elif benchmark == "geo":
-        print "Loading Geoqueries Grammar"
+        print("Loading Geoqueries Grammar")
         config.grammar = SimpleGrammar("geoqueries/output_tokens.txt")
     else:
         raise ValueError("Invalid benchmark %s" % (benchmark,))
 
     words, reverse = load_dictionary(input_words, benchmark)
     config.dictionary_size = len(words)
-    print "%d words in dictionary" % (config.dictionary_size,)
+    print("%d words in dictionary" % (config.dictionary_size,))
     embeddings_matrix = load_embeddings(embedding_file, words, embed_size=config.embed_size)
 
     config.output_size = config.grammar.output_size
     if not config.train_output_embeddings:
         config.output_embed_size = config.output_size
-    print "%d output tokens" % (config.output_size,)
+    print("%d output tokens" % (config.output_size,))
     config.sos = config.grammar.start
     config.eos = config.grammar.end
     

@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 import MySQLdb
 import MySQLdb.cursors
@@ -13,21 +13,21 @@ def main():
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
     cursor.execute("select kind, name, channel_type, argnames, types from device_schema ds, device_schema_channels dsc where ds.id = dsc.schema_id and dsc.version = ds.developer_version and kind_type <> 'primary'")
     for row in cursor.fetchall():
-        print row['channel_type'], 'tt:' + row['kind'] + '.' + row['name'],
+        print(row['channel_type'], 'tt:' + row['kind'] + '.' + row['name'], end=' ')
         argnames = json.loads(row['argnames'])
         argtypes = json.loads(row['types'])
         for argname, argtype in zip(argnames, argtypes):
-            print argname, argtype,
-        print
+            print(argname, argtype, end=' ')
+        print()
         
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
     cursor.execute("select kind from device_schema where kind_type <> 'primary'")
     for row in cursor.fetchall():
-        print 'device', 'tt:device.' + row['kind']
+        print('device', 'tt:device.' + row['kind'])
         
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
     cursor.execute("select id from entity_names where not is_well_known")
     for row in cursor.fetchall():
-        print 'entity', row['id']
+        print('entity', row['id'])
         
 main()

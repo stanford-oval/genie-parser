@@ -65,11 +65,11 @@ class ThingtalkGrammar(object):
         tokens.update(COMMAND_TOKENS)
         tokens.update(SPECIAL_TOKENS)
         
-        for i in xrange(MAX_ARG_VALUES):
+        for i in range(MAX_ARG_VALUES):
             for entity in ENTITIES:
                 tokens.add(entity + "_" + str(i))
         
-        for unitlist in UNITS.itervalues():
+        for unitlist in UNITS.values():
             tokens.update(unitlist)
         tokens.add('tt:param.$event')
         trigger_or_query_params.add('tt:param.$event')
@@ -86,7 +86,7 @@ class ThingtalkGrammar(object):
                     tokens.add(function)
                     continue
                 if function_type == 'entity':
-                    for i in xrange(MAX_ARG_VALUES):
+                    for i in range(MAX_ARG_VALUES):
                         tokens.add('GENERIC_ENTITY_' + function + "_" + str(i))
                     continue
 
@@ -95,7 +95,7 @@ class ThingtalkGrammar(object):
                 functions[function_type][function] = paramlist
                 tokens.add(function)
                 
-                for i in xrange(len(parameters)/2):
+                for i in range(len(parameters)/2):
                     param = parameters[2*i]
                     type = parameters[2*i+1]
                     
@@ -132,7 +132,7 @@ class ThingtalkGrammar(object):
         state_names = []
         
         def to_ids(tokens, words):
-            return list(map(lambda x: words[x], tokens))
+            return list([words[x] for x in tokens])
 
         def add_allowed_tokens(state, tokens):
             state[to_ids(tokens, self.dictionary)] = 1
@@ -186,7 +186,7 @@ class ThingtalkGrammar(object):
         for v in VALUES:
             transitions.append((answer_id, self.before_end_state, v))
         for v in ENTITIES:
-            for i in xrange(MAX_ARG_VALUES):
+            for i in range(MAX_ARG_VALUES):
                 transitions.append((answer_id, self.before_end_state, v + '_' + str(i)))
         
         # primitives
@@ -241,19 +241,19 @@ class ThingtalkGrammar(object):
                     transitions.append((before_op, before_value, op))
                 if is_measure:
                     before_unit = new_state(invocation_name + '_tt:param.' + param_name + '_unit')
-                    for i in xrange(MAX_ARG_VALUES):
+                    for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
                     for unit in values:
                         transitions.append((before_unit, state_id, unit))
                 else:
                     for v in values:
                         if v[0].isupper():
-                            for i in xrange(MAX_ARG_VALUES):
+                            for i in range(MAX_ARG_VALUES):
                                 transitions.append((before_value, state_id, v + '_' + str(i)))
                         else:
                             transitions.append((before_value, state_id, v))
                 if is_measure and base_unit == 'ms':
-                    for i in xrange(MAX_ARG_VALUES):
+                    for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, state_id, 'SET_' + str(i)))
                         transitions.append((before_value, state_id, 'DURATION_' + str(i)))
                 if can_have_scope:
@@ -262,15 +262,15 @@ class ThingtalkGrammar(object):
                     
             return state_id
 
-        for action_name, params in actions.iteritems():
+        for action_name, params in actions.items():
             state_id = do_invocation(action_name, params, for_action=True)
             transitions.append((actions_id, state_id, action_name))
             transitions.append((state_id, self.end_state, '<<EOS>>'))
-        for query_name, params in queries.iteritems():
+        for query_name, params in queries.items():
             state_id = do_invocation(query_name, params, for_action=False)
             transitions.append((queries_id, state_id, query_name))
             transitions.append((state_id, self.end_state, '<<EOS>>'))
-        for trigger_name, params in triggers.iteritems():
+        for trigger_name, params in triggers.items():
             state_id = do_invocation(trigger_name, params, for_action=False)
             transitions.append((triggers_id, state_id, trigger_name))
             transitions.append((state_id, self.end_state, '<<EOS>>'))
@@ -284,12 +284,12 @@ class ThingtalkGrammar(object):
         #then_to_action_id = new_state('then_to_action')
         trigger_ids = []
         query_ids = []
-        for trigger_name, params in triggers.iteritems():
+        for trigger_name, params in triggers.items():
             state_id = do_invocation(trigger_name, params, for_action=False)
             transitions.append((rule_id, state_id, trigger_name))
             #transitions.append((state_id, then_to_query_id, 'then'))
             trigger_ids.append(state_id)
-        for query_name, params in queries.iteritems():
+        for query_name, params in queries.items():
             state_id = do_invocation(query_name, params, for_action=False)
             transitions.append((rule_id, state_id, query_name))
             query_ids.append(state_id)
@@ -301,7 +301,7 @@ class ThingtalkGrammar(object):
             query_ids.append(state_id)
             transitions.append((state_id, self.end_state, '<<EOS>>'))
 
-        for action_name, params in actions.iteritems():
+        for action_name, params in actions.items():
             state_id = do_invocation(action_name, params, for_action=True, can_have_scope=True)
             for trigger_id in trigger_ids:
                 transitions.append((trigger_id, state_id, action_name))
@@ -312,8 +312,8 @@ class ThingtalkGrammar(object):
         # now build the actual DFA
         num_states = len(states)
         self.num_states = num_states
-        print "num states", num_states
-        print "num tokens", self.output_size
+        print("num states", num_states)
+        print("num tokens", self.output_size)
         self.transition_matrix = np.zeros((num_states, self.output_size), dtype=np.int32)
         self.allowed_token_matrix = np.zeros((num_states, self.output_size), dtype=np.bool8)
 
@@ -328,11 +328,11 @@ class ThingtalkGrammar(object):
 
     def dump_tokens(self):
         for token in self.tokens:
-            print token
+            print(token)
 
     def vectorize(self, program):
         seq = [None] * len(program)
-        for i in xrange(len(program)):
+        for i in range(len(program)):
             token = program[i]
             try:
                 token_id = self.dictionary[token]
@@ -346,7 +346,7 @@ class ThingtalkGrammar(object):
         for token_id in program:
             next = self.transition_matrix[curr_state, token_id]
             if next == 0:
-                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join(map(lambda x:self.tokens[x], program))) + " (in state " + self.state_names[curr_state] + ")")
+                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join([self.tokens[x] for x in program])) + " (in state " + self.state_names[curr_state] + ")")
             curr_state = next
             
         if curr_state != self.end_state:
@@ -358,8 +358,8 @@ class ThingtalkGrammar(object):
                 program = line.strip().split()
                 program.append('<<EOS>>')
                 self.parse(self.vectorize(program))
-            except ValueError, e:
-                print e
+            except ValueError as e:
+                print(e)
 
     def constrain(self, logits, curr_state, batch_size, dtype=tf.int32):
         if curr_state is None:
@@ -482,10 +482,10 @@ class ThingtalkGrammar(object):
                 self.parse(seq2)
                 seq2.pop()
                 if seq != seq2:
-                    print "was", ' '.join(map(lambda x: self.tokens[x], seq))
-                    print "now", ' '.join(map(lambda x: self.tokens[x], seq2))
-            except ValueError, e:
-                print e
+                    print("was", ' '.join([self.tokens[x] for x in seq]))
+                    print("now", ' '.join([self.tokens[x] for x in seq2]))
+            except ValueError as e:
+                print(e)
     
     def compare(self, seq1, seq2):
         seq1 = list(seq1)

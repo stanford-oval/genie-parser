@@ -7,7 +7,7 @@ Created on Mar 16, 2017
 import tensorflow as tf
 import numpy as np
 
-from general_utils import get_minibatches
+from .general_utils import get_minibatches
 
 
 class AbstractGrammar(object):
@@ -125,7 +125,7 @@ class Seq2SeqEvaluator(object):
         inputs, input_lengths, labels, _ = self.data
         sequences = []
         gold_programs = set()
-        correct_programs = [set() for _ in xrange(self._beam_size)]
+        correct_programs = [set() for _ in range(self._beam_size)]
         for gold in labels:
             try:
                 gold = gold[:list(gold).index(self.grammar.end)]
@@ -142,11 +142,10 @@ class Seq2SeqEvaluator(object):
         fp = None
         if save_to_file:
             fp = open("stats_" + self.tag + ".txt", "w")
-            print "Writing decoded values to ", fp.name
+            print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return set(filter(lambda x: x.startswith('tt:') and not x.startswith('tt:param.'),
-                              map(lambda x: self.grammar.tokens[x], seq)))
+            return set([x for x in [self.grammar.tokens[x] for x in seq] if x.startswith('tt:') and not x.startswith('tt:param.')])
 
         try:
             for input_batch, input_length_batch, label_batch in get_minibatches([inputs, input_lengths, labels], self._batch_size):
@@ -163,7 +162,7 @@ class Seq2SeqEvaluator(object):
                         pass
                     #print "GOLD:", ' '.join(dict_reverse[l] for l in gold)
                     gold_functions = get_functions(gold)
-                    gold_channels = set(map(lambda x: x[x.index('.') + 1:], gold_functions))
+                    gold_channels = set([x[x.index('.') + 1:] for x in gold_functions])
 
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
@@ -180,14 +179,14 @@ class Seq2SeqEvaluator(object):
                         if beam_pos == 0 and save_to_file:
                             gold_str = ' '.join(dict_reverse[l] for l in gold)
                             decoded_str = ' '.join(dict_reverse[l] for l in decoded)
-                            print >>fp, gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str)
+                            print(gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str), file=fp)
 
                         if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
                             ok_0[beam_pos] += 1
 
                         if beam_pos == 0:
                             decoded_functions = get_functions(decoded)
-                            decoded_channels = set(map(lambda x:x[x.index('.')+1:], decoded_functions))
+                            decoded_channels = set([x[x.index('.')+1:] for x in decoded_functions])
                             if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
                                 ok_fn += 1
                             if gold_channels == decoded_channels:
@@ -195,11 +194,11 @@ class Seq2SeqEvaluator(object):
                         if self.grammar.compare(gold, decoded):
                             correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
-            print self.tag, "ok 0:", ok_0.astype(np.float32)/len(labels)
-            print self.tag, "ok channel:", float(ok_ch)/len(labels)
-            print self.tag, "ok function:", float(ok_fn)/len(labels)
-            print self.tag, "ok full:", ok_full.astype(np.float32)/len(labels)
-            print self.tag, "recall:", [float(len(p))/len(gold_programs) for p in correct_programs]
+            print(self.tag, "ok 0:", ok_0.astype(np.float32)/len(labels))
+            print(self.tag, "ok channel:", float(ok_ch)/len(labels))
+            print(self.tag, "ok function:", float(ok_fn)/len(labels))
+            print(self.tag, "ok full:", ok_full.astype(np.float32)/len(labels))
+            print(self.tag, "recall:", [float(len(p))/len(gold_programs) for p in correct_programs])
         finally:
             if fp is not None:
                 fp.close()

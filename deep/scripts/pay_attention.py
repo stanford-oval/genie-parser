@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 '''
 Created on Mar 22, 2017
 
@@ -53,7 +53,7 @@ def show_heatmap(x, y, attention):
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>>"
+        print("** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -63,7 +63,7 @@ def run():
 
     config.apply_cmdline(sys.argv[6:])
     
-    print "unknown", unknown_tokens
+    print("unknown", unknown_tokens)
 
     histfile = ".history"
     try:
@@ -89,7 +89,7 @@ def run():
                 
                 try:
                     while True:
-                        line = raw_input('> ').strip()
+                        line = input('> ').strip()
                         if not line:
                             continue
                         
@@ -107,11 +107,11 @@ def run():
                             decoded = decoded[:decoded.index(config.grammar.end)]
                         except ValueError:
                             pass
-                        output = map(lambda x:config.grammar.tokens[x], decoded)
+                        output = [config.grammar.tokens[x] for x in decoded]
                         
-                        print ' '.join(output)
+                        print(' '.join(output))
                         
-                        input = map(lambda x:reverse[x],input[:input_length])
+                        input = [reverse[x] for x in input[:input_length]]
                         
                         show_heatmap(input, output, attention_scores[0])
                 except EOFError:

@@ -1,3 +1,4 @@
+#/!usr/bin/python3
 '''
 Created on Mar 16, 2017
 
@@ -15,7 +16,7 @@ from model import initialize
 
 def run():
     if len(sys.argv) < 6:
-        print "** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Test Set>>"
+        print("** Usage: python3 " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>> <<Test Set>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -28,7 +29,7 @@ def run():
                           config.max_length)
     config.apply_cmdline(sys.argv[7:])
     
-    print "unknown", unknown_tokens
+    print("unknown", unknown_tokens)
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)

@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 '''
 Created on Apr 12, 2017
 
@@ -19,13 +19,13 @@ from thingtalk.grammar import ThingtalkGrammar
 
 def run():
     if len(sys.argv) < 5:
-        print "** Usage: python " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Train Set> <<Test Set>>"
+        print("** Usage: python " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Train Set> <<Test Set>>")
         sys.exit(1)
 
     np.random.seed(42)
     
     words, reverse = load_dictionary(sys.argv[1], 'tt')
-    print "%d words in dictionary" % (len(words),)
+    print("%d words in dictionary" % (len(words),))
     embeddings_matrix = load_embeddings(sys.argv[2], words, embed_size=300)
     max_length = 60
     
@@ -37,7 +37,7 @@ def run():
     test_data = load_data(sys.argv[4], words, grammar.dictionary,
                              reverse, grammar.tokens,
                              max_length)
-    print "unknown", unknown_tokens
+    print("unknown", unknown_tokens)
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
@@ -78,7 +78,7 @@ def run():
                 gold_programs.add(tuple(gold))
 
             indices = indices.eval(session=sess)
-            print indices.shape
+            print(indices.shape)
             
             for test_i, train_i in enumerate(indices):
                 gold = list(test_data[2][test_i])
@@ -101,11 +101,11 @@ def run():
                     ok_0 += 1
 
                 def get_functions(seq):
-                    return set(filter(lambda x:x.startswith('tt:') and not x.startswith('tt:param.'), map(lambda x: grammar.tokens[x], seq)))
+                    return set([x for x in [grammar.tokens[x] for x in seq] if x.startswith('tt:') and not x.startswith('tt:param.')])
                 gold_functions = get_functions(gold)
                 decoded_functions = get_functions(decoded)
-                gold_channels = set(map(lambda x:x[x.index('.')+1:], gold_functions))
-                decoded_channels = set(map(lambda x:x[x.index('.')+1:], decoded_functions))
+                gold_channels = set([x[x.index('.')+1:] for x in gold_functions])
+                decoded_channels = set([x[x.index('.')+1:] for x in decoded_functions])
                 if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
                     ok_fn += 1
                 if gold_channels == decoded_channels:
@@ -114,11 +114,11 @@ def run():
                     correct_programs.add(decoded_tuple)
                     ok_full += 1
         
-        print "ok 0:", float(ok_0)/len(test_data[0])
-        print "ok channel:", float(ok_ch)/len(test_data[0])
-        print "ok function:", float(ok_fn)/len(test_data[0])
-        print "ok full:", float(ok_full)/len(test_data[0])
-        print "recall:", float(len(correct_programs))/len(gold_programs)
+        print("ok 0:", float(ok_0)/len(test_data[0]))
+        print("ok channel:", float(ok_ch)/len(test_data[0]))
+        print("ok function:", float(ok_fn)/len(test_data[0]))
+        print("ok full:", float(ok_full)/len(test_data[0]))
+        print("recall:", float(len(correct_programs))/len(gold_programs))
 
 
 
