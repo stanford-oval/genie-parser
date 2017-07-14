@@ -1,8 +1,6 @@
 package edu.stanford.nlp.sempre.overnight;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -10,6 +8,7 @@ import java.util.Map;
 import com.google.common.base.Joiner;
 
 import edu.stanford.nlp.io.IOUtils;
+import edu.stanford.nlp.io.RuntimeIOException;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.stats.Counters;
@@ -111,10 +110,15 @@ public class Aligner {
   //read from serialized file
   public static Aligner read(File from) {
     Aligner res = new Aligner();
-    for (String line : edu.stanford.nlp.io.IOUtils.readLines(from)) {
-      String[] tokens = line.split("\t");
-      MapUtils.putIfAbsent(res.model, tokens[0], new ClassicCounter<>());
-      res.model.get(tokens[0]).incrementCount(tokens[1], Double.parseDouble(tokens[2]));
+    try {
+      for (String line : edu.stanford.nlp.io.IOUtils.readLines(from)) {
+        String[] tokens = line.split("\t");
+        MapUtils.putIfAbsent(res.model, tokens[0], new ClassicCounter<>());
+        res.model.get(tokens[0]).incrementCount(tokens[1], Double.parseDouble(tokens[2]));
+      }
+    } catch (RuntimeIOException e) {
+      if (!(e.getCause() instanceof FileNotFoundException))
+        throw e;
     }
     return res;
   }
