@@ -88,7 +88,7 @@ public class LexiconBuilder {
 
       try (Statement s = connection.createStatement()) {
         try (ResultSet rs = s
-            .executeQuery("select id,kind from device_schema where kind_type <> 'primary' lock in share mode")) {
+            .executeQuery("select id,kind from device_schema where kind_type <> 'global' lock in share mode")) {
           while (rs.next()) {
             schemaIdMap.put(rs.getString(2), rs.getInt(1));
           }

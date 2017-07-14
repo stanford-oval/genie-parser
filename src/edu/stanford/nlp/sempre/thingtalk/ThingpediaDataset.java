@@ -40,7 +40,7 @@ public class ThingpediaDataset extends AbstractDataset {
   private static final String CANONICAL_QUERY = "select dscc.canonical,ds.kind,dsc.name,dsc.channel_type,dsc.argnames,dscc.argcanonicals,dsc.types from device_schema_channels dsc, device_schema ds, "
       + " device_schema_channel_canonicals dscc where dsc.schema_id = ds.id and dsc.version = ds.developer_version and "
       + " dscc.schema_id = dsc.schema_id and dscc.version = dsc.version and dscc.name = dsc.name and language = ? "
-      + " and canonical is not null and ds.kind_type <> 'primary'";
+      + " and canonical is not null and ds.kind_type <> 'global'";
   private static final String FULL_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ?";
   private static final String RAW_EXAMPLE_QUERY = "select id, type, utterance, target_json from example_utterances where not is_base and language = ? "
       + "and type in ('online', 'test')";

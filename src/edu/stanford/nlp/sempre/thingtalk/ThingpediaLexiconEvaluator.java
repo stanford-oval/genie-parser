@@ -88,7 +88,7 @@ public class ThingpediaLexiconEvaluator implements Runnable {
       Map<String, Integer> schemaIdMap = new HashMap<>();
       try (Statement s = connection.createStatement()) {
         try (ResultSet rs = s
-            .executeQuery("select id,kind from device_schema where kind_type <> 'primary'")) {
+            .executeQuery("select id,kind from device_schema where kind_type <> 'global'")) {
           while (rs.next()) {
             schemaIdMap.put(rs.getString(2), rs.getInt(1));
           }

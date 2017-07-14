@@ -210,7 +210,7 @@ public class ThingpediaLexicon {
         + " device_schema_channels dsc, device_schema ds, device_schema_channel_canonicals dscc, lexicon2 lex "
         + " where dsc.schema_id = ds.id and dsc.version = ds.developer_version and dscc.schema_id = dsc.schema_id "
         + " and dscc.version = dsc.version and dscc.name = dsc.name and dscc.language = ? and channel_type = ? and "
-        + " lex.schema_id = ds.id and ds.kind_type <> 'primary' and lex.channel_name = dsc.name and lex.language = ? "
+        + " lex.schema_id = ds.id and ds.kind_type <> 'global' and lex.channel_name = dsc.name and lex.language = ? "
         + " and lex.token = ? limit "
         + (3 * Parser.opts.beamSize);
 

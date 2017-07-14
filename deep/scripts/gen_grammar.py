@@ -11,7 +11,7 @@ def main():
                            host='thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com',
                            ssl=dict(ca='../almond/thingpedia-db-ca-bundle.pem'))
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
-    cursor.execute("select kind, name, channel_type, argnames, types from device_schema ds, device_schema_channels dsc where ds.id = dsc.schema_id and dsc.version = ds.developer_version and kind_type <> 'primary'")
+    cursor.execute("select kind, name, channel_type, argnames, types from device_schema ds, device_schema_channels dsc where ds.id = dsc.schema_id and dsc.version = ds.developer_version and kind_type <> 'global'")
     for row in cursor.fetchall():
         print(row['channel_type'], 'tt:' + row['kind'] + '.' + row['name'], end=' ')
         argnames = json.loads(row['argnames'])
@@ -21,7 +21,7 @@ def main():
         print()
         
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
-    cursor.execute("select kind from device_schema where kind_type <> 'primary'")
+    cursor.execute("select kind from device_schema where kind_type <> 'global'")
     for row in cursor.fetchall():
         print('device', 'tt:device.' + row['kind'])
         
