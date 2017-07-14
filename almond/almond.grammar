@@ -88,7 +88,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 (rule $With (@with) (ConstantFn null))
 
 # Action Handling
-(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action) (anchored 1))
+(rule $ActionName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag action))
 (rule $Action ($ActionName) (lambda act (call @actParam (var act))))
 (rule $Action ($ActionName $PersonValue) (lambda act (lambda person (call @actParam (var person) (var act)))))
 (for @v @all_values
@@ -96,7 +96,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 )
 (rule $Action ($Action $With) (thingtalk.AddEnumFn))
 
-(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger) (anchored 1))
+(rule $TriggerName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag trigger))
 (rule $Trigger ($TriggerName) (lambda trig (call @trigParam (var trig))))
 (rule $Trigger ($TriggerName $PersonValue) (lambda trig (lambda person (call @trigParam (var person) (var trig)))))
 (for @v @all_values
@@ -108,7 +108,7 @@ $PhoneNumberValue $EmailAddressValue $UsernameValue $UrlValue $HashtagValue))
 )
 (rule $Trigger ($Trigger $With) (thingtalk.AddEnumFn))
 
-(rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query) (anchored 1))
+(rule $QueryName ($TOKEN) (thingtalk.ThingpediaLexiconFn @language_tag query))
 (rule $Query ($QueryName) (lambda query (call @queryParam (var query))))
 (rule $Query ($QueryName $PersonValue) (lambda query (lambda person (call @queryParam (var person) (var query)))))
 (for @v @all_values
