@@ -19,7 +19,7 @@ class LanguageContext(object):
 
 class Application(tornado.web.Application):
     def __init__(self, thread_pool):
-        super.__init__([r"/query", QueryHandler])
+        super().__init__([(r"/query", QueryHandler)])
     
         self._languages = dict()
         self.thread_pool = thread_pool

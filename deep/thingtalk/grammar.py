@@ -96,7 +96,7 @@ class ThingtalkGrammar(object):
                 functions[function_type][function] = paramlist
                 tokens.add(function)
                 
-                for i in range(len(parameters)/2):
+                for i in range(len(parameters)//2):
                     param = parameters[2*i]
                     type = parameters[2*i+1]
                     

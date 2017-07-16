@@ -19,7 +19,7 @@ from server.application import Application, LanguageContext
 
 def load_language(app, tag, input_words, embedding_matrix, config, model_type, model_dir):
     graph = tf.Graph()
-    session = tf.Session(graph)
+    session = tf.Session(graph=graph)
     
     with graph.as_default():
         with session.as_default():
@@ -39,7 +39,10 @@ def run():
     config, words, reverse, embedding_matrix = load(benchmark='tt', input_words=sys.argv[2], embedding_file=sys.argv[3])
     consumed = config.apply_cmdline(sys.argv[4:]) 
     
-    thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
+    if sys.version_info[2] >= 6:
+       thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
+    else:
+       thread_pool = ThreadPoolExecutor()
     app = Application(thread_pool)
     
     for language, model_directory in map(lambda x : x.split(':'), sys.argv[4+consumed:]):
