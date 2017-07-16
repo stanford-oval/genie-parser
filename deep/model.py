@@ -41,6 +41,7 @@ class Config(object):
         self.rnn_layers = int(cmdline[3])
         self.l2_regularization = float(cmdline[4])
         self.apply_attention = (cmdline[5] == "yes")
+        return 6
 
 class BaseAligner(Model):
     def add_placeholders(self):
@@ -447,6 +448,24 @@ class BagOfWordsAligner(BaseAligner):
         return enc_hidden_states, enc_final_state
 
 def initialize(benchmark, model_type, input_words, embedding_file):
+    config, words, reverse, embeddings_matrix = load(benchmark, input_words, embedding_file)
+    model = create_model(config, model_type, embeddings_matrix)
+
+    return config, words, reverse, model
+
+def create_model(config, model_type, embeddings_matrix):
+    if model_type == 'bagofwords':
+        model = BagOfWordsAligner(config, embeddings_matrix)
+    elif model_type == 'seq2seq':
+        model = LSTMAligner(config, embeddings_matrix)
+    elif model_type == 'beamsearch':
+        model = BeamSearchAligner(config, embeddings_matrix)
+    else:
+        raise ValueError("Invalid model type %s" % (model_type,))
+    
+    return model
+
+def load(benchmark, input_words, embedding_file):
     config = Config()
 
     if benchmark == "tt":
@@ -472,14 +491,5 @@ def initialize(benchmark, model_type, input_words, embedding_file):
     print("%d output tokens" % (config.output_size,))
     config.sos = config.grammar.start
     config.eos = config.grammar.end
-    
-    if model_type == 'bagofwords':
-        model = BagOfWordsAligner(config, embeddings_matrix)
-    elif model_type == 'seq2seq':
-        model = LSTMAligner(config, embeddings_matrix)
-    elif model_type == 'beamsearch':
-        model = BeamSearchAligner(config, embeddings_matrix)
-    else:
-        raise ValueError("Invalid model type %s" % (model_type,))
-    
-    return config, words, reverse, model
+
+    return config, words, reverse, embeddings_matrix

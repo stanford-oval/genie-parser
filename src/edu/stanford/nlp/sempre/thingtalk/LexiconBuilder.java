@@ -101,7 +101,7 @@ public class LexiconBuilder {
       // The priors on the functions
       Map<Function, Double> priors = new HashMap<>();
 
-      Pattern namePattern = Pattern.compile("^tt:([^\\.]+)\\.(.+)$");
+      Pattern namePattern = Pattern.compile("^tt:(.+)\\.([^\\.]+)$");
 
       int count = 0;
       try (PreparedStatement s = connection.prepareStatement(onlyKind == null ? ALL_QUERY : ONLY_KIND_QUERY)) {

@@ -53,6 +53,7 @@ class ThingtalkGrammar(object):
         queries = dict()
         actions = dict()
         functions = dict(trigger=triggers, query=queries, action=actions)
+        self.functions = functions
         devices = []
         trigger_or_query_params = set()
 
