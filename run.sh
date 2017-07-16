@@ -35,13 +35,17 @@ case $MODE in
 		TARGET=edu.stanford.nlp.sempre.api.APIServer
 		MODE_ARGS="++${MODULE}/${MODULE}.server.conf"
 		;;
+    tokenizer)
+		TARGET=edu.stanford.nlp.sempre.api.TokenizerServer
+		MODE_ARGS="++${MODULE}/${MODULE}.tokenizer.conf"
+		;;
 	interactive)
 		usage
 		exit 1
 		;;
 esac
 
-if test $MODE != "server" ; then
+if test $MODE != "server" && test $MODE != "tokenizer" ; then
 MODE_ARGS="${MODE_ARGS} 
 -Grammar.inPaths ${SEMPREDIR}/${MODULE}/${MODULE}.${LANGUAGE_TAG}.grammar 
 -CoreNLPAnalyzer.languageTag ${LANGUAGE_TAG} 
