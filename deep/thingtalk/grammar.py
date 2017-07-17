@@ -2,6 +2,8 @@
 import tensorflow as tf
 import numpy as np
 
+from orderedset import OrderedSet
+
 import sys
 
 ENTITIES = ['USERNAME', 'HASHTAG',
@@ -57,7 +59,7 @@ class ThingtalkGrammar(object):
         devices = []
         trigger_or_query_params = set()
 
-        tokens = set()
+        tokens = OrderedSet()
         tokens.update(BEGIN_TOKENS)
         #tokens.add(IF)
         #tokens.add(THEN)
