@@ -164,6 +164,9 @@ class Seq2SeqEvaluator(object):
                     gold_functions = get_functions(gold)
                     gold_channels = set([x[x.index('.') + 1:] for x in gold_functions])
 
+                    # no beam decoding
+                    if self.config.beam_size < 0:
+                        seq = [seq]
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break

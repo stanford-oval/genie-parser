@@ -151,22 +151,28 @@ class QueryHandler(tornado.web.RequestHandler):
             with language.session.graph.as_default():
                 input, input_len = vectorize(tokens, language.input_words, language.config.max_length)
                 input_batch, input_length_batch = [input], [input_len]
-                #sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch)
-                sequences = [[]]
+                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch)
                 assert len(sequences) == 1
                 
-                for beam in sequences[0]:
-                    if len(results) >= limit:
-                        break
-                    decoded = language.config.grammar.decode_output(beam)
+                if self.config.beam_size >= 0:
+                    for beam in sequences[0]:
+                        if len(results) >= limit:
+                            break
+                        results.append(language.config.grammar.decode_output(beam))
+                else:
+                    results.append(sequences[0])
+                
+                for i, decoded in enumerate(results):
                     try:
                         decoded = decoded[:decoded.index(language.config.grammar.end)]
                     except ValueError:
                         pass
                     try:
-                        results.append(dict(answer=json.dumps(_to_json(decoded, values)), prob=1./len(results), confidence=0))
+                        json_rep = dict(answer=json.dumps(_to_json(decoded, values)), prob=1./len(results), confidence=0)
                     except Exception as e:
                         print("Failed to represent " + str(decoded) + " as json", e)
+                        json_rep = None
+                    results[i] = json_rep
         return results
 
     @tornado.gen.coroutine
