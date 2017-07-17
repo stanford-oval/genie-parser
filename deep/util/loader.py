@@ -36,8 +36,8 @@ def vectorize(sentence, words, max_length):
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
             'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
-            'DATE', 'TIME', 'SET',
-            'PERCENT', 'DURATION', 'MONEY', 'ORDINAL']
+            'DATE', 'TIME', 'SET', 'DURATION', 'LOCATION']
+MAX_ARG_VALUES = 10
 
 def load_dictionary(file, benchmark):
     print("Loading dictionary from %s..." % (file,))
@@ -52,8 +52,9 @@ def load_dictionary(file, benchmark):
 
     if benchmark == "tt":
         for entity in ENTITIES:
-            words[entity] = len(words)
-            reverse.append(entity)
+            for i in range(MAX_ARG_VALUES):
+                words[entity + '_' + str(i)] = len(words)
+                reverse.append(entity + '_' + str(i))
 
     with open(file, 'r') as word_file:
         for word in word_file:
@@ -82,6 +83,8 @@ def load_embeddings(from_file, words, embed_size=300):
     for token, id in words.items():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]
+        else:
+            print("missing vector for", token)
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix
 
