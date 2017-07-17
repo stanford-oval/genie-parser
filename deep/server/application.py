@@ -10,8 +10,9 @@ import tornado.web
 from .request_handlers import QueryHandler
 
 class LanguageContext(object):
-    def __init__(self, tag, session, config, input_words, model):
+    def __init__(self, tag, tokenizer, session, config, input_words, model):
         self.tag = tag
+        self.tokenizer = tokenizer
         self.session = session
         self.config = config
         self.input_words = input_words

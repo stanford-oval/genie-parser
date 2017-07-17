@@ -59,11 +59,12 @@ def _read_value(decoded, off, values):
         value['type'] = 'Entity(tt:url)'
         value['value'] = values[token]
     elif token.starts_with('DURATION_') or token.starts_with('SET_'):
-        value['type'] = 'Measure(ms)'
+        value['type'] = 'Measure'
         value['value'] = values[token]
     elif token.starts_with('NUMBER_'):
         if len(decoded) > off + 1 and decoded[off+1] in ALL_UNITS:
-            value['type'] = 'Measure(' + decoded[off+1] + ')'
+            value['type'] = 'Measure'
+            value['value']['unit'] = decoded[off+1]
             consumed = 2
         else:
             value['type'] = 'Number'
@@ -139,19 +140,19 @@ class QueryHandler(tornado.web.RequestHandler):
     def __init__(self, app, request):
         super().__init__(app, request)
         
-        self.executor = self.app.thread_pool
+        self.executor = app.thread_pool
     
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
-        tokens = tokenized.tokens
-        values = tokenized.values
+        tokens, values = tokenized
 
         results = []
         with language.session.as_default():
             with language.session.graph.as_default():
                 input, input_len = vectorize(tokens, language.input_words, language.config.max_length)
                 input_batch, input_length_batch = [input], [input_len]
-                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch)
+                #sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch)
+                sequences = [[]]
                 assert len(sequences) == 1
                 
                 for beam in sequences[0]:
@@ -176,5 +177,6 @@ class QueryHandler(tornado.web.RequestHandler):
         limit = int(self.get_query_argument("limit", default=5))
 
         tokenized = yield language.tokenizer.tokenize(query)
-        result = yield self._do_run_query(language, tokenized)
+        #print("Tokenized as", tokenized)
+        result = yield self._do_run_query(language, tokenized, limit)
         self.write(dict(candidates=result))

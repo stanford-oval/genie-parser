@@ -61,6 +61,7 @@ public class TokenizerServer implements Runnable {
     ObjectWriter writer = object.writer().withType(Output.class);
     try {
       writer.writeValue(outputStream, output);
+      outputStream.append('\n');
       outputStream.flush();
     } catch (IOException e) {
       System.err.println("Failed to write tokenizer output out: " + e.getMessage());

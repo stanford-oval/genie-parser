@@ -16,18 +16,20 @@ from util.loader import unknown_tokens, load_data
 from model import load, create_model
 
 from server.application import Application, LanguageContext
+from server.tokenizer import Tokenizer, TokenizerService
 
-def load_language(app, tag, input_words, embedding_matrix, config, model_type, model_dir):
+def load_language(app, tokenizer_service, tag, input_words, embedding_matrix, config, model_type, model_dir):
     graph = tf.Graph()
     session = tf.Session(graph=graph)
     
     with graph.as_default():
         with session.as_default():
             model = create_model(config, model_type, embedding_matrix)
-            model.build()
-            loader = tf.train.Saver()
-            loader.restore(session, os.path.join(model_dir, 'best'))
-    app.add_language(tag, LanguageContext(tag, session, config, input_words, model))
+            #model.build()
+            #loader = tf.train.Saver()
+            #loader.restore(session, os.path.join(model_dir, 'best'))
+    tokenizer = Tokenizer(tokenizer_service, tag)
+    app.add_language(tag, LanguageContext(tag, tokenizer, session, config, input_words, model))
     print('Loaded language ' + tag)
 
 def run():
@@ -44,9 +46,11 @@ def run():
     else:
        thread_pool = ThreadPoolExecutor()
     app = Application(thread_pool)
+    tokenizer_service = TokenizerService()
+    tokenizer_service.run()
     
     for language, model_directory in map(lambda x : x.split(':'), sys.argv[4+consumed:]):
-        load_language(app, language, words, embedding_matrix, config, model_type=sys.argv[1], model_dir=model_directory)
+        load_language(app, tokenizer_service, language, words, embedding_matrix, config, model_type=sys.argv[1], model_dir=model_directory)
 
     app.listen(8400)
     tornado.ioloop.IOLoop.current().start()

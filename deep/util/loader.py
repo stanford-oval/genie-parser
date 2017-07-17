@@ -13,13 +13,15 @@ def vectorize(sentence, words, max_length):
     vector = np.zeros((max_length,), dtype=np.int32)
     assert words['<<PAD>>'] == 0
     #vector[0] = words['<<GO>>']
-    for i, word in enumerate(sentence.split(' ')):
+    if isinstance(sentence, str):
+        sentence = sentence.split(' ')
+    for i, word in enumerate(sentence):
         word = word.strip()
         if word in words:
             vector[i] = words[word]
         else:
             unknown_tokens.add(word)
-            print("sentence: ", sentence, "; word: ", word)
+            #print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<<UNK>>']
         if i+1 == max_length:
             break
