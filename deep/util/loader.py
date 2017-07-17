@@ -46,9 +46,8 @@ def load_dictionary(file, benchmark):
     # special tokens
     words['<<PAD>>'] = len(words)
     words['<<EOS>>'] = len(words)
-    words['<<GO>>'] = len(words)
     words['<<UNK>>'] = len(words)
-    reverse = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>']
+    reverse = ['<<PAD>>', '<<EOS>>', '<<UNK>>']
 
     if benchmark == "tt":
         for entity in ENTITIES:
@@ -78,6 +77,7 @@ def load_embeddings(from_file, words, embed_size=300):
         sp = line.strip().split()
         if sp[0] in words:
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
+    word_vectors['<<PAD>>'] = np.zeros((embed_size,))
     n_tokens = len(words)
     embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, embed_size)), dtype='float32')
     for token, id in words.items():

@@ -71,8 +71,8 @@ class Trainer(object):
                                           dropout=self._dropout)
             duration = time.time() - start_time
             print('Epoch {:}: loss = {:.2f} ({:.3f} sec)'.format(epoch, average_loss, duration))
-            self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
-            
+            #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
+
             train_acc = self.train_eval.eval(sess, save_to_file=False)
             if self.dev_eval is not None:
                 dev_acc = self.dev_eval.eval(sess, save_to_file=False)

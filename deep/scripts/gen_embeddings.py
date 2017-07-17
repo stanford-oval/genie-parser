@@ -14,7 +14,7 @@ import sys
 import json
 from math import ceil
 
-from util.loader import load_dictionary, vectorize, load_embeddings
+from util.loader import load_dictionary, vectorize, load_embeddings, ENTITIES, MAX_ARG_VALUES
 from util.general_utils import get_minibatches
 
 def make_skipgram_softmax_loss(embeddings_matrix, vocabulary_size, vector_size):
@@ -29,27 +29,35 @@ def make_skipgram_softmax_loss(embeddings_matrix, vocabulary_size, vector_size):
     loss = tf.reduce_mean(loss)
     return vectors, minibatch, loss
 
-N_EPOCHS = 2
+N_EPOCHS = 3
+
+def cosine_sim(v1, v2):
+    m1 = np.linalg.norm(v1)
+    m2 = np.linalg.norm(v2)
+    if m1*m2 < 1e-7:
+        return 1
+    return np.dot(v1, v2) / (m1*m2)
 
 def run():
-    if len(sys.argv) < 5:
-        print("** Usage: python3 " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Train Set>> <<vector size>>")
+    if len(sys.argv) < 6:
+        print("** Usage: python3 " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Output File>> <<Train Set>> <<vector size>>")
         sys.exit(1)
-        
-    vector_size = int(sys.argv[4])
-    win_size = 5
+
+    np.random.seed(42)
+    vector_size = int(sys.argv[5])
+    win_size = 2
     
     words, reverse = load_dictionary(sys.argv[1], 'tt')
-    embeddings_matrix = load_embeddings(sys.argv[2], words, embed_size=vector_size)
+    initial_embeddings = load_embeddings(sys.argv[2], words, embed_size=vector_size)
     
     inputs = []
-    with open(sys.argv[3], 'r') as data:
+    with open(sys.argv[4], 'r') as data:
         for line in data:
             sentence, _ = line.split('\t')
-            input, _ = vectorize(sentence, words, max_length=60)
+            input = list(map(lambda x: words[x], sentence.split(' '))) + [words['<<EOS>>']]
             
             for i, center_word in enumerate(input):
-                for j in range(-win_size, win_size):
+                for j in range(-win_size, win_size+1):
                     if i+j < 0 or i+j >= len(input):
                         continue
                     if j == 0:
@@ -59,24 +67,42 @@ def run():
 
     losses = []
     with tf.Graph().as_default():
-        vectors, minibatch_placeholder, loss = make_skipgram_softmax_loss(embeddings_matrix, len(words), vector_size)
-        optimize = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
+        vectors, minibatch_placeholder, loss = make_skipgram_softmax_loss(initial_embeddings, len(words), vector_size)
+        optimize = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(loss)
         
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             
             for _ in range(N_EPOCHS):
-                for i, minibatch in enumerate(get_minibatches(inputs, minibatch_size=256)):
+                n_batches = ceil(len(inputs)/8192)
+                for i, minibatch in enumerate(get_minibatches(inputs, minibatch_size=8192)):
                     _, current_loss = sess.run((optimize, loss), feed_dict={ minibatch_placeholder: minibatch })
-                    #print("Batch %d/%d; Loss: %f" % (i+1, n_batches, current_loss))
-                    losses.append(current_loss)
+                    print("Batch %d/%d; Loss: %f (%s)" % (i+1, n_batches, current_loss, str(type(current_loss))))
+                    losses.append(float(current_loss))
             final_vectors = vectors.eval(session=sess)
     
     with open('train-stats.json', 'w') as fp:
         json.dump(losses, fp)
     
-    for i, word in enumerate(words):
-        print(word, *final_vectors[i])
+    with open(sys.argv[3], 'w') as fp:
+        for i, word in enumerate(reverse):
+            if word == '<<PAD>>':
+                continue
+            print(word, *final_vectors[i], file=fp)
+
+    sum_cosine_sim = 0
+    for i in range(len(reverse)):
+        sum_cosine_sim += cosine_sim(initial_embeddings[i], final_vectors[i])
+    print('Avg cosine similarity:', sum_cosine_sim/len(reverse))
+    sum_cosine_sim = 0
+    for w in ENTITIES:
+        for i in range(MAX_ARG_VALUES):
+            entity_word = w + '_' + str(i)
+            entity_word_id = words[entity_word]
+            entity_cosine_sim = cosine_sim(initial_embeddings[entity_word_id], final_vectors[entity_word_id])
+            print('Entity', entity_word, entity_cosine_sim)
+            sum_cosine_sim += entity_cosine_sim
+    print('Avg cosine similarity (entities):', sum_cosine_sim/(len(ENTITIES)*MAX_ARG_VALUES))
 
 if __name__ == '__main__':
     run()
