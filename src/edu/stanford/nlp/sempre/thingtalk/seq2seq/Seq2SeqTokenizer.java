@@ -439,10 +439,14 @@ public class Seq2SeqTokenizer {
 
     case "SET":
     case "DURATION":
-      if (nerValue != null)
-        return new Pair<>(nerType, NumberValue.parseDurationValue(nerValue));
-      else
+      if (nerValue != null) {
+        NumberValue v = NumberValue.parseDurationValue(nerValue);
+        if (v.value == 1 && v.unit.equals("day"))
+          return null;
+        return new Pair<>(nerType, v);
+      } else {
         return null;
+      }
     }
 
     return null;
