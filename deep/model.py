@@ -27,8 +27,8 @@ class Config(object):
     batch_size = 256
     #beam_size = 10
     beam_size = -1 # no beam decoding
-    n_epochs = 40
-    lr = 0.001
+    n_epochs = 20
+    lr = 0.01
     train_input_embeddings = False
     train_output_embeddings = False
     output_embed_size = 50
@@ -50,7 +50,7 @@ class BaseAligner(Model):
         # batch size x number of words in the sentence
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
-        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length,))
+        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
 
@@ -82,7 +82,7 @@ class BaseAligner(Model):
 
     @property
     def batch_size(self):
-        return tf.shape(self.output_placeholder)[0]
+        return tf.shape(self.input_placeholder)[0]
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
         cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
@@ -159,7 +159,7 @@ class BaseAligner(Model):
         preds = tf.pad(preds, padding, mode='constant')
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
         loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
-        
+
         return loss
 
     def add_training_op(self, loss):

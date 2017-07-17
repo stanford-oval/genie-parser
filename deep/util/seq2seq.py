@@ -113,12 +113,17 @@ class Seq2SeqEvaluator(object):
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, model, grammar, data, tag, batch_size=256):
+    def __init__(self, model, grammar, data, tag, beam_size=10, batch_size=256):
         self.model = model
         self.grammar = grammar
         self.data = data
         self.tag = tag
-        self._beam_size = 10
+        self._beam_size = beam_size
+        if self._beam_size < 0:
+            self._beam_size = 1
+            self._is_beam_output = False
+        else:
+            self._is_beam_output = True
         self._batch_size = batch_size
         
     def eval(self, session, save_to_file=False):
@@ -164,8 +169,7 @@ class Seq2SeqEvaluator(object):
                     gold_functions = get_functions(gold)
                     gold_channels = set([x[x.index('.') + 1:] for x in gold_functions])
 
-                    # no beam decoding
-                    if self.config.beam_size < 0:
+                    if not self._is_beam_output:
                         seq = [seq]
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
@@ -175,7 +179,6 @@ class Seq2SeqEvaluator(object):
                             decoded = decoded[:decoded.index(self.grammar.end)]
                         except ValueError:
                             pass
-                        #print "TOP%d:"%(beam_pos), ' '.join(dict_reverse[l] for l in decoded)
 
                         decoded_tuple = tuple(decoded)
 
