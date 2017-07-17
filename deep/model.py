@@ -13,7 +13,7 @@ from util.model import Model
 from util.loader import load_dictionary, load_embeddings
 
 from tensorflow.contrib.seq2seq import BasicDecoder, \
-    TrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper, AttentionWrapperState
+    TrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper, AttentionWrapperState, BeamSearchDecoder
 
 from util.seq2seq import SimpleGrammar
 from thingtalk.grammar import ThingtalkGrammar
@@ -102,12 +102,22 @@ class BaseAligner(Model):
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
             helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
         else:
-            helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.eos)
-        decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
+            if self.config.beam_size > 0:
+                decoder = BeamSearchDecoder(cell_dec, output_embed_matrix, go_vector, self.config.eos,
+                                            tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.batch_size),
+                                            self.config.batch_size)
+            else:
+                helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.eos)
+                decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
 
-        dec_final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)            
-        return dec_final_outputs.rnn_output
+        dec_final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
+        
+        if self.config.beam_size > 0:
+            return dec_final_outputs.predicted_ids
+        else:
+            return dec_final_outputs.rnn_output
 
     def add_prediction_op(self, training):
         xavier = tf.contrib.layers.xavier_initializer(seed=1234)
@@ -206,7 +216,6 @@ class BagOfWordsAligner(BaseAligner):
             enc_final_state = (tf.contrib.rnn.LSTMStateTuple(enc_final_state, enc_final_state),)
         
         return enc_hidden_states, enc_final_state
-
 
 def initialize(benchmark, model_type, input_words, embedding_file):
     config, words, reverse, embeddings_matrix = load(benchmark, input_words, embedding_file)
