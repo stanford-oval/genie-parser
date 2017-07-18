@@ -1,13 +1,13 @@
 package edu.stanford.nlp.sempre;
 
-import fig.basic.Fmt;
-import fig.basic.LispTree;
-import fig.basic.LogInfo;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import fig.basic.Fmt;
+import fig.basic.LispTree;
+import fig.basic.LogInfo;
 
 /**
  * Represents a numerical value (optionally comes with a unit).
@@ -22,7 +22,7 @@ public class NumberValue extends Value {
   public final double value;
   public final String unit;  // What measurement (e.g., "fb:en.meter" or unitless)
 
-  public static final Pattern PATTERN = Pattern.compile("(P|PT)([0-9]+)([MSDHYW])");
+  public static final Pattern PATTERN = Pattern.compile("(P|PT)([0-9\\.]+)([mMSDHYW])");
 
   public static NumberValue parseNumber(String value) {
     if (value.startsWith(">=") || value.startsWith("<="))
@@ -46,6 +46,8 @@ public class NumberValue extends Value {
       String unit;
       if(unitStr.equals("S"))
         unit = "s";
+      else if (unitStr.equals("m"))
+        unit = "min";
       else if(unitStr.equals("M"))
         unit = dailyValue ? "min" : "month";
       else if(unitStr.equals("H"))
@@ -87,6 +89,7 @@ public class NumberValue extends Value {
     this.unit = 2 < tree.children.size() ? tree.child(2).value : unitless;
   }
 
+  @Override
   public LispTree toLispTree() {
     LispTree tree = LispTree.proto.newList();
     tree.addChild("number");
@@ -96,8 +99,9 @@ public class NumberValue extends Value {
     return tree;
   }
 
+  @Override
   public Map<String, Object> toJson() {
-    Map<String, Object> json = new HashMap<String, Object>();
+    Map<String, Object> json = new HashMap<>();
     json.put("value", value);
     if(!unit.equals(unitless))
       json.put("unit", unit);

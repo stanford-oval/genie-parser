@@ -9,7 +9,7 @@ import sys
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
             'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
-            'DATE', 'TIME', 'SET', 'DURATION',
+            'DATE', 'TIME', 'DURATION',
             'LOCATION']
 
 BEGIN_TOKENS = ['special', 'answer', 'command', 'rule', 'trigger', 'query', 'action']
@@ -19,7 +19,7 @@ SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.
 #IF = 'if'
 #THEN = 'then'
 OPERATORS = ['is', 'contains', '>', '<', 'has']
-VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location']
+VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location', '1', '0']
 TYPES = {
     'Location': (['is'], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
     'Boolean':  (['is'], ['true', 'false']),
@@ -32,7 +32,7 @@ TYPES = {
     'PhoneNumber': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
     'EmailAddress': (['is'], ['EMAIL_ADDRESS', 'QUOTED_STRING']),
     'URL': (['is'], ['URL']),
-    'Number': (['is', '<', '>'], ['NUMBER']),
+    'Number': (['is', '<', '>'], ['NUMBER', '1', '0']),
     'Picture': (['is'], [])
 }
 
@@ -245,6 +245,8 @@ class ThingtalkGrammar(object):
                 if is_measure:
                     before_unit = new_state(invocation_name + '_tt:param.' + param_name + '_unit')
                     for i in range(MAX_ARG_VALUES):
+                        transitions.append((before_value, before_unit, '0'))
+                        transitions.append((before_value, before_unit, '1'))
                         transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
                     for unit in values:
                         transitions.append((before_unit, state_id, unit))
@@ -257,7 +259,6 @@ class ThingtalkGrammar(object):
                             transitions.append((before_value, state_id, v))
                 if is_measure and base_unit == 'ms':
                     for i in range(MAX_ARG_VALUES):
-                        transitions.append((before_value, state_id, 'SET_' + str(i)))
                         transitions.append((before_value, state_id, 'DURATION_' + str(i)))
                 if can_have_scope:
                     for v in trigger_or_query_params:

@@ -10,7 +10,7 @@ import edu.stanford.nlp.sempre.LanguageInfo;
 
 public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
   // recognize std syntax +... or north american 1-
-  private static final Pattern INTL_PREFIX = Pattern.compile("^(\\+[0-9]{1,3}-?|1-)");
+  private static final Pattern INTL_PREFIX = Pattern.compile("^(\\+1-?|\\+[2-9][0-9]{1,2}-?|1-)");
   // recognize common (000) area code, or just 0000, followed by optional -
   private static final Pattern AREA_CODE = Pattern.compile("^\\(?[0-9]{3,4}\\)?-?");
   // recognize numbers, *, # and -, or recognize full numbers in touch tone format
@@ -22,6 +22,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       .compile("^([A-Za-z0-90-9*#\\-]{3,})$");
   // but don't recognize something that would be a legitimate number
   private static final Pattern DOUBLE_PATTERN = Pattern.compile("[+\\-]?([0-9]*\\.[0-9]+|[0-9]+)([eE][+-]?[0-9]+)?");
+  private static final Pattern DIGIT = Pattern.compile("[0-9]+");
 
   private static final char[] TOUCH_TONES = "22233344455566677778889999".toCharArray();
 
@@ -94,9 +95,7 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       String token = tokens.get(startToken + tokenIdx);
       if (charIdx > 0)
         token = token.substring(charIdx);
-      if (charIdx == 0 && buffer.length() >= 4)
-        lenient = false;
-      else if (buffer.length() < 5) // 1-800-... => +1800...
+      if (charIdx == 0 && (hasAreaCode || hasIntlPrefix || buffer.length() >= 4))
         lenient = false;
 
       Matcher matcher = (lenient ? LENIENT_NUMBER : NUMBER).matcher(token);
@@ -119,17 +118,20 @@ public class PhoneNumberEntityRecognizer implements NamedEntityRecognizer {
       while (tryNumber(hasIntlPrefix || hasAreaCode))
         ;
       
-      // reject anything with less than 5 chars, or with no tokens
-      if (buffer.length() < 5 || tokenIdx == 0)
+      // reject anything with less than 6 chars, or with no tokens
+      if (buffer.length() < 6 || tokenIdx == 0)
         return null;
 
       // if the buffer has 4 chars or less (plus 2 for intl prefix, plus 3 for area code), we don't accept it
       // if it parses as a double
-      if (buffer.length() <= (4 + (hasIntlPrefix ? 2 : 0) + (hasAreaCode ? 3 : 0))) {
+      if (buffer.length() < (4 + (hasIntlPrefix ? 2 : 0) + (hasAreaCode ? 3 : 0))) {
         Matcher doubleMatcher = DOUBLE_PATTERN.matcher(buffer);
         if (doubleMatcher.matches())
           return null;
       }
+      // if the buffer does not contain any digit, we reject it
+      if (!DIGIT.matcher(buffer).find())
+        return null;
       
       // normalize 1-... to +1-...
       if (buffer.substring(0, 1).equals("1"))

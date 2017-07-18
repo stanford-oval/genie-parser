@@ -22,7 +22,8 @@
 (def @special edu.stanford.nlp.sempre.thingtalk.ThingTalk.special)
 
 # Value Parsing
-#(rule $NumValue (@one) (ConstantFn (number 1)))
+#(rule $NumValue (1) (ConstantFn (number 1.0)))
+#(rule $NumValue (0) (ConstantFn (number 0.0)))
 (rule $NumValue ($PHRASE) (NumberFn) (anchored 1))
 (rule $DateValue ($PHRASE) (DateFn) (anchored 1))
 (rule $TimeValue ($PHRASE) (TimeFn) (anchored 1))
@@ -62,7 +63,7 @@
 (rule $LocationValue @at_home (ConstantFn (location rel_home -1 -1) fb:type.any))
 (rule $LocationValue @at_work (ConstantFn (location rel_work -1 -1) fb:type.any))
 
-(rule $PeriodicTimeValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
+(rule $TimeIntervalValue ($PHRASE) (thingtalk.TimeDurationFn) (anchored 1))
 (rule $PeriodicTimeValue (@every $TimeIntervalValue) (SelectFn 0))
 
 (def @all_values ($DateValue $TimeValue $NumValue

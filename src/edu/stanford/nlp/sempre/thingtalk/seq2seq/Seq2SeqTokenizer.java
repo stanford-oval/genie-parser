@@ -78,7 +78,6 @@ public class Seq2SeqTokenizer {
 
     if (applyHeuristics) {
       // adjust the NER tag where the model fails
-      // (eg for companies founded after 1993...)
 
       for (int i = 0; i < utteranceInfo.tokens.size(); i++) {
         String token, tag;
@@ -102,6 +101,9 @@ public class Seq2SeqTokenizer {
           utteranceInfo.nerTags.set(i + 1, tag);
           utteranceInfo.nerTags.set(i + 2, tag);
         }
+
+        // unsurprisingly, "wolf pack", "red hat" and "california bears" are fairly generic
+        // words on their own, and corenlp does not tag them
         if (token.equals("wolf") && i < utteranceInfo.tokens.size() - 1
             && utteranceInfo.tokens.get(i + 1).startsWith("pack")) {
           tag = "ORGANIZATION";
@@ -117,51 +119,6 @@ public class Seq2SeqTokenizer {
           tag = "ORGANIZATION";
           utteranceInfo.nerTags.set(i + 1, tag);
         }
-        if (token.equals("la") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("lakers")) {
-          tag = "ORGANIZATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("palo") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("alto")) {
-          tag = "LOCATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("los") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("angeles")) {
-          tag = "LOCATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("palm") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("springs")) {
-          tag = "LOCATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("san") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("francisco")) {
-          tag = "LOCATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("stanford") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("cardinals")) {
-          tag = "ORGANIZATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("bayern") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("munchen")) {
-          tag = "ORGANIZATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("chicago") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("cubs")) {
-          tag = "ORGANIZATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
-        if (token.equals("toronto") && i < utteranceInfo.tokens.size() - 1
-            && utteranceInfo.tokens.get(i + 1).equals("fc")) {
-          tag = "ORGANIZATION";
-          utteranceInfo.nerTags.set(i + 1, tag);
-        }
 
         switch (token) {
         //case "google":
@@ -172,8 +129,6 @@ public class Seq2SeqTokenizer {
         case "cavaliers":
         case "sta":
         case "stan":
-        case "microsoft":
-        case "juventus":
         case "msft":
         case "goog":
         case "cubs":
@@ -183,14 +138,9 @@ public class Seq2SeqTokenizer {
         case "barcellona":
           tag = "ORGANIZATION";
           break;
-
-        case "sunnyvale":
-        case "paris":
-          tag = "LOCATION";
-          break;
         }
 
-        if (tag != null)
+        if (tag != null && !utteranceInfo.nerTags.get(i).equals("QUOTED_STRING"))
           utteranceInfo.nerTags.set(i, tag);
       }
     }
@@ -213,6 +163,9 @@ public class Seq2SeqTokenizer {
         Pair<String, Object> value = nerValueToThingTalkValue(ex, tag, utteranceInfo.nerValues.get(i),
             fullEntity.toString());
         fullEntity.setLength(0);
+        // ignore tt:device entities
+        if (value != null && "GENERIC_ENTITY_tt:device".equals(value.getFirst()))
+          value = null;
         if (value != null) {
           tag = value.getFirst();
           int id = nextInt.compute(tag, (oldKey, oldValue) -> {
@@ -235,6 +188,19 @@ public class Seq2SeqTokenizer {
   }
 
   private LocationValue findLocation(String entity) {
+    // earth is not a location, and neiter is europe
+    switch (entity) {
+    case "earth":
+    case "europe":
+    case "uk":
+    case "us":
+    case "u.s.":
+    case "usa":
+    case "united states":
+    case "america":
+      return null;
+    }
+
     Collection<LocationLexicon.Entry<LocationValue>> entries = locationLexicon.lookup(entity);
     if (entries.isEmpty())
       return null;
@@ -277,6 +243,7 @@ public class Seq2SeqTokenizer {
     int nfootball = 0;
     int nbasketball = 0;
     int nbaseball = 0;
+    int nstock = 0;
     for (String token : ex.getTokens()) {
       switch (token) {
       case "football":
@@ -295,6 +262,12 @@ public class Seq2SeqTokenizer {
       case "baseball":
         nbaseball++;
         break;
+
+      case "stock":
+      case "finance":
+      case "quote":
+      case "dividend":
+        nstock++;
       }
     }
     if (entity.equals("california bears")) {
@@ -304,6 +277,11 @@ public class Seq2SeqTokenizer {
       else if (nfootball < nbasketball)
         return new Pair<>("GENERIC_ENTITY_sportradar:ncaambb_team",
             new TypedStringValue("Entity(sportradar:ncaambb_team)", "cal", "California Golden Bears"));
+    }
+    if (entity.equals("google")) {
+      if (nstock > 0)
+        return new Pair<>("GENERIC_ENTITY_tt:stock_id",
+            new TypedStringValue("Entity(tt:stock_id)", "goog", "Alphabet Inc."));
     }
 
     List<Pair<Pair<String, Object>, Double>> weights = new ArrayList<>();
@@ -356,7 +334,7 @@ public class Seq2SeqTokenizer {
 
     double maxWeight = weights.get(0).getSecond();
     if (weights.size() > 1 && weights.get(1).getSecond() == maxWeight) {
-      System.out.println("Ambiguous entity " + entity + ", could be any of " + weights);
+      //System.out.println("Ambiguous entity " + entity + ", could be any of " + weights);
       return null;
     }
 
@@ -397,7 +375,10 @@ public class Seq2SeqTokenizer {
           nerValue = nerValue.substring(2);
         else if (nerValue.startsWith(">") || nerValue.startsWith("<") || nerValue.startsWith("~"))
           nerValue = nerValue.substring(1);
-        return new Pair<>(nerType, Double.valueOf(nerValue));
+        double v = Double.valueOf(nerValue);
+        if (v == 1 || v == 0)
+          return null;
+        return new Pair<>(nerType, v);
       } catch (NumberFormatException e) {
         return null;
       }
@@ -431,13 +412,15 @@ public class Seq2SeqTokenizer {
       return new Pair<>(nerType, nerValue);
 
     case "LOCATION":
-      return new Pair<>(nerType, findLocation(entity));
+      LocationValue loc = findLocation(entity);
+      if (loc == null)
+        return null;
+      return new Pair<>(nerType, loc);
 
     case "ORGANIZATION":
     case "PERSON":
       return findEntity(ex, entity);
 
-    case "SET":
     case "DURATION":
       if (nerValue != null) {
         NumberValue v = NumberValue.parseDurationValue(nerValue);

@@ -15,7 +15,7 @@ public class QuotedStringEntityRecognizer implements NamedEntityRecognizer {
       boolean closed = false;
       int j;
       for (j = i + 1; j < n; j++) {
-        if ("''".equals(info.tokens.get(j))) {
+        if ("''".equals(info.tokens.get(j)) || "``".equals(info.tokens.get(j))) {
           closed = true;
           break;
         }

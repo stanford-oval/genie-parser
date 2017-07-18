@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.thingtalk.ArgFilterHelpers;
 import edu.stanford.nlp.sempre.thingtalk.LocationValue;
@@ -52,26 +54,44 @@ class Seq2SeqConverter {
 
     writeOutput();
 
+    for (Map.Entry<Seq2SeqTokenizer.Value, List<Integer>> entry : entities.entrySet()) {
+      if (entry.getValue().isEmpty())
+        continue;
+
+      String entityType = entry.getKey().type;
+      Object entityValue = entry.getKey().value;
+      for (int id : entry.getValue()) {
+        System.out.println(ex.id + ": unused entity " + entityType + "_" + id + " (" + entityValue + ")");
+      }
+    }
+
     return new Pair<>(Collections.unmodifiableList(tokenizerResult.tokens), Collections.unmodifiableList(outputTokens));
   }
 
   private void writeOutput() {
-    Map<?, ?> json = Json.readMapHard(((StringValue) ex.targetValue).value);
+    try {
+      Map<?, ?> json = Json.getMapper().readerWithView(Object.class).withType(Map.class)
+          .readValue(((StringValue) ex.targetValue).value);
 
-    if (json.containsKey("special"))
-      writeSpecial((Map<?, ?>) json.get("special"));
-    else if (json.containsKey("answer"))
-      writeAnswer((Map<?, ?>) json.get("answer"));
-    else if (json.containsKey("command"))
-      writeCommand((Map<?, ?>) json.get("command"));
-    else if (json.containsKey("rule"))
-      writeRule((Map<?, ?>) json.get("rule"));
-    else if (json.containsKey("trigger"))
-      writeTopInvocation("trigger", (Map<?, ?>) json.get("trigger"));
-    else if (json.containsKey("query"))
-      writeTopInvocation("query", (Map<?, ?>) json.get("query"));
-    else if (json.containsKey("action"))
-      writeTopInvocation("action", (Map<?, ?>) json.get("action"));
+      if (json.containsKey("special"))
+        writeSpecial((Map<?, ?>) json.get("special"));
+      else if (json.containsKey("answer"))
+        writeAnswer((Map<?, ?>) json.get("answer"));
+      else if (json.containsKey("command"))
+        writeCommand((Map<?, ?>) json.get("command"));
+      else if (json.containsKey("rule"))
+        writeRule((Map<?, ?>) json.get("rule"));
+      else if (json.containsKey("trigger"))
+        writeTopInvocation("trigger", (Map<?, ?>) json.get("trigger"));
+      else if (json.containsKey("query"))
+        writeTopInvocation("query", (Map<?, ?>) json.get("query"));
+      else if (json.containsKey("action"))
+        writeTopInvocation("action", (Map<?, ?>) json.get("action"));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Example " + ex.id + " does not parse as JSON", e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void writeSpecial(Map<?, ?> special) {
@@ -162,6 +182,23 @@ class Seq2SeqConverter {
           break;
         }
 
+        // one is implicit in expressions like "every hour" (= every 1 h) or "every week" (= every 1 week)
+        // at same time, zero is implicit in expressions like "no X" or "none"
+        // previously we tried to use CoreNLP's SET handling, but that was unreliable
+        // instead, we just add a new token that the NN can learn to predict
+        if (type.equals("NUMBER")) {
+          Number num = ((Number) value);
+          if (num.intValue() == 1) {
+            outputTokens.add("1");
+            return true;
+          }
+          if (num.intValue() == 0) {
+            outputTokens.add("0");
+            return true;
+          }
+          // fallthrough and warn
+        }
+
         System.out
             .println(ex.id + ": cannot find value " + type + " " + value + ", have "
                 + entities);
@@ -221,7 +258,7 @@ class Seq2SeqConverter {
           new DateValue((Integer) value.get("year"), (Integer) value.get("month"), (Integer) value.get("day"),
               value.containsKey("hour") ? (int) (Integer) value.get("hour") : 0,
               value.containsKey("minute") ? (int) (Integer) value.get("minute") : 0,
-              value.containsKey("second") ? (int) (double) (Double) value.get("second") : 0));
+              value.containsKey("second") ? (int) ((Number) value.get("second")).doubleValue() : 0));
       break;
 
     case "Time":
@@ -246,8 +283,6 @@ class Seq2SeqConverter {
         NumberValue numValue = new NumberValue(((Number) value.get("value")).doubleValue(),
             value.get("unit").toString());
         if (writeValue("DURATION", numValue, false))
-          break;
-        if (writeValue("SET", numValue, false))
           break;
       }
       writeValue("NUMBER", ((Number) value.get("value")).doubleValue());

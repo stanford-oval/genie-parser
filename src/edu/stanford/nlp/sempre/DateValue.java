@@ -3,6 +3,7 @@ package edu.stanford.nlp.sempre;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import fig.basic.LispTree;
@@ -16,36 +17,31 @@ public class DateValue extends Value {
   public final double second;
 
 	private static final Pattern PATTERN = Pattern
-			.compile("([0-9X]{4})?(-[0-9X]{2})?(-[0-9X]{2})?(T[0-9X]{2}:[0-9X]{2}(:[0-9X]{2}(\\.[0-9]+)?)?)?Z?");
+      .compile(
+          "-?([0-9X*]{4})?-?([0-9X*]{2})?-?([0-9X*]{2})?T?([0-9X*]{2})?:?([0-9X*]{2})?:?([0-9X*]{2}(?:\\.[0-9]+)?)?Z?");
 
   // Format: YYYY-MM-DD (from Freebase).
   // Return null if it's not a valid date string.
   public static DateValue parseDateValue(String dateStr) {
     if (dateStr.equals("PRESENT_REF")) return now();
 
-		if (!PATTERN.matcher(dateStr).matches())
-			return null;
+    Matcher matcher = PATTERN.matcher(dateStr);
+    if (!matcher.matches())
+      return null;
 
-    // We don't handle the following things:
-    //   - "30 A.D" since its value is "+0030"
-    //   - "Dec 20, 2009 10:04am" since its value is "2009-12-20T10:04"
     int year = -1, month = -1, day = -1;
     int hour = 0, minute = 0;
     double second = 0;
     boolean isBC = dateStr.startsWith("-");
-    if (isBC) dateStr = dateStr.substring(1);
 
     String[] dateParts;
     String[] timeParts = null;
-    String timeStr;
 
     if (dateStr.indexOf('T') != -1) {
-      timeStr = dateStr.substring(dateStr.indexOf('T') + 1, dateStr.length());
-      dateStr = dateStr.substring(0, dateStr.indexOf('T'));
-      timeParts = timeStr.split(":");
+      timeParts = new String[] { matcher.group(4), matcher.group(5), matcher.group(6) };
     }
 
-    dateParts = dateStr.split("-");
+    dateParts = new String[] { matcher.group(1), matcher.group(2), matcher.group(3) };
     if (dateParts.length > 3)
       throw new RuntimeException("Date has more than 3 parts: " + dateStr);
 
@@ -65,6 +61,8 @@ public class DateValue extends Value {
   }
 
   private static int parseIntRobust(String i) {
+    if (i == null)
+      return -1;
     int val;
     try {
       val = Integer.parseInt(i);
@@ -75,6 +73,8 @@ public class DateValue extends Value {
   }
 
   private static double parseDoubleRobust(String i) {
+    if (i == null)
+      return 0;
     try {
       return Double.parseDouble(i);
     } catch (NumberFormatException ex) {

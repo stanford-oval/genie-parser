@@ -10,7 +10,7 @@ LANGUAGE_TAG=${LANGUAGE_TAG:-en}
 EXTRA_ARGS="$@"
 
 JAVA=${JAVA:-java}
-BASE_ARGS="-ea $JAVA_ARGS -Dmodules=core,corenlp,overnight,thingtalk,api -cp ${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*"
+BASE_ARGS="-ea $JAVA_ARGS -Djava.library.path=${SEMPREDIR}/jni -Dmodules=core,corenlp,overnight,thingtalk,api -cp ${SEMPREDIR}/libsempre/*:${SEMPREDIR}/lib/*"
 
 exec ${JAVA} ${BASE_ARGS} edu.stanford.nlp.sempre.thingtalk.seq2seq.ExtractSeq2Seq \
 	++${SEMPREDIR}/${MODULE}/${MODULE}.seq2seq.conf \

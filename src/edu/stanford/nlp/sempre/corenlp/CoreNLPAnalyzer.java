@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
@@ -72,9 +71,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   private static final Set<String> AUX_VERBS = new HashSet<>(Arrays.asList(AUX_VERB_ARR));
   private static final String AUX_VERB_TAG = "VBD-AUX";
 
-  private static final Set<String> NOT_A_NUMBER = Sets.newHashSet("9gag", "score", "gross");
-
-  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
+  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]{4}");
 
   private final String languageTag;
   private final StanfordCoreNLP pipeline;
@@ -133,10 +130,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     else
       props.put("annotators", "tokenize," + annotators);
 
-    // force the numeric classifiers on, even if the props file would say otherwise
-    // this is to make sure we can understands at least numbers in number form
-    props.put("ner.applyNumericClassifiers", "true");
-    props.put("ner.useSUTime", "true");
+    // disable all the builtin numeric classifiers, we have our own
+    props.put("ner.applyNumericClassifiers", "false");
+    props.put("ner.useSUTime", "false");
 
     pipeline = new StanfordCoreNLP(props);
 
@@ -182,7 +178,12 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     return buf.toString();
   }
 
-  private static final Pattern BETWEEN_PATTERN = Pattern.compile("(-?[0-9]+.[0-9]+)-(-?[0-9]+.[0-9]+)");
+  // recognize two numbers in one token, because CoreNLP's tokenizer will not split them
+  private static final Pattern BETWEEN_PATTERN = Pattern.compile("(-?[0-9]+(?:.[0-9]+)?)-(-?[0-9]+(?:.[0-9]+)?)");
+
+  private void recognizeNumberSequences(List<CoreLabel> words) {
+    QuantifiableEntityNormalizer.applySpecializedNER(words);
+  }
 
   @Override
   public LanguageInfo analyze(String utterance) {
@@ -203,6 +204,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
     // Run Stanford CoreNLP
     Annotation annotation = pipeline.process(utterance);
+
+    // run numeric classifiers
+    recognizeNumberSequences(annotation.get(CoreAnnotations.TokensAnnotation.class));
 
     for (CoreLabel token : annotation.get(CoreAnnotations.TokensAnnotation.class)) {
       String word = token.get(TextAnnotation.class);
@@ -228,15 +232,30 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
       if (opts.yearsAsNumbers && nerTag.equals("DATE") && INTEGER_PATTERN.matcher(nerValue).matches()) {
         nerTag = "NUMBER";
-      } else if (nerTag.equals("NUMBER") && NOT_A_NUMBER.contains(wordLower)) {
-        nerTag = "O";
-        posTag = "NNP";
-        nerValue = null;
       }
 
-      if (wordLower.equals("everyday")) {
-        nerTag = "SET";
-        nerValue = "P1D";
+      Matcher twoNumbers = BETWEEN_PATTERN.matcher(wordLower);
+      if (twoNumbers.matches()) {
+        // CoreNLP does something somewhat dumb when it comes to X-Y when X and Y are both numbers
+        // we want to split them and treat them separately
+        String num1 = twoNumbers.group(1);
+        String num2 = twoNumbers.group(2);
+
+        languageInfo.tokens.add(num1);
+        languageInfo.posTags.add("CD");
+        languageInfo.nerTags.add("NUMBER");
+        languageInfo.nerValues.add(num1);
+
+        languageInfo.tokens.add("-");
+        languageInfo.posTags.add(":");
+        languageInfo.nerTags.add("O");
+        languageInfo.nerValues.add(null);
+
+        languageInfo.tokens.add(num2);
+        languageInfo.posTags.add("CD");
+        languageInfo.nerTags.add("NUMBER");
+        languageInfo.nerValues.add(num2);
+        continue;
       }
 
       if (LanguageAnalyzer.opts.lowerCaseTokens) {
@@ -282,21 +301,18 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         }
       }
     }
-    
-    // fix corenlp NER being weird around "between X and Y"
-    for (int i = 0; i < n; i++) {
-      String nerTag = languageInfo.nerTags.get(i);
-      if (nerTag.equals("NUMBER") && languageInfo.nerValues.get(i) != null) {
-        Matcher matcher = BETWEEN_PATTERN.matcher(languageInfo.nerValues.get(i)); 
-        if (matcher.matches()) {
-          if (i < n-2 &&
-              (languageInfo.tokens.get(i + 1).equals("and") || languageInfo.tokens.get(i + 1).equals("to"))) {
-            languageInfo.nerTags.set(i + 1, "O");
-            languageInfo.nerValues.set(i, matcher.group(1));
-            languageInfo.nerValues.set(i + 2, matcher.group(2));
-            i += 2;
-          }
-        }
+
+    // fix corenlp sometimes tagging Washington as location in "washington post"
+    for (int i = 0; i < n - 1; i++) {
+      String token = languageInfo.tokens.get(i);
+      String next = languageInfo.tokens.get(i + 1);
+
+      if ("washington".equals(token) && "post".equals(next)) {
+        languageInfo.nerTags.set(i, "ORGANIZATION");
+        languageInfo.nerValues.set(i, null);
+
+        languageInfo.nerTags.set(i + 1, "ORGANIZATION");
+        languageInfo.nerValues.set(i + 1, null);
       }
     }
 

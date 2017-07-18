@@ -7,7 +7,7 @@ import edu.stanford.nlp.sempre.LanguageInfo;
 
 public class URLEntityRecognizer implements NamedEntityRecognizer {
   private static final Pattern REGEXP = Pattern
-      .compile("(https?://(?:www\\.|(?!www))[^\\.]+\\..{2,}|www\\..+\\..{2,})");
+      .compile("(https?://(?:www\\.|(?!www))[^\\.]+\\..{2,}|www\\..+\\..{2,}|.{2,}\\.(?:com|net|org))");
 
   @Override
   public void recognize(LanguageInfo info) {
