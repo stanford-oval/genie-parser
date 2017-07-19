@@ -109,6 +109,9 @@ class Seq2SeqConverter {
     Map<?, ?> name = (Map<?, ?>) invocation.get("name");
     outputTokens.add(name.get("id").toString());
 
+    if (invocation.containsKey("person"))
+      writeValue("USERNAME", invocation.get("person"));
+
     List<?> arguments = (List<?>) invocation.get("args");
     for (Object o : arguments) {
       Map<?, ?> arg = (Map<?, ?>) o;
@@ -138,12 +141,17 @@ class Seq2SeqConverter {
     outputTokens.add((String) command.get("type"));
 
     Map<?, ?> value = (Map<?, ?>) command.get("value");
+
+    String valueStr;
     if (value.containsKey("value"))
-      outputTokens.add(value.get("value").toString());
+      valueStr = value.get("value").toString();
     else if (value.containsKey("name"))
-      outputTokens.add(value.get("name").toString());
+      valueStr = value.get("name").toString();
     else
-      outputTokens.add(value.get("id").toString());
+      valueStr = value.get("id").toString();
+    if (!valueStr.equals("generic"))
+      valueStr = "tt-device:" + valueStr;
+    outputTokens.add(valueStr);
   }
 
   private void writeAnswer(Map<?, ?> answer) {
@@ -222,8 +230,20 @@ class Seq2SeqConverter {
     String type = (String) argument.get("type");
     Map<?, ?> value = (Map<?, ?>) argument.get("value");
     if (type.startsWith("Entity(")) {
-      writeValue("GENERIC_ENTITY_" + type.substring("Entity(".length(), type.length() - 1),
-          new TypedStringValue(type, value.get("value").toString()));
+      switch (type) {
+      case "Entity(tt:device)":
+        outputTokens.add("tt-device:" + value.get("value").toString());
+        break;
+      case "Entity(tt:function)":
+        outputTokens.add("tt-function:" + value.get("value").toString());
+        break;
+      case "Entity(tt:contact_name)":
+        writeValue("USERNAME", value.get("value").toString());
+        break;
+      default:
+        writeValue("GENERIC_ENTITY_" + type.substring("Entity(".length(), type.length() - 1),
+            new TypedStringValue(type, value.get("value").toString()));
+      }
       return;
     }
     switch (type) {

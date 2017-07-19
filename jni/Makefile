@@ -15,8 +15,8 @@ CXXFLAGS := --std=c++14 -Wall -O2 -g -fPIC -DPIC
 libposix.so : posix.h posix.cpp
 	g++ -shared -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -fPIC -DPIC $^
 
-hunspell-jni.h : $(CLASS_PATH)/edu/stanford/nlp/sempre/corenlp/HunspellDictionary.class
-	$(JAVAHOME)/bin/javah -classpath $(CLASS_PATH) -o $@ edu.stanford.nlp.sempre.corenlp.HunspellDictionary
+hunspell-jni.h : $(CLASS_PATH)/corenlp/edu/stanford/nlp/sempre/corenlp/HunspellDictionary.class
+	$(JAVAHOME)/bin/javah -classpath $(CLASS_PATH):$(CLASS_PATH)/corenlp -o $@ edu.stanford.nlp.sempre.corenlp.HunspellDictionary
 
 libhunspell_jni_OBJECTS = hunspell-jni.o
 libhunspell_jni_CPPFLAGS := $(CPPFLAGS) $(shell pkg-config --cflags hunspell)

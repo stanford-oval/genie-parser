@@ -79,12 +79,12 @@ def load_embeddings(from_file, words, embed_size=300):
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     word_vectors['<<PAD>>'] = np.zeros((embed_size,))
     n_tokens = len(words)
-    embeddings_matrix = np.asarray(np.random.normal(0, 0.9, (n_tokens, embed_size)), dtype='float32')
+    embeddings_matrix = np.empty((n_tokens, embed_size), dtype='float32')
     for token, id in words.items():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]
         else:
-            print("missing vector for", token)
+            raise Exception("missing vector for", token)
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix
 

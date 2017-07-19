@@ -14,6 +14,8 @@ public class EmailEntityRecognizer implements NamedEntityRecognizer {
   public void recognize(LanguageInfo info) {
     int n = info.numTokens();
     for (int i = 0; i < n; i++) {
+      if ("QUOTED_STRING".equals(info.nerTags.get(i)))
+        continue;
       Matcher matcher = EMAIL_REGEX.matcher(info.tokens.get(i));
       if (matcher.matches()) {
         info.nerTags.set(i, "EMAIL_ADDRESS");

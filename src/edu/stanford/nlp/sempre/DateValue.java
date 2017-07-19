@@ -18,7 +18,7 @@ public class DateValue extends Value {
 
 	private static final Pattern PATTERN = Pattern
       .compile(
-          "-?([0-9X*]{4})?-?([0-9X*]{2})?-?([0-9X*]{2})?T?([0-9X*]{2})?:?([0-9X*]{2})?:?([0-9X*]{2}(?:\\.[0-9]+)?)?Z?");
+          "-?([0-9X*]{4})?-?([0-9X*]{2})?-?([0-9X*]{2})?(?:T([0-9X*]{2})?:?([0-9X*]{2})?:?([0-9X*]{2}(?:\\.[0-9]+)?)?)?Z?");
 
   // Format: YYYY-MM-DD (from Freebase).
   // Return null if it's not a valid date string.

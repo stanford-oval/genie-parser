@@ -85,6 +85,9 @@ def _read_prim(decoded, off, values):
     prim = dict(name=dict(id=fn), args=[])
     args = prim['args']
     consumed = 1
+    if off + consumed < len(decoded) and decoded[off+consumed].starts_with('USERNAME_'):
+        prim['person'] = values[decoded[off+consumed]]['value']
+        consumed += 1
     while off + consumed < len(decoded) and decoded[off+consumed].starts_with('tt:param.'):
         pname = decoded[off+consumed]
         op = decoded[off+consumed+1]

@@ -25,7 +25,7 @@ public class ExtractSeq2Seq implements Runnable {
 
   public static Options opts = new Options();
 
-  private static final String QUERY_TMPL = "select id, type, utterance, target_json from example_utterances where language = ? and type in (%s)";
+  private static final String QUERY_TMPL = "select id, type, utterance, target_json from example_utterances where language = ? and is_base = 0 and type in (%s)";
 
   private static String addTypesToQuery() {
     return String.format(QUERY_TMPL, opts.types.stream()

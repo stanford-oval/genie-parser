@@ -345,10 +345,10 @@ public class QuantifiableEntityNormalizer {
       err.println("normalizingTime: " + s);
     s = s.replaceAll("[ \t\n\0\f\r]", "");
     Matcher m = timePattern.matcher(s);
-    if (s.equalsIgnoreCase("noon")) {
-      return "12:00pm";
+    if (s.equalsIgnoreCase("noon") || s.equalsIgnoreCase("midday")) {
+      return "T12:00";
     } else if (s.equalsIgnoreCase("midnight")) {
-      return "00:00am";  // or "12:00am" ?
+      return "T00:00";
     } else if (s.equalsIgnoreCase("morning")) {
       return "M";
     } else if (s.equalsIgnoreCase("afternoon")) {
@@ -362,8 +362,6 @@ public class QuantifiableEntityNormalizer {
     } else if (s.equalsIgnoreCase("suppertime")) {
       return "EN";
     } else if (s.equalsIgnoreCase("lunchtime")) {
-      return "MD";
-    } else if (s.equalsIgnoreCase("midday")) {
       return "MD";
     } else if (s.equalsIgnoreCase("teatime")) {
       return "A";
@@ -385,22 +383,25 @@ public class QuantifiableEntityNormalizer {
       }
       // group 1 is hours, group 2 is minutes and maybe seconds; group 3 is am/pm
       StringBuilder sb = new StringBuilder();
-      sb.append(m.group(1));
-      if (m.group(2) == null || "".equals(m.group(2))) {
-        sb.append(":00");
-      } else {
-        sb.append(m.group(2));
-      }
+
       if (m.group(3) != null) {
         String suffix = m.group(3);
         suffix = suffix.replaceAll("\\.", "");
         suffix = suffix.toLowerCase();
-        sb.append(suffix);
-      } else if (ampm != null) {
-        sb.append(ampm);
+        ampm = suffix;
+      }
+      int hour = Integer.valueOf(m.group(1));
+      if (ampm != null) {
+        if (ampm.equals("pm") && hour < 12)
+          hour += 12;
+        else if (ampm.equals("am") && hour == 12)
+          hour = 0;
+      }
+      sb.append("T" + (hour < 10 ? "0" : "") + Integer.toString(hour));
+      if (m.group(2) == null || "".equals(m.group(2))) {
+        sb.append(":00");
       } else {
-        // Do nothing; leave ambiguous
-        // sb.append("pm");
+        sb.append(m.group(2));
       }
       if (DEBUG2) {
         err.println("normalizedTimeString new str: " + sb.toString());
@@ -1102,6 +1103,11 @@ public class QuantifiableEntityNormalizer {
     for (int i = 0; i < sz; i++) {
       E before = l.get(i);
       CoreLabel nscAnswer = copyL.get(i);
+
+      // copy over any POS tag override that NumberSequenceClassifier applied
+      before.setTag(nscAnswer.tag());
+
+      // copy over the NER tag too
       if ((before.get(CoreAnnotations.NamedEntityTagAnnotation.class) == null
           || before.get(CoreAnnotations.NamedEntityTagAnnotation.class).equals(BACKGROUND_SYMBOL)) &&
           (nscAnswer.get(CoreAnnotations.AnswerAnnotation.class) != null

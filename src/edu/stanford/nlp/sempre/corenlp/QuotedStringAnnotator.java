@@ -7,7 +7,6 @@ import edu.stanford.nlp.ling.CoreAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.QuoteAnnotator;
 import edu.stanford.nlp.util.CoreMap;
 
 public class QuotedStringAnnotator extends QuoteAnnotator {
@@ -42,6 +41,10 @@ public class QuotedStringAnnotator extends QuoteAnnotator {
         quoteString = text.substring(begin + 2, end - 2);
       else
         quoteString = text.substring(begin + 1, end - 1);
+
+      // FIXME for compatibility with the existing dataset (although we really should
+      // fix the dataset)
+      quoteString = quoteString.toLowerCase();
       quote.set(CoreAnnotations.NormalizedNamedEntityTagAnnotation.class, quoteString);
     }
   }

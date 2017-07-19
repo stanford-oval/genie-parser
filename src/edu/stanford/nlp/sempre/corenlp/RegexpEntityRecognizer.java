@@ -17,6 +17,8 @@ public class RegexpEntityRecognizer implements NamedEntityRecognizer {
   @Override
   public void recognize(LanguageInfo info) {
     for (int i = 0; i < info.numTokens(); i++) {
+      if ("QUOTED_STRING".equals(info.nerTags.get(i)))
+        continue;
       Matcher matcher = regexp.matcher(info.tokens.get(i));
       if (matcher.matches()) {
         info.nerTags.set(i, tag);

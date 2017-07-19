@@ -36,9 +36,14 @@ import fig.basic.Utils;
  */
 public class CoreNLPAnalyzer extends LanguageAnalyzer {
   public static class Options {
+    // Observe that we run almost everything twice
+    // This is because NER and quote_ner have to run before spellcheck (so that spellcheck
+    // doesn't try to fix names and quotes), but we want to rerun lemmatization
+    // after spellcheck so that new spaces and slash-splitting that spellcheck does
+    // are reflected in the lemma tokens and POS tags
     @Option(gloss = "What CoreNLP annotators to run")
-    public List<String> annotators = Lists.newArrayList("quote2", "spellcheck", "ssplit", "pos", "lemma",
-        "ner", "quote_ner");
+    public List<String> annotators = Lists.newArrayList("quote2", "ssplit", "pos", "lemma",
+        "ner", "quote_ner", "spellcheck", "ssplit", "pos", "lemma");
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
@@ -243,28 +248,32 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         nerTag = "NUMBER";
       }
 
-      Matcher twoNumbers = BETWEEN_PATTERN.matcher(wordLower);
-      if (twoNumbers.matches()) {
-        // CoreNLP does something somewhat dumb when it comes to X-Y when X and Y are both numbers
-        // we want to split them and treat them separately
-        String num1 = twoNumbers.group(1);
-        String num2 = twoNumbers.group(2);
+      if (wordLower.equals("9-11") || wordLower.equals("911")) {
+        nerTag = "O";
+      } else {
+        Matcher twoNumbers = BETWEEN_PATTERN.matcher(wordLower);
+        if (twoNumbers.matches()) {
+          // CoreNLP does something somewhat dumb when it comes to X-Y when X and Y are both numbers
+          // we want to split them and treat them separately
+          String num1 = twoNumbers.group(1);
+          String num2 = twoNumbers.group(2);
 
-        languageInfo.tokens.add(num1);
-        languageInfo.posTags.add("CD");
-        languageInfo.nerTags.add("NUMBER");
-        languageInfo.nerValues.add(num1);
+          languageInfo.tokens.add(num1);
+          languageInfo.posTags.add("CD");
+          languageInfo.nerTags.add("NUMBER");
+          languageInfo.nerValues.add(num1);
 
-        languageInfo.tokens.add("-");
-        languageInfo.posTags.add(":");
-        languageInfo.nerTags.add("O");
-        languageInfo.nerValues.add(null);
+          languageInfo.tokens.add("-");
+          languageInfo.posTags.add(":");
+          languageInfo.nerTags.add("O");
+          languageInfo.nerValues.add(null);
 
-        languageInfo.tokens.add(num2);
-        languageInfo.posTags.add("CD");
-        languageInfo.nerTags.add("NUMBER");
-        languageInfo.nerValues.add(num2);
-        continue;
+          languageInfo.tokens.add(num2);
+          languageInfo.posTags.add("CD");
+          languageInfo.nerTags.add("NUMBER");
+          languageInfo.nerValues.add(num2);
+          continue;
+        }
       }
 
       if (LanguageAnalyzer.opts.lowerCaseTokens) {
@@ -278,6 +287,11 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         languageInfo.posTags.add(token.get(PartOfSpeechAnnotation.class));
       }
       languageInfo.lemmaTokens.add(token.get(LemmaAnnotation.class));
+
+      // if it's not a noun and not an adjective it's not an organization 
+      if (!posTag.startsWith("N") && !posTag.startsWith("J") && nerTag.equals("ORGANIZATION"))
+        nerTag = "O";
+
       languageInfo.nerTags.add(nerTag);
       languageInfo.nerValues.add(nerValue);
 

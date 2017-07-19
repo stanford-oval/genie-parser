@@ -2,6 +2,8 @@ package edu.stanford.nlp.sempre.thingtalk.seq2seq;
 
 import java.util.*;
 
+import com.google.common.collect.Sets;
+
 import edu.stanford.nlp.sempre.*;
 import edu.stanford.nlp.sempre.thingtalk.*;
 import fig.basic.Pair;
@@ -101,6 +103,11 @@ public class Seq2SeqTokenizer {
           utteranceInfo.nerTags.set(i + 1, tag);
           utteranceInfo.nerTags.set(i + 2, tag);
         }
+        if (token.equals("miami") && i < utteranceInfo.tokens.size() - 1
+            && utteranceInfo.tokens.get(i + 1).equals("heat")) {
+          tag = "ORGANIZATION";
+          utteranceInfo.nerTags.set(i + 1, tag);
+        }
 
         // unsurprisingly, "wolf pack", "red hat" and "california bears" are fairly generic
         // words on their own, and corenlp does not tag them
@@ -134,9 +141,19 @@ public class Seq2SeqTokenizer {
         case "cubs":
         case "aapl":
 
-          // in our dataset, Barcellona refers to the team
+          // in our dataset, Barcelona refers to the team
         case "barcellona":
+        case "barcelona":
           tag = "ORGANIZATION";
+          break;
+
+        case "italian":
+        case "french":
+        case "spanish":
+        case "chinese":
+        case "english":
+        case "german":
+          tag = "LANGUAGE";
           break;
         }
 
@@ -198,6 +215,9 @@ public class Seq2SeqTokenizer {
     case "usa":
     case "united states":
     case "america":
+
+      // how sabrina could be a location is beyond me
+    case "sabrina":
       return null;
     }
 
@@ -209,7 +229,12 @@ public class Seq2SeqTokenizer {
     return (LocationValue) ((ValueFormula<?>) first.formula).value;
   }
 
-  private Pair<String, Object> findEntity(Example ex, String entity) {
+  // refuse to return anything for yahoo, because otherwise every yahoo finance sentence
+  // would have a very confusing two entities
+  private static final Set<String> NOT_ENTITIES = Sets.newHashSet("wsj world news", "yahoo", "capital weather gang",
+      "ac state");
+
+  private Pair<String, Object> findEntity(Example ex, String entity, String hint) {
     // override the lexicon on this one
     if (applyHeuristics) {
       if (entity.equals("warriors"))
@@ -227,6 +252,13 @@ public class Seq2SeqTokenizer {
       if (entity.equals("wolf pack") || entity.equals("nevada wolf pack"))
         return new Pair<>("GENERIC_ENTITY_sportradar:ncaafb_team",
             new TypedStringValue("Entity(sportradar:ncaafb_team)", "nev", "Nevada Wolf Pack"));
+      // Barcellona Pozzo di Grotto, obviously
+      if (entity.equals("barcelona"))
+        return new Pair<>("GENERIC_ENTITY_sportradar:eu_soccer_team",
+            new TypedStringValue("Entity(sportradar:eu_soccer_team)", "bar", "FC Barcelona"));
+
+      if (NOT_ENTITIES.contains(entity))
+        return null;
     }
 
     String tokens[] = entity.split("\\s+");
@@ -289,6 +321,9 @@ public class Seq2SeqTokenizer {
       String nerTag = entry.nerTag;
       TypedStringValue value = entry.formula.value;
       String[] canonicalTokens = entry.rawPhrase.split("\\s+");
+
+      if (hint != null && !nerTag.endsWith(hint))
+        continue;
 
       double weight = 0;
       if (nerTag.endsWith("sportradar:mlb_team"))
@@ -390,6 +425,8 @@ public class Seq2SeqTokenizer {
       return new Pair<>(nerType, date);
     }
     case "TIME":
+      if (nerValue == null)
+        return null;
       if (!nerValue.startsWith("T")) {
         // actually this is a date, not a time
         DateValue date = DateValue.parseDateValue(nerValue);
@@ -418,8 +455,10 @@ public class Seq2SeqTokenizer {
       return new Pair<>(nerType, loc);
 
     case "ORGANIZATION":
-    case "PERSON":
-      return findEntity(ex, entity);
+      return findEntity(ex, entity, null);
+
+    case "LANGUAGE":
+      return findEntity(ex, entity, "tt:iso_lang_code");
 
     case "DURATION":
       if (nerValue != null) {

@@ -2,6 +2,7 @@ package edu.stanford.nlp.sempre.corenlp;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.Sets;
 
@@ -21,54 +22,74 @@ public class SpellCheckerAnnotator implements Annotator {
     public String dictionaryDirectory = "/usr/share/myspell";
 
     @Option
-    public Set<String> extraDictionary = Sets.newHashSet("bodytrace", "bodytracescale", "bmi", "dm", "dms",
-        "file/folder", "gifs", "giphy", "github", "gmail", "gmails", "hashtag", "hashtags", "heatpad", "hvac",
+    public Set<String> extraDictionary = Sets.newHashSet("bodytrace", "bmi", "dm", "dms",
+        "gifs", "giphy", "github", "gmail", "gmails", "hashtag", "hashtags", "heatpad", "hvac",
         "icalendar", "ig", "imgflip", "images", "inbox", "insta", "linkedin", "mlb", "n't", "omlet",
         "onedrive", "parklon", "phd", "phdcomics", "popup", "powerpost", "reblog", "reddit", "retweet",
         "retweeted", "rss", "'s", "sms", "sportradar", "tumblr", "uber", "unfollow", "unmute", "wapo",
-        "weatherapi", "webos", "wsj", "xkcd");
+        "weatherapi", "webos", "wsj", "xkcd", "facebook", "youtube", "'m", "'ll", "'ve", "'re", "lakers", "bing",
+        "repo", "yandex", "aapl", "haz", "moar", "lol", "juventus", "fitbit", "kcal", "ncaafb", "unclosed",
+        "twilio", "mms", "bing", "xkcds", "kbs", "btc", "momma", "gps", "wtf", "apod", "diy", "smss",
+        "preselect", "vid", "vids", "ubering", "urls");
   }
 
   public static Options opts = new Options();
 
   private final HunspellDictionary dictionary;
 
+  private static final Pattern NUMERIC_PATTERN = Pattern.compile("[-+0-9:/.]+.*");
+  private static final Pattern BLANK_PATTERN = Pattern.compile("_+");
   private static final Set<String> PTB_PUNCTUATION = Sets.newHashSet("-lrb-", "-lsb-", "-rrb-", "-rsb-", "'", "`", "''",
-      "``");
+      "``", ",", "-LRB-", "-RRB-", "%", ">", "<", "-LSB-", "-RSB-");
 
   private static final Map<String, String> HARDCODED_REPLACEMENTS = new HashMap<>();
   static {
     // missing brands or words that hunspell doesn't recognize
-    // it's possible that hunspell would do these on its own 
+    // it's possible that hunspell would do these on its own
+    HARDCODED_REPLACEMENTS.put("allmend", "almond");
     HARDCODED_REPLACEMENTS.put("bling", "bing");
+    HARDCODED_REPLACEMENTS.put("bingg", "bing");
     HARDCODED_REPLACEMENTS.put("bodytrance", "bodytrace");
+    HARDCODED_REPLACEMENTS.put("bodytracescale", "bodytrace scale");
     HARDCODED_REPLACEMENTS.put("hastag", "hashtag");
+    HARDCODED_REPLACEMENTS.put("hastags", "hashtags");
     HARDCODED_REPLACEMENTS.put("headpad", "heatpad");
     HARDCODED_REPLACEMENTS.put("heapad", "heatpad");
     HARDCODED_REPLACEMENTS.put("ingmail", "in gmail");
+    HARDCODED_REPLACEMENTS.put("imgfli", "imgflip");
+    HARDCODED_REPLACEMENTS.put("instgram", "instagram");
     HARDCODED_REPLACEMENTS.put("linkediin", "linkedin");
     HARDCODED_REPLACEMENTS.put("linkenin", "linkedin");
+    HARDCODED_REPLACEMENTS.put("LinkdIn", "linkedin");
+    HARDCODED_REPLACEMENTS.put("mens", "men 's");
     HARDCODED_REPLACEMENTS.put("mygmail", "my gmail");
     HARDCODED_REPLACEMENTS.put("nasas", "nasa 's");
     HARDCODED_REPLACEMENTS.put("omle", "omlet");
     HARDCODED_REPLACEMENTS.put("parklod", "parklon");
     HARDCODED_REPLACEMENTS.put("parkon", "parklon");
+    HARDCODED_REPLACEMENTS.put("peklon", "parklon");
     HARDCODED_REPLACEMENTS.put("redditt", "reddit");
     HARDCODED_REPLACEMENTS.put("sportrader", "sportradar");
     HARDCODED_REPLACEMENTS.put("tmblr", "tumblr");
+    HARDCODED_REPLACEMENTS.put("tumbr", "tumblr");
     HARDCODED_REPLACEMENTS.put("ubert", "uber");
     HARDCODED_REPLACEMENTS.put("wenos", "webos");
+    HARDCODED_REPLACEMENTS.put("weos", "webos");
     HARDCODED_REPLACEMENTS.put("xkdc", "xkcd");
+    HARDCODED_REPLACEMENTS.put("xldc", "xkcd");
+    HARDCODED_REPLACEMENTS.put("xjcd", "xkcd");
 
     // for some reason hunspell thinks these have to do with bullfights
-    HARDCODED_REPLACEMENTS.put("mylightbulb", "my light bulb");
+    HARDCODED_REPLACEMENTS.put("evey", "every");
+    HARDCODED_REPLACEMENTS.put("frontpage", "front page");
     HARDCODED_REPLACEMENTS.put("lighbulb", "light bulb");
     HARDCODED_REPLACEMENTS.put("lightbub", "light bulb");
     HARDCODED_REPLACEMENTS.put("lightbul", "light bulb");
     HARDCODED_REPLACEMENTS.put("lightbulbif", "light bulb if");
     HARDCODED_REPLACEMENTS.put("lightbulp", "light bulb");
+    HARDCODED_REPLACEMENTS.put("mylightbulb", "my light bulb");
     HARDCODED_REPLACEMENTS.put("secion", "section");
-    HARDCODED_REPLACEMENTS.put("timestap", "timestamp");
+    HARDCODED_REPLACEMENTS.put("timestap", "time stamp");
 
     // PTB tokenizer weirdness
     HARDCODED_REPLACEMENTS.put("earth.at", "earth at");
@@ -97,7 +118,7 @@ public class SpellCheckerAnnotator implements Annotator {
     }
   }
 
-  private boolean slashCompoundWord(String word) {
+  private boolean slashCompoundWord(CoreLabel token, String word, List<CoreLabel> newTokens) {
     String[] split = word.split("/");
     if (split.length <= 1)
       return false;
@@ -107,6 +128,28 @@ public class SpellCheckerAnnotator implements Annotator {
         return false;
     }
     
+    String[] lemmaSplit = token.get(CoreAnnotations.LemmaAnnotation.class).split("/");
+
+    int begin = token.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
+    for (int i = 0; i < split.length; i++) {
+      if (i > 0) {
+        CoreLabel slashToken = new CoreLabel(token);
+        slashToken.set(CoreAnnotations.TextAnnotation.class, "/");
+        //slashToken.set(CoreAnnotations.LemmaAnnotation.class, "/");
+        slashToken.set(CoreAnnotations.CharacterOffsetBeginAnnotation.class, begin);
+        slashToken.set(CoreAnnotations.CharacterOffsetEndAnnotation.class, begin + 1);
+        begin++;
+        newTokens.add(slashToken);
+      }
+      CoreLabel newToken = new CoreLabel(token);
+      newToken.set(CoreAnnotations.TextAnnotation.class, split[i]);
+      //newToken.set(CoreAnnotations.LemmaAnnotation.class, lemmaSplit[i]);
+      newToken.set(CoreAnnotations.CharacterOffsetBeginAnnotation.class, begin);
+      newToken.set(CoreAnnotations.CharacterOffsetEndAnnotation.class, begin + split[i].length());
+      begin += split[i].length();
+      newTokens.add(newToken);
+    }
+
     return true;
   }
 
@@ -118,28 +161,28 @@ public class SpellCheckerAnnotator implements Annotator {
     for (CoreLabel token : tokens) {
       String word = token.get(CoreAnnotations.TextAnnotation.class);
 
-      if (token.get(QuoteAnnotation.class) != null) {
+      if (token.get(QuoteAnnotation.class) != null ||
+          PTB_PUNCTUATION.contains(word) ||
+          word.contains("@") || word.startsWith("#") || word.length() <= 2 ||
+          NUMERIC_PATTERN.matcher(word).matches() ||
+          BLANK_PATTERN.matcher(word).matches() ||
+          word.startsWith("http") || word.startsWith("www") ||
+          (token.ner() != null && !"O".equals(token.ner()))) {
         newTokens.add(token);
         continue;
       }
 
-      if (PTB_PUNCTUATION.contains(word) || opts.extraDictionary.contains(word.toLowerCase())) {
-        newTokens.add(token);
-        continue;
-      }
-
-      if (dictionary.spell(word)) {
-        newTokens.add(token);
-        continue;
-      }
-
-      if (slashCompoundWord(word)) {
+      if (opts.extraDictionary.contains(word.toLowerCase()) || dictionary.spell(word)) {
         newTokens.add(token);
         continue;
       }
 
       if (HARDCODED_REPLACEMENTS.containsKey(word.toLowerCase())) {
         doReplace(token, newTokens, word, HARDCODED_REPLACEMENTS.get(word.toLowerCase()));
+        continue;
+      }
+
+      if (slashCompoundWord(token, word, newTokens)) {
         continue;
       }
 
@@ -151,6 +194,11 @@ public class SpellCheckerAnnotator implements Annotator {
       } else {
         doReplace(token, newTokens, word, replacements.get(0));
       }
+    }
+    assert newTokens.size() >= tokens.size();
+
+    for (int i = 0; i < newTokens.size(); i++) {
+      newTokens.get(i).setIndex(i);
     }
 
     annotation.set(CoreAnnotations.TokensAnnotation.class, newTokens);
@@ -167,6 +215,8 @@ public class SpellCheckerAnnotator implements Annotator {
     for (String newWord : newWords) {
       CoreLabel newToken = new CoreLabel(token);
       newToken.set(CoreAnnotations.TextAnnotation.class, newWord);
+      // we're not going to rerun the lemmatizer, so just go with it
+      newToken.set(CoreAnnotations.LemmaAnnotation.class, newWord);
       newTokens.add(newToken);
     }
     LogInfo.logs("Replaced mispelled word %s as %s", word, replacement);

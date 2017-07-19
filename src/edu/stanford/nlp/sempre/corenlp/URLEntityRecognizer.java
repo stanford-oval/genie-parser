@@ -12,6 +12,8 @@ public class URLEntityRecognizer implements NamedEntityRecognizer {
   @Override
   public void recognize(LanguageInfo info) {
     for (int i = 0; i < info.numTokens(); i++) {
+      if ("QUOTED_STRING".equals(info.nerTags.get(i)) || "EMAIL_ADDRESS".equals(info.nerTags.get(i)))
+        continue;
       Matcher matcher = REGEXP.matcher(info.tokens.get(i));
       if (matcher.matches()) {
         String url = matcher.group();

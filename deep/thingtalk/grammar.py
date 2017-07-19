@@ -203,6 +203,10 @@ class ThingtalkGrammar(object):
         def do_invocation(invocation_name, params, for_action=False, can_have_scope=False):
             state_id = new_state(invocation_name)
             
+            # allow one USERNAME_ parameter to follow the invocation immediately
+            for i in range(MAX_ARG_VALUES):
+                transitions.append((state_id, state_id, 'USERNAME_' + str(i)))
+            
             # go to each parameter
             for param_name, param_type in params:
                 if param_type in ('Any'):

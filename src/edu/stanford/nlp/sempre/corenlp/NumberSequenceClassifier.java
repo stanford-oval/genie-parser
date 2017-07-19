@@ -69,9 +69,15 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
       "january|jan\\.?|february|feb\\.?|march|mar\\.?|april|apr\\.?|may|june|jun\\.?|july|jul\\.?|august|aug\\.?|september|sept?\\.?|october|oct\\.?|november|nov\\.?|december|dec\\.",
       Pattern.CASE_INSENSITIVE);
 
+  private static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
+
   private static final Pattern YEAR_PATTERN = Pattern.compile("[1-3][0-9]{3}|'?[0-9]{2}");
 
   private static final Pattern DAY_PATTERN = Pattern.compile("(?:[1-9]|[12][0-9]|3[01])(?:st|nd|rd)?");
+
+  private static final Pattern WEEKDAY_PATTERN = Pattern.compile(
+      "monday|mon|tuesday|tues?|wednesday|wed|thursday|thu|friday|fri|saturday|sat|sunday|sun",
+      Pattern.CASE_INSENSITIVE);
 
   private static final Pattern DATE_PATTERN = Pattern
       .compile("(?:[1-9]|[0-3][0-9])\\\\?/(?:[1-9]|[0-3][0-9])\\\\?/(?:[1-3][0-9]{3}|[0-9]{2})");
@@ -82,12 +88,17 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
 
   private static final Pattern TIME_PATTERN2 = Pattern.compile("[0-2][0-9]:[0-5][0-9]:[0-5][0-9]");
 
+  private static final Pattern TIME_PATTERN3 = Pattern.compile("[0-2]?[0-9](:[0-5][0-9])?[ap]\\.?m\\.?",
+      Pattern.CASE_INSENSITIVE);
+
   private static final Pattern AM_PM = Pattern.compile("(a\\.?m\\.?)|(p\\.?m\\.?)", Pattern.CASE_INSENSITIVE);
 
-  public static final Pattern ORDINAL_PATTERN = Pattern.compile(
+  private static final Pattern ORDINAL_PATTERN = Pattern.compile(
       "(?i)[2-9]?1st|[2-9]?2nd|[2-9]?3rd|1[0-9]th|[2-9]?[04-9]th|100+th|zeroth|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty-first|twenty-second|twenty-third|twenty-fourth|twenty-fifth|twenty-sixth|twenty-seventh|twenty-eighth|twenty-ninth|thirtieth|thirty-first|fortieth|fiftieth|sixtieth|seventieth|eightieth|ninetieth|hundredth|thousandth|millionth");
 
   private static final Pattern ARMY_TIME_MORNING = Pattern.compile("0([0-9])([0-9]){2}");
+
+  private static final Pattern PART_OF_DAY_PATTERN = Pattern.compile("noon|midnight|midday", Pattern.CASE_INSENSITIVE);
 
   /**
    * Classify a {@link List} of {@link CoreLabel}s.
@@ -100,6 +111,13 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
   @Override
   public List<CoreLabel> classify(List<CoreLabel> document) {
     // if (DEBUG) { System.err.println("NumberSequenceClassifier tagging"); }
+
+    for (CoreLabel me : document) {
+      // a thing made of numbers is a number, let's not be stupid about it
+      if (NUMBER_PATTERN.matcher(me.word()).matches())
+        me.setTag("CD");
+    }
+
     PaddedList<CoreLabel> pl = new PaddedList<>(document, pad);
     for (int i = 0, sz = pl.size(); i < sz; i++) {
       CoreLabel me = pl.get(i);
@@ -109,13 +127,10 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
       //if (DEBUG) { System.err.println("Tagging:" + me.word()); }
       me.set(CoreAnnotations.AnswerAnnotation.class, flags.backgroundSymbol);
 
-      if (TIME_PATTERN.matcher(me.word()).matches()) {
+      if (TIME_PATTERN.matcher(me.word()).matches() || TIME_PATTERN2.matcher(me.word()).matches()
+          || TIME_PATTERN3.matcher(me.word()).matches()) {
         me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
-      } else if (TIME_PATTERN2.matcher(me.word()).matches()) {
-        me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
-      } else if (DATE_PATTERN.matcher(me.word()).matches()) {
-        me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
-      } else if (DATE_PATTERN2.matcher(me.word()).matches()) {
+      } else if (DATE_PATTERN.matcher(me.word()).matches() || DATE_PATTERN2.matcher(me.word()).matches()) {
         me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
       } else if (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("CD")) {
         if (DEBUG) {
@@ -128,6 +143,9 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
             MONTH_PATTERN.matcher(next.get(CoreAnnotations.TextAnnotation.class)).matches()) {
           // deterministically make DATE for British-style number before month
           me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
+          if (prev.word() != null &&
+              WEEKDAY_PATTERN.matcher(prev.word()).matches())
+            prev.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
         } else if (prev.get(CoreAnnotations.TextAnnotation.class) != null &&
             MONTH_PATTERN.matcher(prev.get(CoreAnnotations.TextAnnotation.class)).matches() &&
             me.get(CoreAnnotations.TextAnnotation.class) != null &&
@@ -141,6 +159,8 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
             (MONTH_PATTERN.matcher(prev.word()).matches() ||
                 pl.get(i - 2).get(CoreAnnotations.AnswerAnnotation.class).equals("DATE"))) {
           me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
+        } else if ("o'clock".equals(next.word())) {
+          me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
         } else {
           if (DEBUG) {
             System.err.println("Found number:" + me.word());
@@ -148,20 +168,25 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
           me.set(CoreAnnotations.AnswerAnnotation.class, "NUMBER");
         }
       } else if (AM_PM.matcher(me.word()).matches() &&
-          prev.get(CoreAnnotations.AnswerAnnotation.class).equals("TIME")) {
+          (prev.get(CoreAnnotations.AnswerAnnotation.class).equals("TIME") ||
+              prev.get(CoreAnnotations.AnswerAnnotation.class).equals("NUMBER"))) {
+        prev.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
         me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
       } else if (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class) != null &&
           me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals(",") &&
           prev.getString(CoreAnnotations.AnswerAnnotation.class).equals("DATE") &&
           next.word() != null && YEAR_PATTERN.matcher(next.word()).matches()) {
         me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
-      } else if ((me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NNP")
-          || me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NN")) &&
-          MONTH_PATTERN.matcher(me.word()).matches()) { // sometimes the POS tag of a month is NNP and sometimes it's NN, take both to be sure
+      } else if (MONTH_PATTERN.matcher(me.word()).matches()) {
+        // sometimes the POS tag of a month is NNP and sometimes it's NN (and sometimes it's a VBD, because the POS tagger really sucks), take both to be sure
         if (prev.getString(CoreAnnotations.AnswerAnnotation.class).equals("DATE") ||
             next.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("CD") ||
             next.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("JJ")) {
           me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
+
+          if (prev.word() != null &&
+              WEEKDAY_PATTERN.matcher(prev.word()).matches())
+            prev.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
         }
       } else if (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class) != null &&
           me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("CC")) {
@@ -183,13 +208,17 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
         }
       } else if (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class) != null &&
           (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NN") ||
-              me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NNS"))) {
+              me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NNS") ||
+              me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("NNP"))) {
         if (ORDINAL_PATTERN.matcher(me.word()).matches()) {
           if ((next.word() != null && MONTH_PATTERN.matcher(next.word()).matches()) ||
               (next.word() != null && next.word().equalsIgnoreCase("of") &&
                   next2.word() != null && MONTH_PATTERN.matcher(next2.word()).matches())) {
             me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
           }
+        }
+        if (PART_OF_DAY_PATTERN.matcher(me.word()).matches()) {
+          me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
         }
       } else if (me.getString(CoreAnnotations.PartOfSpeechAnnotation.class).equals("JJ")) {
         if ((next.word() != null && MONTH_PATTERN.matcher(next.word()).matches()) ||
@@ -211,6 +240,8 @@ public class NumberSequenceClassifier extends AbstractSequenceClassifier<CoreLab
             MONTH_PATTERN.matcher(next.get(CoreAnnotations.TextAnnotation.class)).matches()) {
           me.set(CoreAnnotations.AnswerAnnotation.class, "DATE");
         }
+      } else if ("o'clock".equals(me.word()) && "CD".equals(prev.getString(CoreAnnotations.PartOfSpeechAnnotation.class))) {
+        me.set(CoreAnnotations.AnswerAnnotation.class, "TIME");
       }
     }
     return document;
