@@ -37,7 +37,8 @@ import fig.basic.Utils;
 public class CoreNLPAnalyzer extends LanguageAnalyzer {
   public static class Options {
     @Option(gloss = "What CoreNLP annotators to run")
-    public List<String> annotators = Lists.newArrayList("spellcheck", "ssplit", "pos", "lemma", "ner");
+    public List<String> annotators = Lists.newArrayList("quote2", "spellcheck", "ssplit", "pos", "lemma",
+        "ner", "quote_ner");
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
@@ -133,6 +134,10 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     // disable all the builtin numeric classifiers, we have our own
     props.put("ner.applyNumericClassifiers", "false");
     props.put("ner.useSUTime", "false");
+
+    // move quotes to a NER tag
+    props.put("customAnnotatorClass.quote2", QuotedStringAnnotator.class.getCanonicalName());
+    props.put("customAnnotatorClass.quote_ner", QuotedStringEntityAnnotator.class.getCanonicalName());
 
     // enable spell checking with our custom annotator
     props.put("customAnnotatorClass.spellcheck", SpellCheckerAnnotator.class.getCanonicalName());
@@ -353,7 +358,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   // Test on example sentence.
   public static void main(String[] args) {
     CoreNLPAnalyzer.opts.entityRecognizers = Lists.newArrayList("corenlp.PhoneNumberEntityRecognizer",
-        "corenlp.EmailEntityRecognizer", "corenlp.QuotedStringEntityRecognizer", "corenlp.URLEntityRecognizer");
+        "corenlp.EmailEntityRecognizer", "corenlp.URLEntityRecognizer");
     CoreNLPAnalyzer.opts.regularExpressions = Lists.newArrayList("USERNAME:[@](.+)", "HASHTAG:[#](.+)");
     CoreNLPAnalyzer.opts.yearsAsNumbers = true;
     CoreNLPAnalyzer.opts.splitHyphens = false;

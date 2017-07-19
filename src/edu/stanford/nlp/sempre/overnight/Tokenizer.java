@@ -17,9 +17,8 @@ public class Tokenizer {
   }
 
   public void tokenize(String exampleFile, String utteranceFile, String originalFile) {
-    CoreNLPAnalyzer.opts.annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner");
     CoreNLPAnalyzer.opts.entityRecognizers = Lists.newArrayList("corenlp.PhoneNumberEntityRecognizer",
-        "corenlp.EmailEntityRecognizer", "corenlp.QuotedStringEntityRecognizer", "corenlp.URLEntityRecognizer");
+        "corenlp.EmailEntityRecognizer", "corenlp.URLEntityRecognizer");
     CoreNLPAnalyzer.opts.regularExpressions = Lists.newArrayList("USERNAME:[@](.+)", "HASHTAG:[#](.+)");
     CoreNLPAnalyzer analyzer = new CoreNLPAnalyzer(languageTag);
 

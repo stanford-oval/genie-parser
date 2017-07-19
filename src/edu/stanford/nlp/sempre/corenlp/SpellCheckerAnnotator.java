@@ -10,6 +10,7 @@ import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.Annotator;
+import edu.stanford.nlp.sempre.corenlp.QuotedStringAnnotator.QuoteAnnotation;
 import edu.stanford.nlp.util.ArraySet;
 import fig.basic.LogInfo;
 import fig.basic.Option;
@@ -32,7 +33,8 @@ public class SpellCheckerAnnotator implements Annotator {
 
   private final HunspellDictionary dictionary;
 
-  private static final Set<String> PTB_PUNCTUATION = Sets.newHashSet("-lrb-", "-lsb-", "-rrb-", "-rsb-");
+  private static final Set<String> PTB_PUNCTUATION = Sets.newHashSet("-lrb-", "-lsb-", "-rrb-", "-rsb-", "'", "`", "''",
+      "``");
 
   private static final Map<String, String> HARDCODED_REPLACEMENTS = new HashMap<>();
   static {
@@ -115,6 +117,11 @@ public class SpellCheckerAnnotator implements Annotator {
     List<CoreLabel> newTokens = new ArrayList<>();
     for (CoreLabel token : tokens) {
       String word = token.get(CoreAnnotations.TextAnnotation.class);
+
+      if (token.get(QuoteAnnotation.class) != null) {
+        newTokens.add(token);
+        continue;
+      }
 
       if (PTB_PUNCTUATION.contains(word) || opts.extraDictionary.contains(word.toLowerCase())) {
         newTokens.add(token);
