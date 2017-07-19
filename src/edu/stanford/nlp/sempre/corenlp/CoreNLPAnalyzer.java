@@ -37,7 +37,7 @@ import fig.basic.Utils;
 public class CoreNLPAnalyzer extends LanguageAnalyzer {
   public static class Options {
     @Option(gloss = "What CoreNLP annotators to run")
-    public List<String> annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner");
+    public List<String> annotators = Lists.newArrayList("spellcheck", "ssplit", "pos", "lemma", "ner");
 
     @Option(gloss = "Whether to use case-sensitive models")
     public boolean caseSensitive = false;
@@ -133,6 +133,10 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
     // disable all the builtin numeric classifiers, we have our own
     props.put("ner.applyNumericClassifiers", "false");
     props.put("ner.useSUTime", "false");
+
+    // enable spell checking with our custom annotator
+    props.put("customAnnotatorClass.spellcheck", SpellCheckerAnnotator.class.getCanonicalName());
+    props.put("spellcheck.dictPath", languageTag);
 
     pipeline = new StanfordCoreNLP(props);
 
@@ -348,16 +352,19 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
 
   // Test on example sentence.
   public static void main(String[] args) {
-    CoreNLPAnalyzer.opts.annotators = Lists.newArrayList("ssplit", "pos", "lemma", "ner");
     CoreNLPAnalyzer.opts.entityRecognizers = Lists.newArrayList("corenlp.PhoneNumberEntityRecognizer",
         "corenlp.EmailEntityRecognizer", "corenlp.QuotedStringEntityRecognizer", "corenlp.URLEntityRecognizer");
     CoreNLPAnalyzer.opts.regularExpressions = Lists.newArrayList("USERNAME:[@](.+)", "HASHTAG:[#](.+)");
+    CoreNLPAnalyzer.opts.yearsAsNumbers = true;
+    CoreNLPAnalyzer.opts.splitHyphens = false;
     CoreNLPAnalyzer analyzer = new CoreNLPAnalyzer();
-    while (true) {
-      try {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+      while (true) {
         System.out.println("Enter some text:");
         String text = reader.readLine();
+        if (text == null)
+          break;
         LanguageInfo langInfo = analyzer.analyze(text);
         LogInfo.begin_track("Analyzing \"%s\"", text);
         LogInfo.logs("tokens: %s", langInfo.tokens);
@@ -367,9 +374,9 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
         LogInfo.logs("nerValues: %s", langInfo.nerValues);
         LogInfo.logs("dependencyChildren: %s", langInfo.dependencyChildren);
         LogInfo.end_track();
-      } catch (IOException e) {
-        e.printStackTrace();
       }
+    } catch (IOException e) {
+        e.printStackTrace();
     }
   }
 }

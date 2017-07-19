@@ -16,6 +16,7 @@
 
 using namespace std;
 
+namespace {
 class AutoReleaseString
 {
 private:
@@ -36,6 +37,7 @@ public:
 	const char *data() { return m_str; }
 	jsize size() { return m_len; }
 };
+}
 
 JNIEXPORT void JNICALL Java_edu_stanford_nlp_sempre_PosixHelper_setuid
   (JNIEnv * env, jclass klass, jstring chuid)
