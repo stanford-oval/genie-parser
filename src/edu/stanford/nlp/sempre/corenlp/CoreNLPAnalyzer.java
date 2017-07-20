@@ -193,7 +193,7 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
   }
 
   // recognize two numbers in one token, because CoreNLP's tokenizer will not split them
-  private static final Pattern BETWEEN_PATTERN = Pattern.compile("(-?[0-9]+(?:.[0-9]+)?)-(-?[0-9]+(?:.[0-9]+)?)");
+  private static final Pattern BETWEEN_PATTERN = Pattern.compile("(-?[0-9]+(?:\\.[0-9]+)?)-(-?[0-9]+(?:\\.[0-9]+)?)");
 
   private void recognizeNumberSequences(List<CoreLabel> words) {
     QuantifiableEntityNormalizer.applySpecializedNER(words);
@@ -259,16 +259,19 @@ public class CoreNLPAnalyzer extends LanguageAnalyzer {
           String num2 = twoNumbers.group(2);
 
           languageInfo.tokens.add(num1);
+          languageInfo.lemmaTokens.add(num1);
           languageInfo.posTags.add("CD");
           languageInfo.nerTags.add("NUMBER");
           languageInfo.nerValues.add(num1);
 
           languageInfo.tokens.add("-");
+          languageInfo.lemmaTokens.add("-");
           languageInfo.posTags.add(":");
           languageInfo.nerTags.add("O");
           languageInfo.nerValues.add(null);
 
           languageInfo.tokens.add(num2);
+          languageInfo.lemmaTokens.add(num2);
           languageInfo.posTags.add("CD");
           languageInfo.nerTags.add("NUMBER");
           languageInfo.nerValues.add(num2);
