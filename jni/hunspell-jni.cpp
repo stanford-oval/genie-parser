@@ -60,7 +60,11 @@ Java_edu_stanford_nlp_sempre_corenlp_HunspellDictionary_nativeSpell(JNIEnv *env,
     Hunspell *lib = (Hunspell*)jlib;
     AutoReleaseString word(env, jword);
 
+#if 0
     return (jboolean) lib->spell(std::string(word.data(), word.size()));
+#else
+    return (jboolean) lib->spell(word.data());
+#endif
 }
 
 JNIEXPORT jobject JNICALL
@@ -73,9 +77,18 @@ Java_edu_stanford_nlp_sempre_corenlp_HunspellDictionary_nativeSuggest(JNIEnv *en
     jmethodID ArrayList_add = env->GetMethodID(ArrayList, "add", "(Ljava/lang/Object;)Z");
     
     jobject result = env->NewObject(ArrayList, ArrayList_new);
+#if 0
     auto suggestions = lib->suggest(std::string(word.data(), word.size()));
     for (const auto& suggestion : suggestions)
         env->CallBooleanMethod(result, ArrayList_add, string_to_jstring(env, suggestion));
+#else
+    char** suggestions;
+    int num_suggestions = lib->suggest(&suggestions, word.data());
+    for (int i = 0; i < num_suggestions; i++)
+        env->CallBooleanMethod(result, ArrayList_add, env->NewStringUTF(suggestions[i]));
+    lib->free_list(&suggestions, num_suggestions);
+#endif
+
     return result;
 }
 

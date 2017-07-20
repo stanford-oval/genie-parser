@@ -29,10 +29,11 @@ set -e
 SEMPREDIR=`dirname $0`/..
 SEMPREDIR=`realpath ${SEMPREDIR}`
 WORKDIR=${WORKDIR:-.}
+GLOVE=${GLOVE:-$WORKDIR/glove.txt}
 EXTRA_ARGS="-ThingpediaDatabase.dbPw ${DATABASE_PW} $@"
 
 BASEAUTHOR_TRAIN="thingpedia online"
-PARA_TRAINDEV="turking-prim0 turking-prim1 turking-prim2 turking-prim3 turking-compound0 turking-compound1 turking-compound2 turking-compound3 turking-compound4 turking3-compound0 turking3-compound1 turking3-compound2 turking3-compound3 turking3-compound4 turking3-compound5 turking3-compound6"
+PARA_TRAINDEV="turking-prim0 turking-prim1 turking-prim2 turking-prim3 turking3-prim1 turking-compound0 turking-compound1 turking-compound2 turking-compound3 turking-compound4 turking3-compound0 turking3-compound1 turking3-compound2 turking3-compound3 turking3-compound4 turking3-compound5 turking3-compound6"
 GENERATED="generated-highvariance"
 PARA_TEST_PRIM="test-prim0 test-prim1 test-prim2 test-prim3"
 PARA_TEST_COMPOUND="test-compound0 test-compound1 test-compound2 test-compound3 test-compound4 test3-compound0 test3-compound1 test3-compound2 test3-compound3 test3-compound4 test3-compound5 test3-compound6"
@@ -66,4 +67,4 @@ rm ${WORKDIR}/tmp
 # generate auxiliary files
 python3 ${SEMPREDIR}/deep/scripts/gen_grammar.py "${DATABASE_PW}" > ${WORKDIR}/thingpedia.txt
 cat ${WORKDIR}/*.tsv | cut -f1 | tr " " "\n" | sort -u > ${WORKDIR}/input_words.txt
-python3 ${SEMPREDIR}/deep/scripts/trim_embeddings.py ${WORKDIR}/input_words.txt < ${WORKDIR}/glove.txt > ${WORKDIR}/embeddings.txt
+python3 ${SEMPREDIR}/deep/scripts/trim_embeddings.py ${WORKDIR}/input_words.txt < ${GLOVE} > ${WORKDIR}/embeddings.txt
