@@ -6,6 +6,8 @@ from orderedset import OrderedSet
 
 import sys
 
+from .abstract import AbstractGrammar
+
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
             'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
@@ -13,9 +15,8 @@ ENTITIES = ['USERNAME', 'HASHTAG',
             'LOCATION']
 
 BEGIN_TOKENS = ['special', 'answer', 'command', 'rule', 'trigger', 'query', 'action']
-SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.hello',
-                  'tt:root.special.thankyou', 'tt:root.special.sorry', 'tt:root.special.cool',
-                  'tt:root.special.nevermind', 'tt:root.special.debug', 'tt:root.special.failed']
+SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.nevermind',
+                  'tt:root.special.makerule', 'tt:root.special.failed']
 #IF = 'if'
 #THEN = 'then'
 OPERATORS = ['is', 'contains', '>', '<', 'has']
@@ -27,13 +28,21 @@ TYPES = {
     'String': (['is', 'contains'], ['QUOTED_STRING']),
     'Date': (['is'], ['DATE']),
     'Time': (['is'], ['TIME']),
-    'Username': (['is'], ['USERNAME', 'QUOTED_STRING']),
-    'Hashtag': (['is'], ['HASHTAG', 'QUOTED_STRING']),
-    'PhoneNumber': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
-    'EmailAddress': (['is'], ['EMAIL_ADDRESS', 'QUOTED_STRING']),
-    'URL': (['is'], ['URL']),
     'Number': (['is', '<', '>'], ['NUMBER', '1', '0']),
-    'Picture': (['is'], [])
+    'Entity(tt:username)': (['is'], ['USERNAME', 'QUOTED_STRING']),
+    'Entity(tt:hashtag)': (['is'], ['HASHTAG', 'QUOTED_STRING']),
+    'Entity(tt:phone_number)': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
+    'Entity(tt:email_address)': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
+    'Entity(tt:url)': (['is'], ['URL', 'QUOTED_STRING']),
+    'Entity(tt:picture)': (['is'], [])
+}
+TYPE_RENAMES = {
+    'Username': 'Entity(tt:username)',
+    'Hashtag': 'Entity(tt:hashtag)',
+    'PhoneNumber': 'Entity(tt:phone_number)',
+    'EmailAddress': 'Entity(tt:email_address)',
+    'URL': 'Entity(tt:url)',
+    'Picture': 'Entity(tt:picture)'
 }
 
 UNITS = dict(C=["C", "F"],
@@ -49,8 +58,10 @@ COMMAND_TOKENS = ['list', 'help', 'generic', 'device', 'command', 'make', 'rule'
 
 MAX_ARG_VALUES = 10
 
-class ThingtalkGrammar(object):
-    def __init__(self):
+class ThingtalkGrammar(AbstractGrammar):
+    def __init__(self, filename):
+        super().__init__()
+        
         triggers = dict()
         queries = dict()
         actions = dict()
@@ -79,7 +90,7 @@ class ThingtalkGrammar(object):
         
         enum_types = dict()
         
-        with open('thingpedia.txt', 'r') as fp:
+        with open(filename, 'r') as fp:
             for line in fp.readlines():
                 line = line.strip().split()
                 function_type = line[0]
@@ -118,15 +129,10 @@ class ThingtalkGrammar(object):
                         if not elementtype in enum_types:
                             enum_types[elementtype] = enums
         
-        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>', '<<UNK>>'] + list(tokens)
+        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>'] + list(tokens)
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
-            
-        self.output_size = len(self.tokens)
-        
-        self.start = self.dictionary['<<GO>>']
-        self.end = self.dictionary['<<EOS>>']
         
         # build a DFA that will parse the thingtalk-ish code
 
@@ -219,6 +225,8 @@ class ThingtalkGrammar(object):
                 if param_type.startswith('Array('):
                     is_array = True
                     elementtype = param_type[len('Array('):-1]
+                if elementtype in TYPE_RENAMES:
+                    elementtype = TYPE_RENAMES[elementtype]
                 if elementtype.startswith('Measure('):
                     is_measure = True
                     operators = ['is', '<', '>']
@@ -227,6 +235,11 @@ class ThingtalkGrammar(object):
                 elif elementtype.startswith('Enum('):
                     operators = ['is']
                     values = enum_types[elementtype]
+                elif elementtype == 'Entity(tt:device)':
+                    operators = ['is']
+                    values = devices
+                elif elementtype in TYPES:
+                    operators, values = TYPES[elementtype]
                 elif elementtype.startswith('Entity('):
                     operators = ['is']
                     values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
@@ -504,7 +517,7 @@ class ThingtalkGrammar(object):
         
 
 if __name__ == '__main__':
-    grammar = ThingtalkGrammar()
+    grammar = ThingtalkGrammar('./thingpedia.txt')
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     grammar.parse_all(sys.stdin)

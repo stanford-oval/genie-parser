@@ -9,7 +9,7 @@ import time
 
 unknown_tokens = set()
 
-def vectorize(sentence, words, max_length):
+def vectorize(sentence, words, max_length, add_eos=False):
     vector = np.zeros((max_length,), dtype=np.int32)
     assert words['<<PAD>>'] == 0
     #vector[0] = words['<<GO>>']
@@ -19,41 +19,34 @@ def vectorize(sentence, words, max_length):
         word = word.strip()
         if word in words:
             vector[i] = words[word]
-        else:
+        elif '<<UNK>>' in words:
             unknown_tokens.add(word)
             #print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<<UNK>>']
+        else:
+            raise ValueError('Unknown token ' + word)
         if i+1 == max_length:
             break
     length = i+1
-    if length < max_length:
-        vector[length] = words['<<EOS>>']
-        length += 1
+    if add_eos:
+        if length < max_length:
+            vector[length] = words['<<EOS>>']
+            length += 1
+        else:
+            print("unterminated sentence", sentence)
     else:
-        print("truncated sentence", sentence)
+        if length == max_length and length < len(sentence):
+            print("truncated sentence", sentence)
     return (vector, length)
 
-ENTITIES = ['USERNAME', 'HASHTAG',
-            'QUOTED_STRING', 'NUMBER',
-            'PHONE_NUMBER', 'EMAIL_ADDRESS', 'URL',
-            'DATE', 'TIME', 'SET', 'DURATION', 'LOCATION']
-MAX_ARG_VALUES = 10
-
-def load_dictionary(file, benchmark):
+def load_dictionary(file):
     print("Loading dictionary from %s..." % (file,))
     words = dict()
 
     # special tokens
     words['<<PAD>>'] = len(words)
-    words['<<EOS>>'] = len(words)
     words['<<UNK>>'] = len(words)
-    reverse = ['<<PAD>>', '<<EOS>>', '<<UNK>>']
-
-    if benchmark == "tt":
-        for entity in ENTITIES:
-            for i in range(MAX_ARG_VALUES):
-                words[entity + '_' + str(i)] = len(words)
-                reverse.append(entity + '_' + str(i))
+    reverse = ['<<PAD>>', '<<UNK>>']
 
     with open(file, 'r') as word_file:
         for word in word_file:
@@ -61,12 +54,6 @@ def load_dictionary(file, benchmark):
             if word not in words:
                 words[word] = len(words)
                 reverse.append(word)
-    for id in range(len(reverse)):
-        if words[reverse[id]] != id:
-            print("found problem at", id)
-            print("word: ", reverse[id])
-            print("expected: ", words[reverse[id]])
-            raise AssertionError
     return words, reverse
 
 def load_embeddings(from_file, words, embed_size=300):
@@ -78,17 +65,18 @@ def load_embeddings(from_file, words, embed_size=300):
         if sp[0] in words:
             word_vectors[sp[0]] = [float(x) for x in sp[1:]]
     word_vectors['<<PAD>>'] = np.zeros((embed_size,))
+    word_vectors['<<UNK>>'] = np.zeros((embed_size,))
     n_tokens = len(words)
     embeddings_matrix = np.empty((n_tokens, embed_size), dtype='float32')
     for token, id in words.items():
         if token in word_vectors:
             embeddings_matrix[id] = word_vectors[token]
         else:
-            raise Exception("missing vector for", token)
+            raise ValueError("missing vector for", token)
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix
 
-def load_data(from_file, input_words, output_words, input_reverse, output_reverse, max_length):
+def load_data(from_file, input_words, output_words, max_length):
     inputs = []
     input_lengths = []
     labels = []
@@ -96,12 +84,10 @@ def load_data(from_file, input_words, output_words, input_reverse, output_revers
     with open(from_file, 'r') as data:
         for line in data:
             sentence, canonical = line.split('\t')
-            input, in_len = vectorize(sentence, input_words, max_length)
+            input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
             inputs.append(input)
             input_lengths.append(in_len)
-            label, label_len = vectorize(canonical, output_words, max_length)
+            label, label_len = vectorize(canonical, output_words, max_length, add_eos=True)
             labels.append(label)
             label_lengths.append(label_len)
-            #print "input", in_len, ' '.join(map(lambda x: input_reverse[x], inputs[-1]))
-            #print "label", label_len, ' '.join(map(lambda x: output_reverse[x], labels[-1]))
     return inputs, input_lengths, labels, label_lengths

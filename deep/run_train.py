@@ -8,35 +8,30 @@ import tensorflow as tf
 from util.seq2seq import Seq2SeqEvaluator
 from util.trainer import Trainer
 
+from models import Config, create_model
 from util.loader import unknown_tokens, load_data
-from model import initialize
 
 def run():
-    if len(sys.argv) < 6:
-        print("** Usage: python3 " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>>" \
-                                                  " <<Word Embeddings>> <<Model Directory>> <<Train Set> [<<Dev Set>>]")
+    if len(sys.argv) < 3:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Set>> [<<Dev Set>>]")
         sys.exit(1)
 
     np.random.seed(42)
-    benchmark = sys.argv[1]
-    config, words, reverse, model = initialize(benchmark=benchmark, model_type=sys.argv[2], input_words=sys.argv[3], embedding_file=sys.argv[4]);
-    model_dir = sys.argv[5]
-    train_data = load_data(sys.argv[6], words, config.grammar.dictionary,
-                           reverse, config.grammar.tokens,
-                           config.max_length)
-    if len(sys.argv) > 7:
-        dev_data = load_data(sys.argv[7], words, config.grammar.dictionary,
-                             reverse, config.grammar.tokens,
-                             config.max_length)
+    
+    model_dir = sys.argv[1]
+    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    model = create_model(config)
+    train_data = load_data(sys.argv[2], config.dictionary, config.grammar.dictionary, config.max_length)
+    if len(sys.argv) > 3:
+        dev_data = load_data(sys.argv[3], config.dictionary, config.grammar.dictionary, config.max_length)
     else:
         dev_data = None
-    if len(sys.argv) > 8:
-        config.apply_cmdline(sys.argv[8:])
     print("unknown", unknown_tokens)
     try:
         os.mkdir(model_dir)
     except OSError:
         pass
+    config.save(os.path.join(model_dir, 'model.conf'))
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)
@@ -61,18 +56,9 @@ def run():
             # Run the Op to initialize the variables.
             sess.run(init)
             
-            #for var in tf.trainable_variables():
-            #    print var.name
-            #    print var.get_shape()
-            #sys.exit(0)
-            
             # Fit the model
             best_dev, best_train = trainer.fit(sess)
             
-            #print "Final result"
-            #train_eval.eval(sess, save_to_file=True)
-            #if dev_data is not None:
-            #    dev_eval.eval(sess, save_to_file=True)
             print("best train", best_train)
             print("best dev", best_dev)
 
