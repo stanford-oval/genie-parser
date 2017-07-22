@@ -1,4 +1,6 @@
 """
+Adapted from Nikita Kitaev : https://gist.github.com/nikitakit/6ab61a73b86c50ad88d409bac3c3d09f
+
 Beam decoder for tensorflow
 
 Sample usage:
