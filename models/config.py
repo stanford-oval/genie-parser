@@ -15,13 +15,13 @@ class Config(object):
         
         self._config['model'] = {
             'model_type': 'seq2seq',
-            'hidden_size': 300,
+            'hidden_size': 175,
             'rnn_cell_type': 'lstm',
             'rnn_layers': 1,
             'apply_attention': 'true'
         }
         self._config['training'] = {
-            'batch_size': 256,
+            'batch_size': 512,
             'n_epochs': 20,
             'learning_rate': 0.001,
             'dropout': 0.5

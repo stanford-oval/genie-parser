@@ -16,7 +16,7 @@ set -e
 
 WORKDIR=${1:-.}
 DATABASE_PW=${DATABASE_PW:-$2}
-srcdir=`dirname $0`/
+srcdir=`dirname $0`/..
 srcdir=`realpath ${srcdir}`
 GLOVE=${GLOVE:-$WORKDIR/glove.txt}
 
