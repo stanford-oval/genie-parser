@@ -37,26 +37,35 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
     
-    def constrain(self, logits : tf.Tensor, curr_state, batch_size : tf.Tensor, dtype=tf.int32):
+    def constrain_logits(self, logits, curr_state):
         '''
-        Apply grammar constraints to a Tensor of sequence outputs, and returns
+        Apply grammar constraints to a Tensor of logits, and returns
         the next predicted token
         
         Args:
             logits: the logits produced by the current step of sequence decoding
-            curr_state: the state returned by the previous call of constrain() or None
-            batch_size: 
-            dtype: the tensor dtype for the token ID to return
+            curr_state: the state returned by the previous call of transition() or None
+        
+        Returns:
+            a tf.Tensor with the same shape as logits
+        '''
+        return logits
+
+    def transition(self, curr_state, next_symbols, batch_size):
+        '''
+        Advance the grammar state after the given symbols have been chosen as the
+        decoder output.
+        
+        Args:
+            curr_state: the current grammar state
+            next_symbols: the current output of the decoder
+            batch_size: the size of the batch
             
         Returns:
-            A tuple of (token_id, next_state); token_id is a tensor of shape (batch_size,) and
-            dtype dtype
+            the new state of the grammar (potentially None if the grammar does not need
+            to keep state)
         '''
-        
-        if curr_state is None:
-            return tf.ones((batch_size,), dtype=dtype) * self.start, ()
-        else:
-            return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
+        return None
 
     def compare(self, seq1, seq2):
         '''

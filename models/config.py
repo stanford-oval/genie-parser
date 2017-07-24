@@ -123,6 +123,10 @@ class Config(object):
         return self._grammar
     
     @property
+    def use_grammar_constraints(self):
+        return self._config['output'].getboolean('use_grammar_constraints')
+    
+    @property
     def dictionary_size(self):
         return len(self._words)
     
