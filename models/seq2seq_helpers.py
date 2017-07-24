@@ -23,14 +23,6 @@ class Seq2SeqDecoder(object):
         return tf.shape(self.input_placeholder)[0]
     
     def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training):
-        if self.config.apply_attention:
-            attention = LuongAttention(self.config.hidden_size, enc_hidden_states, self.input_length_placeholder,
-                                       probability_fn=tf.nn.softmax)
-            cell_dec = AttentionWrapper(cell_dec, attention,
-                                        cell_input_fn=lambda inputs, _: inputs,
-                                        attention_layer_size=self.config.hidden_size,
-                                        initial_cell_state=enc_final_state)
-            enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
         linear_layer = tf_core_layers.Dense(self.config.output_size)
 
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
@@ -58,3 +50,15 @@ class Seq2SeqDecoder(object):
             predicted_ids = final_outputs.sample_id
             # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
             return tf.expand_dims(predicted_ids, axis=1)
+
+
+class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
+    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training):
+        attention = LuongAttention(self.config.hidden_size, enc_hidden_states, self.input_length_placeholder,
+                                       probability_fn=tf.nn.softmax)
+        cell_dec = AttentionWrapper(cell_dec, attention,
+                                    cell_input_fn=lambda inputs, _: inputs,
+                                    attention_layer_size=self.config.hidden_size,
+                                    initial_cell_state=enc_final_state)
+        enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
+        return super().decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)

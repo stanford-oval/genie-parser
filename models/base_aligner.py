@@ -7,7 +7,7 @@ Created on Jul 20, 2017
 import tensorflow as tf
 
 from .base_model import BaseModel
-from .seq2seq_helpers import Seq2SeqDecoder
+from .seq2seq_helpers import Seq2SeqDecoder, AttentionSeq2SeqDecoder
 
 from .config import Config
 
@@ -73,8 +73,12 @@ class BaseAligner(BaseModel):
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training, scope=None):
         cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
-        decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                 self.output_placeholder, self.output_length_placeholder)
+        if self.config.apply_attention:
+            decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
+                                              self.output_placeholder, self.output_length_placeholder)
+        else:
+            decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
+                                     self.output_placeholder, self.output_length_placeholder)
         return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
 
     def add_input_op(self, initializer):
