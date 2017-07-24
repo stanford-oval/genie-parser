@@ -17,6 +17,8 @@ def vectorize(sentence, words, max_length, add_eos=False):
         sentence = sentence.split(' ')
     for i, word in enumerate(sentence):
         word = word.strip()
+        if len(word) == 0:
+            raise ValueError("empty token in " + str(sentence))
         if word in words:
             vector[i] = words[word]
         elif '<<UNK>>' in words:

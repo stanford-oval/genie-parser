@@ -29,10 +29,11 @@ TYPES = {
     'Date': (['is'], ['DATE']),
     'Time': (['is'], ['TIME']),
     'Number': (['is', '<', '>'], ['NUMBER', '1', '0']),
+    'Entity(tt:contact)': (['is'], ['USERNAME', 'QUOTED_STRING']),
     'Entity(tt:username)': (['is'], ['USERNAME', 'QUOTED_STRING']),
     'Entity(tt:hashtag)': (['is'], ['HASHTAG', 'QUOTED_STRING']),
-    'Entity(tt:phone_number)': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
-    'Entity(tt:email_address)': (['is'], ['PHONE_NUMBER', 'QUOTED_STRING']),
+    'Entity(tt:phone_number)': (['is'], ['USERNAME', 'PHONE_NUMBER', 'QUOTED_STRING']),
+    'Entity(tt:email_address)': (['is'], ['USERNAME', 'EMAIL_ADDRESS', 'QUOTED_STRING']),
     'Entity(tt:url)': (['is'], ['URL', 'QUOTED_STRING']),
     'Entity(tt:picture)': (['is'], [])
 }
@@ -193,10 +194,21 @@ class ThingtalkGrammar(AbstractGrammar):
         answer_id = new_state('answer')
         transitions.append((self.start_state, answer_id, 'answer'))
         for v in VALUES:
-            transitions.append((answer_id, self.before_end_state, v))
+            if v != '0' and v != '1':
+                transitions.append((answer_id, self.before_end_state, v))
         for v in ENTITIES:
-            for i in range(MAX_ARG_VALUES):
-                transitions.append((answer_id, self.before_end_state, v + '_' + str(i)))
+            if v != 'NUMBER':
+                for i in range(MAX_ARG_VALUES):
+                    transitions.append((answer_id, self.before_end_state, v + '_' + str(i)))
+        before_unit = new_state('answer_before_unit')
+        for i in range(MAX_ARG_VALUES):
+            transitions.append((answer_id, before_unit, 'NUMBER_' + str(i)))
+        transitions.append((answer_id, before_unit, '0'))
+        transitions.append((answer_id, before_unit, '1'))
+        transitions.append((before_unit, self.end_state, '<<EOS>>'))
+        for base_unit in UNITS:
+            for unit in UNITS[base_unit]:
+                transitions.append((before_unit, self.before_end_state, unit))
         
         # primitives
         actions_id = new_state('action')
@@ -382,24 +394,6 @@ class ThingtalkGrammar(AbstractGrammar):
             except ValueError as e:
                 print(e)
 
-    def constrain(self, logits, curr_state, batch_size, dtype=tf.int32):
-        if curr_state is None:
-            return tf.ones((batch_size,), dtype=dtype) * self.start, tf.ones((batch_size,), dtype=tf.int32) * self.start_state
-
-        transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
-        assert transitions.get_shape()[1:] == (self.output_size,)
-        allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
-        assert allowed_tokens.get_shape()[1:] == (self.output_size,)
-        
-        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+20
-        choice = tf.cast(tf.argmax(constrained_logits, axis=1), dtype=dtype)
-        indices = tf.stack((tf.range(0, batch_size), choice), axis=1)
-            
-        #print choice.get_shape()
-        #print transitions.get_shape()
-        next_state = tf.gather_nd(transitions, indices)
-        return choice, next_state
-
     def get_init_state(self, batch_size):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
 
@@ -407,14 +401,11 @@ class ThingtalkGrammar(AbstractGrammar):
         allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
         assert allowed_tokens.get_shape()[1:] == (self.output_size,)
 
-        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+20
+        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+5
 
         return constrained_logits
 
     def transition(self, curr_state, next_symbols, batch_size):
-        if curr_state is None:
-            return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
-
         transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
         assert transitions.get_shape()[1:] == (self.output_size,)
 
@@ -500,7 +491,7 @@ class ThingtalkGrammar(AbstractGrammar):
         
 
 if __name__ == '__main__':
-    grammar = ThingtalkGrammar('./thingpedia.txt')
+    grammar = ThingtalkGrammar(sys.argv[1])
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     grammar.parse_all(sys.stdin)

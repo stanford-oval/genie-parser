@@ -37,6 +37,15 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
     
+    def get_init_state(self, batch_size):
+        '''
+        Construct the initial state of the grammar state machine.
+        
+        Returns:
+            A tensor of dtype tf.int32 with shape (batch_size,)
+        '''
+        return tf.zeros((batch_size,), dtype=tf.int32)
+    
     def constrain_logits(self, logits, curr_state):
         '''
         Apply grammar constraints to a Tensor of logits, and returns
@@ -65,7 +74,7 @@ class AbstractGrammar(object):
             the new state of the grammar (potentially None if the grammar does not need
             to keep state)
         '''
-        return None
+        return curr_state
 
     def compare(self, seq1, seq2):
         '''
