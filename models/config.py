@@ -88,7 +88,7 @@ class Config(object):
         if self._config['output'].getboolean('use_beam_decode'):
             return int(self._config['output']['beam_width'])
         else:
-            return -1
+            return 1
         
     @property
     def n_epochs(self):

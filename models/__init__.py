@@ -11,7 +11,7 @@ from .base_aligner import BaseAligner
 from .config import Config
 
 class LSTMAligner(BaseAligner):
-    def add_encoder_op(self, inputs, training, scope=None):
+    def add_encoder_op(self, inputs, scope=None):
         cell_enc = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(id) for id in range(self.config.rnn_layers)])
         #cell_enc = tf.contrib.rnn.AttentionCellWrapper(cell_enc, 5, state_is_tuple=True)
 
@@ -26,7 +26,7 @@ class LSTMAligner(BaseAligner):
 
 
 class BagOfWordsAligner(BaseAligner):
-    def add_encoder_op(self, inputs, training, scope=None):
+    def add_encoder_op(self, inputs, scope=None):
         W = tf.get_variable('W', (self.config.embed_size, self.config.hidden_size))
         b = tf.get_variable('b', shape=(self.config.hidden_size,), initializer=tf.constant_initializer(0, tf.float32))
 

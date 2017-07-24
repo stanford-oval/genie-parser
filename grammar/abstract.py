@@ -58,25 +58,6 @@ class AbstractGrammar(object):
         else:
             return tf.cast(tf.argmax(logits, axis=1), dtype=dtype), ()
 
-    def decode_output(self, sequence):
-        '''
-        Decode a sequence of logits into a sequence of token identifiers
-        
-        Args:
-            sequence: a numpy.ndarray of shape (max_length, output_size)
-            
-        Returns:
-            The decoded sequence, as a list of integer token IDs
-        '''
-         
-        output = []
-        for logits in sequence:
-            assert logits.shape == (self.output_size,)
-            word_idx = np.argmax(logits)
-            if word_idx > 0:
-                output.append(word_idx)
-        return output
-    
     def compare(self, seq1, seq2):
         '''
         Compare two sequence, to check if they represent semantically equivalent outputs

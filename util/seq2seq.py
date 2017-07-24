@@ -21,11 +21,6 @@ class Seq2SeqEvaluator(object):
         self.data = data
         self.tag = tag
         self._beam_size = beam_size
-        if self._beam_size < 0:
-            self._beam_size = 1
-            self._is_beam_output = False
-        else:
-            self._is_beam_output = True
         self._batch_size = batch_size
         
     def eval(self, session, save_to_file=False):
@@ -71,15 +66,10 @@ class Seq2SeqEvaluator(object):
                     gold_functions = get_functions(gold)
                     gold_channels = set([x[x.index('.') + 1:] for x in gold_functions])
 
-                    if not self._is_beam_output:
-                        seq = [seq]
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        if self._is_beam_output:
-                            decoded = list(beam)
-                        else:
-                            decoded = list(self.grammar.decode_output(beam))
+                        decoded = list(beam)
                         try:
                             decoded = decoded[:decoded.index(self.grammar.end)]
                         except ValueError:

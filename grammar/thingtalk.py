@@ -421,23 +421,6 @@ class ThingtalkGrammar(AbstractGrammar):
         indices = tf.stack((tf.range(0, batch_size), next_symbols), axis=1)
         next_state = tf.gather_nd(transitions, indices)
         return next_state
-
-    def decode_output(self, sequence):
-        output = []
-        curr_state = self.start_state
-        for logits in sequence:
-            #print logits
-            if logits.shape == ():
-                word_idx = logits
-            else:
-                #assert logits.shape == (self.output_size,)
-                #allowed_tokens = self.allowed_token_matrix[curr_state]
-                constrained_logits = logits #- np.logical_not(allowed_tokens).astype(np.float32) * 1e+20
-                word_idx = np.argmax(constrained_logits)
-            if word_idx > 0:
-                output.append(word_idx)
-            #curr_state = self.transition_matrix[curr_state, word_idx]
-        return output
     
     def _normalize_invocation(self, seq, start):
         if start >= len(seq):

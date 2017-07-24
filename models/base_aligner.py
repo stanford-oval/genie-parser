@@ -12,6 +12,27 @@ from .seq2seq_helpers import Seq2SeqDecoder
 from .config import Config
 
 class BaseAligner(BaseModel):
+    def build(self):
+        self.add_placeholders()
+        
+        
+        xavier = tf.contrib.layers.xavier_initializer(seed=1234)
+        inputs, output_embed_matrix = self.add_input_op(xavier)
+        
+        # the encoder
+        with tf.variable_scope('RNNEnc', initializer=xavier) as scope:
+            enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs, scope=scope)
+            
+        # the training decoder
+        with tf.variable_scope('RNNDec', initializer=xavier) as scope:
+            train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=True, scope=scope)
+        self.loss = self.add_loss_op(train_preds)
+        self.train_op = self.add_training_op(self.loss)
+        
+        # the inference decoder
+        with tf.variable_scope('RNNDec', initializer=xavier, reuse=True) as scope:
+            self.pred = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False, scope=scope)
+    
     def add_placeholders(self):
         # batch size x number of words in the sentence
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
@@ -43,7 +64,7 @@ class BaseAligner(BaseModel):
         cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder, seed=8 + 33 * id)
         return cell
 
-    def add_encoder_op(self, inputs, training):
+    def add_encoder_op(self, inputs):
         raise NotImplementedError()
 
     @property
@@ -54,16 +75,10 @@ class BaseAligner(BaseModel):
         cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
         decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                  self.output_placeholder, self.output_length_placeholder)
+        return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
 
-        dec_final_outputs, _, _ = decoder.decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
-        
-        if self.config.beam_size > 0:
-            return dec_final_outputs.predicted_ids
-        else:
-            return dec_final_outputs.rnn_output
-
-    def add_input_op(self, initializer, training):
-        with tf.variable_scope('embed', reuse=not training):
+    def add_input_op(self, initializer):
+        with tf.variable_scope('embed'):
             # first the embed the input
             if self.config.train_input_embeddings:
                 input_embed_matrix = tf.get_variable('input_embedding',
@@ -89,20 +104,6 @@ class BaseAligner(BaseModel):
         # batch size x max length x embed_size
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.embed_size)
         return inputs, output_embed_matrix
-
-    def add_prediction_op(self, training):
-        xavier = tf.contrib.layers.xavier_initializer(seed=1234)
-        inputs, output_embed_matrix = self.add_input_op(xavier, training)
-        
-        # the encoder
-        with tf.variable_scope('RNNEnc', initializer=xavier, reuse=not training) as scope:
-            enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs, training=training, scope=scope)
-
-        # the decoder
-        with tf.variable_scope('RNNDec', initializer=xavier, reuse=not training) as scope:
-            preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=training, scope=scope)
-
-        return preds
 
     def add_loss_op(self, preds):
         length_diff = tf.reshape(self.config.max_length - tf.shape(preds)[1], shape=(1,))

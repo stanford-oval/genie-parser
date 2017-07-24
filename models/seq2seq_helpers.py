@@ -21,7 +21,7 @@ class Seq2SeqDecoder(object):
     @property
     def batch_size(self):
         return tf.shape(self.input_placeholder)[0]
-        
+    
     def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training):
         if self.config.apply_attention:
             attention = LuongAttention(self.config.hidden_size, enc_hidden_states, self.input_length_placeholder,
@@ -40,7 +40,7 @@ class Seq2SeqDecoder(object):
             helper = TrainingHelper(outputs, self.output_length_placeholder+1)
             decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
         else:
-            if self.config.beam_size > 0:
+            if self.config.beam_size > 1:
                 decoder = BeamSearchDecoder(cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
                                             tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.batch_size),
                                             self.config.batch_size)
@@ -48,4 +48,13 @@ class Seq2SeqDecoder(object):
                 helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
                 decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
 
-        return tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
+        
+        if training:
+            return final_outputs.rnn_output
+        elif self.config.beam_size > 1:
+            return final_outputs.predicted_ids
+        else:
+            predicted_ids = final_outputs.sample_id
+            # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
+            return tf.expand_dims(predicted_ids, axis=1)

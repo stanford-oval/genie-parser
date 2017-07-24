@@ -40,43 +40,6 @@ class BaseModel(object):
         """
         raise NotImplementedError("Each Model must re-implement this method.")
 
-    def add_prediction_op(self, training=False):
-        """Implements the core of the model that transforms a batch of input data into predictions.
-
-        Returns:
-            pred: A tensor of shape (batch_size, n_classes)
-        """
-        raise NotImplementedError("Each Model must re-implement this method.")
-
-    def add_loss_op(self, pred):
-        """Adds Ops for the loss function to the computational graph.
-
-        Args:
-            pred: A tensor of shape (batch_size, n_classes)
-        Returns:
-            loss: A 0-d tensor (scalar) output
-        """
-        raise NotImplementedError("Each Model must re-implement this method.")
-
-    def add_training_op(self, loss):
-        """Sets up the training Ops.
-
-        Creates an optimizer and applies the gradients to all trainable variables.
-        The Op returned by this function is what must be passed to the
-        sess.run() to train the model. See
-
-        https://www.tensorflow.org/versions/r0.7/api_docs/python/train.html#Optimizer
-
-        for more information.
-
-        Args:
-            loss: Loss tensor (a scalar).
-        Returns:
-            train_op: The Op for training.
-        """
-
-        raise NotImplementedError("Each Model must re-implement this method.")
-
     def train_on_batch(self, sess, *data, **kw):
         """Perform one step of gradient descent on the provided batch of data.
 
@@ -105,8 +68,4 @@ class BaseModel(object):
         return predictions
 
     def build(self):
-        self.add_placeholders()
-        self.pred_training = self.add_prediction_op(training=True)
-        self.loss = self.add_loss_op(self.pred_training)
-        self.train_op = self.add_training_op(self.loss)
-        self.pred = self.add_prediction_op(training=False)
+        raise NotImplementedError("Each Model must implement this method")
