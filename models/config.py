@@ -40,7 +40,6 @@ class Config(object):
             'train_output_embeddings': 'false',
             'output_embed_size': 50,
             'use_grammar_constraints': 'false',
-            'use_beam_decode': 'false',
             'beam_width': 10
         }
         
@@ -90,10 +89,7 @@ class Config(object):
     
     @property
     def beam_size(self):
-        if self._config['output'].getboolean('use_beam_decode'):
-            return int(self._config['output']['beam_width'])
-        else:
-            return 1
+        return int(self._config['output']['beam_width'])
         
     @property
     def n_epochs(self):

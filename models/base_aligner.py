@@ -116,13 +116,7 @@ class BaseAligner(BaseModel):
         raise NotImplementedError()
 
     def add_loss_op(self, preds):
-        length_diff = tf.reshape(self.config.max_length - tf.shape(preds)[1], shape=(1,))
-        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
-        preds = tf.pad(preds, padding, mode='constant')
-        mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
-        loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
-
-        return loss
+        raise NotImplementedError()
 
     def add_training_op(self, loss):
         #optimizer = tf.train.AdamOptimizer(self.config.lr)

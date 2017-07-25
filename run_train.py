@@ -21,7 +21,8 @@ def run():
     np.random.seed(42)
     
     model_dir = sys.argv[1]
-    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    model_conf = os.path.join(model_dir, 'model.conf')
+    config = Config.load(['./default.conf', model_conf])
     model = create_model(config)
     train_data = load_data(sys.argv[2], config.dictionary, config.grammar.dictionary, config.max_length)
     if len(sys.argv) > 3:
@@ -33,7 +34,8 @@ def run():
         os.mkdir(model_dir)
     except OSError:
         pass
-    config.save(os.path.join(model_dir, 'model.conf'))
+    if not os.path.exists(model_conf):
+        config.save(model_conf)
 
     # Tell TensorFlow that the model will be built into the default Graph.
     # (not required but good practice)

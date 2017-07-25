@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow.python.layers import core as tf_core_layers
 
 from tensorflow.contrib.seq2seq import BasicDecoder, \
-    TrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper, BeamSearchDecoder
+    TrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper
 
 from .grammar_decoder import GrammarBasicDecoder
 
@@ -36,11 +36,7 @@ class Seq2SeqDecoder(object):
         else:
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
-        if not training and self.config.beam_size > 1:
-            decoder = BeamSearchDecoder(cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
-                                        tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.batch_size),
-                                        self.config.beam_size, output_layer=linear_layer)
-        elif self.config.use_grammar_constraints:
+        if self.config.use_grammar_constraints:
             decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer, training_output = self.output_placeholder if training else None)
         else:
             decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
@@ -49,12 +45,9 @@ class Seq2SeqDecoder(object):
         
         if training:
             return final_outputs.rnn_output
-        elif self.config.beam_size > 1:
-            return final_outputs.predicted_ids
         else:
-            predicted_ids = final_outputs.sample_id
             # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
-            return tf.expand_dims(predicted_ids, axis=1)
+            return tf.expand_dims(final_outputs.sample_id, axis=1)
 
 
 class AttentionSeq2SeqDecoder(Seq2SeqDecoder):

@@ -24,3 +24,12 @@ class Seq2SeqAligner(BaseAligner):
             decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                      self.output_placeholder, self.output_length_placeholder)
         return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
+    
+    def add_loss_op(self, preds):
+        length_diff = tf.reshape(self.config.max_length - tf.shape(preds)[1], shape=(1,))
+        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
+        preds = tf.pad(preds, padding, mode='constant')
+        mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
+        loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
+
+        return loss
