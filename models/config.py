@@ -15,6 +15,7 @@ class Config(object):
         
         self._config['model'] = {
             'model_type': 'seq2seq',
+            'encoder_type': 'rnn',
             'hidden_size': 175,
             'rnn_cell_type': 'lstm',
             'rnn_layers': 1,
@@ -51,6 +52,10 @@ class Config(object):
     @property
     def model_type(self):
         return self._config['model']['model_type']
+    
+    @property
+    def encoder_type(self):
+        return self._config['model']['encoder_type']
     
     @property
     def max_length(self):
