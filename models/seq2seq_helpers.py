@@ -41,7 +41,7 @@ class Seq2SeqDecoder(object):
                                         tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.batch_size),
                                         self.config.beam_size, output_layer=linear_layer)
         elif self.config.use_grammar_constraints:
-            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer)
+            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer, training_output = self.output_placeholder if training else None)
         else:
             decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
 

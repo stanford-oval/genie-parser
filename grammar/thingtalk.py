@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 from orderedset import OrderedSet
+from collections import OrderedDict
 
 import sys
 
@@ -63,9 +64,9 @@ class ThingtalkGrammar(AbstractGrammar):
     def __init__(self, filename):
         super().__init__()
         
-        triggers = dict()
-        queries = dict()
-        actions = dict()
+        triggers = OrderedDict()
+        queries = OrderedDict()
+        actions = OrderedDict()
         functions = dict(trigger=triggers, query=queries, action=actions)
         self.functions = functions
         devices = []
@@ -229,7 +230,8 @@ class ThingtalkGrammar(AbstractGrammar):
             for param_name, param_type in params:
                 if param_type in ('Any'):
                     continue
-                if param_type in ('Picture', 'Array(Picture)') and not can_have_scope:
+                if param_type in ('Picture', 'Array(Picture)', 'Entity(tt:picture)',
+                    'Entity(tt:picture)') and not can_have_scope:
                     continue
                 elementtype = param_type
                 is_array = False
@@ -348,15 +350,33 @@ class ThingtalkGrammar(AbstractGrammar):
         print("num states", num_states)
         print("num tokens", self.output_size)
         self.transition_matrix = np.zeros((num_states, self.output_size), dtype=np.int32)
+        self.transition_matrix.fill(-1)
         self.allowed_token_matrix = np.zeros((num_states, self.output_size), dtype=np.bool8)
 
         for from_state, to_state, token in transitions:
             token_id = self.dictionary[token]
-            if self.transition_matrix[from_state, token_id] != 0 and \
+            if self.transition_matrix[from_state, token_id] != -1 and \
                 self.transition_matrix[from_state, token_id] != to_state:
                 raise ValueError("Ambiguous transition around token " + token + " in state " + state_names[from_state])
             self.transition_matrix[from_state, token_id] = to_state
             self.allowed_token_matrix[from_state, token_id] = True
+
+        if True:
+            visited = set()
+            def dfs(state):
+                visited.add(state)
+                any_out = False
+                for next_state in self.transition_matrix[state]:
+                    if next_state == -1:
+                        continue
+                    any_out = True
+                    if next_state in visited:
+                        continue
+                    dfs(next_state)
+                if not any_out:
+                    raise ValueError('Reachable state %d (%s) has no outgoing states' % (state, state_names[state]))
+            dfs(self.start_state)
+
         self.state_names = state_names
 
     def dump_tokens(self):
@@ -398,20 +418,21 @@ class ThingtalkGrammar(AbstractGrammar):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
 
     def constrain_logits(self, logits, curr_state):
-        allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
-        assert allowed_tokens.get_shape()[1:] == (self.output_size,)
+        with tf.name_scope('constrain_logits'):
+            allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
+            assert allowed_tokens.get_shape()[1:] == (self.output_size,)
 
-        constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+5
-
+            constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
         return constrained_logits
 
     def transition(self, curr_state, next_symbols, batch_size):
-        transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
-        assert transitions.get_shape()[1:] == (self.output_size,)
+        with tf.name_scope('grammar_transition'):
+            transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
+            assert transitions.get_shape()[1:] == (self.output_size,)
 
-        indices = tf.stack((tf.range(0, batch_size), next_symbols), axis=1)
-        next_state = tf.gather_nd(transitions, indices)
-        return next_state
+            indices = tf.stack((tf.range(0, batch_size), next_symbols), axis=1)
+            next_state = tf.gather_nd(transitions, indices)
+            return next_state
     
     def _normalize_invocation(self, seq, start):
         if start >= len(seq):

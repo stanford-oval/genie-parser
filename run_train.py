@@ -11,6 +11,8 @@ from util.trainer import Trainer
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data
 
+from tensorflow.python import debug as tf_debug
+
 def run():
     if len(sys.argv) < 3:
         print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Set>> [<<Dev Set>>]")
@@ -55,6 +57,7 @@ def run():
         with tf.Session() as sess:
             # Run the Op to initialize the variables.
             sess.run(init)
+            #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
             
             # Fit the model
             best_dev, best_train = trainer.fit(sess)

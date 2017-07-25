@@ -50,7 +50,16 @@ class Trainer(object):
             for x in data_batch:
                 assert len(x) == len(data_batch[0])
             assert len(data_batch[0]) <= self._batch_size
-            total_loss += self.model.train_on_batch(sess, *data_batch, **kw)
+            #print(data_batch)
+            loss = self.model.train_on_batch(sess, *data_batch, **kw)
+            if loss > 10:
+                print(data_batch)
+                config = self.model.config
+                print([config._reverse[w] for w in data_batch[0][0]])
+                print([config.grammar.tokens[w] for w in data_batch[2][0]])
+                print(self.model.predict_on_batch(sess, *data_batch))
+                raise AssertionError()
+            total_loss += loss
         return total_loss / n_minibatches
 
     def fit(self, sess):
@@ -70,7 +79,7 @@ class Trainer(object):
                                           labels, label_lengths,
                                           dropout=self._dropout)
             duration = time.time() - start_time
-            print('Epoch {:}: loss = {:.2f} ({:.3f} sec)'.format(epoch, average_loss, duration))
+            print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
             #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
 
             train_acc = self.train_eval.eval(sess, save_to_file=False)
