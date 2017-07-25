@@ -32,7 +32,8 @@ class Config(object):
             'input_embeddings': './embeddings.txt',
             'input_embed_size': 300,
             'max_length': 60,
-            'train_input_embeddings': 'false'
+            'train_input_embeddings': 'false',
+            'use_typed_embeddings': 'false'
         }
         self._config['output'] = {
             'grammar': 'tt',
@@ -40,6 +41,7 @@ class Config(object):
             'train_output_embeddings': 'false',
             'output_embed_size': 50,
             'use_grammar_constraints': 'false',
+            'use_typed_embeddings': 'false',
             'beam_width': 10
         }
         
@@ -47,6 +49,7 @@ class Config(object):
         self._words = None
         self._reverse = None
         self._embeddings_matrix = None
+        self._embed_size = int(self._config['input']['input_embed_size'])
             
     @property
     def model_type(self):
@@ -66,7 +69,7 @@ class Config(object):
     
     @property
     def embed_size(self):
-        return int(self._config['input']['input_embed_size'])
+        return self._embed_size
     
     @property
     def output_embed_size(self):
@@ -104,8 +107,16 @@ class Config(object):
         return self._config['input'].getboolean('train_input_embeddings')
     
     @property
+    def typed_input_embeddings(self):
+        return self._config['input'].getboolean('use_typed_embeddings')
+    
+    @property
+    def typed_output_embeddings(self):
+        return self._config['output'].getboolean('use_typed_embeddings')
+    
+    @property
     def train_output_embeddings(self):
-        return self._config['input'].getboolean('train_output_embeddings')
+        return self._config['output'].getboolean('train_output_embeddings')
     
     @property
     def rnn_cell_type(self):
@@ -148,15 +159,22 @@ class Config(object):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
+        self._embed_size = int(self._config['input']['input_embed_size'])
         
-        words, reverse = load_dictionary(self._config['input']['input_words'])
+        self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
+        print("%d output tokens" % (self.output_size,))
+        
+        words, reverse = load_dictionary(self._config['input']['input_words'],
+                                         use_types=self.typed_input_embeddings,
+                                         grammar=self._grammar)
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
-    
-        self._embeddings_matrix = load_embeddings(self._config['input']['input_embeddings'], words, embed_size=self.embed_size)
-
-        self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
-        print("%d output tokens" % (self.output_size,))
+        
+        self._embeddings_matrix, self._embed_size = load_embeddings(self._config['input']['input_embeddings'], words,
+                                                                    use_types=self.typed_input_embeddings,
+                                                                    grammar=self._grammar,
+                                                                    embed_size=self.embed_size)
+        print("Embed size", self._embed_size)
         
         return self

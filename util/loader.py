@@ -41,7 +41,12 @@ def vectorize(sentence, words, max_length, add_eos=False):
             print("truncated sentence", sentence)
     return (vector, length)
 
-def load_dictionary(file):
+ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
+            'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
+            'TIME', 'URL', 'USERNAME']
+MAX_ARG_VALUES = 5
+
+def load_dictionary(file, use_types=False, grammar=None):
     print("Loading dictionary from %s..." % (file,))
     words = dict()
 
@@ -49,34 +54,75 @@ def load_dictionary(file):
     words['<<PAD>>'] = len(words)
     words['<<UNK>>'] = len(words)
     reverse = ['<<PAD>>', '<<UNK>>']
+    def add_word(word):
+        if word not in words:
+            words[word] = len(words)
+            reverse.append(word)
+    
+    if use_types:
+        for i, entity in enumerate(ENTITIES):
+            for j in range(MAX_ARG_VALUES):
+                add_word(entity + '_' + str(j))
+        for i, entity in enumerate(grammar.entities):
+            for j in range(MAX_ARG_VALUES):
+                add_word('GENERIC_ENTITY_' + entity + '_' + str(j))
 
     with open(file, 'r') as word_file:
         for word in word_file:
             word = word.strip()
-            if word not in words:
-                words[word] = len(words)
-                reverse.append(word)
+            if use_types and word[0].isupper():
+                continue
+            add_word(word)
     return words, reverse
 
-def load_embeddings(from_file, words, embed_size=300):
+ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
+            'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
+            'TIME', 'URL', 'USERNAME']
+MAX_ARG_VALUES = 10
+
+def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=300):
     print("Loading pretrained embeddings...", end=' ')
     start = time.time()
     word_vectors = {}
-    for line in open(from_file).readlines():
-        sp = line.strip().split()
-        if sp[0] in words:
-            word_vectors[sp[0]] = [float(x) for x in sp[1:]]
-    word_vectors['<<PAD>>'] = np.zeros((embed_size,))
-    word_vectors['<<UNK>>'] = np.zeros((embed_size,))
+    with open(from_file, 'r') as fp:
+        for line in fp:
+            sp = line.strip().split()
+            if sp[0] in words:
+                word_vectors[sp[0]] = [float(x) for x in sp[1:]]
+                if len(word_vectors[sp[0]]) > embed_size:
+                    raise ValueError("Truncated word vector for " + sp[0])
     n_tokens = len(words)
-    embeddings_matrix = np.empty((n_tokens, embed_size), dtype='float32')
+    
+    original_embed_size = embed_size
+    if use_types:
+        num_entities = len(ENTITIES) + len(grammar.entities)
+        embed_size += num_entities + MAX_ARG_VALUES
+    
+    embeddings_matrix = np.zeros((n_tokens, embed_size), dtype='float32')
     for token, id in words.items():
+        if token in ('<<PAD>>', '<<UNK>>'):
+            continue
+        if use_types and token[0].isupper():
+            continue
         if token in word_vectors:
-            embeddings_matrix[id] = word_vectors[token]
+            vec = word_vectors[token]
+            embeddings_matrix[id, 0:len(vec)] = vec
         else:
             raise ValueError("missing vector for", token)
+    if use_types:
+        for i, entity in enumerate(ENTITIES):
+            for j in range(MAX_ARG_VALUES):
+                token_id = words[entity + '_' + str(j)]
+                embeddings_matrix[token_id, original_embed_size + i] = 1.
+                embeddings_matrix[token_id, original_embed_size + num_entities + j] = 1.
+        for i, entity in enumerate(grammar.entities):
+            for j in range(MAX_ARG_VALUES):
+                token_id = words['GENERIC_ENTITY_' + entity + '_' + str(j)]
+                embeddings_matrix[token_id, original_embed_size + len(ENTITIES) + i] = 1.
+                embeddings_matrix[token_id, original_embed_size + num_entities + j] = 1.
+    
     print("took {:.2f} seconds".format(time.time() - start))
-    return embeddings_matrix
+    return embeddings_matrix, embed_size
 
 def load_data(from_file, input_words, output_words, max_length):
     inputs = []

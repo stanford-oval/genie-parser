@@ -69,6 +69,7 @@ class ThingtalkGrammar(AbstractGrammar):
         actions = OrderedDict()
         functions = dict(trigger=triggers, query=queries, action=actions)
         self.functions = functions
+        self.entities = OrderedSet()
         devices = []
         trigger_or_query_params = set()
 
@@ -104,6 +105,7 @@ class ThingtalkGrammar(AbstractGrammar):
                 if function_type == 'entity':
                     for i in range(MAX_ARG_VALUES):
                         tokens.add('GENERIC_ENTITY_' + function + "_" + str(i))
+                    self.entities.add(function)
                     continue
 
                 parameters = line[2:]
