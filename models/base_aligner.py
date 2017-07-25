@@ -22,7 +22,7 @@ class BaseAligner(BaseModel):
         
         
         xavier = tf.contrib.layers.xavier_initializer(seed=1234)
-        inputs, output_embed_matrix = self.add_input_op(xavier)
+        inputs, output_embed_matrix = self.add_input_op()
         
         # the encoder
         with tf.variable_scope('RNNEnc', initializer=xavier):
@@ -84,15 +84,15 @@ class BaseAligner(BaseModel):
     def batch_size(self):
         return tf.shape(self.input_placeholder)[0]
 
-    def add_input_op(self, initializer):
+    def add_input_op(self):
         with tf.variable_scope('embed'):
             # first the embed the input
             if self.config.train_input_embeddings:
                 input_embed_matrix = tf.get_variable('input_embedding',
                                                      shape=(self.config.dictionary_size, self.config.embed_size),
-                                                     initializer=tf.constant_initializer(self.pretrained_embeddings))    
+                                                     initializer=tf.constant_initializer(self.config.input_embedding_matrix))    
             else:
-                input_embed_matrix = tf.constant(self.pretrained_embeddings)
+                input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
 
             # dictionary size x embed_size
             assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.embed_size)
@@ -101,9 +101,9 @@ class BaseAligner(BaseModel):
             if self.config.train_output_embeddings:
                 output_embed_matrix = tf.get_variable('output_embedding',
                                                       shape=(self.config.output_size, self.config.output_embed_size),
-                                                      initializer=initializer)
+                                                      initializer=tf.constant_initializer(self.config.output_embedding_matrix))
             else:
-                output_embed_matrix = tf.eye(self.config.output_size)
+                output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
                 
             assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
 
@@ -127,4 +127,3 @@ class BaseAligner(BaseModel):
 
     def __init__(self, config : Config):
         self.config = config
-        self.pretrained_embeddings = config.input_embedding_matrix

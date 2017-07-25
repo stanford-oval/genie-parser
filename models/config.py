@@ -39,7 +39,6 @@ class Config(object):
             'grammar': 'tt',
             'grammar_input_file': './thingpedia.txt',
             'train_output_embeddings': 'false',
-            'output_embed_size': 50,
             'use_grammar_constraints': 'false',
             'use_typed_embeddings': 'false',
             'beam_width': 10
@@ -49,6 +48,7 @@ class Config(object):
         self._words = None
         self._reverse = None
         self._embeddings_matrix = None
+        self._output_embeddings_matrix = None
         self._embed_size = int(self._config['input']['input_embed_size'])
             
     @property
@@ -73,10 +73,7 @@ class Config(object):
     
     @property
     def output_embed_size(self):
-        if self._config['output'].getboolean('train_output_embeddings'):
-            return int(self._config['input']['output_embed_size'])
-        else:
-            return self._grammar.output_size
+        return self._output_embeddings_matrix.shape[1]
         
     @property
     def output_size(self):
@@ -149,6 +146,10 @@ class Config(object):
     @property
     def input_embedding_matrix(self):
         return self._embeddings_matrix
+    
+    @property
+    def output_embedding_matrix(self):
+        return self._output_embeddings_matrix
         
     def save(self, filename):
         with open(filename, 'w') as fp:
@@ -163,6 +164,8 @@ class Config(object):
         
         self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
         print("%d output tokens" % (self.output_size,))
+        self._output_embeddings_matrix = self._grammar.get_embeddings(use_types=self.typed_output_embeddings)
+        print("Output embed size", self._output_embeddings_matrix.shape[1])
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
@@ -175,6 +178,6 @@ class Config(object):
                                                                     use_types=self.typed_input_embeddings,
                                                                     grammar=self._grammar,
                                                                     embed_size=self.embed_size)
-        print("Embed size", self._embed_size)
+        print("Input embed size", self._embed_size)
         
         return self

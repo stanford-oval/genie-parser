@@ -37,6 +37,9 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
     
+    def get_embeddings(self, use_types=False):
+        return np.identity(self.output_size, tf.float32)
+    
     def get_init_state(self, batch_size):
         '''
         Construct the initial state of the grammar state machine.

@@ -44,7 +44,7 @@ def vectorize(sentence, words, max_length, add_eos=False):
 ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
             'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
             'TIME', 'URL', 'USERNAME']
-MAX_ARG_VALUES = 5
+MAX_ARG_VALUES = 8
 
 def load_dictionary(file, use_types=False, grammar=None):
     print("Loading dictionary from %s..." % (file,))

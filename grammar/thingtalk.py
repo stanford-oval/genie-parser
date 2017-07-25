@@ -58,7 +58,7 @@ UNITS = dict(C=["C", "F"],
 
 COMMAND_TOKENS = ['list', 'help', 'generic', 'device', 'command', 'make', 'rule', 'configure', 'discover']
 
-MAX_ARG_VALUES = 10
+MAX_ARG_VALUES = 8
 
 class ThingtalkGrammar(AbstractGrammar):
     def __init__(self, filename):
@@ -82,10 +82,6 @@ class ThingtalkGrammar(AbstractGrammar):
         tokens.update(COMMAND_TOKENS)
         tokens.update(SPECIAL_TOKENS)
         
-        for i in range(MAX_ARG_VALUES):
-            for entity in ENTITIES:
-                tokens.add(entity + "_" + str(i))
-        
         for unitlist in UNITS.values():
             tokens.update(unitlist)
         tokens.add('tt:param.$event')
@@ -103,8 +99,6 @@ class ThingtalkGrammar(AbstractGrammar):
                     tokens.add(function)
                     continue
                 if function_type == 'entity':
-                    for i in range(MAX_ARG_VALUES):
-                        tokens.add('GENERIC_ENTITY_' + function + "_" + str(i))
                     self.entities.add(function)
                     continue
 
@@ -132,6 +126,13 @@ class ThingtalkGrammar(AbstractGrammar):
                             tokens.add(enum)
                         if not elementtype in enum_types:
                             enum_types[elementtype] = enums
+        
+        for i in range(MAX_ARG_VALUES):
+            for entity in ENTITIES:
+                tokens.add(entity + "_" + str(i))
+        for generic_entity in self.entities:
+            for i in range(MAX_ARG_VALUES):
+                tokens.add('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
         
         self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>'] + list(tokens)
         self.dictionary = dict()
@@ -380,6 +381,38 @@ class ThingtalkGrammar(AbstractGrammar):
             dfs(self.start_state)
 
         self.state_names = state_names
+
+
+    def get_embeddings(self, use_types=False):
+        if not use_types:
+            return np.identity(self.output_size, tf.float32)
+        
+        num_entity_tokens = (len(ENTITIES) + len(self.entities)) * MAX_ARG_VALUES
+        num_other_tokens = len(self.tokens) - num_entity_tokens
+        
+        num_entities = len(ENTITIES) + len(self.entities)
+        embed_size = num_other_tokens + num_entities + MAX_ARG_VALUES
+        embedding = np.zeros((len(self.tokens), embed_size), dtype=np.float32)
+        for token_id, token in enumerate(self.tokens):
+            if '_' in token and token[0].isupper():
+                continue
+            embedding[token_id,token_id] = 1
+        for i, entity in enumerate(ENTITIES):
+            assert not np.any(embedding[:, num_other_tokens + i] > 0)
+            for j in range(MAX_ARG_VALUES):
+                token_id = self.dictionary[entity + '_' + str(j)]
+                embedding[token_id, num_other_tokens + i] = 1
+                embedding[token_id, num_other_tokens + num_entities + j] = 1
+        for i, entity in enumerate(self.entities):
+            assert not np.any(embedding[:, num_other_tokens + len(ENTITIES) + i] > 0)
+            for j in range(MAX_ARG_VALUES):
+                token_id = self.dictionary['GENERIC_ENTITY_' + entity + '_' + str(j)]
+                embedding[token_id, num_other_tokens + len(ENTITIES) + i] = 1
+                embedding[token_id, num_other_tokens + num_entities + j] = 1
+        
+        for i in range(len(embedding)):
+            assert np.any(embedding[i] > 0)
+        return embedding
 
     def dump_tokens(self):
         for token in self.tokens:
