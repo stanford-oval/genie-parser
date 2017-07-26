@@ -31,7 +31,10 @@ for line in sys.stdin.readlines():
         words.remove(sp[0])
 
 # add small predictable random values for the words missing
-EMBED_SIZE = 300
+if len(sys.argv) > 2:
+    EMBED_SIZE = int(sys.argv[2])
+else:
+    EMBED_SIZE = 300
 np.random.seed(1234)
 
 for word in words:

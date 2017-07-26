@@ -385,7 +385,7 @@ class ThingtalkGrammar(AbstractGrammar):
 
     def get_embeddings(self, use_types=False):
         if not use_types:
-            return np.identity(self.output_size, tf.float32)
+            return np.identity(self.output_size, np.float32)
         
         num_entity_tokens = (len(ENTITIES) + len(self.entities)) * MAX_ARG_VALUES
         num_other_tokens = len(self.tokens) - num_entity_tokens

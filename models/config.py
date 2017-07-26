@@ -22,9 +22,9 @@ class Config(object):
             'apply_attention': 'true'
         }
         self._config['training'] = {
-            'batch_size': 512,
+            'batch_size': 256,
             'n_epochs': 20,
-            'learning_rate': 0.001,
+            'learning_rate': 0.01,
             'dropout': 0.5
         }
         self._config['input'] = {
@@ -89,7 +89,10 @@ class Config(object):
     
     @property
     def beam_size(self):
-        return int(self._config['output']['beam_width'])
+        if self._config['model']['model_type'] == 'beamsearch':
+            return int(self._config['output']['beam_width'])
+        else:
+            return 1
         
     @property
     def n_epochs(self):
