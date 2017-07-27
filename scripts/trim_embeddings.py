@@ -2,6 +2,7 @@
 
 import sys
 import orderedset
+import re
 
 import numpy as np
 
@@ -19,7 +20,18 @@ with open(sys.argv[1], 'r') as fp:
 HACK = {
     'xkcd': None,
     'uber': None,
-    'weather': None
+    'weather': None,
+    'skydrive': None,
+    'imgur': None,
+    '____': None
+}
+HACK_REPLACEMENT = {
+    # onedrive is the new name of skydrive
+    'onedrive': 'skydrive',
+
+    # imgflip is kind of the same as imgur (or 9gag)
+    # until we have either in thingpedia, it's fine to reuse the word vector
+    'imgflip': 'imgur'
 }
 for line in sys.stdin.readlines():
     stripped = line.strip()
@@ -37,12 +49,19 @@ else:
     EMBED_SIZE = 300
 np.random.seed(1234)
 
+blank = re.compile('^_+$')
+
 for word in words:
     vector = None
-    if word.endswith('s') and word[:-1] in HACK:
+    if blank.match(word):
+        # normalize blanks
+        vector = HACK['____']
+    elif word.endswith('s') and word[:-1] in HACK:
         vector = HACK[word[:-1]]
     elif (word.endswith('ing') or word.endswith('api')) and word[:-3] in HACK:
         vector = HACK[word[:-3]]
+    elif word in HACK_REPLACEMENT:
+        vector = HACK[HACK_REPLACEMENT[word]]
     if vector:
         print(word, *vector)
     else:

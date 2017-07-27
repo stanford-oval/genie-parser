@@ -433,12 +433,13 @@ class ThingtalkGrammar(AbstractGrammar):
         curr_state = self.start_state
         for token_id in program:
             next = self.transition_matrix[curr_state, token_id]
-            if next == 0:
-                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join([self.tokens[x] for x in program])) + " (in state " + self.state_names[curr_state] + ")")
+            if next == -1:
+                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
+            #print("transition", self.state_names[curr_state], "->", self.state_names[next])
             curr_state = next
             
         if curr_state != self.end_state:
-            raise ValueError("Premature end of program in " + (' '.join(program)) + " (in state " + self.state_names[curr_state] + ")")
+            raise ValueError("Premature end of program in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
 
     def parse_all(self, fp):
         for line in fp.readlines():
