@@ -7,6 +7,7 @@ Created on Mar 16, 2017
 import sys
 import json
 import os
+import tensorflow as tf
 import numpy as np
 import time
 
@@ -23,13 +24,14 @@ class Trainer(object):
         '''
         self.model = model
         
-        inputs, input_lengths, labels, label_lengths = train_data
+        inputs, input_lengths, parses, labels, label_lengths = train_data
         inputs = np.array(inputs)
+        parses = np.array(parses)
         input_lengths = np.reshape(np.array(input_lengths, dtype=np.int32), (len(inputs), 1))
         labels = np.array(labels)
         label_lengths = np.reshape(np.array(label_lengths, dtype=np.int32), (len(inputs), 1))
-        stacked_train_data = np.concatenate((inputs, input_lengths, labels, label_lengths), axis=1)
-        assert stacked_train_data.shape == (len(train_data[0]), max_length + 1 + max_length + 1)
+        stacked_train_data = np.concatenate((inputs, input_lengths, parses, labels, label_lengths), axis=1)
+        assert stacked_train_data.shape == (len(train_data[0]), max_length + 1 + 2*max_length-1 + max_length + 1)
         self.train_data = stacked_train_data
         
         self.train_eval = train_eval
@@ -42,24 +44,28 @@ class Trainer(object):
         self._n_epochs = n_epochs
         self._dropout = dropout
 
-    def run_epoch(self, sess, inputs, input_lengths,
+    def run_epoch(self, sess, inputs, input_lengths, parses,
                   labels, label_lengths, **kw):
         n_minibatches, total_loss = 0, 0
-        for data_batch in get_minibatches([inputs, input_lengths, labels, label_lengths], self._batch_size):
+        for data_batch in get_minibatches([inputs, input_lengths, parses, labels, label_lengths], self._batch_size):
             n_minibatches += 1
             for x in data_batch:
                 assert len(x) == len(data_batch[0])
-            assert len(data_batch[0]) <= self._batch_size
-            #print(data_batch)
-            loss = self.model.train_on_batch(sess, *data_batch, **kw)
-            if loss > 10:
-                print(data_batch)
-                config = self.model.config
-                print([config._reverse[w] for w in data_batch[0][0]])
-                print([config.grammar.tokens[w] for w in data_batch[2][0]])
-                print(self.model.predict_on_batch(sess, *data_batch))
-                raise AssertionError()
-            total_loss += loss
+            #print(n_minibatches)
+            try :
+                assert len(data_batch[0]) <= self._batch_size
+                loss = self.model.train_on_batch(sess, *data_batch, **kw)
+                #if loss > 10:
+                #    print(data_batch)
+                #    config = self.model.config
+                #    print([config._reverse[w] for w in data_batch[0][0]])
+                #    print([config.grammar.tokens[w] for w in data_batch[2][0]])
+                #    print(self.model.predict_on_batch(sess, *data_batch))
+                #    raise AssertionError()
+                total_loss += loss
+            except tf.errors.InvalidArgumentError as e:
+                print(n_minibatches)
+                raise e
         return total_loss / n_minibatches
 
     def fit(self, sess):
@@ -72,10 +78,11 @@ class Trainer(object):
             np.random.shuffle(shuffled)
             inputs = shuffled[:,:self._max_length]
             input_lengths = shuffled[:,self._max_length]
-            labels = shuffled[:,self._max_length + 1:-1]
+            parses = shuffled[:,self._max_length + 1:self._max_length + 1 + 2*self._max_length-1]
+            labels = shuffled[:,3*self._max_length:-1]
             label_lengths = shuffled[:,-1]
             
-            average_loss = self.run_epoch(sess, inputs, input_lengths,
+            average_loss = self.run_epoch(sess, inputs, input_lengths, parses,
                                           labels, label_lengths,
                                           dropout=self._dropout)
             duration = time.time() - start_time

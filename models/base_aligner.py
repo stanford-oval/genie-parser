@@ -10,6 +10,7 @@ from .base_model import BaseModel
 from .encoders import RNNEncoder, BagOfWordsEncoder
 
 from .config import Config
+from models.tree_encoder import TreeEncoder
 
 class BaseAligner(BaseModel):
     '''
@@ -42,14 +43,16 @@ class BaseAligner(BaseModel):
         # batch size x number of words in the sentence
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
+        self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1))
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
 
-    def create_feed_dict(self, inputs_batch, input_length_batch, labels_batch=None, label_length_batch=None, dropout=1):
+    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
         feed_dict[self.input_length_placeholder] = input_length_batch
+        feed_dict[self.constituency_parse_placeholder] = parses_batch
         if labels_batch is not None:
             feed_dict[self.output_placeholder] = labels_batch
         if label_length_batch is not None:
@@ -76,9 +79,12 @@ class BaseAligner(BaseModel):
         elif self.config.encoder_type == "bagofwords":
             encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
                                         dropout=self.dropout_placeholder)
+        elif self.config.encoder_type == "tree":
+            encoder = TreeEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
+                                  dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers, max_time=self.config.max_length)
         else:
             raise ValueError("Invalid encoder type")
-        return encoder.encode(inputs, self.input_length_placeholder)
+        return encoder.encode(inputs, self.input_length_placeholder, self.constituency_parse_placeholder)
 
     @property
     def batch_size(self):

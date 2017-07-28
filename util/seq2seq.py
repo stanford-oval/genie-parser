@@ -24,7 +24,7 @@ class Seq2SeqEvaluator(object):
         self._batch_size = batch_size
         
     def eval(self, session, save_to_file=False):
-        inputs, input_lengths, labels, _ = self.data
+        inputs, input_lengths, parses, labels, _ = self.data
         sequences = []
         gold_programs = set()
         correct_programs = [set() for _ in range(self._beam_size)]
@@ -50,8 +50,8 @@ class Seq2SeqEvaluator(object):
             return set([x for x in [self.grammar.tokens[x] for x in seq] if x.startswith('tt:') and not x.startswith('tt:param.')])
 
         try:
-            for input_batch, input_length_batch, label_batch in get_minibatches([inputs, input_lengths, labels], self._batch_size):
-                sequences = self.model.predict_on_batch(session, input_batch, input_length_batch)
+            for input_batch, input_length_batch, parse_batch, label_batch in get_minibatches([inputs, input_lengths, parses, labels], self._batch_size):
+                sequences = self.model.predict_on_batch(session, input_batch, input_length_batch, parse_batch)
                 #print sequences.shape
                 #print sequences
 

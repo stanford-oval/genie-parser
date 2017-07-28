@@ -9,6 +9,33 @@ import time
 
 unknown_tokens = set()
 
+def vectorize_constituency_parse(parse, max_length, expect_length):
+    vector = np.zeros((2*max_length-1,), dtype=np.bool)
+    
+    # convention: false = shift, true = reduce
+    if isinstance(parse, str):
+        parse = parse.split(' ')
+    i = 0
+    for token in parse:
+        if i == 2*max_length-1:
+            break
+        if token == '(':
+            continue
+        elif token == ')': # reduce
+            vector[i] = True
+            i += 1
+        else: # shift
+            vector[i] = False
+            i += 1
+    if i <= 2*max_length-1:
+        if i != 2*expect_length-1:
+            raise AssertionError(str(i) + " " + str(expect_length) + " " + str(parse))
+    else:
+        # we don't have space to shift/reduce the last token
+        # this means that we truncated the sentence before
+        raise ValueError('truncated constituency parse ' + str(parse))
+    return vector
+
 def vectorize(sentence, words, max_length, add_eos=False):
     vector = np.zeros((max_length,), dtype=np.int32)
     assert words['<<PAD>>'] == 0
@@ -127,15 +154,17 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
 def load_data(from_file, input_words, output_words, max_length):
     inputs = []
     input_lengths = []
+    parses = []
     labels = []
     label_lengths = []
     with open(from_file, 'r') as data:
         for line in data:
-            sentence, canonical = line.split('\t')
+            sentence, canonical, parse = line.strip().split('\t')
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
             inputs.append(input)
             input_lengths.append(in_len)
             label, label_len = vectorize(canonical, output_words, max_length, add_eos=True)
             labels.append(label)
             label_lengths.append(label_len)
-    return inputs, input_lengths, labels, label_lengths
+            parses.append(vectorize_constituency_parse(parse, max_length, in_len))
+    return inputs, input_lengths, parses, labels, label_lengths
