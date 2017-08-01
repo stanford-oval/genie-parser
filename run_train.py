@@ -60,10 +60,11 @@ def run():
             # Run the Op to initialize the variables.
             sess.run(init)
             #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
-            
+            #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
+
             # Fit the model
             best_dev, best_train = trainer.fit(sess)
-            
+
             print("best train", best_train)
             print("best dev", best_dev)
 
