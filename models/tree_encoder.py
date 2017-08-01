@@ -15,20 +15,17 @@ class TreeDropoutWrapper(object):
     '''
     A dropout wrapper for TreeRNN cells
     '''
-    def __init__(self, cell, state_keep_prob, output_keep_prob, seed):
+    def __init__(self, cell, output_keep_prob, seed):
         self._cell = cell
-        self._state_keep_prob = state_keep_prob
         self._output_keep_prob = output_keep_prob
         self._seed = seed
-
+        
     def zero_state(self, batch_size, dtype=tf.float32):
         return self._cell.zero_state(batch_size, dtype)
-
+    
     def __call__(self, left_state, right_state, extra_input=None):
         outputs, new_state = self._cell(left_state, right_state, extra_input=extra_input)
-        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob, seed=self._seed * 7 + 1), \
-            LSTMStateTuple(tf.nn.dropout(new_state.c, keep_prob=self._state_keep_prob, seed=self._seed * 7 + 1),
-                           tf.nn.dropout(new_state.h, keep_prob=self._state_keep_prob, seed=self._seed * 7 + 1))
+        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob, seed=self._seed), new_state
 
 
 class TreeLSTM(object):
@@ -83,13 +80,12 @@ class TreeEncoder(BaseEncoder):
     tensorflow's TensorArrays and back pointers.
     '''
     
-    def __init__(self, cell_type, num_layers, max_time, state_dropout, *args, train_syntactic_parser=False, use_tracking_rnn=True, **kw):
+    def __init__(self, cell_type, num_layers, max_time, *args, train_syntactic_parser=False, use_tracking_rnn=True, **kw):
         super().__init__(*args, **kw)
         self._num_layers = num_layers
         self._max_time = max_time
         self._train_syntactic_parser = train_syntactic_parser
         self._use_tracking_rnn = use_tracking_rnn
-        self._state_dropout = state_dropout
         if self._num_layers > 1:
             raise NotImplementedError("multi-layer TreeRNN is not implemented yet (and i'm not sure how it'd work)")
         self._cell_type = cell_type
@@ -103,7 +99,7 @@ class TreeEncoder(BaseEncoder):
             cell = tf.contrib.rnn.BasicRNNCell(self.output_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, state_keep_prob=self._state_dropout, output_keep_prob=self._output_dropout, seed=88 + 33 * i)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
         return cell
     
     def _make_tree_cell(self, i):
@@ -113,7 +109,7 @@ class TreeEncoder(BaseEncoder):
             raise NotImplementedError("GRU/basic-tanh tree cells not implemented yet")
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = TreeDropoutWrapper(cell, state_keep_prob=self._state_dropout, output_keep_prob=self._output_dropout, seed=99 + 33 * i)
+        cell = TreeDropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
         return cell
 
     def encode(self, inputs: tf.Tensor, input_length: tf.Tensor, parses : tf.Tensor):

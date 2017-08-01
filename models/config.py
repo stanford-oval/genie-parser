@@ -25,8 +25,7 @@ class Config(object):
             'batch_size': 256,
             'n_epochs': 20,
             'learning_rate': 0.01,
-            'output_dropout': 0.5,
-            'state_dropout': 0.5,
+            'dropout': 0.5
         }
         self._config['input'] = {
             'input_words': './input_words.txt',
@@ -65,12 +64,8 @@ class Config(object):
         return int(self._config['input']['max_length'])
     
     @property
-    def output_dropout(self):
-        return float(self._config['training']['output_dropout'])
-
-    @property
-    def state_dropout(self):
-        return float(self._config['training']['state_dropout'])
+    def dropout(self):
+        return float(self._config['training']['dropout'])
     
     @property
     def embed_size(self):
