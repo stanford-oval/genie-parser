@@ -53,7 +53,8 @@ def run():
                           max_length=config.max_length,
                           batch_size=config.batch_size,
                           n_epochs=config.n_epochs,
-                          dropout=config.dropout)
+                          output_dropout=config.output_dropout,
+                          state_dropout=config.state_dropout)
 
         # Create a session for running Ops in the Graph
         with tf.Session() as sess:

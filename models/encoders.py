@@ -15,11 +15,12 @@ class RNNEncoder(BaseEncoder):
     Use an RNN to encode the sentence
     '''
 
-    def __init__(self, cell_type, num_layers, *args, **kw):
+    def __init__(self, cell_type, num_layers, state_dropout, *args, **kw):
         super().__init__(*args, **kw)
         self._num_layers = num_layers
         self._cell_type = cell_type
-    
+        self._state_dropout = state_dropout
+
     def _make_rnn_cell(self, i):
         if self._cell_type == "lstm":
             cell = tf.contrib.rnn.LSTMCell(self.output_size)
@@ -29,7 +30,7 @@ class RNNEncoder(BaseEncoder):
             cell = tf.contrib.rnn.BasicRNNCell(self.output_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, state_dropout=self._state_dropout, output_keep_prob=self._output_dropout, seed=88 + 33 * i)
         return cell
     
     def encode(self, inputs, input_length, _parses):
@@ -61,5 +62,6 @@ class BagOfWordsEncoder(BaseEncoder):
             #assert enc_hidden_states.get_shape()[1:] == (self.config.max_length, self.config.hidden_size)
             if self._cell_type == 'lstm':
                 enc_final_state = (tf.contrib.rnn.LSTMStateTuple(enc_final_state, enc_final_state),)
-        
-            return enc_hidden_states, enc_final_state
+
+            enc_output = tf.nn.dropout(enc_hidden_states, keep_prob=self._output_dropout, seed=12345)
+            return enc_output, enc_final_state

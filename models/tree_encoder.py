@@ -15,17 +15,20 @@ class TreeDropoutWrapper(object):
     '''
     A dropout wrapper for TreeRNN cells
     '''
-    def __init__(self, cell, output_keep_prob, seed):
+    def __init__(self, cell, state_keep_prob, output_keep_prob, seed):
         self._cell = cell
+        self._state_keep_prob = state_keep_prob
         self._output_keep_prob = output_keep_prob
         self._seed = seed
-        
+
     def zero_state(self, batch_size, dtype=tf.float32):
         return self._cell.zero_state(batch_size, dtype)
-    
+
     def __call__(self, left_state, right_state, extra_input=None):
         outputs, new_state = self._cell(left_state, right_state, extra_input=extra_input)
-        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob, seed=self._seed), new_state
+        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob, seed=self._seed * 7 + 1), \
+            LSTMStateTuple(tf.nn.dropout(new_state.c, keep_prob=self._state_keep_prob, seed=self._seed * 7 + 1),
+                           tf.nn.dropout(new_state.h, keep_prob=self._state_keep_prob, seed=self._seed * 7 + 1))
 
 
 class TreeLSTM(object):
@@ -80,12 +83,13 @@ class TreeEncoder(BaseEncoder):
     tensorflow's TensorArrays and back pointers.
     '''
     
-    def __init__(self, cell_type, num_layers, max_time, *args, train_syntactic_parser=False, use_tracking_rnn=True, **kw):
+    def __init__(self, cell_type, num_layers, max_time, state_dropout, *args, train_syntactic_parser=False, use_tracking_rnn=True, **kw):
         super().__init__(*args, **kw)
         self._num_layers = num_layers
         self._max_time = max_time
         self._train_syntactic_parser = train_syntactic_parser
         self._use_tracking_rnn = use_tracking_rnn
+        self._state_dropout = state_dropout
         if self._num_layers > 1:
             raise NotImplementedError("multi-layer TreeRNN is not implemented yet (and i'm not sure how it'd work)")
         self._cell_type = cell_type
@@ -99,7 +103,7 @@ class TreeEncoder(BaseEncoder):
             cell = tf.contrib.rnn.BasicRNNCell(self.output_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, state_keep_prob=self._state_dropout, output_keep_prob=self._output_dropout, seed=88 + 33 * i)
         return cell
     
     def _make_tree_cell(self, i):
@@ -109,7 +113,7 @@ class TreeEncoder(BaseEncoder):
             raise NotImplementedError("GRU/basic-tanh tree cells not implemented yet")
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = TreeDropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
+        cell = TreeDropoutWrapper(cell, state_keep_prob=self._state_dropout, output_keep_prob=self._output_dropout, seed=99 + 33 * i)
         return cell
 
     def encode(self, inputs: tf.Tensor, input_length: tf.Tensor, parses : tf.Tensor):
@@ -143,7 +147,8 @@ class TreeEncoder(BaseEncoder):
             # (this is what dynamic_rnn does)
             initial_stack_hta = tf.TensorArray(dtype=tf.float32, size=2, dynamic_size=True, clear_after_read=False, name="stack_hta")
             initial_stack_cta = tf.TensorArray(dtype=tf.float32, size=2, dynamic_size=True, clear_after_read=False, name="stack_cta")
-            
+            initial_output_ta = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True, name="output_ta")
+
             # the back pointer TA is the tricky bit of the thin stack optimization (which
             # we need to get automatic gradients and batching from Tensorflow, otherwise
             # it just explodes)
@@ -161,10 +166,10 @@ class TreeEncoder(BaseEncoder):
             # keep popping you end up in a loop - don't do that
             initial_back_pointer_ta = tf.TensorArray(dtype=tf.int32, size=2, dynamic_size=True, clear_after_read=False, name="back_pointer_ta")
 
-            def cond(finished, time, buffer_ptr, stack_hta, stack_cta, back_pointer_ta, rnn_state):
+            def cond(finished, time, buffer_ptr, stack_hta, stack_cta, back_pointer_ta, output_ta, rnn_state):
                 return tf.logical_and(time < 2*self._max_time-1, tf.logical_not(tf.reduce_all(finished)))
 
-            def body(finished, time, buffer_ptr, stack_hta, stack_cta, back_pointer_ta, rnn_state):
+            def body(finished, time, buffer_ptr, stack_hta, stack_cta, back_pointer_ta, output_ta, rnn_state):
                 # time: our progression through the shift-reduce operation
                 time = time
                 # we push two elements to the stack before the loop, so the top of the stack
@@ -236,6 +241,8 @@ class TreeEncoder(BaseEncoder):
                 if_shift_back_pointer_top = tf.ones((batch_size,), dtype=tf.int32) * stack_top
                 # the buffer will be advanced
                 if_shift_buffer_ptr = buffer_ptr+1
+                # to the output we write the stack top
+                if_shift_output = if_shift_stack_htop
 
                 # if reduce, we call the tree cell
                 # stack_ctop and stack_c_prev_to_top are the same as their h versions
@@ -248,10 +255,8 @@ class TreeEncoder(BaseEncoder):
                 left_child = LSTMStateTuple(stack_c_prev_to_top, stack_h_prev_to_top)
                 right_child = LSTMStateTuple(stack_ctop, stack_htop)
 
-                # ignore the output of the TreeLSTM cell, because we write out the full
-                # state in the stack
-                _, next_tree_state = tree_cell(left_child, right_child,
-                                               extra_input=next_rnn_output if self._use_tracking_rnn else None)
+                next_tree_output, next_tree_state = tree_cell(left_child, right_child,
+                                                              extra_input=next_rnn_output if self._use_tracking_rnn else None)
                 # the top the stack will contain the tree cell result
                 if_reduce_stack_htop = next_tree_state.h
                 if_reduce_stack_ctop = next_tree_state.c
@@ -265,11 +270,13 @@ class TreeEncoder(BaseEncoder):
                 with tf.control_dependencies([tf.Assert(tf.reduce_all(if_reduce_back_pointer_top < stack_top), [if_reduce_back_pointer_top, ptr_stack_prev_to_top, stack_top])]):
                     if_reduce_back_pointer_top = tf.identity(if_reduce_back_pointer_top)
                 if_reduce_buffer_ptr = buffer_ptr
+                if_reduce_output = next_tree_output
 
                 new_stack_htop = tf.where(next_op_is_reduce, if_reduce_stack_htop, if_shift_stack_htop, name='new_stack_htop')
                 new_stack_ctop = tf.where(next_op_is_reduce, if_reduce_stack_ctop, if_shift_stack_ctop, name='new_stack_ctop')
                 new_back_pointer_top = tf.where(next_op_is_reduce, if_reduce_back_pointer_top, if_shift_back_pointer_top, name='new_back_pointer_top')
                 new_buffer_ptr = tf.where(next_op_is_reduce, if_reduce_buffer_ptr, if_shift_buffer_ptr, name='new_buffer_ptr')
+                new_output = tf.where(next_op_is_reduce, if_reduce_output, if_shift_output, name='new_output')
 
                 # now check if we had finished actually
                 # if we had finished, we copy over the top of the stack instead of whatever shift/reduce tells
@@ -289,12 +296,14 @@ class TreeEncoder(BaseEncoder):
                 new_stack_cta = stack_cta.write(stack_top+1, tf.check_numerics(new_stack_ctop, 'invalid new stack ctop'))
                 new_back_pointer_top = tf.where(finished, ptr_stack_prev_to_top, new_back_pointer_top, name='new_back_pointer_top_finished')
                 new_back_pointer_ta = back_pointer_ta.write(stack_top+1, new_back_pointer_top)
+                new_output = tf.where(finished, tf.zeros((batch_size, self._output_size)), new_output)
+                new_output_ta = output_ta.write(time, new_output)
 
                 new_time = tf.add(time, 1, name='new_time')
 
                 with tf.control_dependencies([tf.group(finished, new_time, new_stack_hta.flow, new_stack_cta.flow,
-                                                       new_back_pointer_ta.flow)]):
-                    return (finished, new_time, new_buffer_ptr, new_stack_hta, new_stack_cta, new_back_pointer_ta, next_rnn_state)
+                                                       new_back_pointer_ta.flow, new_output_ta.flow)]):
+                    return (finished, new_time, new_buffer_ptr, new_stack_hta, new_stack_cta, new_back_pointer_ta, new_output_ta, next_rnn_state)
 
             initial_tree_state = tree_cell.zero_state(batch_size)
             initial_stack_hta = initial_stack_hta.write(0, initial_tree_state.h).write(1, initial_tree_state.h)
@@ -307,16 +316,15 @@ class TreeEncoder(BaseEncoder):
             initial_buffer_ptr = tf.zeros((batch_size,), dtype=tf.int32, name='initial_buffer_ptr')
 
             initial_loop_state = (initial_finished, initial_time, initial_buffer_ptr,
-                                  initial_stack_hta, initial_stack_cta, initial_back_pointer_ta, initial_rnn_state)
-            _, final_time, _, final_stack_hta, final_stack_cta, final_back_pointer_ta, _ = tf.while_loop(cond, body, initial_loop_state, parallel_iterations=1, swap_memory=True)
+                                  initial_stack_hta, initial_stack_cta, initial_back_pointer_ta,
+                                  initial_output_ta, initial_rnn_state)
+            _, final_time, _, final_stack_hta, final_stack_cta, final_back_pointer_ta, final_output_ta, _ = tf.while_loop(cond, body, initial_loop_state, parallel_iterations=1, swap_memory=True)
 
             final_stack_htop = final_stack_hta.read(final_time+1)
             final_stack_ctop = final_stack_cta.read(final_time+1)
 
-            # return the final stack as output, and cut the first two elements
-            outputs = final_stack_hta.stack()[2:]
-
             # transpose outputs back to be batch major
+            outputs = final_output_ta.stack()
             outputs = tf.transpose(outputs, (1, 0, 2))
 
             # final state is a tuple of LSTMStateTuple (one LSTMStateTuple for each RNN layer)

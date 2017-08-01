@@ -13,10 +13,10 @@ class BaseEncoder(object):
     produces a dense representation of it
     '''
     
-    def __init__(self, embed_size, output_size, dropout):
+    def __init__(self, embed_size, output_size, output_dropout):
         self._embed_size = embed_size
         self._output_size = output_size
-        self._dropout = dropout
+        self._output_dropout = output_dropout
     
     @property
     def output_size(self):

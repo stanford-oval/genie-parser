@@ -46,9 +46,10 @@ class BaseAligner(BaseModel):
         self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1))
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
-        self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
+        self.output_dropout_placeholder = tf.placeholder(tf.float32, shape=())
+        self.state_dropout_placeholder = tf.placeholder(tf.float32, shape=())
 
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1):
+    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, output_dropout=1, state_dropout=1):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
         feed_dict[self.input_length_placeholder] = input_length_batch
@@ -57,7 +58,8 @@ class BaseAligner(BaseModel):
             feed_dict[self.output_placeholder] = labels_batch
         if label_length_batch is not None:
             feed_dict[self.output_length_placeholder] = label_length_batch
-        feed_dict[self.dropout_placeholder] = dropout
+        feed_dict[self.output_dropout_placeholder] = output_dropout
+        feed_dict[self.state_dropout_placeholder] = state_dropout
         return feed_dict
     
     def make_rnn_cell(self, id):
@@ -69,19 +71,20 @@ class BaseAligner(BaseModel):
             cell = tf.contrib.rnn.BasicRNNCell(self.config.hidden_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder, seed=8 + 33 * id)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, state_keep_prob=self.state_dropout_placeholder, output_keep_prob=self.output_dropout_placeholder, seed=8 + 33 * id)
         return cell
 
     def add_encoder_op(self, inputs):
         if self.config.encoder_type == "rnn":
             encoder = RNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
-                                 dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
+                                 output_dropout=self.output_dropout_placeholder, state_dropout=self.state_dropout_placeholder, num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == "bagofwords":
             encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
-                                        dropout=self.dropout_placeholder)
+                                        output_dropout=self.output_dropout_placeholder)
         elif self.config.encoder_type == "tree":
             encoder = TreeEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
-                                  dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers, max_time=self.config.max_length)
+                                  output_dropout=self.output_dropout_placeholder, state_dropout=self.state_dropout_placeholder, num_layers=self.config.rnn_layers,
+                                  max_time=self.config.max_length)
         else:
             raise ValueError("Invalid encoder type")
         return encoder.encode(inputs, self.input_length_placeholder, self.constituency_parse_placeholder)
