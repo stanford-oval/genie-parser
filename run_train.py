@@ -46,8 +46,8 @@ def run():
         
         saver = tf.train.Saver(max_to_keep=config.n_epochs)
         
-        train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', beam_size=config.beam_size, batch_size=config.batch_size)
-        dev_eval = Seq2SeqEvaluator(model, config.grammar, dev_data, 'dev', beam_size=config.beam_size, batch_size=config.batch_size)
+        train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
+        dev_eval = Seq2SeqEvaluator(model, config.grammar, dev_data, 'dev', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
         trainer = Trainer(model, train_data, train_eval, dev_eval, saver,
                           model_dir=model_dir,
                           max_length=config.max_length,

@@ -15,11 +15,12 @@ class Seq2SeqEvaluator(object):
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, model, grammar, data, tag, beam_size=10, batch_size=256):
+    def __init__(self, model, grammar, data, tag, reverse_dictionary=None, beam_size=10, batch_size=256):
         self.model = model
         self.grammar = grammar
         self.data = data
         self.tag = tag
+        self._reverse_dictionary = reverse_dictionary
         self._beam_size = beam_size
         self._batch_size = batch_size
         
@@ -47,7 +48,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return set([x for x in [self.grammar.tokens[x] for x in seq] if x.startswith('tt:') and not x.startswith('tt:param.')])
+            return set(x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:') and not x.startswith('tt:param.'))
 
         try:
             for input_batch, input_length_batch, parse_batch, label_batch in get_minibatches([inputs, input_lengths, parses, labels], self._batch_size):
@@ -64,7 +65,7 @@ class Seq2SeqEvaluator(object):
                         pass
                     #print "GOLD:", ' '.join(dict_reverse[l] for l in gold)
                     gold_functions = get_functions(gold)
-                    gold_channels = set([x[x.index('.') + 1:] for x in gold_functions])
+                    gold_channels = set(x[x.index('.') + 1:] for x in gold_functions)
 
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
@@ -78,16 +79,17 @@ class Seq2SeqEvaluator(object):
                         decoded_tuple = tuple(decoded)
 
                         if beam_pos == 0 and save_to_file:
+                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
                             gold_str = ' '.join(dict_reverse[l] for l in gold)
                             decoded_str = ' '.join(dict_reverse[l] for l in decoded)
-                            print(gold_str,  '\t',  decoded_str, '\t', (gold_str == decoded_str), file=fp)
+                            print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)
 
                         if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
                             ok_0[beam_pos] += 1
 
                         if beam_pos == 0:
                             decoded_functions = get_functions(decoded)
-                            decoded_channels = set([x[x.index('.')+1:] for x in decoded_functions])
+                            decoded_channels = set(x[x.index('.')+1:] for x in decoded_functions)
                             if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
                                 ok_fn += 1
                             if gold_channels == decoded_channels:

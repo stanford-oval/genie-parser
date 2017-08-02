@@ -33,7 +33,7 @@ def run():
             # Build the model and add the variable initializer Op
             model.build()
         
-            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', beam_size=config.beam_size, batch_size=config.batch_size)
+            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
             loader = tf.train.Saver()
 
             # Create a session for running Ops in the Graph

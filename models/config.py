@@ -145,7 +145,11 @@ class Config(object):
     @property
     def dictionary(self):
         return self._words
-    
+
+    @property
+    def reverse_dictionary(self):
+        return self._reverse
+
     @property
     def input_embedding_matrix(self):
         return self._embeddings_matrix
