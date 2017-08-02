@@ -9,10 +9,12 @@ import tornado.web
 import tornado.gen
 import tornado.concurrent
 import json
+import sys
+import traceback
 
-from util.loader import vectorize
+from util.loader import vectorize, vectorize_constituency_parse
 
-from thingtalk.grammar import UNITS
+from grammar.thingtalk import UNITS
 ALL_UNITS = set(itertools.chain(*UNITS.values()))
 
 def _read_value(decoded, off, values):
@@ -28,40 +30,40 @@ def _read_value(decoded, off, values):
     elif token == 'rel_home' or token == 'rel_work' or token == 'rel_current_location':
         value['type'] = 'Location'
         value['value'] = dict(relativeTag=token, latitude=-1., longitude=-1.)
-    elif token.starts_with('LOCATION_'):
+    elif token.startswith('LOCATION_'):
         value['type'] = 'Location'
         value['value'] = values[token]
-    elif token.starts_with('tt:param.'):
+    elif token.startswith('tt:param.'):
         value['type'] = 'VarRef'
         value['value'] = dict(id=token)
-    elif token.starts_with('QUOTED_STRING_'):
+    elif token.startswith('QUOTED_STRING_'):
         value['type'] = 'String'
         value['value'] = values[token]
-    elif token.starts_with('DATE_'):
+    elif token.startswith('DATE_'):
         value['type'] = 'Date'
         value['value'] = values[token]
-    elif token.starts_with('TIME_'):
+    elif token.startswith('TIME_'):
         value['type'] = 'Time'
         value['value'] = values[token]
-    elif token.starts_with('USERNAME_'):
+    elif token.startswith('USERNAME_'):
         value['type'] = 'Entity(tt:username)'
         value['value'] = values[token]
-    elif token.starts_with('HASHTAG_'):
+    elif token.startswith('HASHTAG_'):
         value['type'] = 'Entity(tt:hashtag)'
         value['value'] = values[token]
-    elif token.starts_with('PHONE_NUMBER_'):
+    elif token.startswith('PHONE_NUMBER_'):
         value['type'] = 'Entity(tt:phone_number)'
         value['value'] = values[token]
-    elif token.starts_with('EMAIL_ADDRESS_'):
+    elif token.startswith('EMAIL_ADDRESS_'):
         value['type'] = 'Entity(tt:email_address)'
         value['value'] = values[token]
-    elif token.starts_with('URL_'):
+    elif token.startswith('URL_'):
         value['type'] = 'Entity(tt:url)'
         value['value'] = values[token]
-    elif token.starts_with('DURATION_') or token.starts_with('SET_'):
+    elif token.startswith('DURATION_') or token.startswith('SET_'):
         value['type'] = 'Measure'
         value['value'] = values[token]
-    elif token.starts_with('NUMBER_'):
+    elif token.startswith('NUMBER_'):
         if len(decoded) > off + 1 and decoded[off+1] in ALL_UNITS:
             value['type'] = 'Measure'
             value['value']['unit'] = decoded[off+1]
@@ -69,7 +71,7 @@ def _read_value(decoded, off, values):
         else:
             value['type'] = 'Number'
         value['value'] = values[token]
-    elif token.starts_with('GENERIC_ENTITY_'):
+    elif token.startswith('GENERIC_ENTITY_'):
         entity_type = token[len('GENERIC_ENTITY_'):]
         value['type'] = 'Entity(' + entity_type + ')'
         value['value'] = values[token]
@@ -85,17 +87,17 @@ def _read_prim(decoded, off, values):
     prim = dict(name=dict(id=fn), args=[])
     args = prim['args']
     consumed = 1
-    if off + consumed < len(decoded) and decoded[off+consumed].starts_with('USERNAME_'):
+    if off + consumed < len(decoded) and decoded[off+consumed].startswith('USERNAME_'):
         prim['person'] = values[decoded[off+consumed]]['value']
         consumed += 1
-    while off + consumed < len(decoded) and decoded[off+consumed].starts_with('tt:param.'):
+    while off + consumed < len(decoded) and decoded[off+consumed].startswith('tt:param.'):
         pname = decoded[off+consumed]
         op = decoded[off+consumed+1]
-        value, consumed_arg = _read_value(decoded, off+consumed, values)
+        value, consumed_arg = _read_value(decoded, off+consumed+2, values)
         value['name'] = dict(id=pname)
         value['operator'] = op
         args.append(value)
-        consumed += consumed_arg
+        consumed += 2+consumed_arg
     return prim, consumed
 
 def _to_json(decoded, grammar, values):
@@ -147,35 +149,37 @@ class QueryHandler(tornado.web.RequestHandler):
     
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
-        tokens, values = tokenized
+        tokens, values, parse = tokenized
+        print("Input", tokens)
 
         results = []
+        config = language.config
+        grammar = config.grammar
         with language.session.as_default():
             with language.session.graph.as_default():
-                input, input_len = vectorize(tokens, language.input_words, language.config.max_length)
-                input_batch, input_length_batch = [input], [input_len]
-                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch)
+                input, input_len = vectorize(tokens, config.dictionary, config.max_length)
+                parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
+                input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
+                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
                 assert len(sequences) == 1
                 
-                if self.config.beam_size >= 0:
-                    for beam in sequences[0]:
-                        if len(results) >= limit:
-                            break
-                        results.append(language.config.grammar.decode_output(beam))
-                else:
-                    results.append(sequences[0])
-                
-                for i, decoded in enumerate(results):
+                for i, decoded in enumerate(sequences[0]):
+                    if i >= limit:
+                        break
+                    decoded = list(decoded)
                     try:
-                        decoded = decoded[:decoded.index(language.config.grammar.end)]
+                        decoded = decoded[:decoded.index(grammar.end)]
                     except ValueError:
                         pass
+                    decoded = [grammar.tokens[x] for x in decoded]
+                    print("Beam", i+1, decoded)
                     try:
-                        json_rep = dict(answer=json.dumps(_to_json(decoded, values)), prob=1./len(results), confidence=0)
+                        json_rep = dict(answer=json.dumps(_to_json(decoded, grammar, values)), prob=1./len(sequences[0]), confidence=1)
                     except Exception as e:
                         print("Failed to represent " + str(decoded) + " as json", e)
-                        json_rep = None
-                    results[i] = json_rep
+                        traceback.print_exc(file=sys.stdout)
+                        continue
+                    results.append(json_rep)
         return results
 
     @tornado.gen.coroutine
@@ -184,8 +188,8 @@ class QueryHandler(tornado.web.RequestHandler):
         locale = self.get_query_argument("locale", default="en-US")
         language = self.application.get_language(locale)
         limit = int(self.get_query_argument("limit", default=5))
+        print('GET /query', query)
 
         tokenized = yield language.tokenizer.tokenize(query)
-        #print("Tokenized as", tokenized)
         result = yield self._do_run_query(language, tokenized, limit)
         self.write(dict(candidates=result))
