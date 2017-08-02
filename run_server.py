@@ -58,6 +58,7 @@ def run():
     for language, model_directory in map(lambda x : x.split(':'), sys.argv[1:]):
         load_language(app, tokenizer_service, language, model_directory)
 
+    sys.stdout.flush()
     tornado.ioloop.IOLoop.current().start()
 
 if __name__ == '__main__':

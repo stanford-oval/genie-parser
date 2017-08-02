@@ -38,7 +38,7 @@ class TokenizerService(object):
                 response = None
             if not response:
                 return
-            response = json.loads(response)
+            response = json.loads(str(response, encoding='utf-8'))
             
             id = int(response['req'])
             self._requests[id].set_result((response['tokens'], response['values'], response['constituencyParse']))

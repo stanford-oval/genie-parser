@@ -37,7 +37,7 @@ class QueryHandler(tornado.web.RequestHandler):
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
         tokens, values, parse = tokenized
-        print("Input", tokens)
+        print("Input", tokens, values)
 
         results = []
         config = language.config
@@ -86,5 +86,5 @@ class QueryHandler(tornado.web.RequestHandler):
                                               language=language.tag,
                                               utterance=query,
                                               target_json=result[0]['answer'])
-        
+        sys.stdout.flush()
         self.write(dict(candidates=result, sessionId=gen_token()))
