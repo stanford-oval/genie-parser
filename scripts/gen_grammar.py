@@ -9,6 +9,8 @@ import os
 def main():
     conn = MySQLdb.connect(user='sempre', passwd=sys.argv[1],
                            db='thingengine',
+                           use_unicode=True,
+                           charset='utf8mb4',
                            host='thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com',
                            ssl=dict(ca=os.path.join(os.path.dirname(__file__), '../data/thingpedia-db-ca-bundle.pem')))
     cursor = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)

@@ -1,18 +1,10 @@
 '''
-Created on Jul 1, 2017
+Created on Aug 2, 2017
 
 @author: gcampagn
 '''
 
 import itertools
-import tornado.web
-import tornado.gen
-import tornado.concurrent
-import json
-import sys
-import traceback
-
-from util.loader import vectorize, vectorize_constituency_parse
 
 from grammar.thingtalk import UNITS
 ALL_UNITS = set(itertools.chain(*UNITS.values()))
@@ -100,7 +92,7 @@ def _read_prim(decoded, off, values):
         consumed += 2+consumed_arg
     return prim, consumed
 
-def _to_json(decoded, grammar, values):
+def to_json(decoded, grammar, values):
     type = decoded[0]
     if type == 'special':
         return dict(special=dict(id=decoded[1]))
@@ -137,59 +129,3 @@ def _to_json(decoded, grammar, values):
         else:
             rule['action'] = prim2
         return dict(rule=rule)
-
-class QueryHandler(tornado.web.RequestHandler):
-    '''
-    Handle /query
-    '''
-    def __init__(self, app, request):
-        super().__init__(app, request)
-        
-        self.executor = app.thread_pool
-    
-    @tornado.concurrent.run_on_executor
-    def _do_run_query(self, language, tokenized, limit):
-        tokens, values, parse = tokenized
-        print("Input", tokens)
-
-        results = []
-        config = language.config
-        grammar = config.grammar
-        with language.session.as_default():
-            with language.session.graph.as_default():
-                input, input_len = vectorize(tokens, config.dictionary, config.max_length)
-                parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
-                input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
-                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
-                assert len(sequences) == 1
-                
-                for i, decoded in enumerate(sequences[0]):
-                    if i >= limit:
-                        break
-                    decoded = list(decoded)
-                    try:
-                        decoded = decoded[:decoded.index(grammar.end)]
-                    except ValueError:
-                        pass
-                    decoded = [grammar.tokens[x] for x in decoded]
-                    print("Beam", i+1, decoded)
-                    try:
-                        json_rep = dict(answer=json.dumps(_to_json(decoded, grammar, values)), prob=1./len(sequences[0]), confidence=1)
-                    except Exception as e:
-                        print("Failed to represent " + str(decoded) + " as json", e)
-                        traceback.print_exc(file=sys.stdout)
-                        continue
-                    results.append(json_rep)
-        return results
-
-    @tornado.gen.coroutine
-    def get(self):
-        query = self.get_query_argument("q")
-        locale = self.get_query_argument("locale", default="en-US")
-        language = self.application.get_language(locale)
-        limit = int(self.get_query_argument("limit", default=5))
-        print('GET /query', query)
-
-        tokenized = yield language.tokenizer.tokenize(query)
-        result = yield self._do_run_query(language, tokenized, limit)
-        self.write(dict(candidates=result))

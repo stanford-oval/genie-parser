@@ -10,12 +10,14 @@ import sys
 import numpy as np
 import tensorflow as tf
 import tornado.ioloop
+import configparser
 from concurrent.futures import ThreadPoolExecutor
 
 from models import Config, create_model
 
 from server.application import Application, LanguageContext
 from server.tokenizer import Tokenizer, TokenizerService
+from server.config import ServerConfig
 
 def load_language(app, tokenizer_service, tag, model_dir):
     config = Config.load(['./default.conf', './default.' + tag + '.conf', os.path.join(model_dir, 'model.conf')])
@@ -42,13 +44,14 @@ def run():
         sys.exit(1)
     
     np.random.seed(42)
+    config = ServerConfig.load(('./server.conf',))
     
     if sys.version_info[2] >= 6:
-       thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
+        thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
     else:
-       thread_pool = ThreadPoolExecutor()
-    app = Application(thread_pool)
-    app.listen(8400)
+        thread_pool = ThreadPoolExecutor()
+    app = Application(config, thread_pool)
+    app.listen(config.port)
     tokenizer_service = TokenizerService()
     tokenizer_service.run()
     

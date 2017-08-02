@@ -6,8 +6,10 @@ Created on Jul 1, 2017
 
 import re
 import tornado.web
+import sqlalchemy
 
-from .request_handlers import QueryHandler
+from .query_handler import QueryHandler
+from .learn_handler import LearnHandler
 
 class LanguageContext(object):
     def __init__(self, tag, tokenizer, session, config, model):
@@ -18,9 +20,11 @@ class LanguageContext(object):
         self.model = model
 
 class Application(tornado.web.Application):
-    def __init__(self, thread_pool):
-        super().__init__([(r"/query", QueryHandler)])
+    def __init__(self, config, thread_pool):
+        super().__init__([(r"/query", QueryHandler), (r"/learn", LearnHandler)])
     
+        self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+        self.config = config
         self._languages = dict()
         self.thread_pool = thread_pool
         
