@@ -128,7 +128,17 @@ class BaseAligner(BaseModel):
         #optimizer = tf.train.AdamOptimizer(self.config.lr)
         #optimizer = tf.train.AdagradOptimizer(self.config.lr)
         optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate, decay=0.95)
-        train_op = optimizer.minimize(loss)
+        
+        gradient_var_pairs = optimizer.compute_gradients(loss)
+        vars = [x[1] for x in gradient_var_pairs]
+        gradients = [x[0] for x in gradient_var_pairs]
+        if True:
+            clipped, _ = tf.clip_by_global_norm(gradients, 0.5)
+        else:
+            clipped = gradients
+
+        self.grad_norm = tf.global_norm(clipped)
+        train_op = optimizer.apply_gradients(zip(clipped, vars))
         return train_op
 
     def __init__(self, config : Config):

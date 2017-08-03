@@ -51,8 +51,8 @@ class BaseModel(object):
             loss: loss over the batch (a scalar)
         """
         feed = self.create_feed_dict(*data, **kw)
-        _, loss = sess.run([self.train_op, self.loss], feed_dict=feed)
-        return loss
+        _, loss, grad_norm = sess.run([self.train_op, self.loss, self.grad_norm], feed_dict=feed)
+        return loss, grad_norm
 
     def predict_on_batch(self, sess, *data):
         """Make predictions for the provided batch of data

@@ -45,13 +45,15 @@ class Trainer(object):
         self._extra_kw = kw
 
     def run_epoch(self, sess, inputs, input_lengths, parses,
-                  labels, label_lengths):
+                  labels, label_lengths, losses, grad_norms):
         n_minibatches, total_loss = 0, 0
         total_n_minibatches = (len(inputs)+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches([inputs, input_lengths, parses, labels, label_lengths], self._batch_size):
-            loss = self.model.train_on_batch(sess, *data_batch, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, **self._extra_kw)
             total_loss += loss
+            losses.append(float(loss))
+            grad_norms.append(float(grad_norm))
             n_minibatches += 1
             progbar.update(n_minibatches)
         return total_loss / n_minibatches
@@ -59,36 +61,40 @@ class Trainer(object):
     def fit(self, sess):
         best = None
         best_train = None
-        stats = []
-        for epoch in range(self._n_epochs):
-            start_time = time.time()
-            shuffled = np.array(self.train_data, copy=True)
-            np.random.shuffle(shuffled)
-            inputs = shuffled[:,:self._max_length]
-            input_lengths = shuffled[:,self._max_length]
-            parses = shuffled[:,self._max_length + 1:self._max_length + 1 + 2*self._max_length-1]
-            labels = shuffled[:,3*self._max_length:-1]
-            label_lengths = shuffled[:,-1]
+        accuracy_stats = []
+        losses = []
+        grad_norms = []
+        try:
+            for epoch in range(self._n_epochs):
+                start_time = time.time()
+                shuffled = np.array(self.train_data, copy=True)
+                np.random.shuffle(shuffled)
+                inputs = shuffled[:,:self._max_length]
+                input_lengths = shuffled[:,self._max_length]
+                parses = shuffled[:,self._max_length + 1:self._max_length + 1 + 2*self._max_length-1]
+                labels = shuffled[:,3*self._max_length:-1]
+                label_lengths = shuffled[:,-1]
 
-            average_loss = self.run_epoch(sess, inputs, input_lengths, parses,
-                                          labels, label_lengths)
-            duration = time.time() - start_time
-            print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
-            #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
+                average_loss = self.run_epoch(sess, inputs, input_lengths, parses,
+                                              labels, label_lengths, losses, grad_norms)
+                duration = time.time() - start_time
+                print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
+                #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
 
-            train_acc = self.train_eval.eval(sess, save_to_file=False)
-            if self.dev_eval is not None:
-                dev_acc = self.dev_eval.eval(sess, save_to_file=False)
-                if best is None or dev_acc > best:
-                    print('Found new best model')
-                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                    best = dev_acc
-                    best_train = train_acc
-                stats.append((average_loss, train_acc, dev_acc))
-            else:
-                stats.append((average_loss, train_acc))
-            print()
-            sys.stdout.flush()
-        with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-            json.dump(stats, fp)
+                train_acc = self.train_eval.eval(sess, save_to_file=False)
+                if self.dev_eval is not None:
+                    dev_acc = self.dev_eval.eval(sess, save_to_file=False)
+                    if best is None or dev_acc > best:
+                        print('Found new best model')
+                        self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                        best = dev_acc
+                        best_train = train_acc
+                    accuracy_stats.append((train_acc, dev_acc))
+                else:
+                    accuracy_stats.append((train_acc,))
+                print()
+                sys.stdout.flush()
+        finally:
+            with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
+                json.dump(dict(accuracy=accuracy_stats, loss=losses, grad=grad_norms), fp)
         return best, best_train
