@@ -24,9 +24,9 @@ def run():
     model_conf = os.path.join(model_dir, 'model.conf')
     config = Config.load(['./default.conf', model_conf])
     model = create_model(config)
-    train_data = load_data(sys.argv[2], config.dictionary, config.grammar.dictionary, config.max_length)
+    train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
     if len(sys.argv) > 3:
-        dev_data = load_data(sys.argv[3], config.dictionary, config.grammar.dictionary, config.max_length)
+        dev_data = load_data(sys.argv[3], config.dictionary, config.grammar, config.max_length)
     else:
         dev_data = None
     print("unknown", unknown_tokens)

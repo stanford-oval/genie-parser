@@ -23,7 +23,7 @@ def run():
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     model = create_model(config)
-    test_data = load_data(sys.argv[2], config.dictionary, config.grammar.dictionary, config.max_length)
+    test_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
     print("unknown", unknown_tokens)
 
     # Tell TensorFlow that the model will be built into the default Graph.

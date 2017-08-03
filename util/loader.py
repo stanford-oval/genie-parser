@@ -151,7 +151,7 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix, embed_size
 
-def load_data(from_file, input_words, output_words, max_length):
+def load_data(from_file, input_words, grammar, max_length):
     inputs = []
     input_lengths = []
     parses = []
@@ -163,7 +163,7 @@ def load_data(from_file, input_words, output_words, max_length):
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
             inputs.append(input)
             input_lengths.append(in_len)
-            label, label_len = vectorize(canonical, output_words, max_length, add_eos=True)
+            label, label_len = grammar.vectorize_program(canonical, max_length)
             labels.append(label)
             label_lengths.append(label_len)
             parses.append(vectorize_constituency_parse(parse, max_length, in_len))

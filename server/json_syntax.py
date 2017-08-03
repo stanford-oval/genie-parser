@@ -97,7 +97,7 @@ def to_json(decoded, grammar, values):
     if type == 'special':
         return dict(special=dict(id=decoded[1]))
     elif type == 'answer':
-        value, consumed = _read_value(decoded, 1, values)
+        value, _ = _read_value(decoded, 1, values)
         return dict(answer=value)
     elif type == 'command':
         if decoded[1] != 'type':
@@ -106,26 +106,20 @@ def to_json(decoded, grammar, values):
             return dict(command=dict(type='help', value=dict(value='generic')))
         else:
             return dict(command=dict(type='help', value=dict(value=values[decoded[2]])))
-    elif type in ('trigger', 'query', 'action'):
-        # trigger, query, action
-        rule = dict()
-        prim, consumed = _read_prim(decoded, 1, values)
-        rule[type] = prim
-        return rule
     else:
         # rule
         rule = dict()
         off = 1
         trigger, consumed = _read_prim(decoded, off, values)
-        rule['trigger'] = trigger
+        if trigger['name']['id'] != 'tt:$builtin.now':
+            rule['trigger'] = trigger
         off += consumed
-        prim2, consumed = _read_prim(decoded, off, values)
+        query, consumed = _read_prim(decoded, off, values)
         off += consumed
-        if prim2['name']['id'] in grammar.functions['query']:
-            rule['query'] = prim2
-            if off < len(decoded):
-                action, consumed = _read_prim(decoded, off, values)
+        if query['name']['id'] != 'tt:$builtin.noop':
+            rule['query'] = query
+        action, consumed = _read_prim(decoded, off, values)
+        off += consumed
+        if query['name']['id'] != 'tt:$builtin.notify':
             rule['action'] = action
-        else:
-            rule['action'] = prim2
         return dict(rule=rule)

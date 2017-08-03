@@ -7,6 +7,8 @@ Created on Jul 20, 2017
 import tensorflow as tf
 import numpy as np
 
+from util.loader import vectorize
+
 class AbstractGrammar(object):
     '''
     Base class for a Grammar that defines the output of a Sequence to Sequence
@@ -36,6 +38,9 @@ class AbstractGrammar(object):
     def end(self):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
+    
+    def vectorize_program(self, program, max_length):
+        return vectorize(program, self.dictionary, max_length, add_eos=True)
     
     def get_embeddings(self, use_types=False):
         return np.identity(self.output_size, tf.float32)
