@@ -18,8 +18,7 @@ ENTITIES = ['USERNAME', 'HASHTAG',
 BEGIN_TOKENS = ['special', 'answer', 'command', 'rule']
 SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.nevermind',
                   'tt:root.special.makerule', 'tt:root.special.failed']
-#IF = 'if'
-#THEN = 'then'
+
 OPERATORS = ['is', 'contains', '>', '<', 'has']
 VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location', '1', '0']
 TYPES = {
@@ -56,7 +55,7 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
-COMMAND_TOKENS = ['list', 'help', 'generic', 'device', 'command', 'make', 'rule', 'configure', 'discover']
+COMMAND_TOKENS = ['help', 'generic']
 
 MAX_ARG_VALUES = 8
 
@@ -73,29 +72,32 @@ class ThingtalkGrammar(AbstractGrammar):
         devices = []
         trigger_or_query_params = set()
 
-        tokens = OrderedSet()
-        tokens.update(BEGIN_TOKENS)
-        #tokens.add(IF)
-        #tokens.add(THEN)
-        tokens.update(OPERATORS)
-        tokens.update(VALUES)
-        tokens.update(COMMAND_TOKENS)
-        tokens.update(SPECIAL_TOKENS)
-        
-        for unitlist in UNITS.values():
-            tokens.update(unitlist)
-        tokens.add('tt:param.$event')
-        trigger_or_query_params.add('tt:param.$event')
-        
-        enum_types = dict()
+        enum_types = OrderedDict()
+
+        # Token order:
+        # first the padding, go and end of sentence
+        # then the begin tokens
+        # then triggers - queries - actions
+        # in this order
+        # then parameters names
+        # then operators
+        # then values
+        # then entity tokens
+        #
+        # This order is important as it affects the 3-part aligner
+        # algorithm
+
+        tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
+        self.num_control_tokens = 3
+        tokens += BEGIN_TOKENS
+        self.num_begin_tokens = len(BEGIN_TOKENS)
         
         # add the special functions
-        tokens.add('tt:$builtin.now')
         functions['trigger']['tt:$builtin.now'] = []
-        tokens.add('tt:$builtin.noop')
         functions['query']['tt:$builtin.noop'] = []
-        tokens.add('tt:$builtin.notify')
         functions['action']['tt:$builtin.notify'] = []
+        
+        param_tokens = OrderedSet()
         
         with open(filename, 'r') as fp:
             for line in fp.readlines():
@@ -104,7 +106,6 @@ class ThingtalkGrammar(AbstractGrammar):
                 function = line[1]
                 if function_type == 'device':
                     devices.append(function)
-                    tokens.add(function)
                     continue
                 if function_type == 'entity':
                     self.entities.add(function)
@@ -113,14 +114,13 @@ class ThingtalkGrammar(AbstractGrammar):
                 parameters = line[2:]
                 paramlist = []
                 functions[function_type][function] = paramlist
-                tokens.add(function)
                 
                 for i in range(len(parameters)//2):
                     param = parameters[2*i]
                     type = parameters[2*i+1]
                     
                     paramlist.append((param, type))
-                    tokens.add('tt:param.' + param)
+                    param_tokens.add('tt:param.' + param)
                     if function_type != 'action':
                         trigger_or_query_params.add('tt:param.' + param)
                     
@@ -130,26 +130,47 @@ class ThingtalkGrammar(AbstractGrammar):
                         elementtype = type
                     if elementtype.startswith('Enum('):
                         enums = elementtype[len('Enum('):-1].split(',')
-                        for enum in enums:
-                            tokens.add(enum)
                         if not elementtype in enum_types:
                             enum_types[elementtype] = enums
         
+        for function_type in ('trigger', 'query', 'action'):
+            for function in functions[function_type]:
+                tokens.append(function)
+        self.num_functions = len(tokens) - 3 - self.num_begin_tokens
+        
+        tokens += param_tokens
+        self.num_params = len(param_tokens)
+
+        tokens += OPERATORS
+        tokens += VALUES
+        tokens += COMMAND_TOKENS
+        tokens += SPECIAL_TOKENS     
+        tokens += devices
+        
+        enumtokenset = set()
+        for enum_type in enum_types.values():
+            for enum in enum_type:
+                if enum in enumtokenset:
+                    continue
+                enumtokenset.add(enum)
+                tokens.append(enum)
+        
+        for unitlist in UNITS.values():
+            tokens += unitlist
+        tokens.append('tt:param.$event')
+        trigger_or_query_params.add('tt:param.$event')
+        
         for i in range(MAX_ARG_VALUES):
             for entity in ENTITIES:
-                tokens.add(entity + "_" + str(i))
+                tokens.append(entity + "_" + str(i))
         for generic_entity in self.entities:
             for i in range(MAX_ARG_VALUES):
-                tokens.add('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
+                tokens.append('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
         
-        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>'] + list(tokens)
+        self.tokens = tokens
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
-        # for compat with the dataset
-        self.dictionary['trigger'] = self.dictionary['rule']
-        self.dictionary['query'] = self.dictionary['rule']
-        self.dictionary['action'] = self.dictionary['rule']
         
         # build a DFA that will parse the thingtalk-ish code
 
@@ -473,12 +494,16 @@ class ThingtalkGrammar(AbstractGrammar):
         #print(*(self.tokens[x] for x in program))
 
     def parse_all(self, fp):
+        vectors = []
         for line in fp.readlines():
             try:
                 program = line.strip().split()
-                self.parse(self.vectorize_program(program)[0])
+                vector = self.vectorize_program(program)[0]
+                self.parse(vector)
+                vectors.append(vector)
             except ValueError as e:
                 print(e)
+        return np.array(vectors, dtype=np.int32)
 
     def get_init_state(self, batch_size):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
@@ -560,6 +585,8 @@ if __name__ == '__main__':
     grammar = ThingtalkGrammar(sys.argv[1])
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    grammar.parse_all(sys.stdin)
+    matrix = grammar.parse_all(sys.stdin)
+    print('Parsed', matrix.shape)
+    np.save('programs.npy', matrix)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name
