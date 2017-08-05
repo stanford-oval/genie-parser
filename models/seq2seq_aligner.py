@@ -23,7 +23,13 @@ class Seq2SeqAligner(BaseAligner):
         else:
             decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                      self.output_placeholder, self.output_length_placeholder)
-        return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
+        rnn_output, sample_id = decoder.decode(cell_dec, enc_hidden_states, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
+        
+        if training:
+            return rnn_output
+        else:
+            # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
+            return tf.expand_dims(sample_id, axis=1)
     
     def add_loss_op(self, preds):
         with tf.control_dependencies([tf.assert_positive(tf.shape(preds)[1], data=[tf.shape(preds)])]):

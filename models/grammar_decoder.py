@@ -9,10 +9,11 @@ import tensorflow as tf
 from tensorflow.contrib.seq2seq import BasicDecoder, BasicDecoderOutput
 
 class GrammarBasicDecoder(BasicDecoder):
-    def __init__(self, grammar, *args, training_output=None, **kw):
+    def __init__(self, grammar, *args, training_output=None, grammar_init_state_callback=None, **kw):
         super().__init__(*args, **kw)
         self._grammar = grammar
         self._fixed_outputs = training_output
+        self._grammar_init_state_callback = grammar_init_state_callback
         if training_output is not None:
             self._fixed_outputs = tf.TensorArray(dtype=tf.int32, size=training_output.get_shape()[1])
             self._fixed_outputs = self._fixed_outputs.unstack(tf.transpose(training_output, [1, 0]))
@@ -20,7 +21,11 @@ class GrammarBasicDecoder(BasicDecoder):
     def initialize(self, name=None):
         # wrap the state to add the grammar state
         finished, first_inputs, initial_state = BasicDecoder.initialize(self, name=name)
-        return finished, first_inputs, (initial_state, self._grammar.get_init_state(self.batch_size))
+        if self._grammar_init_state_callback:
+            grammar_init_state = self._grammar_init_state_callback()
+        else:
+            grammar_init_state = self._grammar.get_init_state(self.batch_size)
+        return finished, first_inputs, (initial_state, grammar_init_state)
         
     def step(self, time, inputs, state, name=None):
         with tf.name_scope(name, "GrammarDecodingStep", (time, inputs, state)):

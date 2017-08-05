@@ -41,11 +41,20 @@ class BaseAligner(BaseModel):
     
     def add_placeholders(self):
         # batch size x number of words in the sentence
+        self.add_input_placeholders()
+        self.add_output_placeholders()
+        self.add_extra_placeholders()
+        
+    def add_input_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
         self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1))
+        
+    def add_output_placeholders(self):
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
+        
+    def add_extra_placeholders(self):
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
 
     def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1):

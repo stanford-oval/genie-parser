@@ -15,7 +15,8 @@ ENTITIES = ['USERNAME', 'HASHTAG',
             'DATE', 'TIME', 'DURATION',
             'LOCATION']
 
-BEGIN_TOKENS = ['special', 'answer', 'command', 'rule']
+BEGIN_TOKENS = ['bookkeeping', 'rule']
+BOOKKEEPING_TOKENS = ['special', 'answer', 'command', 'help', 'generic']
 SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.nevermind',
                   'tt:root.special.makerule', 'tt:root.special.failed']
 
@@ -55,9 +56,17 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
-COMMAND_TOKENS = ['help', 'generic']
-
 MAX_ARG_VALUES = 8
+
+# first token is "special", "command" or "answer"
+# "specials": yes, no, makerule...
+# single token answers: "home" "work" "true" "false" etc.
+# "help" + "generic"
+# "help" + device
+# two token answers: NUMBER_i + unit
+# three tokens + EOS = 4
+MAX_SPECIAL_LENGTH = 4
+MAX_PRIMITIVE_LENGTH = 30
 
 class ThingtalkGrammar(AbstractGrammar):
     def __init__(self, filename):
@@ -136,15 +145,15 @@ class ThingtalkGrammar(AbstractGrammar):
         for function_type in ('trigger', 'query', 'action'):
             for function in functions[function_type]:
                 tokens.append(function)
-        self.num_functions = len(tokens) - 3 - self.num_begin_tokens
+        self.num_functions = len(tokens) - self.num_control_tokens - self.num_begin_tokens
         
         tokens += param_tokens
         self.num_params = len(param_tokens)
 
         tokens += OPERATORS
         tokens += VALUES
-        tokens += COMMAND_TOKENS
-        tokens += SPECIAL_TOKENS     
+        tokens += SPECIAL_TOKENS
+        tokens += BOOKKEEPING_TOKENS     
         tokens += devices
         
         enumtokenset = set()
@@ -166,6 +175,13 @@ class ThingtalkGrammar(AbstractGrammar):
         for generic_entity in self.entities:
             for i in range(MAX_ARG_VALUES):
                 tokens.append('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
+        
+        print('num functions', self.num_functions)
+        print('num triggers', len(self.functions['trigger']))
+        print('num queries', len(self.functions['query']))
+        print('num actions', len(self.functions['action']))
+        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
+        print('num value tokens', len(tokens) - first_value_token)
         
         self.tokens = tokens
         self.dictionary = dict()
@@ -201,15 +217,20 @@ class ThingtalkGrammar(AbstractGrammar):
         transitions.append((self.before_end_state, self.end_state, '<<EOS>>'))
         transitions.append((self.end_state, self.end_state, '<<PAD>>'))
         
+        # bookkeeping
+        bookkeeping_id = new_state('bookkeeping')
+        transitions.append((self.start_state, bookkeeping_id, 'bookkeeping'))
+        self.bookeeping_state_id = bookkeeping_id
+        
         # special
         special_id = new_state('special')
-        transitions.append((self.start_state, special_id, 'special'))
+        transitions.append((bookkeeping_id, special_id, 'special'))
         for t in SPECIAL_TOKENS:
             transitions.append((special_id, self.before_end_state, t))
             
         # command
         command_id = new_state('command')
-        transitions.append((self.start_state, command_id, 'command'))
+        transitions.append((bookkeeping_id, command_id, 'command'))
         # help/configure/discover command
         help_id = new_state('device_or_generic')
         transitions.append((command_id, help_id, 'help'))
@@ -219,7 +240,7 @@ class ThingtalkGrammar(AbstractGrammar):
         
         # answers
         answer_id = new_state('answer')
-        transitions.append((self.start_state, answer_id, 'answer'))
+        transitions.append((bookkeeping_id, answer_id, 'answer'))
         for v in VALUES:
             if v != '0' and v != '1':
                 transitions.append((answer_id, self.before_end_state, v))
@@ -316,6 +337,7 @@ class ThingtalkGrammar(AbstractGrammar):
         transitions.append((self.start_state, rule_id, 'rule'))
         trigger_ids = []
         query_ids = []
+        
         for trigger_name, params in triggers.items():
             state_id = do_invocation(trigger_name, params, for_action=False)
             transitions.append((rule_id, state_id, trigger_name))
@@ -330,6 +352,17 @@ class ThingtalkGrammar(AbstractGrammar):
             for query_id in query_ids:
                 transitions.append((query_id, state_id, action_name))
             transitions.append((state_id, self.end_state, '<<EOS>>'))
+            
+        # do a second copy of the transition matrix for split sequences
+        self.function_states = np.zeros((self.num_functions,), dtype=np.int32)
+        self.function_states.fill(-1)
+        for part in ('trigger', 'query', 'action'):
+            for function_name, params in self.functions[part].items():
+                token = self.dictionary[trigger_name] - self.num_control_tokens - self.num_begin_tokens
+                state_id = do_invocation(function_name, params, for_action=(part == 'action'))
+                transitions.append((state_id, self.end_state, '<<EOS>>'))
+                self.function_states[token] = state_id
+                
 
         # now build the actual DFA
         num_states = len(states)
@@ -366,7 +399,6 @@ class ThingtalkGrammar(AbstractGrammar):
 
         self.state_names = state_names
 
-
     def get_embeddings(self, use_types=False):
         if not use_types:
             return np.identity(self.output_size, np.float32)
@@ -402,11 +434,62 @@ class ThingtalkGrammar(AbstractGrammar):
         for token in self.tokens:
             print(token)
 
+    def split_batch_in_parts(self, labels_batch):
+        batch_size = len(labels_batch)
+        top_batch = np.empty((batch_size,), dtype=np.int32)
+        special_label_batch = np.zeros((batch_size, MAX_SPECIAL_LENGTH), dtype=np.int32)
+        part_function_batches = dict()
+        part_sequence_batches = dict()
+        part_sequence_length_batches = dict()
+        for part in ('trigger', 'query', 'action'):
+            part_function_batches[part] = np.zeros((batch_size,), dtype=np.int32)
+            part_sequence_batches[part] = np.zeros((batch_size, MAX_PRIMITIVE_LENGTH), dtype=np.int32)
+            part_sequence_length_batches[part] = np.zeros((batch_size,), dtype=np.int32)
+            
+        rule_token = self.dictionary['rule']
+        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
+        for i, label in enumerate(labels_batch):
+            top_batch[i] = label[0]
+            if top_batch[i] != rule_token:
+                special_label_batch[i] = label[1:1+MAX_SPECIAL_LENGTH]
+                for part in ('trigger', 'query', 'action'):
+                    if part == 'trigger':
+                        function_offset = self.num_begin_tokens + self.num_control_tokens
+                    elif part == 'query':
+                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
+                    else:
+                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
+                    part_function_batches[part][i] = function_offset
+                continue
+            
+            j = 1
+            for part in ('trigger', 'query', 'action'):
+                if part == 'trigger':
+                    function_offset = self.num_begin_tokens + self.num_control_tokens
+                elif part == 'query':
+                    function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
+                else:
+                    function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
+                function_max = len(self.functions[part])
+                assert function_offset <= label[j] < function_offset+function_max, (function_offset, function_max, label[j], self.tokens[label[j]])
+                
+                part_function_batches[part][i] = label[j]
+                j += 1
+                start = j
+                while label[j] >= first_value_token:
+                    j+= 1
+                end = j
+                assert end-start+1 < MAX_PRIMITIVE_LENGTH
+                part_sequence_batches[part][i,0:end-start] = label[start:end]
+                part_sequence_batches[part][i,end-start] = self.end
+                part_sequence_length_batches[part][i] = end-start+1
+        return top_batch, special_label_batch, part_function_batches, part_sequence_batches, part_sequence_length_batches
+
     def vectorize_program(self, program, max_length=60):
         if isinstance(program, str):
             program = program.split(' ')
         if program[0] not in ('rule', 'trigger', 'query', 'action'):
-            return super().vectorize_program(program, max_length)
+            return super().vectorize_program(['bookkeeping'] + program, max_length)
 
         vector = np.zeros((max_length,), dtype=np.int32)
         has_trigger = False
@@ -505,6 +588,9 @@ class ThingtalkGrammar(AbstractGrammar):
                 print(e)
         return np.array(vectors, dtype=np.int32)
 
+    def get_function_init_state(self, function_tokens):
+        return tf.gather(self.function_states, function_tokens - (self.num_begin_tokens + self.num_control_tokens))
+
     def get_init_state(self, batch_size):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
 
@@ -577,7 +663,7 @@ class ThingtalkGrammar(AbstractGrammar):
     
     def compare(self, gold, decoded):
         decoded = list(decoded)
-        self._normalize_sequence(decoded)
+        #self._normalize_sequence(decoded)
         return gold == decoded
         
 

@@ -70,7 +70,7 @@ class Seq2SeqEvaluator(object):
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        decoded = list(beam)
+                        decoded = list(filter(lambda x: x != 0, beam))
                         try:
                             decoded = decoded[:decoded.index(self.grammar.end)]
                         except ValueError:

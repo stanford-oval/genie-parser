@@ -14,19 +14,20 @@ from .grammar_decoder import GrammarBasicDecoder
 
 
 class Seq2SeqDecoder(object):
-    def __init__(self, config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder):
+    def __init__(self, config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder, max_length=None):
         self.config = config
         self.input_placeholder = input_placeholder
         self.input_length_placeholder = input_length_placeholder
         self.output_placeholder = output_placeholder
         self.output_length_placeholder = output_length_placeholder
+        self.max_length = max_length or self.config.max_length
         
     @property
     def batch_size(self):
         return tf.shape(self.input_placeholder)[0]
     
-    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training):
-        linear_layer = tf_core_layers.Dense(self.config.output_size)
+    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state=None):
+        linear_layer = tf_core_layers.Dense(output_size)
 
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         if training:
@@ -37,21 +38,17 @@ class Seq2SeqDecoder(object):
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
         if self.config.use_grammar_constraints:
-            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer, training_output = self.output_placeholder if training else None)
+            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer, training_output = self.output_placeholder if training else None,
+                                          grammar_init_state_callback=grammar_init_state)
         else:
             decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
 
-        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
         
-        if training:
-            return final_outputs.rnn_output
-        else:
-            # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
-            return tf.expand_dims(final_outputs.sample_id, axis=1)
-
+        return final_outputs.rnn_output, final_outputs.sample_id
 
 class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
-    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training):
+    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training):
         attention = LuongAttention(self.config.hidden_size, enc_hidden_states, self.input_length_placeholder,
                                        probability_fn=tf.nn.softmax)
         cell_dec = AttentionWrapper(cell_dec, attention,
@@ -59,4 +56,4 @@ class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
                                     attention_layer_size=self.config.hidden_size,
                                     initial_cell_state=enc_final_state)
         enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
-        return super().decode(cell_dec, enc_hidden_states, enc_final_state, output_embed_matrix, training)
+        return super().decode(cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training)
