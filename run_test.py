@@ -26,17 +26,14 @@ def run():
     test_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
     print("unknown", unknown_tokens)
 
-    # Tell TensorFlow that the model will be built into the default Graph.
-    # (not required but good practice)
     with tf.Graph().as_default():
+        tf.set_random_seed(1234)
         with tf.device('/cpu:0'):
-            # Build the model and add the variable initializer Op
             model.build()
         
             test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
             loader = tf.train.Saver()
 
-            # Create a session for running Ops in the Graph
             with tf.Session() as sess:
                 loader.restore(sess, os.path.join(model_dir, 'best'))
                 test_eval.eval(sess, save_to_file=True)

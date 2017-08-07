@@ -53,7 +53,7 @@ class Seq2SeqEvaluator(object):
         n_minibatches = 0
         try:
             for input_batch, input_length_batch, parse_batch, label_batch, label_length_batch in get_minibatches([inputs, input_lengths, parses, labels, label_length], self._batch_size):
-                sequences, eval_loss = self.model.eval_on_batch(session, input_batch, input_length_batch, parse_batch, label_batch, label_length_batch)
+                sequences, eval_loss = self.model.eval_on_batch(session, input_batch, input_length_batch, parse_batch, label_batch, label_length_batch, batch_number=n_minibatches)
                 sum_eval_loss += eval_loss
                 n_minibatches += 1
                 #print sequences.shape

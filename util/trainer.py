@@ -50,7 +50,7 @@ class Trainer(object):
         total_n_minibatches = (len(inputs)+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches([inputs, input_lengths, parses, labels, label_lengths], self._batch_size):
-            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))
             grad_norms.append(float(grad_norm))

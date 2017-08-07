@@ -8,14 +8,16 @@ import tensorflow as tf
 from tensorflow.python.layers import core as tf_core_layers
 
 from tensorflow.contrib.seq2seq import BasicDecoder, \
-    TrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper
+    TrainingHelper, ScheduledEmbeddingTrainingHelper, GreedyEmbeddingHelper, LuongAttention, AttentionWrapper
 
 from .grammar_decoder import GrammarBasicDecoder
+from .config import Config
 
 
 class Seq2SeqDecoder(object):
-    def __init__(self, config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder, max_length=None):
+    def __init__(self, config : Config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder, batch_number_placeholder, max_length=None):
         self.config = config
+        self.batch_number_placeholder = batch_number_placeholder
         self.input_placeholder = input_placeholder
         self.input_length_placeholder = input_length_placeholder
         self.output_placeholder = output_placeholder
@@ -33,7 +35,11 @@ class Seq2SeqDecoder(object):
         if training:
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
-            helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+            if self.config.scheduled_sampling > 0:
+                helper = ScheduledEmbeddingTrainingHelper(outputs, self.output_length_placeholder+1, output_embed_matrix,
+                                                          sampling_probability=self.config.scheduled_sampling * tf.cast(self.batch_number_placeholder, tf.float32))
+            else:
+                helper = TrainingHelper(outputs, self.output_length_placeholder+1)
         else:
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         

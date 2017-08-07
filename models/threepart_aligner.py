@@ -68,8 +68,8 @@ class ThreePartAligner(BaseAligner):
             self.part_sequence_placeholders[part] = tf.placeholder(tf.int32, shape=(None, MAX_PRIMITIVE_LENGTH))
             self.part_sequence_length_placeholders[part] = tf.placeholder(tf.int32, shape=(None,))
     
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1):
-        feed_dict = BaseAligner.create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=dropout)
+    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, **kw):
+        feed_dict = BaseAligner.create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, **kw)
         if labels_batch is None or label_length_batch is None:
             return feed_dict
 
@@ -138,10 +138,12 @@ class ThreePartAligner(BaseAligner):
                 
                 if self.config.apply_attention:
                     decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                                      adjusted_output, self.part_sequence_length_placeholders[part], max_length=MAX_PRIMITIVE_LENGTH)
+                                                      adjusted_output, self.part_sequence_length_placeholders[part], self.batch_number_placeholder,
+                                                      max_length=MAX_PRIMITIVE_LENGTH)
                 else:
                     decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                             adjusted_output, self.part_sequence_length_placeholders[part], max_length=MAX_PRIMITIVE_LENGTH)
+                                             adjusted_output, self.part_sequence_length_placeholders[part], self.batch_number_placeholder,
+                                             max_length=MAX_PRIMITIVE_LENGTH)
                 rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, decoder_initial_state, output_size, output_embed_matrix,
                                                         training, grammar_helper=PrimitiveSequenceGrammarHelper(grammar, adjusted_function_token))
                 part_logit_sequence_preds[part] = rnn_output
@@ -161,10 +163,10 @@ class ThreePartAligner(BaseAligner):
             sequence_length = tf.ones((self.batch_size,), dtype=tf.int32) * MAX_SPECIAL_LENGTH
             if self.config.apply_attention:
                 decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                                  adjusted_output, sequence_length, max_length=MAX_SPECIAL_LENGTH)
+                                                  adjusted_output, sequence_length, self.batch_number_placeholder, max_length=MAX_SPECIAL_LENGTH)
             else:
                 decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                         adjusted_output, sequence_length, max_length=MAX_SPECIAL_LENGTH)
+                                         adjusted_output, sequence_length, self.batch_number_placeholder, max_length=MAX_SPECIAL_LENGTH)
             rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, original_enc_final_state, output_size, output_embed_matrix, training,
                                                     grammar_helper=SpecialSequenceGrammarHelper(grammar))
             logit_special_sequence = rnn_output

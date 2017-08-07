@@ -57,9 +57,10 @@ class BaseAligner(BaseModel):
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
         
     def add_extra_placeholders(self):
+        self.batch_number_placeholder = tf.placeholder(tf.int32, shape=())
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
 
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1):
+    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1, batch_number=0):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
         feed_dict[self.input_length_placeholder] = input_length_batch
@@ -69,6 +70,7 @@ class BaseAligner(BaseModel):
         if label_length_batch is not None:
             feed_dict[self.output_length_placeholder] = label_length_batch
         feed_dict[self.dropout_placeholder] = dropout
+        feed_dict[self.batch_number_placeholder] = batch_number
         return feed_dict
     
     def make_rnn_cell(self, id):

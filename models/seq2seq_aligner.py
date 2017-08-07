@@ -19,10 +19,10 @@ class Seq2SeqAligner(BaseAligner):
         cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
         if self.config.apply_attention:
             decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                              self.output_placeholder, self.output_length_placeholder)
+                                              self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
         else:
             decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                     self.output_placeholder, self.output_length_placeholder)
+                                     self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
         return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
     
     def finalize_predictions(self, preds):

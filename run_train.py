@@ -37,10 +37,8 @@ def run():
     if not os.path.exists(model_conf):
         config.save(model_conf)
 
-    # Tell TensorFlow that the model will be built into the default Graph.
-    # (not required but good practice)
     with tf.Graph().as_default():
-        # Build the model and add the variable initializer Op
+        tf.set_random_seed(1234)
         model.build()
         init = tf.global_variables_initializer()
         
@@ -55,7 +53,6 @@ def run():
                           n_epochs=config.n_epochs,
                           dropout=config.dropout)
 
-        # Create a session for running Ops in the Graph
         with tf.Session() as sess:
             # Run the Op to initialize the variables.
             sess.run(init)
