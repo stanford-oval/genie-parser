@@ -17,49 +17,74 @@ def movingaverage (values, window):
 def learning():
     with open(sys.argv[1], 'r') as fp:
         data = json.load(fp)
-    if isinstance(data, list):
-        # old style
-        data = np.array(data)
-        loss = data[:,0]
-        train_acc = 100*data[:,1]
-        dev_acc = 100*data[:,2]
-        grad_norm = None
-    else:
-        loss = np.array(data['loss'])
-        accuracy = np.array(data['accuracy'])
-        train_acc = 100*accuracy[:,0]
-        dev_acc = 100*accuracy[:,1]
-        grad_norm = np.array(data['grad'])
+    loss = np.array(data['loss'])
+    accuracy = np.array(data['accuracy'])
+    train_acc = 100*accuracy[:,0]
+    dev_acc = 100*accuracy[:,1]
+    grad_norm = np.array(data['grad'])
+    function_accuracy = np.array(data['function_accuracy'])
+    train_fnacc = 100*function_accuracy[:,0]
+    dev_fnacc = 100*function_accuracy[:,1]
+    recall = np.array(data['recall'])
+    train_recall = 100*recall[:,0]
+    dev_recall = 100*recall[:,1]
+    eval_loss = np.array(data['eval_loss'])
+    train_eval_loss = eval_loss[:,0]
+    dev_eval_loss = eval_loss[:,1]
 
-    dev_mov_avg = movingaverage(dev_acc, 3)
+    plt.suptitle(sys.argv[1])
 
-    plt.title(sys.argv[1])
-    plt.subplot(3, 1, 1)
-    X = 1 + np.arange(len(train_acc))
-    plt.xlim(0, len(train_acc)+1)
-
-    plt.xlabel('Train Epoch')
-
-    plt.plot(X, train_acc)
-    plt.plot(X, dev_acc)
-    if len(dev_mov_avg) > 2:
-        plt.plot(X[1:-1], dev_mov_avg, '--')
-    plt.ylim(0, 100)
-    plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
-
-    plt.subplot(3, 1, 2)
+    plt.subplot(3, 2, 1)
+    plt.title('Training Loss')
     X = np.arange(len(loss))
     plt.xlabel('Minibatch #')
     plt.plot(X, loss)
     plt.legend(["Loss"], loc="upper right")
 
-    if grad_norm is not None:
-        plt.subplot(3, 1, 3)
-        X = np.arange(len(loss))
-        plt.xlabel('Minibatch #')
-        plt.plot(X, grad_norm)
-        plt.legend(["Gradient"], loc='upper right')
+    plt.subplot(3, 2, 3)
+    plt.title('Gradient')
+    X = np.arange(len(loss))
+    plt.xlabel('Minibatch #')
+    plt.plot(X, grad_norm)
+    plt.legend(["Gradient"], loc='upper right')
 
+    X = 1 + np.arange(len(train_acc))
+    plt.subplot(3, 2, 5)
+    plt.title('Evaluation Loss')
+    plt.xlim(0, len(train_acc)+1)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_eval_loss)
+    plt.plot(X, dev_eval_loss)
+    plt.legend(['Train Loss', 'Dev Loss'], loc='upper right')
+
+    plt.subplot(3, 2, 2)
+    plt.title('Function Accuracy')
+    plt.xlim(0, len(train_acc)+1)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_fnacc)
+    plt.plot(X, dev_fnacc)
+    plt.ylim(0, 100)
+    plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
+
+    plt.subplot(3, 2, 4)
+    plt.title('Program Accuracy')
+    plt.xlim(0, len(train_acc)+1)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_acc)
+    plt.plot(X, dev_acc)
+    plt.ylim(0, 100)
+    plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
+
+    plt.subplot(3, 2, 6)
+    plt.title('Recall')
+    plt.xlim(0, len(train_acc)+1)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_recall)
+    plt.plot(X, dev_recall)
+    plt.ylim(0, 100)
+    plt.legend(["Train Recall", "Dev Recall"], loc="lower right")
+
+    plt.tight_layout()
     plt.show()
 
 learning()
