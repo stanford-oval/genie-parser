@@ -104,7 +104,7 @@ class ThreePartAligner(BaseAligner):
                         adjusted_function_token = adjusted_query
                     elif part == 'action':
                         adjusted_function_token = adjusted_action
-                grammar_init_state = lambda x: grammar.get_function_init_state(adjusted_function_token)
+                grammar_init_state = lambda: grammar.get_function_init_state(adjusted_function_token)
                 
                 # adjust the sequence to "skip" function tokens
                 output_size = grammar.num_control_tokens + num_value_tokens
@@ -133,7 +133,7 @@ class ThreePartAligner(BaseAligner):
             output = self.part_sequence_placeholders[part]
             adjusted_output = tf.where(output >= grammar.num_control_tokens, output - first_value_token, output)
             
-            grammar_init_state = lambda x: tf.ones((self.batch_size,), dtype=tf.int32) * grammar.bookeeping_state_id
+            grammar_init_state = lambda: tf.ones((self.batch_size,), dtype=tf.int32) * grammar.bookeeping_state_id
             
             sequence_length = tf.ones((self.batch_size,), dtype=tf.int32) * MAX_SPECIAL_LENGTH
             if self.config.apply_attention:

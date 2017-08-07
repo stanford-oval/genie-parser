@@ -48,7 +48,7 @@ class Seq2SeqDecoder(object):
         return final_outputs.rnn_output, final_outputs.sample_id
 
 class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
-    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training):
+    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state=None):
         attention = LuongAttention(self.config.hidden_size, enc_hidden_states, self.input_length_placeholder,
                                        probability_fn=tf.nn.softmax)
         cell_dec = AttentionWrapper(cell_dec, attention,
@@ -56,4 +56,4 @@ class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
                                     attention_layer_size=self.config.hidden_size,
                                     initial_cell_state=enc_final_state)
         enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
-        return super().decode(cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training)
+        return super().decode(cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state)

@@ -141,7 +141,7 @@ class BaseAligner(BaseModel):
         gradient_var_pairs = optimizer.compute_gradients(loss)
         vars = [x[1] for x in gradient_var_pairs]
         gradients = [x[0] for x in gradient_var_pairs]
-        if True:
+        if False:
             clipped, _ = tf.clip_by_global_norm(gradients, 0.5)
         else:
             clipped = gradients
