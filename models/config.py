@@ -17,36 +17,35 @@ class Config(object):
         self._config['model'] = OrderedDict(
             model_type='seq2seq',
             encoder_type='rnn',
-            hidden_size=175,
-            decoder_hidden_size=175,
+            hidden_size=150,
+            function_hidden_size=100,
+            first_token_hidden_size=25,
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
-            function_hidden_size=175,
-            first_token_hidden_size=175,
         )
         self._config['training'] = OrderedDict(
             batch_size=256,
-            n_epochs=20,
+            n_epochs=25,
             learning_rate=0.01,
-            dropout=0.5,
+            dropout=0.3,
             gradient_clip=0.0,
             l2_regularization=0.0
         )
         self._config['input'] = OrderedDict(
             input_words='./input_words.txt',
-            input_embeddings='./embeddings.txt',
+            input_embeddings='./embeddings-300.txt',
             input_embed_size=300,
             max_length=60,
             train_input_embeddings='false',
-            use_typed_embeddings='false'
+            use_typed_embeddings='true'
         )
         self._config['output'] = OrderedDict(
             grammar='tt',
             grammar_input_file='./thingpedia.txt',
             train_output_embeddings='false',
-            use_grammar_constraints='false',
-            use_typed_embeddings='false',
+            use_grammar_constraints='true',
+            use_typed_embeddings='true',
             beam_width=10
         )
         
