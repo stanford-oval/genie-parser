@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from .base_aligner import BaseAligner
 from .seq2seq_helpers import Seq2SeqDecoder, AttentionSeq2SeqDecoder
+from .grammar_decoder import GrammarHelper
 
 from grammar.thingtalk import ThingtalkGrammar, MAX_SPECIAL_LENGTH, MAX_PRIMITIVE_LENGTH
 
@@ -21,6 +22,30 @@ def pad_up_to(vector, size, rank):
         return tf.pad(vector, padding, mode='constant')
 
 ThreePartAlignerResult=namedtuple('ThreePartAlignerResult', ('top_logits', 'part_logit_preds', 'part_logit_sequence_preds', 'logit_special_sequence', 'sequence'))
+
+class PrimitiveSequenceGrammarHelper(GrammarHelper):
+    def __init__(self, grammar : ThingtalkGrammar, adjusted_function_token):
+        super().__init__(grammar)
+        self._adjusted_function_token = adjusted_function_token
+    
+    def get_init_state(self, _batch_size):
+        return self.grammar.get_function_init_state(self._adjusted_function_token)
+    
+    def constrain_logits(self, logits, curr_state):
+        return self.grammar.constrain_value_logits(logits, curr_state)
+    
+    def transition(self, curr_state, next_symbols, batch_size):
+        return self.grammar.value_transition(curr_state, next_symbols, batch_size)
+    
+class SpecialSequenceGrammarHelper(GrammarHelper):
+    def get_init_state(self, batch_size):
+        return tf.ones((batch_size,), dtype=tf.int32) * self.grammar.bookeeping_state_id
+    
+    def constrain_logits(self, logits, curr_state):
+        return self.grammar.constrain_value_logits(logits, curr_state)
+    
+    def transition(self, curr_state, next_symbols, batch_size):
+        return self.grammar.value_transition(curr_state, next_symbols, batch_size)
 
 class ThreePartAligner(BaseAligner):
     '''
@@ -105,12 +130,11 @@ class ThreePartAligner(BaseAligner):
                         adjusted_function_token = adjusted_query
                     elif part == 'action':
                         adjusted_function_token = adjusted_action
-                grammar_init_state = lambda: grammar.get_function_init_state(adjusted_function_token)
                 
                 # adjust the sequence to "skip" function tokens
                 output_size = grammar.num_control_tokens + num_value_tokens
                 output = self.part_sequence_placeholders[part]
-                adjusted_output = tf.where(output >= grammar.num_control_tokens, output - first_value_token, output)
+                adjusted_output = tf.where(output >= grammar.num_control_tokens, output - (first_value_token - grammar.num_control_tokens), output)
                 
                 if self.config.apply_attention:
                     decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
@@ -119,7 +143,7 @@ class ThreePartAligner(BaseAligner):
                     decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                              adjusted_output, self.part_sequence_length_placeholders[part], max_length=MAX_PRIMITIVE_LENGTH)
                 rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, decoder_initial_state, output_size, output_embed_matrix,
-                                                        training, grammar_init_state=grammar_init_state)
+                                                        training, grammar_helper=PrimitiveSequenceGrammarHelper(grammar, adjusted_function_token))
                 part_logit_sequence_preds[part] = rnn_output
                 part_token_sequence_preds[part] = tf.cast(sample_ids, dtype=tf.int32)
    
@@ -131,10 +155,8 @@ class ThreePartAligner(BaseAligner):
    
         with tf.variable_scope('decode_special'):
             output_size = grammar.num_control_tokens + num_value_tokens
-            output = self.part_sequence_placeholders[part]
-            adjusted_output = tf.where(output >= grammar.num_control_tokens, output - first_value_token, output)
-            
-            grammar_init_state = lambda: tf.ones((self.batch_size,), dtype=tf.int32) * grammar.bookeeping_state_id
+            output = self.special_label_placeholder
+            adjusted_output = tf.where(output >= grammar.num_control_tokens, output - (first_value_token - grammar.num_control_tokens), output)
             
             sequence_length = tf.ones((self.batch_size,), dtype=tf.int32) * MAX_SPECIAL_LENGTH
             if self.config.apply_attention:
@@ -144,19 +166,19 @@ class ThreePartAligner(BaseAligner):
                 decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                          adjusted_output, sequence_length, max_length=MAX_SPECIAL_LENGTH)
             rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, original_enc_final_state, output_size, output_embed_matrix, training,
-                                                    grammar_init_state=grammar_init_state)
+                                                    grammar_helper=SpecialSequenceGrammarHelper(grammar))
             logit_special_sequence = rnn_output
             token_special_sequence = tf.cast(sample_ids, dtype=tf.int32)
    
         # adjust tokens back to their output code
         adjusted_top = tf.expand_dims(top_token + grammar.num_control_tokens, axis=1)
         
-        adjusted_special_sequence = tf.where(token_special_sequence >= grammar.num_control_tokens, token_special_sequence + first_value_token, token_special_sequence)
+        adjusted_special_sequence = tf.where(token_special_sequence >= grammar.num_control_tokens, token_special_sequence + (first_value_token - grammar.num_control_tokens), token_special_sequence)
         
         adjusted_token_sequences = dict()
         for part in ('trigger', 'query', 'action'):
             token_sequence = part_token_sequence_preds[part]
-            adjusted_token_sequence = tf.where(token_sequence >= grammar.num_control_tokens, token_sequence + first_value_token, token_sequence)
+            adjusted_token_sequence = tf.where(token_sequence >= grammar.num_control_tokens, token_sequence + (first_value_token - grammar.num_control_tokens), token_sequence)
             adjusted_token_sequences[part] = adjusted_token_sequence
         # remove EOS from the middle of the sentence
         adjusted_token_sequences['trigger'] = tf.where(tf.equal(adjusted_token_sequences['trigger'], grammar.end), tf.zeros_like(adjusted_token_sequences['trigger']), adjusted_token_sequences['trigger'])
@@ -207,7 +229,7 @@ class ThreePartAligner(BaseAligner):
             mask = tf.sequence_mask(self.part_sequence_length_placeholders[part], MAX_PRIMITIVE_LENGTH, dtype=tf.float32)
             
             gold_sequence = self.part_sequence_placeholders[part]
-            gold_sequence = tf.where(gold_sequence >= grammar.num_control_tokens, gold_sequence - first_value_token, gold_sequence)
+            gold_sequence = tf.where(gold_sequence >= grammar.num_control_tokens, gold_sequence - (first_value_token - grammar.num_control_tokens), gold_sequence)
             
             function_sequence_loss = tf.contrib.seq2seq.sequence_loss(targets=gold_sequence, logits=padded_logits, weights=mask,
                                                                       average_across_batch=False)
@@ -215,7 +237,7 @@ class ThreePartAligner(BaseAligner):
         
         padded_logits = pad_up_to(logit_special_sequence, MAX_SPECIAL_LENGTH, rank=2)
         gold_special_sequence = self.special_label_placeholder
-        gold_special_sequence = tf.where(gold_special_sequence >= grammar.num_control_tokens, gold_special_sequence - first_value_token, gold_special_sequence)
+        gold_special_sequence = tf.where(gold_special_sequence >= grammar.num_control_tokens, gold_special_sequence - (first_value_token - grammar.num_control_tokens), gold_special_sequence)
         special_loss = tf.contrib.seq2seq.sequence_loss(targets=gold_special_sequence, logits=padded_logits, weights=tf.ones((self.batch_size, MAX_SPECIAL_LENGTH)),
                                                         average_across_batch=False)
         

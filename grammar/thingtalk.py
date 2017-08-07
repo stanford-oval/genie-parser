@@ -180,6 +180,7 @@ class ThingtalkGrammar(AbstractGrammar):
         print('num triggers', len(self.functions['trigger']))
         print('num queries', len(self.functions['query']))
         print('num actions', len(self.functions['action']))
+        print('num params', self.num_params)
         first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
         print('num value tokens', len(tokens) - first_value_token)
         
@@ -220,6 +221,7 @@ class ThingtalkGrammar(AbstractGrammar):
         # bookkeeping
         bookkeeping_id = new_state('bookkeeping')
         transitions.append((self.start_state, bookkeeping_id, 'bookkeeping'))
+        transitions.append((bookkeeping_id, self.end_state, '<<EOS>>'))
         self.bookeeping_state_id = bookkeeping_id
         
         # special
@@ -358,7 +360,7 @@ class ThingtalkGrammar(AbstractGrammar):
         self.function_states.fill(-1)
         for part in ('trigger', 'query', 'action'):
             for function_name, params in self.functions[part].items():
-                token = self.dictionary[trigger_name] - self.num_control_tokens - self.num_begin_tokens
+                token = self.dictionary[function_name] - self.num_control_tokens - self.num_begin_tokens
                 state_id = do_invocation(function_name, params, for_action=(part == 'action'))
                 transitions.append((state_id, self.end_state, '<<EOS>>'))
                 self.function_states[token] = state_id
@@ -459,30 +461,33 @@ class ThingtalkGrammar(AbstractGrammar):
                         function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
                     else:
                         function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
+                    # add dummy values to the sequences to preserve the ability to compute
+                    # losses and grammar constraints
                     part_function_batches[part][i] = function_offset
-                continue
-            
-            j = 1
-            for part in ('trigger', 'query', 'action'):
-                if part == 'trigger':
-                    function_offset = self.num_begin_tokens + self.num_control_tokens
-                elif part == 'query':
-                    function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
-                else:
-                    function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
-                function_max = len(self.functions[part])
-                assert function_offset <= label[j] < function_offset+function_max, (function_offset, function_max, label[j], self.tokens[label[j]])
-                
-                part_function_batches[part][i] = label[j]
-                j += 1
-                start = j
-                while label[j] >= first_value_token:
-                    j+= 1
-                end = j
-                assert end-start+1 < MAX_PRIMITIVE_LENGTH
-                part_sequence_batches[part][i,0:end-start] = label[start:end]
-                part_sequence_batches[part][i,end-start] = self.end
-                part_sequence_length_batches[part][i] = end-start+1
+                    part_sequence_batches[part][i,0] = self.end
+            else:
+                special_label_batch[i,0] = self.end
+                j = 1
+                for part in ('trigger', 'query', 'action'):
+                    if part == 'trigger':
+                        function_offset = self.num_begin_tokens + self.num_control_tokens
+                    elif part == 'query':
+                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
+                    else:
+                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
+                    function_max = len(self.functions[part])
+                    assert function_offset <= label[j] < function_offset+function_max, (function_offset, function_max, label[j], self.tokens[label[j]])
+                    
+                    part_function_batches[part][i] = label[j]
+                    j += 1
+                    start = j
+                    while label[j] >= first_value_token:
+                        j+= 1
+                    end = j
+                    assert end-start+1 < MAX_PRIMITIVE_LENGTH
+                    part_sequence_batches[part][i,0:end-start] = label[start:end]
+                    part_sequence_batches[part][i,end-start] = self.end
+                    part_sequence_length_batches[part][i] = end-start+1
         return top_batch, special_label_batch, part_function_batches, part_sequence_batches, part_sequence_length_batches
 
     def vectorize_program(self, program, max_length=60):
@@ -589,10 +594,25 @@ class ThingtalkGrammar(AbstractGrammar):
         return np.array(vectors, dtype=np.int32)
 
     def get_function_init_state(self, function_tokens):
-        return tf.gather(self.function_states, function_tokens - (self.num_begin_tokens + self.num_control_tokens))
+        next_state = tf.gather(self.function_states, function_tokens - (self.num_begin_tokens + self.num_control_tokens))
+        assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [function_tokens])
+        with tf.control_dependencies([assert2]):
+            return tf.identity(next_state)
 
     def get_init_state(self, batch_size):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
+
+    def constrain_value_logits(self, logits, curr_state):
+        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
+        num_value_tokens = self.output_size - first_value_token
+        value_allowed_token_matrix = np.concatenate((self.allowed_token_matrix[:,:self.num_control_tokens], self.allowed_token_matrix[:,first_value_token:]), axis=1)
+        
+        with tf.name_scope('constrain_logits'):
+            allowed_tokens = tf.gather(tf.constant(value_allowed_token_matrix), curr_state)
+            assert allowed_tokens.get_shape()[1:] == (self.num_control_tokens + num_value_tokens,)
+
+            constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
+        return constrained_logits
 
     def constrain_logits(self, logits, curr_state):
         with tf.name_scope('constrain_logits'):
@@ -601,6 +621,24 @@ class ThingtalkGrammar(AbstractGrammar):
 
             constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
         return constrained_logits
+
+    def value_transition(self, curr_state, next_symbols, batch_size):
+        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
+        num_value_tokens = self.output_size - first_value_token
+        with tf.name_scope('grammar_transition'):
+            adjusted_next_symbols = tf.where(next_symbols >= self.num_control_tokens, next_symbols + (first_value_token - self.num_control_tokens), next_symbols)
+            
+            assert1 = tf.Assert(tf.reduce_all(tf.logical_and(next_symbols < num_value_tokens, next_symbols >= 0)), [curr_state, next_symbols])
+            with tf.control_dependencies([assert1]):
+                transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
+            assert transitions.get_shape()[1:] == (self.output_size,)
+            
+            indices = tf.stack((tf.range(0, batch_size), adjusted_next_symbols), axis=1)
+            next_state = tf.gather_nd(transitions, indices)
+            
+            assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [curr_state, adjusted_next_symbols, next_state])
+            with tf.control_dependencies([assert2]):
+                return tf.identity(next_state)
 
     def transition(self, curr_state, next_symbols, batch_size):
         with tf.name_scope('grammar_transition'):
