@@ -96,7 +96,7 @@ class ThreePartAligner(BaseAligner):
         grammar = self.config.grammar
         for i, part in enumerate(('trigger', 'query', 'action')):
             with tf.variable_scope('decode_function_' + part):
-                layer = tf.contrib.layers.fully_connected(enc_final_state, enc_final_size, activation_fn=tf.tanh)
+                layer = tf.contrib.layers.fully_connected(enc_final_state, self.config.function_hidden_size, activation_fn=tf.tanh)
                 part_layers.append(layer)
                 layer_with_dropout = tf.nn.dropout(layer, keep_prob=self.dropout_placeholder, seed=443 * i)
                 part_logit_preds[part] = tf.layers.dense(layer_with_dropout, len(grammar.functions[part]))
@@ -148,7 +148,7 @@ class ThreePartAligner(BaseAligner):
                 part_token_sequence_preds[part] = tf.cast(sample_ids, dtype=tf.int32)
    
         with tf.variable_scope('top_classifier'):
-            top_hidden = tf.contrib.layers.fully_connected(enc_final_state, enc_final_size, activation_fn=tf.tanh)
+            top_hidden = tf.contrib.layers.fully_connected(enc_final_state, self.config.first_token_hidden_size, activation_fn=tf.tanh)
             top_hidden_with_dropout = tf.nn.dropout(top_hidden, keep_prob=self.dropout_placeholder, seed=127)
             top_logits = tf.layers.dense(top_hidden_with_dropout, grammar.num_begin_tokens)
             top_token = tf.cast(tf.argmax(top_logits, axis=1), dtype=tf.int32)

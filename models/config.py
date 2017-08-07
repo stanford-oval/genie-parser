@@ -18,9 +18,12 @@ class Config(object):
             model_type='seq2seq',
             encoder_type='rnn',
             hidden_size=175,
+            decoder_hidden_size=175,
             rnn_cell_type='lstm',
             rnn_layers=1,
-            apply_attention='true'
+            apply_attention='true',
+            function_hidden_size=175,
+            first_token_hidden_size=175,
         )
         self._config['training'] = OrderedDict(
             batch_size=256,
@@ -85,6 +88,14 @@ class Config(object):
     @property
     def hidden_size(self):
         return int(self._config['model']['hidden_size'])
+    
+    @property
+    def function_hidden_size(self):
+        return int(self._config['model']['function_hidden_size'])
+    
+    @property
+    def first_token_hidden_size(self):
+        return int(self._config['model']['first_token_hidden_size'])
     
     @property
     def batch_size(self):
