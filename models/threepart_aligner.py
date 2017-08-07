@@ -58,7 +58,6 @@ class ThreePartAligner(BaseAligner):
         original_enc_final_state = enc_final_state
         flat_enc_final_state = nest.flatten(enc_final_state)
         enc_final_state = tf.concat(flat_enc_final_state, axis=1)
-        print('enc_final_state', enc_final_state)
         enc_final_size = int(enc_final_state.get_shape()[1])
 
         part_logit_preds = dict()
@@ -78,7 +77,6 @@ class ThreePartAligner(BaseAligner):
         first_value_token = grammar.num_functions + grammar.num_begin_tokens + grammar.num_control_tokens
         num_value_tokens = grammar.output_size - first_value_token
         output_embed_matrix = tf.concat((output_embed_matrix[0:grammar.num_control_tokens], output_embed_matrix[first_value_token:]), axis=0)
-        print('output_embed_matrix', output_embed_matrix)
         
         adjusted_trigger = part_token_preds['trigger'] + (grammar.num_control_tokens + grammar.num_begin_tokens)
         adjusted_query = part_token_preds['query'] + (grammar.num_control_tokens + grammar.num_begin_tokens + len(grammar.functions['trigger']))

@@ -8,41 +8,44 @@ import configparser
 import grammar
 
 from util.loader import load_dictionary, load_embeddings
+from collections import OrderedDict
 
 class Config(object):
     def __init__(self):
         self._config = configparser.ConfigParser()
         
-        self._config['model'] = {
-            'model_type': 'seq2seq',
-            'encoder_type': 'rnn',
-            'hidden_size': 175,
-            'rnn_cell_type': 'lstm',
-            'rnn_layers': 1,
-            'apply_attention': 'true'
-        }
-        self._config['training'] = {
-            'batch_size': 256,
-            'n_epochs': 20,
-            'learning_rate': 0.01,
-            'dropout': 0.5
-        }
-        self._config['input'] = {
-            'input_words': './input_words.txt',
-            'input_embeddings': './embeddings.txt',
-            'input_embed_size': 300,
-            'max_length': 60,
-            'train_input_embeddings': 'false',
-            'use_typed_embeddings': 'false'
-        }
-        self._config['output'] = {
-            'grammar': 'tt',
-            'grammar_input_file': './thingpedia.txt',
-            'train_output_embeddings': 'false',
-            'use_grammar_constraints': 'false',
-            'use_typed_embeddings': 'false',
-            'beam_width': 10
-        }
+        self._config['model'] = OrderedDict(
+            model_type='seq2seq',
+            encoder_type='rnn',
+            hidden_size=175,
+            rnn_cell_type='lstm',
+            rnn_layers=1,
+            apply_attention='true'
+        )
+        self._config['training'] = OrderedDict(
+            batch_size=256,
+            n_epochs=20,
+            learning_rate=0.01,
+            dropout=0.5,
+            gradient_clip=0.0,
+            l2_regularization=0.0
+        )
+        self._config['input'] = OrderedDict(
+            input_words='./input_words.txt',
+            input_embeddings='./embeddings.txt',
+            input_embed_size=300,
+            max_length=60,
+            train_input_embeddings='false',
+            use_typed_embeddings='false'
+        )
+        self._config['output'] = OrderedDict(
+            grammar='tt',
+            grammar_input_file='./thingpedia.txt',
+            train_output_embeddings='false',
+            use_grammar_constraints='false',
+            use_typed_embeddings='false',
+            beam_width=10
+        )
         
         self._grammar = None
         self._words = None
@@ -101,6 +104,14 @@ class Config(object):
     @property
     def learning_rate(self):
         return float(self._config['training']['learning_rate'])
+
+    @property
+    def gradient_clip(self):
+        return float(self._config['training']['gradient_clip'])
+    
+    @property
+    def l2_regularization(self):
+        return float(self._config['training']['l2_regularization'])
 
     @property
     def train_input_embeddings(self):

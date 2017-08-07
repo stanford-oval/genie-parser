@@ -32,7 +32,7 @@ class BaseAligner(BaseModel):
         # the training decoder
         with tf.variable_scope('RNNDec', initializer=xavier):
             train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=True)
-        self.loss = self.add_loss_op(train_preds)
+        self.loss = self.add_loss_op(train_preds) + self.add_regularization_loss()
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
@@ -130,6 +130,14 @@ class BaseAligner(BaseModel):
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
         raise NotImplementedError()
 
+    def add_regularization_loss(self):
+        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.split('/')[-1] in ('kernel:0', 'weights:0')]
+        
+        if self.config.l2_regularization == 0.0:
+            return 0
+
+        return tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(self.config.l2_regularization), weights)
+
     def add_loss_op(self, preds):
         raise NotImplementedError()
 
@@ -141,8 +149,8 @@ class BaseAligner(BaseModel):
         gradient_var_pairs = optimizer.compute_gradients(loss)
         vars = [x[1] for x in gradient_var_pairs]
         gradients = [x[0] for x in gradient_var_pairs]
-        if False:
-            clipped, _ = tf.clip_by_global_norm(gradients, 0.5)
+        if self.config.gradient_clip > 0:
+            clipped, _ = tf.clip_by_global_norm(gradients, self.config.gradient_clip)
         else:
             clipped = gradients
 
