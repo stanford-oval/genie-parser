@@ -43,20 +43,20 @@ def learning():
 
     plt.subplot(3, 2, 3)
     plt.title('Gradient')
-    X = np.arange(len(loss))
     plt.xlabel('Minibatch #')
     plt.plot(X, grad_norm)
     plt.legend(["Gradient"], loc='upper right')
 
-    X = 1 + np.arange(len(train_acc))
+    X = np.arange(len(train_eval_loss))
     plt.subplot(3, 2, 5)
     plt.title('Evaluation Loss')
-    plt.xlim(0, len(train_acc)+1)
+    plt.xlim(0, len(train_eval_loss)+1)
     plt.xlabel('Train Epoch')
     plt.plot(X, train_eval_loss)
     plt.plot(X, dev_eval_loss)
     plt.legend(['Train Loss', 'Dev Loss'], loc='upper right')
 
+    X = np.arange(len(train_acc))
     plt.subplot(3, 2, 2)
     plt.title('Function Accuracy')
     plt.xlim(0, len(train_acc)+1)

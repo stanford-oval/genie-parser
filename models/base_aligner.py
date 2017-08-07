@@ -146,8 +146,10 @@ class BaseAligner(BaseModel):
     def add_training_op(self, loss):
         #optimizer = tf.train.AdamOptimizer(self.config.lr)
         #optimizer = tf.train.AdagradOptimizer(self.config.lr)
-        optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate, decay=0.95)
-        
+        optclass = getattr(tf.train, self.config.optimizer + 'Optimizer')
+        assert issubclass(optclass, tf.train.Optimizer)
+        optimizer = optclass(self.config.learning_rate)
+
         gradient_var_pairs = optimizer.compute_gradients(loss)
         vars = [x[1] for x in gradient_var_pairs]
         gradients = [x[0] for x in gradient_var_pairs]

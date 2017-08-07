@@ -30,7 +30,8 @@ class Config(object):
             learning_rate=0.01,
             dropout=0.3,
             gradient_clip=0.0,
-            l2_regularization=0.0
+            l2_regularization=0.0,
+            optimizer='RMSProp'
         )
         self._config['input'] = OrderedDict(
             input_words='./input_words.txt',
@@ -122,6 +123,10 @@ class Config(object):
     @property
     def l2_regularization(self):
         return float(self._config['training']['l2_regularization'])
+
+    @property
+    def optimizer(self):
+        return self._config['training']['optimizer']
 
     @property
     def train_input_embeddings(self):
