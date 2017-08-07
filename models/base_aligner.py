@@ -37,7 +37,9 @@ class BaseAligner(BaseModel):
         
         # the inference decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=True):
-            self.pred = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False)
+            eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False)
+        self.pred = self.finalize_predictions(eval_preds)
+        self.eval_loss = self.add_loss_op(eval_preds)
     
     def add_placeholders(self):
         # batch size x number of words in the sentence

@@ -66,6 +66,18 @@ class BaseModel(object):
         feed = self.create_feed_dict(*data)
         predictions = sess.run(self.pred, feed_dict=feed)
         return predictions
+    
+    def eval_on_batch(self, sess, *data):
+        """Make predictions for the provided batch of data
+
+        Args:
+            sess: tf.Session()
+            input_batch: np.ndarray of shape (n_samples, n_features)
+        Returns:
+            predictions: np.ndarray of shape (n_samples, n_classes)
+        """
+        feed = self.create_feed_dict(*data)
+        return sess.run([self.pred, self.eval_loss], feed_dict=feed)
 
     def build(self):
         raise NotImplementedError("Each Model must implement this method")

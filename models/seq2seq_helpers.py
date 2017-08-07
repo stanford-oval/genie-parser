@@ -26,7 +26,7 @@ class Seq2SeqDecoder(object):
     def batch_size(self):
         return tf.shape(self.input_placeholder)[0]
     
-    def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state=None):
+    def decode(self, cell_dec, _enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state=None):
         linear_layer = tf_core_layers.Dense(output_size)
 
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
@@ -45,7 +45,7 @@ class Seq2SeqDecoder(object):
 
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
         
-        return final_outputs.rnn_output, final_outputs.sample_id
+        return final_outputs
 
 class AttentionSeq2SeqDecoder(Seq2SeqDecoder):
     def decode(self, cell_dec, enc_hidden_states, enc_final_state, output_size, output_embed_matrix, training, grammar_init_state=None):

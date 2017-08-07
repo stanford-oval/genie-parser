@@ -62,8 +62,13 @@ class Trainer(object):
         best = None
         best_train = None
         accuracy_stats = []
+        function_accuracy_stats = []
+        eval_losses = []
+        recall = []
         losses = []
         grad_norms = []
+        # flush stdout so we show the output before the first progress bar
+        sys.stdout.flush()
         try:
             for epoch in range(self._n_epochs):
                 start_time = time.time()
@@ -81,20 +86,27 @@ class Trainer(object):
                 print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
                 #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
 
-                train_acc = self.train_eval.eval(sess, save_to_file=False)
+                train_acc, train_eval_loss, train_acc_fn, train_recall = self.train_eval.eval(sess, save_to_file=False)
                 if self.dev_eval is not None:
-                    dev_acc = self.dev_eval.eval(sess, save_to_file=False)
+                    dev_acc, dev_eval_loss, dev_acc_fn, dev_recall = self.dev_eval.eval(sess, save_to_file=False)
                     if best is None or dev_acc > best:
                         print('Found new best model')
                         self.saver.save(sess, os.path.join(self._model_dir, 'best'))
                         best = dev_acc
                         best_train = train_acc
-                    accuracy_stats.append((train_acc, dev_acc))
+                    accuracy_stats.append((float(train_acc), float(dev_acc)))
+                    function_accuracy_stats.append((float(train_acc_fn), float(dev_acc_fn)))
+                    eval_losses.append((float(train_eval_loss), float(dev_eval_loss)))
+                    recall.append((float(train_recall), float(dev_recall)))
                 else:
-                    accuracy_stats.append((train_acc,))
+                    accuracy_stats.append((float(train_acc),))
+                    function_accuracy_stats.append((float(train_acc_fn),))
+                    eval_losses.append((float(train_eval_loss),))
+                    recall.append((float(train_recall),))
                 print()
                 sys.stdout.flush()
         finally:
             with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-                json.dump(dict(accuracy=accuracy_stats, loss=losses, grad=grad_norms), fp)
+                json.dump(dict(accuracy=accuracy_stats, eval_loss=eval_losses, function_accuracy=function_accuracy_stats, recall=recall,
+                               loss=losses, grad=grad_norms), fp)
         return best, best_train

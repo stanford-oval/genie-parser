@@ -11,6 +11,7 @@ from .seq2seq_helpers import Seq2SeqDecoder, AttentionSeq2SeqDecoder
 
 from grammar.thingtalk import ThingtalkGrammar, MAX_SPECIAL_LENGTH, MAX_PRIMITIVE_LENGTH
 
+from collections import namedtuple
 from tensorflow.python.util import nest
 
 def pad_up_to(vector, size, rank):
@@ -18,6 +19,8 @@ def pad_up_to(vector, size, rank):
     with tf.control_dependencies([tf.assert_non_negative(length_diff, data=(vector, size, tf.shape(vector)))]):
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0,0]*(rank-1)], axis=0), shape=((rank+1), 2))
         return tf.pad(vector, padding, mode='constant')
+
+ThreePartAlignerResult=namedtuple('ThreePartAlignerResult', ('top_logits', 'part_logit_preds', 'part_logit_sequence_preds', 'logit_special_sequence', 'sequence'))
 
 class ThreePartAligner(BaseAligner):
     '''
@@ -145,44 +148,44 @@ class ThreePartAligner(BaseAligner):
             logit_special_sequence = rnn_output
             token_special_sequence = tf.cast(sample_ids, dtype=tf.int32)
    
-        if training:
-            return top_logits, part_logit_preds, part_logit_sequence_preds, logit_special_sequence
-        else:
-            # adjust tokens back to their output code
-            adjusted_top = tf.expand_dims(top_token + grammar.num_control_tokens, axis=1)
+        # adjust tokens back to their output code
+        adjusted_top = tf.expand_dims(top_token + grammar.num_control_tokens, axis=1)
+        
+        adjusted_special_sequence = tf.where(token_special_sequence >= grammar.num_control_tokens, token_special_sequence + first_value_token, token_special_sequence)
+        
+        adjusted_token_sequences = dict()
+        for part in ('trigger', 'query', 'action'):
+            token_sequence = part_token_sequence_preds[part]
+            adjusted_token_sequence = tf.where(token_sequence >= grammar.num_control_tokens, token_sequence + first_value_token, token_sequence)
+            adjusted_token_sequences[part] = adjusted_token_sequence
+        # remove EOS from the middle of the sentence
+        adjusted_token_sequences['trigger'] = tf.where(tf.equal(adjusted_token_sequences['trigger'], grammar.end), tf.zeros_like(adjusted_token_sequences['trigger']), adjusted_token_sequences['trigger'])
+        adjusted_token_sequences['query'] = tf.where(tf.equal(adjusted_token_sequences['query'], grammar.end), tf.zeros_like(adjusted_token_sequences['query']), adjusted_token_sequences['query'])
+
+        adjusted_trigger = tf.expand_dims(adjusted_trigger, axis=1)
+        adjusted_query = tf.expand_dims(adjusted_query, axis=1)
+        adjusted_action = tf.expand_dims(adjusted_action, axis=1)
+        
+        program_sequence = tf.concat((adjusted_top, adjusted_trigger, adjusted_token_sequences['trigger'], adjusted_query, adjusted_token_sequences['query'],
+                                      adjusted_action, adjusted_token_sequences['action']), axis=1)
+        full_special_sequence = tf.concat((adjusted_top, adjusted_special_sequence), axis=1)
+        # full special sequence is smaller than program sequence, so we need to pad it all the way to the same shape
+        full_special_sequence = pad_up_to(full_special_sequence, tf.shape(program_sequence)[1], rank=1)
+        
+        rule_token = grammar.dictionary['rule'] - grammar.num_control_tokens
+        full_sequence = tf.where(tf.equal(top_token, rule_token), program_sequence, full_special_sequence)
             
-            adjusted_special_sequence = tf.where(token_special_sequence >= grammar.num_control_tokens, token_special_sequence + first_value_token, token_special_sequence)
-            
-            adjusted_token_sequences = dict()
-            for part in ('trigger', 'query', 'action'):
-                token_sequence = part_token_sequence_preds[part]
-                adjusted_token_sequence = tf.where(token_sequence >= grammar.num_control_tokens, token_sequence + first_value_token, token_sequence)
-                adjusted_token_sequences[part] = adjusted_token_sequence
-            # remove EOS from the middle of the sentence
-            adjusted_token_sequences['trigger'] = tf.where(tf.equal(adjusted_token_sequences['trigger'], grammar.end), tf.zeros_like(adjusted_token_sequences['trigger']), adjusted_token_sequences['trigger'])
-            adjusted_token_sequences['query'] = tf.where(tf.equal(adjusted_token_sequences['query'], grammar.end), tf.zeros_like(adjusted_token_sequences['query']), adjusted_token_sequences['query'])
+        return ThreePartAlignerResult(top_logits, part_logit_preds, part_logit_sequence_preds, logit_special_sequence, full_sequence)
     
-            adjusted_trigger = tf.expand_dims(adjusted_trigger, axis=1)
-            adjusted_query = tf.expand_dims(adjusted_query, axis=1)
-            adjusted_action = tf.expand_dims(adjusted_action, axis=1)
-            
-            program_sequence = tf.concat((adjusted_top, adjusted_trigger, adjusted_token_sequences['trigger'], adjusted_query, adjusted_token_sequences['query'],
-                                          adjusted_action, adjusted_token_sequences['action']), axis=1)
-            full_special_sequence = tf.concat((adjusted_top, adjusted_special_sequence), axis=1)
-            # full special sequence is smaller than program sequence, so we need to pad it all the way to the same shape
-            full_special_sequence = pad_up_to(full_special_sequence, tf.shape(program_sequence)[1], rank=1)
-            
-            rule_token = grammar.dictionary['rule'] - grammar.num_control_tokens
-            sequence = tf.where(tf.equal(top_token, rule_token), program_sequence, full_special_sequence)
-            
-            # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
-            return tf.expand_dims(sequence, axis=1)
+    def finalize_predictions(self, preds):
+        # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
+        return tf.expand_dims(preds.sequence, axis=1)
     
     def add_loss_op(self, preds):
         grammar = self.config.grammar
         first_value_token = grammar.num_functions + grammar.num_begin_tokens + grammar.num_control_tokens
 
-        top_logits, part_logit_preds, part_logit_sequence_preds, logit_special_sequence = preds
+        top_logits, part_logit_preds, part_logit_sequence_preds, logit_special_sequence, _ = preds
         gold_top = self.top_placeholder - grammar.num_control_tokens 
         top_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=gold_top, logits=top_logits)
         
