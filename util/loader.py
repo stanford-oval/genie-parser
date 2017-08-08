@@ -134,7 +134,7 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
         if token in word_vectors:
             vec = word_vectors[token]
             embeddings_matrix[id, 0:len(vec)] = vec
-        else:
+        elif token not in ('<<EOS>>', '<<GO>>'):
             raise ValueError("missing vector for", token)
     if use_types:
         for i, entity in enumerate(ENTITIES):
@@ -159,12 +159,20 @@ def load_data(from_file, input_words, grammar, max_length):
     label_lengths = []
     with open(from_file, 'r') as data:
         for line in data:
-            sentence, canonical, parse = line.strip().split('\t')
+            split = line.strip().split('\t')
+            if len(split) == 3:
+                sentence, canonical, parse = split
+            else:
+                sentence, canonical = split
+                parse = None
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
             inputs.append(input)
             input_lengths.append(in_len)
             label, label_len = grammar.vectorize_program(canonical, max_length)
             labels.append(label)
             label_lengths.append(label_len)
-            parses.append(vectorize_constituency_parse(parse, max_length, in_len))
+            if parse is not None:
+                parses.append(vectorize_constituency_parse(parse, max_length, in_len))
+            else:
+                parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
     return inputs, input_lengths, parses, labels, label_lengths
