@@ -19,6 +19,7 @@ class Config(object):
             encoder_type='rnn',
             hidden_size=150,
             function_hidden_size=100,
+            function_nonlinearity='tanh',
             first_token_hidden_size=25,
             rnn_cell_type='lstm',
             rnn_layers=1,
@@ -94,6 +95,10 @@ class Config(object):
     def function_hidden_size(self):
         return int(self._config['model']['function_hidden_size'])
     
+    @property
+    def function_nonlinearity(self):
+        return self._config['model']['function_nonlinearity']
+
     @property
     def first_token_hidden_size(self):
         return int(self._config['model']['first_token_hidden_size'])

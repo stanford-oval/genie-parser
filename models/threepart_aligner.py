@@ -96,7 +96,8 @@ class ThreePartAligner(BaseAligner):
         grammar = self.config.grammar
         for i, part in enumerate(('trigger', 'query', 'action')):
             with tf.variable_scope('decode_function_' + part):
-                layer = tf.contrib.layers.fully_connected(enc_final_state, self.config.function_hidden_size, activation_fn=tf.tanh)
+                activation = getattr(tf.nn, self.config.function_nonlinearity) if hasattr(tf.nn, self.config.function_nonlinearity) else getattr(tf, self.config.function_nonlinearity)
+                layer = tf.contrib.layers.fully_connected(enc_final_state, self.config.function_hidden_size, activation_fn=activation)
                 part_layers.append(layer)
                 layer_with_dropout = tf.nn.dropout(layer, keep_prob=self.dropout_placeholder, seed=443 * i)
                 part_logit_preds[part] = tf.layers.dense(layer_with_dropout, len(grammar.functions[part]))

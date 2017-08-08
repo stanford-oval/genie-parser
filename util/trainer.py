@@ -45,12 +45,12 @@ class Trainer(object):
         self._extra_kw = kw
 
     def run_epoch(self, sess, inputs, input_lengths, parses,
-                  labels, label_lengths, losses, grad_norms):
+                  labels, label_lengths, losses, grad_norms, batch_number):
         n_minibatches, total_loss = 0, 0
         total_n_minibatches = (len(inputs)+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches([inputs, input_lengths, parses, labels, label_lengths], self._batch_size):
-            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=batch_number, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))
             grad_norms.append(float(grad_norm))
@@ -81,7 +81,7 @@ class Trainer(object):
                 label_lengths = shuffled[:,-1]
 
                 average_loss = self.run_epoch(sess, inputs, input_lengths, parses,
-                                              labels, label_lengths, losses, grad_norms)
+                                              labels, label_lengths, losses, grad_norms, batch_number=epoch)
                 duration = time.time() - start_time
                 print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
                 #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)

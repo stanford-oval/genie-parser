@@ -17,11 +17,13 @@ def movingaverage (values, window):
 def learning():
     with open(sys.argv[1], 'r') as fp:
         data = json.load(fp)
-    loss = np.array(data['loss'])
+    loss = np.array(data['loss'])[200:]
     accuracy = np.array(data['accuracy'])
     train_acc = 100*accuracy[:,0]
     dev_acc = 100*accuracy[:,1]
-    grad_norm = np.array(data['grad'])
+    grad_norm = np.array(data['grad'])[200:]
+    #print('grad norm mean', np.average(grad_norm[100:]))
+    #print('grad norm std', np.std(grad_norm[100:]))
     function_accuracy = np.array(data['function_accuracy'])
     train_fnacc = 100*function_accuracy[:,0]
     dev_fnacc = 100*function_accuracy[:,1]
@@ -36,9 +38,10 @@ def learning():
 
     plt.subplot(3, 2, 1)
     plt.title('Training Loss')
-    X = np.arange(len(loss))
+    X = 200+np.arange(len(loss))
     plt.xlabel('Minibatch #')
     plt.plot(X, loss)
+    plt.plot(X[20:-20], movingaverage(loss,41), 'y-')
     plt.legend(["Loss"], loc="upper right")
 
     plt.subplot(3, 2, 3)
@@ -47,13 +50,16 @@ def learning():
     plt.plot(X, grad_norm)
     plt.legend(["Gradient"], loc='upper right')
 
-    X = np.arange(len(train_eval_loss))
+    train_eval_loss = train_eval_loss[3:]
+    dev_eval_loss = dev_eval_loss[3:]
+    X = 3+np.arange(len(train_eval_loss))
     plt.subplot(3, 2, 5)
     plt.title('Evaluation Loss')
-    plt.xlim(0, len(train_eval_loss)+1)
+    plt.xlim(3+0, 3+len(train_eval_loss)+1)
     plt.xlabel('Train Epoch')
     plt.plot(X, train_eval_loss)
     plt.plot(X, dev_eval_loss)
+    plt.plot(X[2:-2], movingaverage(dev_eval_loss, 5), '--')
     plt.legend(['Train Loss', 'Dev Loss'], loc='upper right')
 
     X = np.arange(len(train_acc))
