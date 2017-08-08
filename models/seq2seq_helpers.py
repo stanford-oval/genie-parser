@@ -35,11 +35,7 @@ class Seq2SeqDecoder(object):
         if training:
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
-            if self.config.scheduled_sampling > 0:
-                helper = ScheduledEmbeddingTrainingHelper(outputs, self.output_length_placeholder+1, output_embed_matrix,
-                                                          sampling_probability=self.config.scheduled_sampling * tf.cast(self.batch_number_placeholder, tf.float32))
-            else:
-                helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+            helper = TrainingHelper(outputs, self.output_length_placeholder+1)
         else:
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
