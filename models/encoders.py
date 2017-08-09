@@ -35,10 +35,20 @@ class RNNEncoder(BaseEncoder):
     def encode(self, inputs, input_length, _parses):
         with tf.name_scope('LSTMEncoder'):
             cell_enc = tf.contrib.rnn.MultiRNNCell([self._make_rnn_cell(i) for i in range(self._num_layers)])
-            #cell_enc = tf.contrib.rnn.AttentionCellWrapper(cell_enc, 5, state_is_tuple=True)
 
             return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=input_length,
-                                    dtype=tf.float32)
+                                     dtype=tf.float32)
+
+
+class BiRNNEncoder(RNNEncoder):
+    def encode(self, inputs, input_length, _parses):
+        with tf.name_scope('BiLSTMEncoder'):
+            fw_cell_enc = tf.contrib.rnn.MultiRNNCell([self._make_rnn_cell(i) for i in range(self._num_layers)])
+            bw_cell_enc = tf.contrib.rnn.MultiRNNCell([self._make_rnn_cell(i) for i in range(self._num_layers)])
+
+            outputs, output_state = tf.nn.bidirectional_dynamic_rnn(fw_cell_enc, bw_cell_enc, inputs, input_length,
+                                                                    dtype=tf.float32)
+            return tf.concat(outputs, axis=2), output_state
 
 
 class BagOfWordsEncoder(BaseEncoder):

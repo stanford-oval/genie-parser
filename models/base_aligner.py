@@ -7,10 +7,10 @@ Created on Jul 20, 2017
 import tensorflow as tf
 
 from .base_model import BaseModel
-from .encoders import RNNEncoder, BagOfWordsEncoder
+from .encoders import RNNEncoder, BiRNNEncoder, BagOfWordsEncoder
+from .tree_encoder import TreeEncoder
 
 from .config import Config
-from models.tree_encoder import TreeEncoder
 
 class BaseAligner(BaseModel):
     '''
@@ -91,6 +91,9 @@ class BaseAligner(BaseModel):
         if self.config.encoder_type == "rnn":
             encoder = RNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
                                  dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
+        elif self.config.encoder_type == 'birnn':
+            encoder = BiRNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
+                                   dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == "bagofwords":
             encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
                                         dropout=self.dropout_placeholder)
