@@ -3,6 +3,12 @@
 import random
 import itertools
 
+def get_functions(prog):
+    return [x for x in prog.split(' ') if x.startswith('tt:') and not x.startswith('tt:$builtin.')]
+
+def is_compound(prog):
+    return len(get_functions(prog)) >= 2
+
 def readfile(filename):
     with open(filename) as fp:
         return [x.strip().split('\t') for x in fp]
@@ -19,7 +25,7 @@ print('= %d programs' % len(paraall_progs))
 
 dev_progs = random.sample(paraall_progs, len(paraall_progs)//10)
 #dev = readfile('./dev.tsv')
-dev_progs = set(x for x in dev_progs if x.startswith('rule'))
+dev_progs = set(x for x in dev_progs if is_compound(x))
 #dev_progs = set(x[1] for x in dev)
 print('%d dev programs' % len(dev_progs))
 dev = [x for x in paraall if x[2] in dev_progs]

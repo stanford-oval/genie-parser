@@ -41,7 +41,22 @@ class BaseAligner(BaseModel):
             eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False)
         self.pred = self.finalize_predictions(eval_preds)
         self.eval_loss = self.add_loss_op(eval_preds)
-    
+
+        weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        size = 0
+        def get_size(w):
+            shape = w.get_shape()
+            if shape.ndims == 2:
+                return int(shape[0])*int(shape[1])
+            else:
+                assert shape.ndims == 1
+                return int(shape[0])
+        for w in weights:
+            sz = get_size(w)
+            print('weight', w, sz)
+            size += sz
+        print('total model size', size)
+
     def add_placeholders(self):
         # batch size x number of words in the sentence
         self.add_input_placeholders()

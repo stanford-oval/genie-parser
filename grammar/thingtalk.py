@@ -492,7 +492,7 @@ class ThingtalkGrammar(AbstractGrammar):
 
     def vectorize_program(self, program, max_length=60):
         vector, length = super().vectorize_program(program, max_length)
-        self._normalize_sequence(vector)
+        self.normalize_sequence(vector)
         return vector, length
 
     def parse(self, program):
@@ -615,7 +615,7 @@ class ThingtalkGrammar(AbstractGrammar):
         
         return end
     
-    def _normalize_sequence(self, seq):
+    def normalize_sequence(self, seq):
         i = 0
         if seq[0] == self.dictionary['rule']:
             i += 1

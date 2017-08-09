@@ -29,7 +29,7 @@ class Seq2SeqDecoder(object):
         return tf.shape(self.input_placeholder)[0]
     
     def decode(self, cell_dec, enc_final_state, output_size, output_embed_matrix, training, grammar_helper=None):
-        linear_layer = tf_core_layers.Dense(output_size)
+        linear_layer = tf_core_layers.Dense(output_size, use_bias=False)
 
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         if training:
