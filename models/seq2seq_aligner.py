@@ -20,6 +20,23 @@ def pad_up_to(vector, size):
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0,0]*(rank-1)], axis=0), shape=((rank+1), 2))
         return tf.pad(vector, padding, mode='constant')
 
+class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
+    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, parent_state):
+        self._wrapped = wrapped
+        self._flat_parent_state = tf.concat(nest.flatten(parent_state), axis=1)
+        
+    def call(self, input, state):
+        concat_input = tf.concat((self._flat_parent_state, input), axis=1)
+        return self._wrapped.call(concat_input, state)
+    
+    @property
+    def output_size(self):
+        return self._wrapped.output_size
+    
+    @property
+    def state_size(self):
+        return self._wrapped.state_size
+
 class Seq2SeqAligner(BaseAligner):
     '''
     A model that implements Seq2Seq: that is, it uses a sequence loss
@@ -41,6 +58,7 @@ class Seq2SeqAligner(BaseAligner):
                 enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
                 enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
         
+        cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
             attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
                                        probability_fn=tf.nn.softmax)
