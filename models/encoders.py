@@ -10,6 +10,8 @@ import tensorflow as tf
 
 from .base_encoder import BaseEncoder
 
+from tensorflow.python.util import nest
+
 class RNNEncoder(BaseEncoder):
     '''
     Use an RNN to encode the sentence
@@ -48,6 +50,12 @@ class BiRNNEncoder(RNNEncoder):
 
             outputs, output_state = tf.nn.bidirectional_dynamic_rnn(fw_cell_enc, bw_cell_enc, inputs, input_length,
                                                                     dtype=tf.float32)
+
+            fw_output_state, bw_output_state = output_state
+            # concat each element of the final state, so that we're compatible with a unidirectional
+            # decoder
+            output_state = nest.pack_sequence_as(fw_output_state, [tf.concat((x, y), axis=1) for x, y in zip(nest.flatten(fw_output_state), nest.flatten(bw_output_state))])
+
             return tf.concat(outputs, axis=2), output_state
 
 
@@ -73,4 +81,5 @@ class BagOfWordsEncoder(BaseEncoder):
                 enc_final_state = (tf.contrib.rnn.LSTMStateTuple(enc_final_state, enc_final_state),)
 
             enc_output = tf.nn.dropout(enc_hidden_states, keep_prob=self._dropout, seed=12345)
+
             return enc_output, enc_final_state

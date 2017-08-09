@@ -22,6 +22,7 @@ def pad_up_to(vector, size):
 
 class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
     def __init__(self, wrapped : tf.contrib.rnn.RNNCell, parent_state):
+        super().__init__()
         self._wrapped = wrapped
         self._flat_parent_state = tf.concat(nest.flatten(parent_state), axis=1)
         
@@ -51,12 +52,16 @@ class Seq2SeqAligner(BaseAligner):
         
         # if encoder and decoder have different sizes, add a projection layer
         if encoder_hidden_size != decoder_hidden_size:
+            assert False, (encoder_hidden_size, decoder_hidden_size)
             with tf.variable_scope('hidden_projection'):
                 kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
             
                 # apply a relu to the projection for good measure
                 enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
                 enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
+        else:
+            # flatten and repack the state
+            enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
         
         cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
