@@ -32,8 +32,7 @@ class Config(object):
             dropout=0.3,
             gradient_clip=0.0,
             l2_regularization=0.0,
-            optimizer='RMSProp',
-            scheduled_sampling=0.0
+            optimizer='RMSProp'
         )
         self._config['input'] = OrderedDict(
             input_words='./input_words.txt',
@@ -134,10 +133,6 @@ class Config(object):
     def optimizer(self):
         return self._config['training']['optimizer']
     
-    @property
-    def scheduled_sampling(self):
-        return float(self._config['training']['scheduled_sampling'])
-
     @property
     def train_input_embeddings(self):
         return self._config['input'].getboolean('train_input_embeddings')
