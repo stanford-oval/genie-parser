@@ -7,12 +7,13 @@ Created on Aug 2, 2017
 import tensorflow as tf
 
 from .base_aligner import BaseAligner
-from .seq2seq_helpers import Seq2SeqDecoder, AttentionSeq2SeqDecoder
+from .seq2seq_helpers import Seq2SeqDecoder
 from .grammar_decoder import GrammarHelper
 
 from grammar.thingtalk import ThingtalkGrammar, MAX_SPECIAL_LENGTH, MAX_PRIMITIVE_LENGTH
 
 from collections import namedtuple
+from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 from tensorflow.python.util import nest
 
 def pad_up_to(vector, size, rank):
@@ -138,14 +139,17 @@ class ThreePartAligner(BaseAligner):
                 adjusted_output = tf.where(output >= grammar.num_control_tokens, output - (first_value_token - grammar.num_control_tokens), output)
                 
                 if self.config.apply_attention:
-                    decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                                      adjusted_output, self.part_sequence_length_placeholders[part], self.batch_number_placeholder,
-                                                      max_length=MAX_PRIMITIVE_LENGTH)
-                else:
-                    decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                             adjusted_output, self.part_sequence_length_placeholders[part], self.batch_number_placeholder,
-                                             max_length=MAX_PRIMITIVE_LENGTH)
-                rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, decoder_initial_state, output_size, output_embed_matrix,
+                    attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
+                                               probability_fn=tf.nn.softmax)
+                    cell_dec = AttentionWrapper(cell_dec, attention,
+                                                cell_input_fn=lambda inputs, _: inputs,
+                                                attention_layer_size=self.config.decoder_hidden_size,
+                                                initial_cell_state=decoder_initial_state)
+                    decoder_initial_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
+                decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
+                                         adjusted_output, self.part_sequence_length_placeholders[part], self.batch_number_placeholder,
+                                         max_length=MAX_PRIMITIVE_LENGTH)
+                rnn_output, sample_ids = decoder.decode(cell_dec, decoder_initial_state, output_size, output_embed_matrix,
                                                         training, grammar_helper=PrimitiveSequenceGrammarHelper(grammar, adjusted_function_token))
                 part_logit_sequence_preds[part] = rnn_output
                 part_token_sequence_preds[part] = tf.cast(sample_ids, dtype=tf.int32)
@@ -163,13 +167,18 @@ class ThreePartAligner(BaseAligner):
             cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
             
             sequence_length = tf.ones((self.batch_size,), dtype=tf.int32) * MAX_SPECIAL_LENGTH
+            decoder_initial_state = original_enc_final_state
             if self.config.apply_attention:
-                decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                                  adjusted_output, sequence_length, self.batch_number_placeholder, max_length=MAX_SPECIAL_LENGTH)
-            else:
-                decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                         adjusted_output, sequence_length, self.batch_number_placeholder, max_length=MAX_SPECIAL_LENGTH)
-            rnn_output, sample_ids = decoder.decode(cell_dec, enc_hidden_states, original_enc_final_state, output_size, output_embed_matrix, training,
+                attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
+                                               probability_fn=tf.nn.softmax)
+                cell_dec = AttentionWrapper(cell_dec, attention,
+                                            cell_input_fn=lambda inputs, _: inputs,
+                                            attention_layer_size=self.config.decoder_hidden_size,
+                                            initial_cell_state=original_enc_final_state)
+                decoder_initial_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
+            decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
+                                     adjusted_output, sequence_length, self.batch_number_placeholder, max_length=MAX_SPECIAL_LENGTH)
+            rnn_output, sample_ids = decoder.decode(cell_dec, decoder_initial_state, output_size, output_embed_matrix, training,
                                                     grammar_helper=SpecialSequenceGrammarHelper(grammar))
             logit_special_sequence = rnn_output
             token_special_sequence = tf.cast(sample_ids, dtype=tf.int32)

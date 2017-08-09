@@ -7,8 +7,9 @@ Created on Jul 25, 2017
 import tensorflow as tf
 
 from .base_aligner import BaseAligner
-from .seq2seq_helpers import Seq2SeqDecoder, AttentionSeq2SeqDecoder
+from .seq2seq_helpers import Seq2SeqDecoder
 
+from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 from tensorflow.python.util import nest
 
 def pad_up_to(vector, size):
@@ -38,15 +39,19 @@ class Seq2SeqAligner(BaseAligner):
             
                 # apply a relu to the projection for good measure
                 enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
-                enc_hidden_states = tf.tensordot(enc_hidden_states, kernel, [[2], [1]])
+                enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
         
         if self.config.apply_attention:
-            decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                              self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
-        else:
-            decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                     self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
-        return decoder.decode(cell_dec, enc_hidden_states, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
+            attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
+                                       probability_fn=tf.nn.softmax)
+            cell_dec = AttentionWrapper(cell_dec, attention,
+                                        cell_input_fn=lambda inputs, _: inputs,
+                                        attention_layer_size=self.config.decoder_hidden_size,
+                                        initial_cell_state=enc_final_state)
+            enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
+        decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
+                                 self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
+        return decoder.decode(cell_dec, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
     
     def finalize_predictions(self, preds):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
