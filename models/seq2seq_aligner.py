@@ -26,7 +26,20 @@ class Seq2SeqAligner(BaseAligner):
     '''
     
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
+        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
+        
+        encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
+        decoder_hidden_size = int(cell_dec.output_size)
+        
+        # if encoder and decoder have different sizes, add a projection layer
+        if encoder_hidden_size != decoder_hidden_size:
+            with tf.variable_scope('hidden_projection'):
+                kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
+            
+                # apply a relu to the projection for good measure
+                enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
+                enc_hidden_states = tf.tensordot(enc_hidden_states, kernel, [[2], [1]])
+        
         if self.config.apply_attention:
             decoder = AttentionSeq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
                                               self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)

@@ -74,13 +74,14 @@ class BaseAligner(BaseModel):
         feed_dict[self.batch_number_placeholder] = batch_number
         return feed_dict
     
-    def make_rnn_cell(self, id):
+    def make_rnn_cell(self, id, for_decoder):
+        hidden_size = self.config.decoder_hidden_size if for_decoder else self.config.encoder_hidden_size
         if self.config.rnn_cell_type == "lstm":
-            cell = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
+            cell = tf.contrib.rnn.LSTMCell(hidden_size)
         elif self.config.rnn_cell_type == "gru":
-            cell = tf.contrib.rnn.GRUCell(self.config.hidden_size)
+            cell = tf.contrib.rnn.GRUCell(hidden_size)
         elif self.config.rnn_cell_type == "basic-tanh":
-            cell = tf.contrib.rnn.BasicRNNCell(self.config.hidden_size)
+            cell = tf.contrib.rnn.BasicRNNCell(hidden_size)
         else:
             raise ValueError("Invalid RNN Cell type")
         cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder, seed=8 + 33 * id)
@@ -88,13 +89,13 @@ class BaseAligner(BaseModel):
 
     def add_encoder_op(self, inputs):
         if self.config.encoder_type == "rnn":
-            encoder = RNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
+            encoder = RNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
                                  dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == "bagofwords":
-            encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
+            encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
                                         dropout=self.dropout_placeholder)
         elif self.config.encoder_type == "tree":
-            encoder = TreeEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.hidden_size,
+            encoder = TreeEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
                                   dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers, max_time=self.config.max_length)
         else:
             raise ValueError("Invalid encoder type")

@@ -17,7 +17,8 @@ class Config(object):
         self._config['model'] = OrderedDict(
             model_type='seq2seq',
             encoder_type='rnn',
-            hidden_size=150,
+            encoder_hidden_size=150,
+            decoder_hidden_size=150,
             function_hidden_size=100,
             function_nonlinearity='tanh',
             first_token_hidden_size=25,
@@ -87,8 +88,20 @@ class Config(object):
         return self._grammar.output_size
         
     @property
-    def hidden_size(self):
-        return int(self._config['model']['hidden_size'])
+    def encoder_hidden_size(self):
+        model_conf = self._config['model']
+        if 'hidden_size' in model_conf:
+            return int(model_conf['hidden_size'])
+        else:
+            return int(model_conf['encoder_hidden_size'])
+        
+    @property
+    def decoder_hidden_size(self):
+        model_conf = self._config['model']
+        if 'hidden_size' in model_conf:
+            return int(model_conf['hidden_size'])
+        else:
+            return int(model_conf['decoder_hidden_size'])
     
     @property
     def function_hidden_size(self):

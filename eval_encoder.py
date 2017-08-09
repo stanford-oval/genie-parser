@@ -16,6 +16,7 @@ matplotlib.use('GTK3Cairo')
 import matplotlib.pyplot as plt
 
 from collections import OrderedDict
+from tensorflow.python.util import nest
 
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data, vectorize
@@ -43,14 +44,8 @@ def run():
 
         inputs, input_lengths, parses, labels, label_lengths = test_data
         
-        final_encoder_state = None
-        final_encoder_size = None
-        if config.rnn_cell_type == 'lstm':
-            final_encoder_state = tf.concat([model.final_encoder_state[-1].c, model.final_encoder_state[-1].h], 1)
-            final_encoder_size = 2 * config.hidden_size
-        else:
-            final_encoder_state = model.final_encoder_state[-1]
-            final_encoder_size = config.hidden_size
+        final_encoder_state = tf.concat(nest.flatten(model.final_encoder_state), axis=1)
+        final_encoder_size = final_encoder_state.get_shape()[1]
 
         final_states = OrderedDict()
         with tf.Session() as sess:

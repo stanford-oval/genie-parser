@@ -119,7 +119,7 @@ class ThreePartAligner(BaseAligner):
                         return tf.layers.dense(layer_concat, like.get_shape()[1])
                 flat_decoder_initial_state = [one_decoder_input(i, like) for i, like in enumerate(flat_enc_final_state)]
                 decoder_initial_state = nest.pack_sequence_as(original_enc_final_state, flat_decoder_initial_state)
-                cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i) for i in range(self.config.rnn_layers)])
+                cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
                 
                 # uncompress function tokens (to look them up in the grammar)
                 if training:
@@ -160,6 +160,7 @@ class ThreePartAligner(BaseAligner):
             output_size = grammar.num_control_tokens + num_value_tokens
             output = self.special_label_placeholder
             adjusted_output = tf.where(output >= grammar.num_control_tokens, output - (first_value_token - grammar.num_control_tokens), output)
+            cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
             
             sequence_length = tf.ones((self.batch_size,), dtype=tf.int32) * MAX_SPECIAL_LENGTH
             if self.config.apply_attention:
