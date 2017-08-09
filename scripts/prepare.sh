@@ -25,6 +25,6 @@ GLOVE=${GLOVE:-$WORKDIR/glove.txt}
 test -f ${GLOVE} || download_glove
 
 python3 ${srcdir}/scripts/gen_grammar.py "${DATABASE_PW}" > ${WORKDIR}/thingpedia.txt
-cat ${DATASET}/*.tsv | cut -f1 | tr " " "\n" | sort -u > ${WORKDIR}/input_words.txt
+cat ${DATASET}/*.tsv | cut -f2 | tr " " "\n" | sort -u > ${WORKDIR}/input_words.txt
 python3 ${srcdir}/scripts/trim_embeddings.py ${WORKDIR}/input_words.txt ${EMBED_SIZE} < ${GLOVE} > ${WORKDIR}/embeddings-${EMBED_SIZE}.txt
 cp ${srcdir}/data/default.conf ${WORKDIR}/default.conf

@@ -22,7 +22,7 @@ from util.loader import unknown_tokens, load_data, vectorize
 from util.general_utils import get_minibatches
 
 def is_function(token):
-    return token.startswith('tt:') and not token.startswith('tt:param.')
+    return token.startswith('tt:')
 
 def run():
     if len(sys.argv) < 3:

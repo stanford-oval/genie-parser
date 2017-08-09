@@ -48,7 +48,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return [x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:') and not x.startswith('tt:param.')]
+            return [x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:')]
 
         n_minibatches = 0
         try:

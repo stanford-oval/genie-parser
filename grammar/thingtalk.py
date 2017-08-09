@@ -107,6 +107,8 @@ class ThingtalkGrammar(AbstractGrammar):
         functions['action']['tt:$builtin.notify'] = []
         
         param_tokens = OrderedSet()
+        param_tokens.add('tt-param:$event')
+        trigger_or_query_params.add('tt-param:$event')
         
         with open(filename, 'r') as fp:
             for line in fp.readlines():
@@ -129,9 +131,9 @@ class ThingtalkGrammar(AbstractGrammar):
                     type = parameters[2*i+1]
                     
                     paramlist.append((param, type))
-                    param_tokens.add('tt:param.' + param)
+                    param_tokens.add('tt-param:' + param)
                     if function_type != 'action':
-                        trigger_or_query_params.add('tt:param.' + param)
+                        trigger_or_query_params.add('tt-param:' + param)
                     
                     if type.startswith('Array('):
                         elementtype = type[len('Array('):-1]
@@ -166,8 +168,6 @@ class ThingtalkGrammar(AbstractGrammar):
         
         for unitlist in UNITS.values():
             tokens += unitlist
-        tokens.append('tt:param.$event')
-        trigger_or_query_params.add('tt:param.$event')
         
         for i in range(MAX_ARG_VALUES):
             for entity in ENTITIES:
@@ -305,14 +305,14 @@ class ThingtalkGrammar(AbstractGrammar):
                 elif for_action:
                     operators = ['is']
                 
-                before_op = new_state(invocation_name + '_tt:param.' + param_name)
-                transitions.append((state_id, before_op, 'tt:param.' + param_name))
-                before_value = new_state(invocation_name + '_tt:param.' + param_name + '_value')
+                before_op = new_state(invocation_name + '_tt-param:.' + param_name)
+                transitions.append((state_id, before_op, 'tt-param:' + param_name))
+                before_value = new_state(invocation_name + '_tt-param:' + param_name + ':value')
 
                 for op in operators:
                     transitions.append((before_op, before_value, op))
                 if is_measure:
-                    before_unit = new_state(invocation_name + '_tt:param.' + param_name + '_unit')
+                    before_unit = new_state(invocation_name + '_tt-param:' + param_name + ':unit')
                     for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, before_unit, '0'))
                         transitions.append((before_value, before_unit, '1'))
@@ -491,82 +491,9 @@ class ThingtalkGrammar(AbstractGrammar):
         return top_batch, special_label_batch, part_function_batches, part_sequence_batches, part_sequence_length_batches
 
     def vectorize_program(self, program, max_length=60):
-        if isinstance(program, str):
-            program = program.split(' ')
-        if program[0] not in ('rule', 'trigger', 'query', 'action'):
-            return super().vectorize_program(['bookkeeping'] + program, max_length)
-
-        vector = np.zeros((max_length,), dtype=np.int32)
-        has_trigger = False
-        has_query = False
-        has_action = False
-        i = 0
-        for token in program:
-            token = token.strip()
-            if len(token) == 0:
-                raise ValueError("empty token in " + str(program))
-            if i == 0:
-                vector[i] = self.dictionary['rule']
-            else:
-                if token.startswith('tt:') and not token.startswith('tt:param.'):
-                    if token in self.functions['trigger']:
-                        has_trigger = True
-                    elif token in self.functions['query']:
-                        if not has_trigger:
-                            vector[i] = self.dictionary['tt:$builtin.now']
-                            has_trigger = True
-                            i += 1
-                            if i == max_length:
-                                break
-                        has_query = True
-                    elif token in self.functions['action']:
-                        if not has_trigger:
-                            vector[i] = self.dictionary['tt:$builtin.now']
-                            has_trigger = True
-                            i += 1
-                            if i == max_length:
-                                break
-                        if not has_query:
-                            vector[i] = self.dictionary['tt:$builtin.noop']
-                            has_query = True
-                            i += 1
-                            if i == max_length:
-                                break
-                        has_action = True
-                    else:
-                        raise ValueError(token + ' not trigger, query or action')
-                if token in self.dictionary:
-                    vector[i] = self.dictionary[token]
-                else:
-                    raise ValueError('Unknown token ' + token)
-            i += 1
-            if i == max_length:
-                break
-        length = i
-        terminated = False
-        while length < max_length:
-            if not has_trigger:
-                vector[length] = self.dictionary['tt:$builtin.now']
-                has_trigger = True
-                length += 1
-            elif not has_query:
-                vector[length] = self.dictionary['tt:$builtin.noop']
-                has_query = True
-                length += 1
-            elif not has_action:
-                vector[length] = self.dictionary['tt:$builtin.notify']
-                has_action = True
-                length += 1
-            else:
-                vector[length] = self.dictionary['<<EOS>>']
-                length += 1
-                terminated = True
-                break
-        if not terminated:
-            raise ValueError("unterminated program", program)
-
+        vector, length = super().vectorize_program(program, max_length)
         self._normalize_sequence(vector)
-        return (vector, length)
+        return vector, length
 
     def parse(self, program):
         curr_state = self.start_state
@@ -576,7 +503,7 @@ class ThingtalkGrammar(AbstractGrammar):
                 raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
             #print("transition", self.state_names[curr_state], "->", self.state_names[next])
             curr_state = next
-            
+
         if curr_state != self.end_state:
             raise ValueError("Premature end of program in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
         #print(*(self.tokens[x] for x in program))
@@ -651,13 +578,12 @@ class ThingtalkGrammar(AbstractGrammar):
     
     def _normalize_invocation(self, seq, start):
         assert self.tokens[seq[start]].startswith('tt:')
-        assert not self.tokens[seq[start]].startswith('tt:param.')
         if self.tokens[seq[start]].startswith('USERNAME_'):
             start += 1
         end = start
         
         params = []
-        while end < len(seq) and seq[end] != self.end and self.tokens[seq[end]].startswith('tt:param.'):
+        while end < len(seq) and seq[end] != self.end and self.tokens[seq[end]].startswith('tt-param:'):
             param_id = seq[end]
             end += 1
             if end >= len(seq) or seq[end] == self.end:

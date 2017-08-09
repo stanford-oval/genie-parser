@@ -160,10 +160,10 @@ def load_data(from_file, input_words, grammar, max_length):
     with open(from_file, 'r') as data:
         for line in data:
             split = line.strip().split('\t')
-            if len(split) == 3:
-                sentence, canonical, parse = split
+            if len(split) == 4:
+                _, sentence, canonical, parse = split
             else:
-                sentence, canonical = split
+                _, sentence, canonical = split
                 parse = None
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
             inputs.append(input)

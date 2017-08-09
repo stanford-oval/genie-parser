@@ -25,7 +25,7 @@ def _read_value(decoded, off, values):
     elif token.startswith('LOCATION_'):
         value['type'] = 'Location'
         value['value'] = values[token]
-    elif token.startswith('tt:param.'):
+    elif token.startswith('tt-param:'):
         value['type'] = 'VarRef'
         value['value'] = dict(id=token)
     elif token.startswith('QUOTED_STRING_'):
@@ -82,7 +82,7 @@ def _read_prim(decoded, off, values):
     if off + consumed < len(decoded) and decoded[off+consumed].startswith('USERNAME_'):
         prim['person'] = values[decoded[off+consumed]]['value']
         consumed += 1
-    while off + consumed < len(decoded) and decoded[off+consumed].startswith('tt:param.'):
+    while off + consumed < len(decoded) and decoded[off+consumed].startswith('tt-param:'):
         pname = decoded[off+consumed]
         op = decoded[off+consumed+1]
         value, consumed_arg = _read_value(decoded, off+consumed+2, values)
