@@ -69,6 +69,7 @@ def run():
         prog_array = [prog for prog in final_states] #if len(final_states[prog]) > 1]
         prog_index = dict()
         num_programs = len(prog_array)
+        print('num programs', num_programs)
         centers = np.zeros((num_programs, final_encoder_size), dtype=np.float32)
         for i, program in enumerate(prog_array):
             prog_index[program] = i
@@ -105,27 +106,26 @@ def run():
                 tuple_of_lists = [[x[i] for x in list_of_tuples] for i in range(inner_length)]
                 return tuple_of_lists
 
-            for gold_batch, predicted_batch, gold_center_batch, predicted_center_batch, input_batch, input_length_batch in get_minibatches(flip(eval_data), config.batch_size):
-                parse_batch = np.zeros((len(input_batch), 2*config.max_length-1), dtype=np.bool)
-                feed_dict = model.create_feed_dict(input_batch, input_length_batch, parse_batch)
-                state_array = sess.run(final_encoder_state, feed_dict=feed_dict)
+            with open('./eval.tsv', 'w') as out:
+                for gold_batch, predicted_batch, gold_center_batch, predicted_center_batch, input_batch, input_length_batch in get_minibatches(flip(eval_data), config.batch_size):
+                    parse_batch = np.zeros((len(input_batch), 2*config.max_length-1), dtype=np.bool)
+                    feed_dict = model.create_feed_dict(input_batch, input_length_batch, parse_batch)
+                    state_array = sess.run(final_encoder_state, feed_dict=feed_dict)
 
-                assert len(state_array) == len(gold_batch)
-                for state, input, input_length, gold, predicted, gold_center, predicted_center in zip(state_array, input_batch, input_length_batch, gold_batch, predicted_batch, gold_center_batch, predicted_center_batch):
-                    gold_predicted_dist = np.linalg.norm(gold_center-predicted_center)
-                    sentence_gold_dist = np.linalg.norm(state-gold_center)
-                    sentence_predicted_dist = np.linalg.norm(state-predicted_center)
-                    sentence = ' '.join(config.reverse_dictionary[x] for x in input[:input_length])
-                    print(gold_predicted_dist, sentence_gold_dist, sentence_predicted_dist, gold, predicted, sentence, sep='\t')
-        sys.exit(0)
+                    assert len(state_array) == len(gold_batch)
+                    for state, input, input_length, gold, predicted, gold_center, predicted_center in zip(state_array, input_batch, input_length_batch, gold_batch, predicted_batch, gold_center_batch, predicted_center_batch):
+                        gold_predicted_dist = np.linalg.norm(gold_center-predicted_center)
+                        sentence_gold_dist = np.linalg.norm(state-gold_center)
+                        sentence_predicted_dist = np.linalg.norm(state-predicted_center)
+                        sentence = ' '.join(config.reverse_dictionary[x] for x in input[:input_length])
+                        print(gold_predicted_dist, sentence_gold_dist, sentence_predicted_dist, gold, predicted, sentence, sep='\t', file=out)
+        print('written eval.tsv')
 
         num_good_sentences = np.zeros((num_programs,), dtype=np.int32)
         sum_good_distance = np.zeros((num_programs,), dtype=np.float32)
         num_bad_sentences = np.zeros((num_programs,), dtype=np.int32)
         sum_bad_distance = np.zeros((num_programs,), dtype=np.float32)
         for i, program in enumerate(prog_array):
-            prog_index[program] = i
-            centers[i] = np.mean([x[0] for x in final_states[program]], axis=0)
             num_good_sentences[i] = len(final_states[program])
 
             for encoding, sentence in final_states[program]:
@@ -133,7 +133,7 @@ def run():
                 sum_good_distance[i] += dist
 
             # negative examples
-            for negative in np.random.choice(prog_array, size=(5,), replace=False):
+            for negative in np.random.choice(prog_array, size=(10,), replace=False):
                 if negative == program:
                     continue
                 num_bad_sentences[i] += len(final_states[negative])
