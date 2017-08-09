@@ -28,7 +28,8 @@ class BaseAligner(BaseModel):
         # the encoder
         with tf.variable_scope('RNNEnc', initializer=xavier):
             enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs)
-            
+        self.final_encoder_state = enc_final_state
+
         # the training decoder
         with tf.variable_scope('RNNDec', initializer=xavier):
             train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=True)

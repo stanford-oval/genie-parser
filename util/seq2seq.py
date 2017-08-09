@@ -48,7 +48,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return set(x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:') and not x.startswith('tt:param.'))
+            return [x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:') and not x.startswith('tt:param.')]
 
         n_minibatches = 0
         try:
@@ -80,12 +80,6 @@ class Seq2SeqEvaluator(object):
 
                         decoded_tuple = tuple(decoded)
 
-                        if beam_pos == 0 and save_to_file:
-                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
-                            gold_str = ' '.join(dict_reverse[l] for l in gold)
-                            decoded_str = ' '.join(dict_reverse[l] for l in decoded)
-                            print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)
-
                         if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
                             ok_0[beam_pos] += 1
 
@@ -93,6 +87,15 @@ class Seq2SeqEvaluator(object):
                             decoded_functions = get_functions(decoded)
                             if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
                                 ok_fn += 1
+
+                        if beam_pos == 0 and save_to_file:
+                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
+                            gold_str = ' '.join(dict_reverse[l] for l in gold)
+                            decoded_str = ' '.join(dict_reverse[l] for l in decoded)
+                            #gold_str = ' '.join(gold_functions)
+                            #decoded_str = ' '.join(decoded_functions)
+                            print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)
+
                         if self.grammar.compare(gold, decoded):
                             correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
