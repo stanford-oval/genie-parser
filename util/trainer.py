@@ -23,16 +23,7 @@ class Trainer(object):
         Constructor
         '''
         self.model = model
-        
-        inputs, input_lengths, parses, labels, label_lengths = train_data
-        inputs = np.array(inputs)
-        parses = np.array(parses)
-        input_lengths = np.reshape(np.array(input_lengths, dtype=np.int32), (len(inputs), 1))
-        labels = np.array(labels)
-        label_lengths = np.reshape(np.array(label_lengths, dtype=np.int32), (len(inputs), 1))
-        stacked_train_data = np.concatenate((inputs, input_lengths, parses, labels, label_lengths), axis=1)
-        assert stacked_train_data.shape == (len(train_data[0]), max_length + 1 + 2*max_length-1 + max_length + 1)
-        self.train_data = stacked_train_data
+        self.train_data = train_data
 
         self.train_eval = train_eval
         self.dev_eval = dev_eval
@@ -44,12 +35,11 @@ class Trainer(object):
         self._n_epochs = n_epochs
         self._extra_kw = kw
 
-    def run_epoch(self, sess, inputs, input_lengths, parses,
-                  labels, label_lengths, losses, grad_norms, batch_number):
+    def run_epoch(self, sess, losses, grad_norms, batch_number):
         n_minibatches, total_loss = 0, 0
-        total_n_minibatches = (len(inputs)+self._batch_size-1)//self._batch_size
+        total_n_minibatches = (len(self.train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
-        for data_batch in get_minibatches([inputs, input_lengths, parses, labels, label_lengths], self._batch_size):
+        for data_batch in get_minibatches(self.train_data, self._batch_size):
             loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=batch_number, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))
@@ -72,16 +62,8 @@ class Trainer(object):
         try:
             for epoch in range(self._n_epochs):
                 start_time = time.time()
-                shuffled = np.array(self.train_data, copy=True)
-                np.random.shuffle(shuffled)
-                inputs = shuffled[:,:self._max_length]
-                input_lengths = shuffled[:,self._max_length]
-                parses = shuffled[:,self._max_length + 1:self._max_length + 1 + 2*self._max_length-1]
-                labels = shuffled[:,3*self._max_length:-1]
-                label_lengths = shuffled[:,-1]
 
-                average_loss = self.run_epoch(sess, inputs, input_lengths, parses,
-                                              labels, label_lengths, losses, grad_norms, batch_number=epoch)
+                average_loss = self.run_epoch(sess, losses, grad_norms, batch_number=epoch)
                 duration = time.time() - start_time
                 print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
                 #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)

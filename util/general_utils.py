@@ -19,7 +19,7 @@ def get_minibatches(data, minibatch_size, shuffle=True):
     Args:
         data: there are two possible values:
             - a list or numpy array
-            - a list where each element is either a list or numpy array
+            - a list or tuple where each element is either a list or numpy array
         minibatch_size: the maximum number of items in a minibatch
         shuffle: whether to randomize the order of returned data
     Returns:
@@ -30,7 +30,7 @@ def get_minibatches(data, minibatch_size, shuffle=True):
               (e.g., features and labels) at the same time.
 
     """
-    list_data = type(data) is list and (type(data[0]) is list or type(data[0]) is np.ndarray)
+    list_data = isinstance(data, (list, tuple)) and isinstance(data[0], (list,np.ndarray))
     data_size = len(data[0]) if list_data else len(data)
     indices = np.arange(data_size)
     if shuffle:
@@ -42,7 +42,7 @@ def get_minibatches(data, minibatch_size, shuffle=True):
 
 
 def minibatch(data, minibatch_idx):
-    return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
+    return data[minibatch_idx] if isinstance(data, np.ndarray) else [data[i] for i in minibatch_idx]
 
 
 def test_all_close(name, actual, expected):
