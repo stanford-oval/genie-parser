@@ -81,7 +81,10 @@ class Config(object):
     
     @property
     def output_embed_size(self):
-        return self._output_embeddings_matrix.shape[1]
+        if self.train_output_embeddings:
+            return int(self._config['output']['output_embed_size'])
+        else:
+            return self._output_embeddings_matrix.shape[1]
         
     @property
     def output_size(self):
