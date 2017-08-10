@@ -43,7 +43,7 @@ class AbstractGrammar(object):
         return vectorize(program, self.dictionary, max_length, add_eos=True)
     
     def get_embeddings(self, use_types=False):
-        return np.identity(self.output_size, tf.float32)
+        return np.identity(self.output_size, np.float32)
     
     def get_init_state(self, batch_size):
         '''
@@ -89,3 +89,6 @@ class AbstractGrammar(object):
         Compare two sequence, to check if they represent semantically equivalent outputs
         '''
         return seq1 == seq2
+
+    def normalize_sequence(self, seq):
+        pass

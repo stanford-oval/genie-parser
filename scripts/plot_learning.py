@@ -41,7 +41,7 @@ def learning():
     X = 200+np.arange(len(loss))
     plt.xlabel('Minibatch #')
     plt.plot(X, loss)
-    plt.plot(X[20:-20], movingaverage(loss,41), 'y-')
+    plt.plot(X[5:-5], movingaverage(loss,11), 'y-')
     plt.legend(["Loss"], loc="upper right")
 
     plt.subplot(3, 2, 3)
