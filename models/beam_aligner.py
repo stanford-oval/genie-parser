@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.   
+from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 '''
 Created on Jul 25, 2017
 
@@ -21,10 +22,394 @@ Created on Jul 25, 2017
 import tensorflow as tf
 
 from tensorflow.python.layers import core as tf_core_layers
+from tensorflow.python.util import nest
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper, BeamSearchDecoder
+
+from collections import namedtuple
 
 from .base_aligner import BaseAligner
 
+BeamSearchOptimizationDecoderOutput = namedtuple('BeamSearchOptimizationDecoderOutput', ('scores', 'predicted_ids', 'parent_ids', 'loss'))
+BeamSearchOptimizationDecoderState = namedtuple('BeamSearchOptimizationDecoderState', ('cell_state', 'gold_cell_state', 'previous_scores', 'previous_gold_scores', 'finished'))
+FinalBeamSearchOptimizationDecoderOutput = namedtuple('FinalBeamSearchOptimizationDecoderOutput', ('beam_search_decoder_output', 'predicted_ids', 'total_loss'))
+
+# Some of the code here was copied from Tensorflow contrib/seq2seq/python/ops/beam_search_decoder.py
+#
+# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0
+
+class BeamSearchOptimizationDecoder():
+    def __init__(self, training, cell, embedding, start_tokens, end_token, initial_state, beam_width, output_layer=None, gold_sequence=None, gold_sequence_length=None):
+        self._training = training
+        self._cell = cell
+        self._output_layer = output_layer
+        self._embedding_fn = lambda ids: tf.nn.embedding_lookup(embedding, ids)
+
+        self._batch_size = tf.size(start_tokens)
+        self._initial_cell_state = nest.map_structure(
+            self._maybe_split_batch_beams,
+            initial_state)
+        self._start_tokens = tf.tile(tf.expand_dims(start_tokens, axis=1), [1, self._beam_width])
+        self._end_token = end_token
+        self._beam_width = beam_width
+
+        self._gold_sequence = gold_sequence
+        self._gold_sequence_length = gold_sequence_length
+        if training:
+            assert self._gold_sequence is not None
+            assert self._gold_sequence_length is not None
+            # transpose gold sequence to be time major
+            self._gold_sequence = tf.transpose(gold_sequence, [1, 0])
+    
+    @property
+    def batch_size(self):
+        return self._batch_size
+    
+    @property
+    def output_size(self):
+        # Return the cell output and the id
+        return BeamSearchOptimizationDecoderOutput(
+            scores=tf.TensorShape([self._beam_width]),
+            predicted_ids=tf.TensorShape([self._beam_width]),
+            parent_ids=tf.TensorShape([self._beam_width]),
+            loss=tf.TensorShape(()))
+        
+    @property
+    def output_dtype(self):
+        return BeamSearchOptimizationDecoderOutput(
+            scores=tf.float32,
+            predicted_ids=tf.int32,
+            parent_ids=tf.int32,
+            loss=tf.float32)
+    
+    def _merge_batch_beams(self, t):
+        """Merges the tensor from a batch of beams into a batch by beams.
+        More exactly, t is a tensor of dimension [batch_size, beam_width, s]. We
+        reshape this into [batch_size*beam_width, s]
+        Args:
+          t: Tensor of dimension [batch_size, beam_width, s]
+        Returns:
+          A reshaped version of t with dimension [batch_size * beam_width, s].
+        """
+        t_shape = tf.shape(t)
+        return tf.reshape(t, tf.concat(([self._batch_size * self._beam_width], t_shape[2:]), axis=0))
+
+    def _split_batch_beams(self, t):
+        """Splits the tensor from a batch by beams into a batch of beams.
+        More exactly, t is a tensor of dimension [batch_size*beam_width, s]. We
+        reshape this into [batch_size, beam_width, s]
+        Args:
+          t: Tensor of dimension [batch_size*beam_width, s].
+          s: (Possibly known) depth shape.
+        Returns:
+          A reshaped version of t with dimension [batch_size, beam_width, s].
+        Raises:
+          ValueError: If, after reshaping, the new tensor is not shaped
+            `[batch_size, beam_width, s]` (assuming batch_size and beam_width
+            are known statically).
+        """
+        t_shape = tf.shape(t)
+        return tf.reshape(t, tf.concat(([self._batch_size, self._beam_width], t_shape[1:]), axis=0))
+
+    def _maybe_split_batch_beams(self, t):
+        """Maybe splits the tensor from a batch by beams into a batch of beams.
+        We do this so that we can use nest and not run into problems with shapes.
+        Args:
+          t: Tensor of dimension [batch_size*beam_width, s]
+          s: Tensor, Python int, or TensorShape.
+        Returns:
+          Either a reshaped version of t with dimension
+          [batch_size, beam_width, s] if t's first dimension is of size
+          batch_size*beam_width or t if not.
+        Raises:
+          TypeError: If t is an instance of TensorArray.
+          ValueError: If the rank of t is not statically known.
+        """
+        return self._split_batch_beams(t) if t.shape.ndims >= 1 else t 
+
+    def _maybe_merge_batch_beams(self, t):
+        """Splits the tensor from a batch by beams into a batch of beams.
+        More exactly, t is a tensor of dimension [batch_size*beam_width, s]. We
+        reshape this into [batch_size, beam_width, s]
+        Args:
+          t: Tensor of dimension [batch_size*beam_width, s]
+          s: Tensor, Python int, or TensorShape.
+        Returns:
+          A reshaped version of t with dimension [batch_size, beam_width, s].
+        Raises:
+          TypeError: If t is an instance of TensorArray.
+          ValueError:  If the rank of t is not statically known.
+        """
+        return self._merge_batch_beams(t) if t.shape.ndims >= 2 else t
+    
+    def initialize(self):
+        """Initialize the decoder.
+        Args:
+          name: Name scope for any created operations.
+        Returns:
+          `(finished, start_inputs, initial_state)`.
+        """
+        start_inputs = self._embedding_fn(self._start_tokens)
+        finished = tf.zeros((self._batch_size, self._beam_width), dtype=tf.bool)
+
+        initial_state = BeamSearchOptimizationDecoderState(
+            cell_state=self._initial_cell_state,
+            gold_cell_state=self._initial_cell_state,
+            previous_scores=tf.zeros([self._batch_size, self._beam_width], dtype=tf.float32),
+            previous_gold_scores=tf.zeros([self._batch_size, self._beam_width], dtype=tf.float32),
+            finished=finished)
+        
+        return (finished, start_inputs, initial_state)
+
+    def step(self, time, inputs, state : BeamSearchOptimizationDecoderState , name=None):
+        """Perform a decoding step.
+        Args:
+          time: scalar `int32` tensor.
+          inputs: A (structure of) input tensors.
+          state: A (structure of) state tensors and TensorArrays.
+          name: Name scope for any created operations.
+        Returns:
+          `(outputs, next_state, next_inputs, finished)`.
+        """
+        batch_size = self._batch_size
+        beam_width = self._beam_width
+        end_token = self._end_token
+
+        with tf.name_scope(name, "BeamSearchDecoderStep", (time, inputs, state)):
+            cell_state = state.cell_state
+            inputs = nest.map_structure(self._merge_batch_beams, inputs)
+            cell_state = nest.map_structure(self._maybe_merge_batch_beams, cell_state)
+            cell_outputs, next_cell_state = self._cell(inputs, cell_state)
+            cell_outputs = nest.map_structure(self._split_batch_beams, cell_outputs)
+            next_cell_state = nest.map_structure(self._maybe_split_batch_beams, next_cell_state, self._cell.state_size)
+            
+            if self._training:
+                gold_cell_state = state.gold_cell_state
+                gold_cell_state = nest.map_structure(self._maybe_merge_batch_beams, cell_state)
+                gold_cell_outputs, next_gold_cell_state = self._cell(inputs, gold_cell_state)
+                gold_cell_outputs = nest.map_structure(self._split_batch_beams, cell_outputs)
+                next_gold_cell_state = nest.map_structure(self._maybe_split_batch_beams, next_cell_state, self._cell.state_size)
+            else:
+                next_gold_cell_state = state.gold_cell_state
+
+            if self._output_layer is not None:
+                cell_outputs = self._output_layer(cell_outputs)
+
+            beam_search_output, beam_search_state = _beam_search_step(
+                training=self._training,
+                time=time,
+                logits=cell_outputs,
+                next_cell_state=next_cell_state,
+                beam_state=state,
+                batch_size=batch_size,
+                beam_width=beam_width,
+                end_token=end_token,
+                gold_cell_outputs=gold_cell_outputs,
+                next_gold_cell_state=next_gold_cell_state,
+                gold_sequence=self._gold_sequence,
+                gold_sequence_length=self._gold_sequence_length)
+
+            finished = beam_search_state.finished
+            sample_ids = beam_search_output.predicted_ids
+            next_inputs = tf.cond(tf.reduce_all(finished), lambda: self._start_inputs,
+                lambda: self._embedding_fn(sample_ids))
+
+            return (beam_search_output, beam_search_state, next_inputs, finished)
+        
+    def finalize(self, outputs : BeamSearchOptimizationDecoderOutput, final_state : BeamSearchOptimizationDecoderState, sequence_lengths):
+        # all output fields are [max_time, batch_size, ...]
+        predicted_ids = tf.contrib.seq2seq.gather_tree(
+            outputs.predicted_ids, outputs.parent_ids,
+            sequence_length=sequence_lengths)
+        total_loss = tf.reduce_sum(outputs.loss, axis=0)
+        return FinalBeamSearchOptimizationDecoderOutput(beam_search_decoder_output=outputs, predicted_ids=predicted_ids, total_loss=total_loss) 
+
+def _beam_search_step(training, time, logits, next_cell_state, beam_state : BeamSearchOptimizationDecoderState, batch_size,
+                      beam_width, end_token, gold_cell_outputs,
+                      next_gold_cell_state, gold_sequence, gold_sequence_length):
+    """Performs a single step of Beam Search Decoding.
+    Args:
+      time: Beam search time step, should start at 0. At time 0 we assume
+        that all beams are equal and consider only the first beam for
+        continuations.
+      logits: Logits at the current time step. A tensor of shape
+        `[batch_size, beam_width, vocab_size]`
+      next_cell_state: The next state from the cell, e.g. an instance of
+        AttentionWrapperState if the cell is attentional.
+      beam_state: Current state of the beam search.
+        An instance of `BeamSearchDecoderState`.
+      batch_size: The batch size for this input.
+      beam_width: Python int.  The size of the beams.
+      end_token: The int32 end token.
+      length_penalty_weight: Float weight to penalize length. Disabled with 0.0.
+    Returns:
+      A new beam state.
+    """
+    previously_finished = beam_state.finished
+    
+    # Calculate the scores for each beam
+    #
+    # Following Wiseman and Rush, we use the unnormalized logits of the current token
+    # as the scores, without softmax
+    # and WITHOUT SUMMING PREVIOUS TIME STEPS (this is different from other implementations
+    # of beam search out there)
+    scores = tf.where(previously_finished, beam_state.previous_scores, logits)
+    print('scores', scores)
+    
+    # if we want to apply grammar constraints, this is the place to do it
+    scores = tf.identity(scores)
+    
+    vocab_size = logits.shape[-1].value
+    time = tf.convert_to_tensor(time, name="time")
+    
+    # During the first time step we only consider the initial beam
+    scores_shape = tf.shape(scores)
+    scores_flat = tf.cond(
+        time > 0,
+        lambda: tf.reshape(scores, [batch_size, -1]),
+        lambda: scores[:, 0])
+    num_available_beam = tf.cond(
+        time > 0,
+        lambda: tf.reduce_prod(scores_shape[1:]),
+        lambda: tf.reduce_prod(scores_shape[2:]))
+    
+
+    # Pick the next beams according to the specified successors function
+    next_beam_size = tf.minimum(tf.convert_to_tensor(beam_width, dtype=tf.int32, name="beam_width"), num_available_beam)
+    next_beam_scores, word_indices = tf.nn.top_k(scores_flat, k=next_beam_size)
+    next_beam_scores.set_shape([None, beam_width])
+    word_indices.set_shape([None, beam_width])
+    
+    # Pick out the beam_ids, and states according to the chosen predictions
+    next_word_ids = tf.to_int32(word_indices % vocab_size)
+    next_beam_ids = tf.to_int32(word_indices / vocab_size)
+    
+    # Pick out the cell_states according to the next_beam_ids. We use a
+    # different gather_shape here because the cell_state tensors, i.e.
+    # the tensors that would be gathered from, all have dimension
+    # greater than two and we need to preserve those dimensions.
+    next_cell_state = nest.map_structure(
+        lambda gather_from: _maybe_tensor_gather_helper(
+            gather_indices=next_beam_ids,
+            gather_from=gather_from,
+            batch_size=batch_size,
+            range_size=beam_width,
+            gather_shape=[batch_size * beam_width, -1]),
+        next_cell_state)
+    
+    # At training time, check for margin violations, and if so reset the beam
+    if training:
+        gold_finished = time >= gold_sequence_length
+        gold_scores = tf.where(gold_finished, beam_state.previous_gold_scores, gold_cell_outputs)
+        
+        # the score of the last element of the beam
+        beam_bottom_indices = tf.stack((tf.range(batch_size), tf.fill((batch_size,), beam_width-1)), axis=1)
+        beam_bottom_score = tf.gather_nd(next_beam_scores, beam_bottom_indices)
+        
+        beam_violation = gold_scores < beam_bottom_score + 1
+        
+        loss = tf.where(beam_violation, 1 - gold_scores + beam_bottom_score, tf.zeros((batch_size,)))
+        
+        reset_token = gold_sequence[time+1]
+        next_word_ids = tf.where(beam_violation, tf.tile(reset_token, [1, beam_width]), next_word_ids)
+        next_beam_scores = tf.where(beam_violation, tf.tile(gold_scores, [1, beam_width], next_beam_scores))
+    
+        # Note: next_beam_ids is used only to reconstruct predicted_ids, so we leave it as is
+        # in practice, it means that we're not fully resetting the beam, rather we're building a bastardized
+        # beam that has the previous sequences
+        # this is ok because predicted_ids is only used at inference time (where none of this resetting
+        # business occurs)
+        next_cell_state = nest.map_structure(lambda gold, predicted: tf.where(beam_violation, tf.tile(gold, [1, beam_width]), predicted),
+                                             next_gold_cell_state,
+                                             next_cell_state)
+    else:
+        loss = tf.zeros((batch_size,), dtype=tf.float32)
+
+    previously_finished = _tensor_gather_helper(
+        gather_indices=next_beam_ids,
+        gather_from=previously_finished,
+        batch_size=batch_size,
+        range_size=beam_width,
+        gather_shape=[-1])
+    next_finished = tf.logical_or(previously_finished, tf.equal(next_word_ids, end_token))
+
+    next_state = BeamSearchOptimizationDecoderState(
+        cell_state=next_cell_state,
+        gold_cell_state=next_gold_cell_state,
+        previous_scores=scores,
+        previous_gold_scores=gold_scores,
+        finished=next_finished)
+    
+    output = BeamSearchOptimizationDecoderOutput(
+        scores=next_beam_scores,
+        predicted_ids=next_word_ids,
+        parent_ids=next_beam_ids,
+        loss=loss)
+    
+    return output, next_state
+
+def _maybe_tensor_gather_helper(gather_indices, gather_from, batch_size,
+                                range_size, gather_shape):
+    """Maybe applies _tensor_gather_helper.
+    This applies _tensor_gather_helper when the gather_from dims is at least as
+    big as the length of gather_shape. This is used in conjunction with nest so
+    that we don't apply _tensor_gather_helper to inapplicable values like scalars.
+    Args:
+      gather_indices: The tensor indices that we use to gather.
+      gather_from: The tensor that we are gathering from.
+      batch_size: The batch size.
+      range_size: The number of values in each range. Likely equal to beam_width.
+      gather_shape: What we should reshape gather_from to in order to preserve the
+        correct values. An example is when gather_from is the attention from an
+        AttentionWrapperState with shape [batch_size, beam_width, attention_size].
+        There, we want to preserve the attention_size elements, so gather_shape is
+        [batch_size * beam_width, -1]. Then, upon reshape, we still have the
+        attention_size as desired.
+    Returns:
+      output: Gathered tensor of shape tf.shape(gather_from)[:1+len(gather_shape)]
+        or the original tensor if its dimensions are too small.
+    """
+    if gather_from.shape.ndims >= len(gather_shape):
+        return _tensor_gather_helper(
+            gather_indices=gather_indices,
+            gather_from=gather_from,
+            batch_size=batch_size,
+            range_size=range_size,
+            gather_shape=gather_shape)
+    else:
+        return gather_from
+
+
+def _tensor_gather_helper(gather_indices, gather_from, batch_size,
+                          range_size, gather_shape):
+    """Helper for gathering the right indices from the tensor.
+    This works by reshaping gather_from to gather_shape (e.g. [-1]) and then
+    gathering from that according to the gather_indices, which are offset by
+    the right amounts in order to preserve the batch order.
+    Args:
+      gather_indices: The tensor indices that we use to gather.
+      gather_from: The tensor that we are gathering from.
+      batch_size: The input batch size.
+      range_size: The number of values in each range. Likely equal to beam_width.
+      gather_shape: What we should reshape gather_from to in order to preserve the
+        correct values. An example is when gather_from is the attention from an
+        AttentionWrapperState with shape [batch_size, beam_width, attention_size].
+        There, we want to preserve the attention_size elements, so gather_shape is
+        [batch_size * beam_width, -1]. Then, upon reshape, we still have the
+        attention_size as desired.
+    Returns:
+      output: Gathered tensor of shape tf.shape(gather_from)[:1+len(gather_shape)]
+    """
+    range_ = tf.expand_dims(tf.range(batch_size) * range_size, 1)
+    gather_indices = tf.reshape(gather_indices + range_, [-1])
+    output = tf.gather(tf.reshape(gather_from, gather_shape), gather_indices)
+    final_shape = tf.shape(gather_from)[:1 + len(gather_shape)]
+    final_static_shape = (tf.TensorShape([None]).concatenate(gather_from.shape[1:1 + len(gather_shape)]))
+    output = tf.reshape(output, final_shape)
+    output.set_shape(final_static_shape)
+    return output
+    
 class BeamAligner(BaseAligner):
     '''
     A Beam Search based semantic parser, using beam search for
@@ -52,69 +437,23 @@ class BeamAligner(BaseAligner):
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         
         print(enc_final_state)
-        decoder = BeamSearchDecoder(cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
-                                    tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.beam_size),
-                                    self.config.beam_size, output_layer=linear_layer)
+        decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
+                                                tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.beam_size),
+                                                beam_width=self.config.beam_size, output_layer=linear_layer,
+                                                gold_sequence=self.input_placeholder if training else None,
+                                                gold_sequence_length=self.input_length_placeholder if training else None)
         
         if self.config.use_grammar_constraints:
             raise NotImplementedError("Grammar constraints are not implemented for the beam search yet")
         
-        final_outputs, _, final_lengths = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=self.config.max_length)
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=self.config.max_length)
+        return final_outputs
         
-        # final_outputs.predicted_ids is [batch_size, max_time, beam_width] for some dumb reason
-        # transpose it to be [batch_size, beam_width, max_time] which is what makes sense
-        predicted_ids = tf.transpose(final_outputs.predicted_ids, [0, 2, 1])
-        
-        if training:
-            return final_outputs.beam_search_decoder_output.scores[:,-1,:], predicted_ids
-        else:
-            return predicted_ids
-        
+    def finalize_predictions(self, preds : FinalBeamSearchOptimizationDecoderOutput):
+        # predicted_ids is [batch_size, max_time, beam_width] because that's how gather_tree produces it
+        # transpose it to be [batch_size, beam_width, max_time] which is what we expect
+        return tf.transpose(preds.predicted_ids, [0, 2, 1])
     
-    def add_loss_op(self, preds):
-        scores, predicted_ids = preds
-        assert predicted_ids.get_shape()[1] == self.config.beam_size
-        
-        # pad the predictions up to max_length
-        assert self.config.grammar.dictionary['<<PAD>>'] == 0
-        actual_length = tf.shape(predicted_ids)[1]
-        length_diff = tf.reshape(self.config.max_length - actual_length, shape=(1,))
-        
-        # Padding works as:
-        # [before batch, after batch, before beam, after beam, before time, after time]
-        padding = tf.reshape(tf.concat([[0, 0, 0, 0, 0], length_diff], axis=0), shape=(3, 2))
-        preds = tf.pad(predicted_ids, padding, mode='constant')
-        preds.set_shape((None, self.config.beam_size, self.config.max_length))
-        
-        equal = tf.equal(preds, tf.expand_dims(self.output_placeholder, axis=1))
-        pred_compat = tf.reduce_all(equal, axis=2)
-        # shape is [batch_size, beam_width]
-        assert pred_compat.get_shape()[1] == self.config.beam_size
-        
-        # normalize pred compat to be a probability distribution
-        pred_compat = tf.cast(pred_compat, dtype=tf.float32)
-        pred_sum = tf.reduce_sum(pred_compat, axis=1)
-        # shape is [batch_size,]
-        
-        # the loss of each example in the minibatch
-        # this is the softmax cross entropy if the good program is in the beam,
-        # and an arbitrary high value otherwise
-        # in the case we're in the beam, the cross entropy loss will raise the score of the good
-        # entry in the beam and lower everything else
-        # because the beam is sorted by score, the good entry in the beam will move up
-        #
-        # if we're out of the beam it does not really matter what we do,
-        # the gradient wrt the inputs is 0 and there will be no update
-        #
-        # the proper way to implement Beam Search Optimization is to use a decoder at training time
-        # that recovers the gold sequence if it falls off the beam
-        # but we don't implement that yet
-        print(scores)
-        stochastic_loss = tf.where(pred_sum > 0,
-            tf.nn.softmax_cross_entropy_with_logits(labels=(pred_compat / tf.expand_dims(pred_sum, axis=1)), logits=scores),
-            tf.ones((self.batch_size,)) * 1e+5)
-
-        return tf.reduce_mean(stochastic_loss)
-        
-        
-        
+    def add_loss_op(self, preds : FinalBeamSearchOptimizationDecoderOutput):
+        # For beam search, the loss is computed as we go along, so we just sum it here
+        return preds.total_loss

@@ -180,6 +180,9 @@ class BaseAligner(BaseModel):
 
         return tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(self.config.l2_regularization), weights)
 
+    def finalize_predictions(self, preds):
+        raise NotImplementedError()
+
     def add_loss_op(self, preds):
         raise NotImplementedError()
 
