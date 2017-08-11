@@ -92,7 +92,7 @@ class Seq2SeqEvaluator(object):
                             decoded = decoded[:decoded.index(self.grammar.end)]
                         except ValueError:
                             pass
-                        self.grammar.normalize_sequence(decoded)
+                        #self.grammar.normalize_sequence(decoded)
 
                         decoded_tuple = tuple(decoded)
 

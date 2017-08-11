@@ -74,7 +74,7 @@ def learning():
     plt.xlabel('Train Epoch')
     plt.plot(X, train_eval_loss)
     plt.plot(X, dev_eval_loss)
-    plt.plot(X[2:-2], movingaverage(dev_eval_loss, 5), '--')
+    #plt.plot(X[2:-2], movingaverage(dev_eval_loss, 5), '--')
     plt.legend(['Train Loss', 'Dev Loss'], loc='upper right')
 
     X = np.arange(len(train_acc))

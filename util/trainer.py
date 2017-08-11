@@ -88,8 +88,9 @@ class Trainer(object):
                     if best is None or dev_acc > best:
                         print('Found new best model')
                         self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                        best = dev_acc
-                        best_train = train_acc
+                        if dev_acc > 0:
+                            best = dev_acc
+                            best_train = train_acc
                     accuracy_stats.append((float(train_acc), float(dev_acc)))
                     function_accuracy_stats.append((float(train_acc_fn), float(dev_acc_fn)))
                     eval_losses.append((float(train_eval_loss), float(dev_eval_loss)))
