@@ -81,6 +81,9 @@ def _read_value(decoded, off, values):
         entity_type = token[len('GENERIC_ENTITY_'):]
         value['type'] = 'Entity(' + entity_type + ')'
         value['value'] = values[token]
+    elif token.startswith('tt-device:'):
+        value['type'] = 'Entity(tt:device)'
+        value['value'] = token[len('tt-device:'):]
     else:
         # assume an enum, and hope for the best
         value['type'] = 'Enum'
@@ -114,7 +117,7 @@ def to_json(decoded, grammar, values):
         value, _ = _read_value(decoded, 1, values)
         return dict(answer=value)
     elif type == 'command':
-        if decoded[1] != 'type':
+        if decoded[1] != 'help':
             raise ValueError('Invalid command type ' + decoded[1])
         if decoded[2] == 'generic':
             return dict(command=dict(type='help', value=dict(value='generic')))
