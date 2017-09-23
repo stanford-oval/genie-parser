@@ -1,0 +1,7 @@
+[Unit]
+Description=Almond Natural Language Parser (NN based)
+
+[Service]
+ExecStart=/opt/almond-nnparser/run_server.py en:./model.1
+WorkingDirectory=/srv/data/almond-nnparser-server
+User=sempre
