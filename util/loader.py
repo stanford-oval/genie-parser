@@ -56,6 +56,7 @@ def vectorize(sentence, words, max_length, add_eos=False):
     #vector[0] = words['<<GO>>']
     if isinstance(sentence, str):
         sentence = sentence.split(' ')
+    i = 0
     for i, word in enumerate(sentence):
         word = word.strip()
         if len(word) == 0:

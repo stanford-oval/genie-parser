@@ -35,8 +35,12 @@ def main():
             def do_type(dictionary, channel_type):
                 for name, channel in dictionary.items():
                     print(channel_type, 'tt:' + device['kind'] + '.' + name, end=' ')
-                    for argname, argtype in zip(channel['args'], channel['types']):
-                        print(argname, argtype, end=' ')
+                    for argname, argtype, required, is_input in zip(channel['args'], channel['types'], channel['required'], channel['is_input']):
+                        if is_input:
+                            direction = 'in'
+                        else:
+                            direction = 'out'
+                        print(argname, argtype, direction, end=' ')
                     print()
             do_type(device['triggers'], 'trigger')
             do_type(device['queries'], 'query')

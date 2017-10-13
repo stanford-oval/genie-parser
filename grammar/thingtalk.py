@@ -15,28 +15,28 @@ ENTITIES = ['USERNAME', 'HASHTAG',
             'DATE', 'TIME', 'DURATION',
             'LOCATION']
 
-BEGIN_TOKENS = ['bookkeeping', 'rule']
+BEGIN_TOKENS = ['bookkeeping', 'rule', 'policy', 'setup']
 BOOKKEEPING_TOKENS = ['special', 'answer', 'command', 'help', 'generic']
 SPECIAL_TOKENS = ['tt:root.special.yes', 'tt:root.special.no', 'tt:root.special.nevermind',
                   'tt:root.special.makerule', 'tt:root.special.failed']
 
-OPERATORS = ['is', 'contains', '>', '<', 'has']
+OPERATORS = ['if', 'and', 'or', '=', 'contains', '>', '<', '>=', '<=', 'has', 'starts_with', 'ends_with']
 VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_location', '1', '0']
 TYPES = {
-    'Location': (['is'], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
-    'Boolean':  (['is'], ['true', 'false']),
-    'Bool': (['is'], ['true', 'false']),
-    'String': (['is', 'contains'], ['QUOTED_STRING']),
-    'Date': (['is'], ['DATE']),
-    'Time': (['is'], ['TIME']),
-    'Number': (['is', '<', '>'], ['NUMBER', '1', '0']),
-    'Entity(tt:contact)': (['is'], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:username)': (['is'], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:hashtag)': (['is'], ['HASHTAG', 'QUOTED_STRING']),
-    'Entity(tt:phone_number)': (['is'], ['USERNAME', 'PHONE_NUMBER', 'QUOTED_STRING']),
-    'Entity(tt:email_address)': (['is'], ['USERNAME', 'EMAIL_ADDRESS', 'QUOTED_STRING']),
-    'Entity(tt:url)': (['is'], ['URL', 'QUOTED_STRING']),
-    'Entity(tt:picture)': (['is'], [])
+    'Location': (['='], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
+    'Boolean':  (['='], ['true', 'false']),
+    'Bool': (['='], ['true', 'false']),
+    'String': (['=', 'contains', 'starts_with', 'ends_with'], ['QUOTED_STRING']),
+    'Date': (['=', '>', '<'], ['DATE']),
+    'Time': (['='], ['TIME']),
+    'Number': (['=', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
+    'Entity(tt:contact)': (['='], ['USERNAME', 'QUOTED_STRING']),
+    'Entity(tt:username)': (['='], ['USERNAME', 'QUOTED_STRING']),
+    'Entity(tt:hashtag)': (['='], ['HASHTAG', 'QUOTED_STRING']),
+    'Entity(tt:phone_number)': (['='], ['USERNAME', 'PHONE_NUMBER', 'QUOTED_STRING']),
+    'Entity(tt:email_address)': (['='], ['USERNAME', 'EMAIL_ADDRESS', 'QUOTED_STRING']),
+    'Entity(tt:url)': (['='], ['URL', 'QUOTED_STRING']),
+    'Entity(tt:picture)': (['='], [])
 }
 TYPE_RENAMES = {
     'Username': 'Entity(tt:username)',
@@ -126,11 +126,12 @@ class ThingtalkGrammar(AbstractGrammar):
                 paramlist = []
                 functions[function_type][function] = paramlist
                 
-                for i in range(len(parameters)//2):
-                    param = parameters[2*i]
-                    type = parameters[2*i+1]
+                for i in range(len(parameters)//3):
+                    param = parameters[3*i]
+                    type = parameters[3*i+1]
+                    direction = parameters[3*i+2]
                     
-                    paramlist.append((param, type))
+                    paramlist.append((param, type, direction))
                     param_tokens.add('tt-param:' + param)
                     if function_type != 'action':
                         trigger_or_query_params.add('tt-param:' + param)
@@ -260,57 +261,43 @@ class ThingtalkGrammar(AbstractGrammar):
             for unit in UNITS[base_unit]:
                 transitions.append((before_unit, self.before_end_state, unit))
         
-        def do_invocation(invocation_name, params, for_action=False):
+        def do_invocation(invocation_name, params, for_prim):
             state_id = new_state(invocation_name)
             
             # allow one USERNAME_ parameter to follow the invocation immediately
             for i in range(MAX_ARG_VALUES):
                 transitions.append((state_id, state_id, 'USERNAME_' + str(i)))
             
-            # go to each parameter
-            for param_name, param_type in params:
-                if param_type in ('Any'):
+            # go to each "in" parameter
+            for param_name, param_type, param_direction in params:
+                if param_direction == 'out':
+                    continue
+                if param_type in ('Any') or param_type.startswith('Array('):
                     continue
                 elementtype = param_type
-                is_array = False
                 is_measure = False
-                if param_type.startswith('Array('):
-                    is_array = True
-                    elementtype = param_type[len('Array('):-1]
                 if elementtype in TYPE_RENAMES:
                     elementtype = TYPE_RENAMES[elementtype]
                 if elementtype.startswith('Measure('):
                     is_measure = True
-                    operators = ['is', '<', '>']
                     base_unit = elementtype[len('Measure('):-1]
                     values = UNITS[base_unit]
                 elif elementtype.startswith('Enum('):
-                    operators = ['is']
                     values = enum_types[elementtype]
                 elif elementtype == 'Entity(tt:device)':
-                    operators = ['is']
                     values = devices
                 elif elementtype in TYPES:
                     operators, values = TYPES[elementtype]
                 elif elementtype.startswith('Entity('):
-                    operators = ['is']
                     values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
                 else:
-                    operators, values = TYPES[elementtype]
-                if is_array:
-                    if for_action:
-                        continue
-                    else:
-                        operators = ['has']
-                elif for_action:
-                    operators = ['is']
+                    _, values = TYPES[elementtype]
+                if len(values) == 0 and for_prim == 'trigger':
+                    continue
                 
-                before_op = new_state(invocation_name + '_tt-param:.' + param_name)
-                transitions.append((state_id, before_op, 'tt-param:' + param_name))
-                before_value = new_state(invocation_name + '_tt-param:' + param_name + ':value')
+                before_value = new_state(invocation_name + '_tt-param:' + param_name)
+                transitions.append((state_id, before_value, 'tt-param:' + param_name))
 
-                for op in operators:
-                    transitions.append((before_op, before_value, op))
                 if is_measure:
                     before_unit = new_state(invocation_name + '_tt-param:' + param_name + ':unit')
                     for i in range(MAX_ARG_VALUES):
@@ -329,31 +316,122 @@ class ThingtalkGrammar(AbstractGrammar):
                 if is_measure and base_unit == 'ms':
                     for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, state_id, 'DURATION_' + str(i)))
-                for v in trigger_or_query_params:
-                    transitions.append((before_value, state_id, v))
+                if for_prim != 'trigger':
+                    for v in trigger_or_query_params:
+                        transitions.append((before_value, state_id, v))
+            
+            if for_prim == 'action':
+                return (state_id, -1)
+            predicate_state = new_state(invocation_name + '_predicate')
+            before_and_or = new_state(invocation_name + '_and_or')
+            transitions.append((before_and_or, predicate_state, 'and'))
+            transitions.append((before_and_or, predicate_state, 'or'))
+            
+            any_predicate = False
+            for param_name, param_type, _ in params:
+                if param_type in ('Any'):
+                    continue
+                
+                elementtype = param_type
+                is_array = False
+                is_measure = False
+                if param_type.startswith('Array('):
+                    is_array = True
+                    elementtype = param_type[len('Array('):-1]
+                if elementtype in TYPE_RENAMES:
+                    elementtype = TYPE_RENAMES[elementtype]
+                if elementtype.startswith('Measure('):
+                    is_measure = True
+                    operators = ['=', '<', '>']
+                    base_unit = elementtype[len('Measure('):-1]
+                    values = UNITS[base_unit]
+                elif elementtype.startswith('Enum('):
+                    operators = ['=']
+                    values = enum_types[elementtype]
+                elif elementtype == 'Entity(tt:device)':
+                    operators = ['=']
+                    values = devices
+                elif elementtype in TYPES:
+                    operators, values = TYPES[elementtype]
+                elif elementtype.startswith('Entity('):
+                    operators = ['=']
+                    values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
+                else:
+                    operators, values = TYPES[elementtype]
+                if is_array:
+                    operators = ['has']
+                if len(values) == 0 and for_prim == 'trigger':
+                    continue
+                
+                before_op = new_state(invocation_name + '_pred_tt-param:' + param_name)
+                transitions.append((predicate_state, before_op, 'tt-param:' + param_name))
+                before_value = new_state(invocation_name + '_pred_tt-param:' + param_name + ':value')
+                any_predicate = True
+
+                for op in operators:
+                    transitions.append((before_op, before_value, op))
+                if is_measure:
+                    before_unit = new_state(invocation_name + '_pred_tt-param:' + param_name + ':unit')
+                    for i in range(MAX_ARG_VALUES):
+                        transitions.append((before_value, before_unit, '0'))
+                        transitions.append((before_value, before_unit, '1'))
+                        transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
+                    for unit in values:
+                        transitions.append((before_unit, before_and_or, unit))
+                else:
+                    for v in values:
+                        if v[0].isupper():
+                            for i in range(MAX_ARG_VALUES):
+                                transitions.append((before_value, before_and_or, v + '_' + str(i)))
+                        else:
+                            transitions.append((before_value, before_and_or, v))
+                if is_measure and base_unit == 'ms':
+                    for i in range(MAX_ARG_VALUES):
+                        transitions.append((before_value, before_and_or, 'DURATION_' + str(i)))
+                if for_prim != 'trigger':
+                    for v in trigger_or_query_params:
+                        transitions.append((before_value, before_and_or, v))
                     
-            return state_id
+            if any_predicate:
+                transitions.append((state_id, predicate_state, 'if'))
+                return (state_id, before_and_or)
+            else:
+                return (state_id, -1)
         
         # rules
         rule_id = new_state('rule')
         transitions.append((self.start_state, rule_id, 'rule'))
+        policy_id = new_state('policy')
+        transitions.append((self.start_state, policy_id, 'policy'))
+        for i in range(MAX_ARG_VALUES):
+            transitions.append((policy_id, rule_id, 'USERNAME_' + str(i)))
+        setup_id = new_state('setup')
+        transitions.append((self.start_state, setup_id, 'setup'))
+        for i in range(MAX_ARG_VALUES):
+            transitions.append((setup_id, rule_id, 'USERNAME_' + str(i)))
+        
         trigger_ids = []
         query_ids = []
         
         for trigger_name, params in triggers.items():
-            state_id = do_invocation(trigger_name, params, for_action=False)
-            transitions.append((rule_id, state_id, trigger_name))
-            trigger_ids.append(state_id)
+            begin_state, end_state = do_invocation(trigger_name, params, 'trigger')
+            transitions.append((rule_id, begin_state, trigger_name))
+            transitions.append((policy_id, begin_state, trigger_name))
+            trigger_ids.append(begin_state)
+            if end_state >= 0:
+                trigger_ids.append(end_state)
         for query_name, params in queries.items():
-            state_id = do_invocation(query_name, params, for_action=False)
+            begin_state, end_state = do_invocation(query_name, params, 'query')
             for trigger_id in trigger_ids:
-                transitions.append((trigger_id, state_id, query_name))
-            query_ids.append(state_id)
+                transitions.append((trigger_id, begin_state, query_name))
+            query_ids.append(begin_state)
+            if end_state >= 0:
+                query_ids.append(end_state)
         for action_name, params in actions.items():
-            state_id = do_invocation(action_name, params, for_action=True)
+            begin_state, _ = do_invocation(action_name, params, 'action')
             for query_id in query_ids:
-                transitions.append((query_id, state_id, action_name))
-            transitions.append((state_id, self.end_state, '<<EOS>>'))
+                transitions.append((query_id, begin_state, action_name))
+            transitions.append((begin_state, self.end_state, '<<EOS>>'))
             
         # do a second copy of the transition matrix for split sequences
         self.function_states = np.zeros((self.num_functions,), dtype=np.int32)
@@ -361,9 +439,10 @@ class ThingtalkGrammar(AbstractGrammar):
         for part in ('trigger', 'query', 'action'):
             for function_name, params in self.functions[part].items():
                 token = self.dictionary[function_name] - self.num_control_tokens - self.num_begin_tokens
-                state_id = do_invocation(function_name, params, for_action=(part == 'action'))
-                transitions.append((state_id, self.end_state, '<<EOS>>'))
-                self.function_states[token] = state_id
+                begin_state, end_state = do_invocation(function_name, params, part)
+                transitions.append((begin_state, self.end_state, '<<EOS>>'))
+                transitions.append((end_state, self.end_state, '<<EOS>>'))
+                self.function_states[token] = begin_state
                 
 
         # now build the actual DFA
