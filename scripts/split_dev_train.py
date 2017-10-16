@@ -17,6 +17,8 @@
 
 import random
 import itertools
+import sys
+import os
 
 def get_functions(prog):
     return [x for x in prog.split(' ') if x.startswith('tt:') and not x.startswith('tt:$builtin.')]
@@ -33,32 +35,79 @@ def writefile(filename, data):
         for sentence in data:
             print(*sentence, sep='\t', file=fp)
 
-paraall = readfile('./paraphrasing-train+dev.tsv')
-print('%d sentences in paraphrasing-train+dev' % len(paraall))
-paraall_progs = set(x[2] for x in paraall)
-print('= %d programs' % len(paraall_progs))
+traindevfiles = set()
+generatedfiles = set()
 
-dev_progs = random.sample(paraall_progs, len(paraall_progs)//10)
-#dev = readfile('./dev.tsv')
-dev_progs = set(x for x in dev_progs if is_compound(x))
-#dev_progs = set(x[1] for x in dev)
+with os.scandir(sys.argv[1]) as iter:
+    for entry in iter:
+        if not entry.is_file() or not entry.name.endswith('.tsv'):
+            continue
+        if entry.name.endswith('-train+dev.tsv'):
+            print('Found train+dev set ' + entry.name[:-len('-train+dev.tsv')])
+            traindevfiles.add(entry.path)
+        elif entry.name.endswith('-train.tsv') or entry.name.endswith('-dev.tsv') or entry.name in ('train.tsv', 'train-nosynthetic.tsv', 'dev.tsv', 'base-author.tsv'):
+            continue
+        elif entry.name.startswith('generated'):
+            generatedfiles.add(entry.path)
+            print('Found generated set ' + entry.name[:-4])
+        else:
+            print('Ignored set ' + entry.name[:-4])
+
+traindevsets = dict()
+traindevall = []
+traindevprogs = set()
+
+for filename in traindevfiles:
+    prefix = os.path.basename(filename)[:-len('-train+dev.tsv')]
+    sentences = readfile(filename)
+    print('%d sentences in %s' % (len(sentences), prefix))
+    traindevsets[prefix] = sentences
+    traindevall += sentences
+    progs = set(x[2] for x in sentences)
+    print('= %d programs' % len(progs))
+    traindevprogs |= progs
+
+print('Total train+dev: %d sentences, %d programs' % (len(traindevall), len(traindevprogs)))
+
+dev_progs = random.sample(traindevprogs, len(traindevprogs)//10)
+#dev_progs = set(x for x in dev_progs if is_compound(x))
+
 print('%d dev programs' % len(dev_progs))
-dev = [x for x in paraall if x[2] in dev_progs]
-print('%d dev sentences' % len(dev))
-paratrain = [x for x in paraall if x[2] not in dev_progs]
-print('%d para train sentences' % len(paratrain))
+devall = [x for x in traindevall if x[2] in dev_progs]
+print('%d dev sentences' % len(devall))
 
-base_author = readfile('./base-author.tsv')
-print('%d base author sentences' % len(base_author))
+trainsets = dict()
+devsets = dict()
+trainall = []
+for prefix,dataset in traindevsets.items():
+    train = [x for x in dataset if x[2] not in dev_progs]
+    print('%d %s train sentences' % (len(train), prefix))
+    trainsets[prefix] = train
+    trainall += train
+    dev = [x for x in dataset if x[2] in dev_progs]
+    print('%d %s dev sentences' % (len(dev), prefix))
+    devsets[prefix] = dev
+
+base_author = readfile(os.path.join(sys.argv[1], 'base-author.tsv'))
+print('%d base-author sentences' % len(base_author))
 base_author = [x for x in base_author if x[2] not in dev_progs]
 print('= %d after filtering' % len(base_author))
 
-other = sum((readfile(x) for x in ('./generated.tsv', './generated-cheatsheet.tsv')), [])
-print('%d other train sentences' % len(other))
-other = [x for x in other if x[2] not in dev_progs]
-print('= %d after filtering' % len(other))
+generated = []
+for filename in generatedfiles:
+    prefix = os.path.basename(filename)[:-4]
+    other = readfile(filename)
+    print('%d %s train sentences' % (len(other), prefix))
+    other = [x for x in other if x[2] not in dev_progs]
+    print('= %d after filtering' % len(other))
+    generated += other
 
-writefile('./dev.tsv', dev)
-writefile('./paraphrasing-train.tsv', paratrain)
-writefile('./filtered-base-author.tsv', base_author)
-writefile('./filtered-generated.tsv', other)
+writefile(os.path.join(sys.argv[1], 'dev.tsv'), devall)
+for prefix,dataset in trainsets.items():
+    writefile(os.path.join(sys.argv[1], prefix + '-train.tsv'), dataset)
+for prefix,dataset in devsets.items():
+    writefile(os.path.join(sys.argv[1], prefix + '-dev.tsv'), dataset)
+writefile(os.path.join(sys.argv[1], 'filtered-base-author.tsv'), base_author)
+writefile(os.path.join(sys.argv[1], 'filtered-generated.tsv'), generated)
+writefile(os.path.join(sys.argv[1], 'train-nosynthetic.tsv'), itertools.chain(base_author, trainall))
+writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall, generated))
