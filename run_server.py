@@ -26,6 +26,8 @@ import numpy as np
 import tensorflow as tf
 import tornado.ioloop
 import configparser
+import ssl
+import pwd, grp
 from concurrent.futures import ThreadPoolExecutor
 
 from models import Config, create_model
@@ -64,9 +66,15 @@ def run():
     if sys.version_info[2] >= 6:
         thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
     else:
-        thread_pool = ThreadPoolExecutor()
+        thread_pool = ThreadPoolExecutor(max_workers=32)
     app = Application(config, thread_pool)
-    app.listen(config.port)
+
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_ctx.load_cert_chain(config.ssl_chain, config.ssl_key)
+    app.listen(config.port, ssl_options=ssl_ctx)
+    os.setgid(grp.getgrnam('sempre')[2])
+    os.setuid(pwd.getpwnam('sempre')[2])
+
     tokenizer_service = TokenizerService()
     tokenizer_service.run()
     
