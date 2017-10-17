@@ -124,19 +124,42 @@ def to_json(decoded, grammar, values):
         else:
             return dict(command=dict(type='help', value=dict(value=values[decoded[2]])))
     else:
-        # rule
+        # rule, setup or policy
         rule = dict()
         off = 1
+        principal = None
+        if decoded[off].startswith('USERNAME_'):
+            principal = decoded[off]
+            off += 1
+        fncount = 0
         trigger, consumed = _read_prim(decoded, off, values)
         if trigger['name']['id'] != 'tt:$builtin.now':
             rule['trigger'] = trigger
+            fncount += 1
         off += consumed
         query, consumed = _read_prim(decoded, off, values)
         off += consumed
         if query['name']['id'] != 'tt:$builtin.noop':
             rule['query'] = query
+            fncount += 1
         action, consumed = _read_prim(decoded, off, values)
         off += consumed
         if query['name']['id'] != 'tt:$builtin.notify':
             rule['action'] = action
-        return dict(rule=rule)
+            fncount += 1
+        
+        if fncount > 1:
+            top = dict(rule=rule)
+        else:
+            top = rule
+        if type == 'rule':
+            return top
+        elif type == 'setup':
+            top['person'] = principal
+            return dict(setup=top)
+        elif type == 'policy':
+            if principal:
+                top['person'] = principal
+            return dict(access=top)
+        else:
+            raise ValueError('Invalid first token ' + type)
