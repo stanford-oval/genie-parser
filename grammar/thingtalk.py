@@ -320,8 +320,8 @@ class ThingtalkGrammar(AbstractGrammar):
                     for v in trigger_or_query_params:
                         transitions.append((before_value, state_id, v))
             
-            if for_prim == 'action':
-                return (state_id, -1)
+            #if for_prim == 'action':
+            #    return (state_id, -1)
             predicate_state = new_state(invocation_name + '_predicate')
             before_and_or = new_state(invocation_name + '_and_or')
             transitions.append((before_and_or, predicate_state, 'and'))
@@ -428,10 +428,12 @@ class ThingtalkGrammar(AbstractGrammar):
             if end_state >= 0:
                 query_ids.append(end_state)
         for action_name, params in actions.items():
-            begin_state, _ = do_invocation(action_name, params, 'action')
+            begin_state, end_state = do_invocation(action_name, params, 'action')
             for query_id in query_ids:
                 transitions.append((query_id, begin_state, action_name))
             transitions.append((begin_state, self.end_state, '<<EOS>>'))
+            if end_state >= 0:
+                transitions.append((end_state, self.end_state, '<<EOS>>'))
             
         # do a second copy of the transition matrix for split sequences
         self.function_states = np.zeros((self.num_functions,), dtype=np.int32)
@@ -441,7 +443,8 @@ class ThingtalkGrammar(AbstractGrammar):
                 token = self.dictionary[function_name] - self.num_control_tokens - self.num_begin_tokens
                 begin_state, end_state = do_invocation(function_name, params, part)
                 transitions.append((begin_state, self.end_state, '<<EOS>>'))
-                transitions.append((end_state, self.end_state, '<<EOS>>'))
+                if end_state >= 0:
+                    transitions.append((end_state, self.end_state, '<<EOS>>'))
                 self.function_states[token] = begin_state
                 
 
@@ -668,19 +671,12 @@ class ThingtalkGrammar(AbstractGrammar):
             if end >= len(seq) or seq[end] == self.end:
                 # truncated output
                 return end
-            operator = seq[end]
-            end += 1
-            if end >= len(seq) or seq[end] == self.end:
-                # this can occur at training time, if the output is truncated
-                #raise AssertionError("missing value for " + self.tokens[param_id])
-                params.append((param_id, operator, []))
-                continue
             param_value = [seq[end]]
             end += 1
-            while end < len(seq) and seq[end] != self.end and not self.tokens[seq[end]].startswith('tt:'):
+            while end < len(seq) and seq[end] != self.end and not self.tokens[seq[end]].startswith('tt:') and self.tokens[seq[end]] != 'if':
                 param_value.append(seq[end])
                 end += 1
-            params.append((param_id, operator, param_value))
+            params.append((param_id, param_value))
         params.sort(key=lambda x: x[0])
         assert end <= len(seq)
 
