@@ -23,6 +23,9 @@ import itertools
 from grammar.thingtalk import UNITS
 ALL_UNITS = set(itertools.chain(*UNITS.values()))
 
+def _to_param(token):
+    return 'tt:param.' + token[len('tt-param:'):]
+
 def _read_value(decoded, off, values):
     token = decoded[off]
     value = dict()
@@ -41,7 +44,7 @@ def _read_value(decoded, off, values):
         value['value'] = values[token]
     elif token.startswith('tt-param:'):
         value['type'] = 'VarRef'
-        value['value'] = dict(id=token)
+        value['value'] = dict(id=_to_param(token))
     elif token.startswith('QUOTED_STRING_'):
         value['type'] = 'String'
         value['value'] = values[token]
@@ -93,20 +96,40 @@ def _read_value(decoded, off, values):
 
 def _read_prim(decoded, off, values):
     fn = decoded[off]
-    prim = dict(name=dict(id=fn), args=[])
+    prim = dict(name=dict(id=fn), args=[], predicate=[])
     args = prim['args']
     consumed = 1
     if off + consumed < len(decoded) and decoded[off+consumed].startswith('USERNAME_'):
         prim['person'] = values[decoded[off+consumed]]['value']
         consumed += 1
     while off + consumed < len(decoded) and decoded[off+consumed].startswith('tt-param:'):
-        pname = decoded[off+consumed]
-        op = decoded[off+consumed+1]
-        value, consumed_arg = _read_value(decoded, off+consumed+2, values)
+        pname = _to_param(decoded[off+consumed])
+        value, consumed_arg = _read_value(decoded, off+consumed+1, values)
         value['name'] = dict(id=pname)
-        value['operator'] = op
+        value['operator'] = 'is'
         args.append(value)
-        consumed += 2+consumed_arg
+        consumed += 1+consumed_arg
+    predicate = prim['predicate']
+    if off + consumed < len(decoded) and decoded[off+consumed] == 'if':
+        consumed += 1
+        current_or = []
+        predicate.append(current_or)
+        while True:
+            pname = _to_param(decoded[off+consumed])
+            operator = decoded[off+consumed+1]
+            value, consumed_arg = _read_value(decoded, off+consumed+2, values)
+            value['name'] = dict(id=pname)
+            value['operator'] = operator
+            current_or.append(value)
+            consumed += 2+consumed_arg
+            if off + consumed < len(decoded) and decoded[off+consumed] == 'and':
+                current_or = []
+                predicate.append(current_or)
+                consumed += 1
+            elif off + consumed < len(decoded) and decoded[off+consumed] == 'or':
+                consumed += 1
+            else:
+                break
     return prim, consumed
 
 def to_json(decoded, grammar, values):
@@ -129,7 +152,7 @@ def to_json(decoded, grammar, values):
         off = 1
         principal = None
         if decoded[off].startswith('USERNAME_'):
-            principal = decoded[off]
+            principal = values[decoded[off]]['value']
             off += 1
         fncount = 0
         trigger, consumed = _read_prim(decoded, off, values)
