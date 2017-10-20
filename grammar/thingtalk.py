@@ -105,6 +105,7 @@ class ThingtalkGrammar(AbstractGrammar):
         functions['trigger']['tt:$builtin.now'] = []
         functions['query']['tt:$builtin.noop'] = []
         functions['action']['tt:$builtin.notify'] = []
+        functions['action']['tt:$builtin.return'] = []
         
         param_tokens = OrderedSet()
         param_tokens.add('tt-param:$event')
@@ -265,8 +266,8 @@ class ThingtalkGrammar(AbstractGrammar):
             state_id = new_state(invocation_name)
             
             # allow one USERNAME_ parameter to follow the invocation immediately
-            for i in range(MAX_ARG_VALUES):
-                transitions.append((state_id, state_id, 'USERNAME_' + str(i)))
+            #for i in range(MAX_ARG_VALUES):
+            #    transitions.append((state_id, state_id, 'USERNAME_' + str(i)))
             
             # go to each "in" parameter
             for param_name, param_type, param_direction in params:
@@ -342,7 +343,7 @@ class ThingtalkGrammar(AbstractGrammar):
                     elementtype = TYPE_RENAMES[elementtype]
                 if elementtype.startswith('Measure('):
                     is_measure = True
-                    operators = ['=', '<', '>']
+                    operators = ['=', '<', '>', '>=', '<=']
                     base_unit = elementtype[len('Measure('):-1]
                     values = UNITS[base_unit]
                 elif elementtype.startswith('Enum('):

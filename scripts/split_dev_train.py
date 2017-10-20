@@ -35,6 +35,13 @@ def writefile(filename, data):
         for sentence in data:
             print(*sentence, sep='\t', file=fp)
 
+def is_remote(prog):
+    prog = prog.split(' ')
+    for i in range(len(prog)-1):
+        if prog[i].startswith('tt:') and prog[i+1].startswith('USERNAME_'):
+            return True
+    return False
+
 traindevfiles = set()
 generatedfiles = set()
 
@@ -90,7 +97,7 @@ for prefix,dataset in traindevsets.items():
 
 base_author = readfile(os.path.join(sys.argv[1], 'base-author.tsv'))
 print('%d base-author sentences' % len(base_author))
-base_author = [x for x in base_author if x[2] not in dev_progs]
+base_author = [x for x in base_author if x[2] not in dev_progs and not is_remote(x[2])]
 print('= %d after filtering' % len(base_author))
 
 generated = []
