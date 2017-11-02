@@ -132,20 +132,25 @@ def _read_prim(decoded, off, values):
                 break
     return prim, consumed
 
-def to_json(decoded, grammar, values):
-    type = decoded[0]
+def _bookkeeping(decoded, grammar, values):
+    type = decoded[1]
     if type == 'special':
-        return dict(special=dict(id=decoded[1]))
+        return dict(special=dict(id=decoded[2]))
     elif type == 'answer':
-        value, _ = _read_value(decoded, 1, values)
+        value, _ = _read_value(decoded, 2, values)
         return dict(answer=value)
     elif type == 'command':
-        if decoded[1] != 'help':
-            raise ValueError('Invalid command type ' + decoded[1])
-        if decoded[2] == 'generic':
+        if decoded[2] != 'help':
+            raise ValueError('Invalid command type ' + decoded[2])
+        if decoded[3] == 'generic':
             return dict(command=dict(type='help', value=dict(value='generic')))
         else:
-            return dict(command=dict(type='help', value=dict(value=values[decoded[2]])))
+            return dict(command=dict(type='help', value=dict(value=values[decoded[3]])))
+
+def to_json(decoded, grammar, values):
+    type = decoded[0]
+    if type == 'bookkeeping':
+        return _bookkeeping(decoded, grammar, values)
     else:
         # rule, setup or policy
         rule = dict()
@@ -167,7 +172,7 @@ def to_json(decoded, grammar, values):
             fncount += 1
         action, consumed = _read_prim(decoded, off, values)
         off += consumed
-        if query['name']['id'] != 'tt:$builtin.notify':
+        if action['name']['id'] != 'tt:$builtin.notify':
             rule['action'] = action
             fncount += 1
         
