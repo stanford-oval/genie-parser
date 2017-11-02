@@ -26,6 +26,7 @@ class ServerConfig():
         
         self._config['server'] = {
             'port': '8400',
+            'user': 'root',
         }
         
         self._config['db'] = {
@@ -37,7 +38,11 @@ class ServerConfig():
     @property
     def port(self):
         return int(self._config['server']['port'])
-    
+
+    @property
+    def user(self):
+        return self._config['server']['user']
+
     @property
     def db_url(self):
         return self._config['db']['url']
