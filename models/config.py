@@ -30,9 +30,9 @@ class Config(object):
         
         self._config['model'] = OrderedDict(
             model_type='seq2seq',
-            encoder_type='rnn',
-            encoder_hidden_size=150,
-            decoder_hidden_size=150,
+            encoder_type='birnn',
+            encoder_hidden_size=35,
+            decoder_hidden_size=70,
             function_hidden_size=100,
             function_nonlinearity='tanh',
             first_token_hidden_size=25,
@@ -44,8 +44,8 @@ class Config(object):
             batch_size=256,
             n_epochs=25,
             learning_rate=0.01,
-            dropout=0.3,
-            gradient_clip=0.0,
+            dropout=0.5,
+            gradient_clip=0.5,
             l2_regularization=0.0,
             optimizer='RMSProp'
         )
@@ -60,7 +60,8 @@ class Config(object):
         self._config['output'] = OrderedDict(
             grammar='tt',
             grammar_input_file='./thingpedia.txt',
-            train_output_embeddings='false',
+            train_output_embeddings='true',
+            output_embed_size=15,
             use_grammar_constraints='true',
             use_typed_embeddings='true',
             beam_width=10
