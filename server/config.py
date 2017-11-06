@@ -26,20 +26,35 @@ class ServerConfig():
         
         self._config['server'] = {
             'port': '8400',
+            'user': 'root',
         }
         
         self._config['db'] = {
             'url': 'mysql://sempre:sempre@thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine?charset=utf8mb4',
         }
+
+        self._config['ssl'] = dict()
         
     @property
     def port(self):
         return int(self._config['server']['port'])
-    
+
+    @property
+    def user(self):
+        return self._config['server']['user']
+
     @property
     def db_url(self):
         return self._config['db']['url']
-        
+
+    @property
+    def ssl_chain(self):
+        return self._config['ssl']['chain']
+
+    @property
+    def ssl_key(self):
+        return self._config['ssl']['key']
+
     @staticmethod
     def load(filenames):
         self = ServerConfig()

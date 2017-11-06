@@ -16,15 +16,6 @@ from util.loader import vectorize, vectorize_constituency_parse
 
 from . import json_syntax
 
-try:
-    import secrets
-    gen_token = secrets.token_hex
-except ImportError:
-    # compat with Python 3.5 and below
-    import os
-    def gen_token():
-        return os.urandom(16).hex()
-
 class QueryHandler(tornado.web.RequestHandler):
     '''
     Handle /query
@@ -87,4 +78,4 @@ class QueryHandler(tornado.web.RequestHandler):
                                               utterance=query,
                                               target_json=result[0]['answer'])
         sys.stdout.flush()
-        self.write(dict(candidates=result, sessionId=gen_token()))
+        self.write(dict(candidates=result, sessionId='X'))
