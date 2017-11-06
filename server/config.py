@@ -38,6 +38,10 @@ class ServerConfig():
             'key': ''
         }
         
+        self._config['models'] = {
+            'en': './model.en'
+        }
+        
     @property
     def port(self):
         return int(self._config['server']['port'])
@@ -57,6 +61,16 @@ class ServerConfig():
     @property
     def ssl_key(self):
         return self._config['ssl']['key']
+
+    @property
+    def languages(self):
+        return self._config['models'].keys()
+
+    def get_model_directory(self, language):
+        if language in self._config['models']:
+            return self._config['models'][language]
+        else:
+            return './model.' + language
 
     @staticmethod
     def load(filenames):

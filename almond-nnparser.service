@@ -4,7 +4,7 @@ Requires=almond-tokenizer.service
 After=almond-tokenizer.service
 
 [Service]
-ExecStart=/opt/almond-nnparser/run_server.py en:./model.1
+ExecStart=/opt/almond-nnparser/run_server.py
 WorkingDirectory=/srv/data/almond-nnparser-server
 Type=notify
 WorkingDirectory=/var/lib/almond-nnparser
