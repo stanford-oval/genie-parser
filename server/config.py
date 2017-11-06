@@ -26,14 +26,17 @@ class ServerConfig():
         
         self._config['server'] = {
             'port': '8400',
-            'user': 'root',
+            'user': '',
         }
         
         self._config['db'] = {
-            'url': 'mysql://sempre:sempre@thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine?charset=utf8mb4',
+            'url': '',
         }
 
-        self._config['ssl'] = dict()
+        self._config['ssl'] = {
+            'chain': '',
+            'key': ''
+        }
         
     @property
     def port(self):

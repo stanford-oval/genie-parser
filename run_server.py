@@ -74,11 +74,16 @@ def run():
         thread_pool = ThreadPoolExecutor(max_workers=32)
     app = Application(config, thread_pool)
 
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_ctx.load_cert_chain(config.ssl_chain, config.ssl_key)
-    app.listen(config.port, ssl_options=ssl_ctx)
-    os.setgid(grp.getgrnam(config.user)[2])
-    os.setuid(pwd.getpwnam(config.user)[2])
+    if config.ssl_key:
+        ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_ctx.load_cert_chain(config.ssl_chain, config.ssl_key)
+        app.listen(config.port, ssl_options=ssl_ctx)
+    else:
+        app.listen(config.port)
+    
+    if config.user:
+        os.setgid(grp.getgrnam(config.user)[2])
+        os.setuid(pwd.getpwnam(config.user)[2])
 
     if sd:
         sd.notify('READY=1')

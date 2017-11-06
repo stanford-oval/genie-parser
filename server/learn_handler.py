@@ -27,6 +27,9 @@ class LearnHandler(tornado.web.RequestHandler):
         
         if not store in ('automatic', 'online'):
             raise tornado.web.HTTPError(400, "Invalid store parameter")
+        
+        if not self.application.database:
+            raise tornado.web.HTTPError(500, "Server not configured for online learning")
         self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, target_json, click_count) " +
                                           "values (0, %(language)s, %(type)s, %(utterance)s, %(target_json)s, -1)",
                                           language=language.tag,

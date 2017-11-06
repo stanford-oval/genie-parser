@@ -37,7 +37,10 @@ class Application(tornado.web.Application):
     def __init__(self, config, thread_pool):
         super().__init__([(r"/query", QueryHandler), (r"/learn", LearnHandler)])
     
-        self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+        if config.db_url:
+            self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+        else:
+            self.database = None
         self.config = config
         self._languages = dict()
         self.thread_pool = thread_pool

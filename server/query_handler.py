@@ -71,7 +71,7 @@ class QueryHandler(tornado.web.RequestHandler):
         tokenized = yield language.tokenizer.tokenize(query)
         result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0:
+        if len(result) > 0 and self.application.database:
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, target_json, click_count) " +
                                               "values (0, %(language)s, 'log', %(utterance)s, %(target_json)s, -1)",
                                               language=language.tag,
