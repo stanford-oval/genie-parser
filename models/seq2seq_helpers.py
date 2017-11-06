@@ -30,8 +30,25 @@ class DotProductLayer(tf.layers.Layer):
     def __init__(self, against):
         super().__init__()
         self._against = against
+        self._depth_size = self._against.get_shape()[1]
+        self._output_size = self._against.get_shape()[0]
+    
+    def build(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
+        if input_shape[-1].value is None:
+            raise ValueError("Input to DotProductLayer must have the last dimension defined")
+        if input_shape[-1].value != self._depth_size:
+            self._space_transform = self.add_variable('kernel',
+                                                      shape=(input_shape[-1].value, self._depth_size),
+                                                      dtype=self.dtype,
+                                                      trainable=True)
+        else:
+            self._space_transform = None
     
     def call(self, input):
+        if self._space_transform:
+            input = tf.matmul(input, self._space_transform)
+        
         # input is batch by depth
         # self._against is output by depth
         # result is batch by output
@@ -40,7 +57,7 @@ class DotProductLayer(tf.layers.Layer):
     def _compute_output_shape(self, input_shape):
         input_shape = tf.TensorShape(input_shape)
         input_shape = input_shape.with_rank_at_least(2)
-        return input_shape[:-1].concatenate(self._against.get_shape()[0])
+        return input_shape[:-1].concatenate(self._output_size)
 
 class Seq2SeqDecoder(object):
     def __init__(self, config : Config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder, batch_number_placeholder, max_length=None):
