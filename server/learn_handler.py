@@ -36,3 +36,5 @@ class LearnHandler(tornado.web.RequestHandler):
                                           utterance=query,
                                           type=store,
                                           target_json=target_json)
+        if language.exact and store == 'online':
+            language.exact.add(query, target_json)
