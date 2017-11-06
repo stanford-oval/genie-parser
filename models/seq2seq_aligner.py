@@ -35,6 +35,10 @@ def pad_up_to(vector, size):
         return tf.pad(vector, padding, mode='constant')
 
 class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
+    '''
+    A cell wrapper that concatenates a fixed Tensor to the input
+    before calling the wrapped cell
+    '''
     def __init__(self, wrapped : tf.contrib.rnn.RNNCell, parent_state):
         super().__init__()
         self._wrapped = wrapped
@@ -43,6 +47,27 @@ class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
     def call(self, input, state):
         concat_input = tf.concat((self._flat_parent_state, input), axis=1)
         return self._wrapped.call(concat_input, state)
+    
+    @property
+    def output_size(self):
+        return self._wrapped.output_size
+    
+    @property
+    def state_size(self):
+        return self._wrapped.state_size
+
+class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
+    '''
+    A cell wrapper that replaces the cell input with a fixed Tensor
+    and ignores whatever input is passed in
+    '''
+    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, constant_input):
+        super().__init__()
+        self._wrapped = wrapped
+        self._flat_constant_input = tf.concat(nest.flatten(constant_input), axis=1)
+        
+    def call(self, input, state):
+        return self._wrapped.call(self._flat_constant_input, state)
     
     @property
     def output_size(self):
@@ -77,7 +102,10 @@ class Seq2SeqAligner(BaseAligner):
             # flatten and repack the state
             enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
         
-        cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
+        if self.config.connect_output_decoder:
+            cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
+        else:
+            cell_dec = InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
             attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
                                        probability_fn=tf.nn.softmax)

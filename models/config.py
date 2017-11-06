@@ -67,6 +67,7 @@ class Config(object):
             beam_width=10,
             training_beam_width=10,
             use_dot_product_output='false',
+            connect_output_decoder='true'
         )
         
         self._grammar = None
@@ -188,6 +189,10 @@ class Config(object):
     @property
     def use_dot_product_output(self):
         return self._config['output'].getboolean('use_dot_product_output')
+    
+    @property
+    def connect_output_decoder(self):
+        return self._config['output'].getboolean('connect_output_decoder')
     
     @property
     def train_output_embeddings(self):
