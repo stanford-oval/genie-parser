@@ -65,7 +65,8 @@ class Config(object):
             use_grammar_constraints='true',
             use_typed_embeddings='true',
             beam_width=10,
-            training_beam_width=10
+            training_beam_width=10,
+            use_dot_product_output='false',
         )
         
         self._grammar = None
@@ -183,6 +184,10 @@ class Config(object):
     @property
     def typed_output_embeddings(self):
         return self._config['output'].getboolean('use_typed_embeddings')
+    
+    @property
+    def use_dot_product_output(self):
+        return self._config['output'].getboolean('use_dot_product_output')
     
     @property
     def train_output_embeddings(self):

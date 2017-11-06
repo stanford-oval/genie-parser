@@ -19,7 +19,6 @@ Created on Jul 20, 2017
 '''
 
 import tensorflow as tf
-from tensorflow.python.layers import core as tf_core_layers
 
 from tensorflow.contrib.seq2seq import BasicDecoder, \
     TrainingHelper, GreedyEmbeddingHelper
@@ -27,6 +26,21 @@ from tensorflow.contrib.seq2seq import BasicDecoder, \
 from .grammar_decoder import GrammarBasicDecoder
 from .config import Config
 
+class DotProductLayer(tf.layers.Layer):
+    def __init__(self, against):
+        super().__init__()
+        self._against = against
+    
+    def call(self, input):
+        # input is batch by depth
+        # self._against is output by depth
+        # result is batch by output
+        return tf.matmul(input, self._against, transpose_b=True)
+
+    def _compute_output_shape(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
+        input_shape = input_shape.with_rank_at_least(2)
+        return input_shape[:-1].concatenate(self._against.get_shape()[0])
 
 class Seq2SeqDecoder(object):
     def __init__(self, config : Config, input_placeholder, input_length_placeholder, output_placeholder, output_length_placeholder, batch_number_placeholder, max_length=None):
@@ -43,7 +57,10 @@ class Seq2SeqDecoder(object):
         return tf.shape(self.input_placeholder)[0]
     
     def decode(self, cell_dec, enc_final_state, output_size, output_embed_matrix, training, grammar_helper=None):
-        linear_layer = tf_core_layers.Dense(output_size, use_bias=False)
+        if self.config.use_dot_product_output:
+            output_layer = DotProductLayer(output_embed_matrix)
+        else:
+            output_layer = tf.layers.Dense(output_size, use_bias=False)
 
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         if training:
@@ -54,10 +71,10 @@ class Seq2SeqDecoder(object):
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
         if self.config.use_grammar_constraints:
-            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer = linear_layer, training_output = self.output_placeholder if training else None,
+            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer=output_layer, training_output = self.output_placeholder if training else None,
                                           grammar_helper=grammar_helper)
         else:
-            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer = linear_layer)
+            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
 
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
         
