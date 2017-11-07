@@ -26,31 +26,13 @@ def main():
     thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
     ssl_context = ssl.create_default_context()
 
-    with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot), context=ssl_context) as res:
-        data = json.load(res)['data']
-        for device in data:
-            if device['kind_type'] == 'global':
-                continue
-            print('device', 'tt-device:' + device['kind'])
-            def do_type(dictionary, channel_type):
-                for name, channel in dictionary.items():
-                    print(channel_type, 'tt:' + device['kind'] + '.' + name, end=' ')
-                    for argname, argtype, required, is_input in zip(channel['args'], channel['types'], channel['required'], channel['is_input']):
-                        if is_input:
-                            direction = 'in'
-                        else:
-                            direction = 'out'
-                        print(argname, argtype, direction, end=' ')
-                    print()
-            do_type(device['triggers'], 'trigger')
-            do_type(device['queries'], 'query')
-            do_type(device['actions'], 'action')
+    output = dict()
+    with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
+        output['devices'] = json.load(res)['data']
 
     with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
-        data = json.load(res)['data']
-        for entity in data:
-            if entity['is_well_known'] == 1:
-                continue
-            print('entity', entity['type'])
+        output['entities'] = json.load(res)['data']
+    
+    json.dump(output, sys.stdout, indent=2)
 
 main()

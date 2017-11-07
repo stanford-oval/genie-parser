@@ -1,6 +1,10 @@
 
 import tensorflow as tf
 import numpy as np
+import json
+import os
+import urllib.request
+import ssl
 
 from orderedset import OrderedSet
 from collections import OrderedDict
@@ -69,19 +73,22 @@ MAX_SPECIAL_LENGTH = 4
 MAX_PRIMITIVE_LENGTH = 30
 
 class ThingtalkGrammar(AbstractGrammar):
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         super().__init__()
+        if filename is not None:
+            self.init_from_file(filename)
         
+    def reset(self):
         triggers = OrderedDict()
         queries = OrderedDict()
         actions = OrderedDict()
-        functions = dict(trigger=triggers, query=queries, action=actions)
+        functions = dict(triggers=triggers, queries=queries, actions=actions)
         self.functions = functions
         self.entities = OrderedSet()
-        devices = []
-        trigger_or_query_params = set()
+        self.devices = []
+        self._trigger_or_query_params = set()
 
-        enum_types = OrderedDict()
+        self._enum_types = OrderedDict()
 
         # Token order:
         # first the padding, go and end of sentence
@@ -96,97 +103,116 @@ class ThingtalkGrammar(AbstractGrammar):
         # This order is important as it affects the 3-part aligner
         # algorithm
 
-        tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
+        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
         self.num_control_tokens = 3
-        tokens += BEGIN_TOKENS
+        self.tokens += BEGIN_TOKENS
         self.num_begin_tokens = len(BEGIN_TOKENS)
         
         # add the special functions
-        functions['trigger']['tt:$builtin.now'] = []
-        functions['query']['tt:$builtin.noop'] = []
-        functions['action']['tt:$builtin.notify'] = []
-        functions['action']['tt:$builtin.return'] = []
+        functions['triggers']['tt:$builtin.now'] = []
+        functions['queries']['tt:$builtin.noop'] = []
+        functions['actions']['tt:$builtin.notify'] = []
+        functions['actions']['tt:$builtin.return'] = []
         
-        param_tokens = OrderedSet()
-        param_tokens.add('tt-param:$event')
-        trigger_or_query_params.add('tt-param:$event')
-        
+        self._param_tokens = OrderedSet()
+        self._param_tokens.add('tt-param:$event')
+        self._trigger_or_query_params.add('tt-param:$event')
+    
+    def _process_devices(self, devices):
+        for device in devices:
+            if device['kind_type'] == 'global':
+                continue
+            self.devices.append('tt-device:' + device['kind'])
+            
+            for function_type in ('triggers', 'queries', 'actions'):
+                for name, function in device[function_type].items():
+                    function_name = 'tt:' + device['kind'] + '.' + name
+                    paramlist = []
+                    self.functions[function_type][function_name] = paramlist
+                    for argname, argtype, is_input, argcanonical in zip(function['args'],
+                                                                        function['schema'],
+                                                                        function['is_input'],
+                                                                        function['argcanonicals']):
+                        direction = 'in' if is_input else 'out'                    
+                        paramlist.append((argname, argtype, direction))
+                        self._param_tokens.add('tt-param:' + argname)
+                        if function_type != 'actions':
+                            self._trigger_or_query_params.add('tt-param:' + argname)
+                    
+                        if argtype.startswith('Array('):
+                            elementtype = argtype[len('Array('):-1]
+                        else:
+                            elementtype = argtype
+                        if elementtype.startswith('Enum('):
+                            enums = elementtype[len('Enum('):-1].split(',')
+                            if not elementtype in self._enum_types:
+                                self._enum_types[elementtype] = enums
+    
+    def init_from_file(self, filename):
+        self.reset()
+
         with open(filename, 'r') as fp:
-            for line in fp.readlines():
-                line = line.strip().split()
-                function_type = line[0]
-                function = line[1]
-                if function_type == 'device':
-                    devices.append(function)
-                    continue
-                if function_type == 'entity':
-                    self.entities.add(function)
-                    continue
-
-                parameters = line[2:]
-                paramlist = []
-                functions[function_type][function] = paramlist
-                
-                for i in range(len(parameters)//3):
-                    param = parameters[3*i]
-                    type = parameters[3*i+1]
-                    direction = parameters[3*i+2]
-                    
-                    paramlist.append((param, type, direction))
-                    param_tokens.add('tt-param:' + param)
-                    if function_type != 'action':
-                        trigger_or_query_params.add('tt-param:' + param)
-                    
-                    if type.startswith('Array('):
-                        elementtype = type[len('Array('):-1]
-                    else:
-                        elementtype = type
-                    if elementtype.startswith('Enum('):
-                        enums = elementtype[len('Enum('):-1].split(',')
-                        if not elementtype in enum_types:
-                            enum_types[elementtype] = enums
+            thingpedia = json.load(fp)
         
-        for function_type in ('trigger', 'query', 'action'):
-            for function in functions[function_type]:
-                tokens.append(function)
-        self.num_functions = len(tokens) - self.num_control_tokens - self.num_begin_tokens
-        
-        tokens += param_tokens
-        self.num_params = len(param_tokens)
+        self._process_devices(thingpedia['devices'])
+        for entity in thingpedia['entities']:
+            self.entities.add(entity['type'])
 
-        tokens += OPERATORS
-        tokens += VALUES
-        tokens += SPECIAL_TOKENS
-        tokens += BOOKKEEPING_TOKENS     
-        tokens += devices
+        self.complete()
+
+    def init_from_url(self, snapshot=-1, thingpedia_url=None):
+        if thingpedia_url is None:
+            thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
+        ssl_context = ssl.create_default_context()
+
+        with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
+            self._process_devices(json.load(res)['data'])
+
+        with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
+            for entity in json.load(res)['data']:
+                self.entities.add(entity['type'])
+    
+    def complete(self):
+        for function_type in ('triggers', 'queries', 'actions'):
+            for function in self.functions[function_type]:
+                self.tokens.append(function)
+        self.num_functions = len(self.tokens) - self.num_control_tokens - self.num_begin_tokens
+
+        self.tokens += self._param_tokens
+        self.num_params = len(self._param_tokens)
+
+        self.tokens += OPERATORS
+        self.tokens += VALUES
+        self.tokens += SPECIAL_TOKENS
+        self.tokens += BOOKKEEPING_TOKENS     
+        self.tokens += self.devices
         
         enumtokenset = set()
-        for enum_type in enum_types.values():
+        for enum_type in self._enum_types.values():
             for enum in enum_type:
                 if enum in enumtokenset:
                     continue
                 enumtokenset.add(enum)
-                tokens.append(enum)
+                self.tokens.append(enum)
         
         for unitlist in UNITS.values():
-            tokens += unitlist
+            self.tokens += unitlist
         
         for i in range(MAX_ARG_VALUES):
             for entity in ENTITIES:
-                tokens.append(entity + "_" + str(i))
+                self.tokens.append(entity + "_" + str(i))
         for generic_entity in self.entities:
             for i in range(MAX_ARG_VALUES):
-                tokens.append('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
+                self.tokens.append('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
         
         print('num functions', self.num_functions)
-        print('num triggers', len(self.functions['trigger']))
-        print('num queries', len(self.functions['query']))
-        print('num actions', len(self.functions['action']))
+        print('num triggers', len(self.functions['triggers']))
+        print('num queries', len(self.functions['queries']))
+        print('num actions', len(self.functions['actions']))
         print('num params', self.num_params)
         first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        print('num value tokens', len(tokens) - first_value_token)
+        print('num value tokens', len(self.tokens) - first_value_token)
         
-        self.tokens = tokens
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
@@ -239,7 +265,7 @@ class ThingtalkGrammar(AbstractGrammar):
         help_id = new_state('device_or_generic')
         transitions.append((command_id, help_id, 'help'))
         transitions.append((help_id, self.before_end_state, 'generic'))
-        for d in devices:
+        for d in self.devices:
             transitions.append((help_id, self.before_end_state, d))
         
         # answers
@@ -273,7 +299,7 @@ class ThingtalkGrammar(AbstractGrammar):
             for param_name, param_type, param_direction in params:
                 if param_direction == 'out':
                     continue
-                if param_type in ('Any') or param_type.startswith('Array('):
+                if param_type in ('Any',) or param_type.startswith('Array('):
                     continue
                 elementtype = param_type
                 is_measure = False
@@ -284,9 +310,9 @@ class ThingtalkGrammar(AbstractGrammar):
                     base_unit = elementtype[len('Measure('):-1]
                     values = UNITS[base_unit]
                 elif elementtype.startswith('Enum('):
-                    values = enum_types[elementtype]
+                    values = self._enum_types[elementtype]
                 elif elementtype == 'Entity(tt:device)':
-                    values = devices
+                    values = self.devices
                 elif elementtype in TYPES:
                     operators, values = TYPES[elementtype]
                 elif elementtype.startswith('Entity('):
@@ -317,8 +343,8 @@ class ThingtalkGrammar(AbstractGrammar):
                 if is_measure and base_unit == 'ms':
                     for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, state_id, 'DURATION_' + str(i)))
-                if for_prim != 'trigger':
-                    for v in trigger_or_query_params:
+                if for_prim != 'triggers':
+                    for v in self._trigger_or_query_params:
                         transitions.append((before_value, state_id, v))
             
             #if for_prim == 'action':
@@ -330,7 +356,7 @@ class ThingtalkGrammar(AbstractGrammar):
             
             any_predicate = False
             for param_name, param_type, _ in params:
-                if param_type in ('Any'):
+                if param_type in ('Any',):
                     continue
                 
                 elementtype = param_type
@@ -348,10 +374,10 @@ class ThingtalkGrammar(AbstractGrammar):
                     values = UNITS[base_unit]
                 elif elementtype.startswith('Enum('):
                     operators = ['=']
-                    values = enum_types[elementtype]
+                    values = self._enum_types[elementtype]
                 elif elementtype == 'Entity(tt:device)':
                     operators = ['=']
-                    values = devices
+                    values = self.devices
                 elif elementtype in TYPES:
                     operators, values = TYPES[elementtype]
                 elif elementtype.startswith('Entity('):
@@ -390,7 +416,7 @@ class ThingtalkGrammar(AbstractGrammar):
                     for i in range(MAX_ARG_VALUES):
                         transitions.append((before_value, before_and_or, 'DURATION_' + str(i)))
                 if for_prim != 'trigger':
-                    for v in trigger_or_query_params:
+                    for v in self._trigger_or_query_params:
                         transitions.append((before_value, before_and_or, v))
                     
             if any_predicate:
@@ -414,22 +440,22 @@ class ThingtalkGrammar(AbstractGrammar):
         trigger_ids = []
         query_ids = []
         
-        for trigger_name, params in triggers.items():
-            begin_state, end_state = do_invocation(trigger_name, params, 'trigger')
+        for trigger_name, params in self.functions['triggers'].items():
+            begin_state, end_state = do_invocation(trigger_name, params, 'triggers')
             transitions.append((rule_id, begin_state, trigger_name))
             transitions.append((policy_id, begin_state, trigger_name))
             trigger_ids.append(begin_state)
             if end_state >= 0:
                 trigger_ids.append(end_state)
-        for query_name, params in queries.items():
-            begin_state, end_state = do_invocation(query_name, params, 'query')
+        for query_name, params in self.functions['queries'].items():
+            begin_state, end_state = do_invocation(query_name, params, 'queries')
             for trigger_id in trigger_ids:
                 transitions.append((trigger_id, begin_state, query_name))
             query_ids.append(begin_state)
             if end_state >= 0:
                 query_ids.append(end_state)
-        for action_name, params in actions.items():
-            begin_state, end_state = do_invocation(action_name, params, 'action')
+        for action_name, params in self.functions['actions'].items():
+            begin_state, end_state = do_invocation(action_name, params, 'actions')
             for query_id in query_ids:
                 transitions.append((query_id, begin_state, action_name))
             transitions.append((begin_state, self.end_state, '<<EOS>>'))
@@ -439,7 +465,7 @@ class ThingtalkGrammar(AbstractGrammar):
         # do a second copy of the transition matrix for split sequences
         self.function_states = np.zeros((self.num_functions,), dtype=np.int32)
         self.function_states.fill(-1)
-        for part in ('trigger', 'query', 'action'):
+        for part in ('triggers', 'queries', 'actions'):
             for function_name, params in self.functions[part].items():
                 token = self.dictionary[function_name] - self.num_control_tokens - self.num_begin_tokens
                 begin_state, end_state = do_invocation(function_name, params, part)
