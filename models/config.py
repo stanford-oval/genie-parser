@@ -59,11 +59,10 @@ class Config(object):
         )
         self._config['output'] = OrderedDict(
             grammar='tt',
-            grammar_input_file='./thingpedia.txt',
+            grammar_input_file='./thingpedia.json',
             train_output_embeddings='true',
             output_embed_size=15,
             use_grammar_constraints='true',
-            use_typed_embeddings='true',
             beam_width=10,
             training_beam_width=10,
             use_dot_product_output='false',
@@ -183,10 +182,6 @@ class Config(object):
         return self._config['input'].getboolean('use_typed_embeddings')
     
     @property
-    def typed_output_embeddings(self):
-        return self._config['output'].getboolean('use_typed_embeddings')
-    
-    @property
     def use_dot_product_output(self):
         return self._config['output'].getboolean('use_dot_product_output')
     
@@ -250,15 +245,6 @@ class Config(object):
         self._embed_size = int(self._config['input']['input_embed_size'])
         
         self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
-        print("%d output tokens" % (self.output_size,))
-        if self._config['output'].get('output_embeddings', None):
-            self._output_embeddings_matrix, _ = load_embeddings(self._config['output']['output_embeddings'],
-                                                                self._grammar.dictionary,
-                                                                use_types=False, grammar=None,
-                                                                embed_size=int(self._config['output']['output_embed_size']))
-        else:
-            self._output_embeddings_matrix = self._grammar.get_embeddings(use_types=self.typed_output_embeddings)
-        print("Output embed size", self._output_embeddings_matrix.shape[1])
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
@@ -266,7 +252,8 @@ class Config(object):
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
-        
+        print("%d output tokens" % (self.output_size,))
+
         if self._config['input']['input_embeddings'] == 'xavier':
             assert self.train_input_embeddings
             assert not self.typed_input_embeddings
@@ -277,5 +264,14 @@ class Config(object):
                                                                         grammar=self._grammar,
                                                                         embed_size=self.embed_size)
         print("Input embed size", self._embed_size)
+        
+        if self._config['output'].get('output_embeddings', None):
+            self._output_embeddings_matrix, _ = load_embeddings(self._config['output']['output_embeddings'],
+                                                                self._grammar.dictionary,
+                                                                use_types=False, grammar=None,
+                                                                embed_size=int(self._config['output']['output_embed_size']))
+        else:
+            self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
+        print("Output embed size", self._output_embeddings_matrix.shape[1])
         
         return self

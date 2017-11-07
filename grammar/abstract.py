@@ -42,7 +42,7 @@ class AbstractGrammar(object):
     def vectorize_program(self, program, max_length):
         return vectorize(program, self.dictionary, max_length, add_eos=True)
     
-    def get_embeddings(self, use_types=False):
+    def get_embeddings(self, *args):
         return np.identity(self.output_size, np.float32)
     
     def get_init_state(self, batch_size):

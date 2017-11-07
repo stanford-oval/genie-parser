@@ -5,11 +5,12 @@ import json
 import os
 import urllib.request
 import ssl
+import re
+import sys
+import itertools
 
 from orderedset import OrderedSet
 from collections import OrderedDict
-
-import sys
 
 from .abstract import AbstractGrammar
 
@@ -72,6 +73,14 @@ MAX_ARG_VALUES = 8
 MAX_SPECIAL_LENGTH = 4
 MAX_PRIMITIVE_LENGTH = 30
 
+def clean(name):
+    if name.startswith('v_'):
+        name = name[len('v_'):]
+    return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
+
+def tokenize(name):
+    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+
 class ThingtalkGrammar(AbstractGrammar):
     def __init__(self, filename=None):
         super().__init__()
@@ -108,27 +117,36 @@ class ThingtalkGrammar(AbstractGrammar):
         self.tokens += BEGIN_TOKENS
         self.num_begin_tokens = len(BEGIN_TOKENS)
         
+        self._token_canonicals = dict()
+        
         # add the special functions
         functions['triggers']['tt:$builtin.now'] = []
+        self._token_canonicals['tt:$builtin.now'] = 'now'
         functions['queries']['tt:$builtin.noop'] = []
+        self._token_canonicals['tt:$builtin.noop'] = 'nothing'
         functions['actions']['tt:$builtin.notify'] = []
+        self._token_canonicals['tt:$builtin.notify'] = 'notify'
         functions['actions']['tt:$builtin.return'] = []
+        self._token_canonicals['tt:$builtin.return'] = 'return'
         
         self._param_tokens = OrderedSet()
         self._param_tokens.add('tt-param:$event')
         self._trigger_or_query_params.add('tt-param:$event')
+        self._token_canonicals['tt-param:$event'] = 'the event'
     
     def _process_devices(self, devices):
         for device in devices:
             if device['kind_type'] == 'global':
                 continue
             self.devices.append('tt-device:' + device['kind'])
+            self._token_canonicals['tt-device:' + device['kind']] = device['kind_canonical']
             
             for function_type in ('triggers', 'queries', 'actions'):
                 for name, function in device[function_type].items():
                     function_name = 'tt:' + device['kind'] + '.' + name
                     paramlist = []
                     self.functions[function_type][function_name] = paramlist
+                    self._token_canonicals[function_name] = function['canonical']
                     for argname, argtype, is_input, argcanonical in zip(function['args'],
                                                                         function['schema'],
                                                                         function['is_input'],
@@ -136,6 +154,7 @@ class ThingtalkGrammar(AbstractGrammar):
                         direction = 'in' if is_input else 'out'                    
                         paramlist.append((argname, argtype, direction))
                         self._param_tokens.add('tt-param:' + argname)
+                        self._token_canonicals['tt-param:' + argname] = argcanonical
                         if function_type != 'actions':
                             self._trigger_or_query_params.add('tt-param:' + argname)
                     
@@ -148,6 +167,15 @@ class ThingtalkGrammar(AbstractGrammar):
                             if not elementtype in self._enum_types:
                                 self._enum_types[elementtype] = enums
     
+    def _process_entities(self, entities):
+        for entity in entities:
+            if entity['is_well_known'] == 1:
+                    continue
+            self.entities.add(entity['type'])
+            for j in range(MAX_ARG_VALUES):
+                token = 'GENERIC_ENTITY_' + entity['type'] + "_" + str(j)
+                self._token_canonicals[token] = ' '.join(tokenize(entity['name'])).strip()
+    
     def init_from_file(self, filename):
         self.reset()
 
@@ -155,8 +183,7 @@ class ThingtalkGrammar(AbstractGrammar):
             thingpedia = json.load(fp)
         
         self._process_devices(thingpedia['devices'])
-        for entity in thingpedia['entities']:
-            self.entities.add(entity['type'])
+        self._process_entities(thingpedia['entities'])
 
         self.complete()
 
@@ -169,8 +196,7 @@ class ThingtalkGrammar(AbstractGrammar):
             self._process_devices(json.load(res)['data'])
 
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
-            for entity in json.load(res)['data']:
-                self.entities.add(entity['type'])
+            self._process_entities(json.load(res)['data'])
     
     def complete(self):
         for function_type in ('triggers', 'queries', 'actions'):
@@ -187,13 +213,14 @@ class ThingtalkGrammar(AbstractGrammar):
         self.tokens += BOOKKEEPING_TOKENS     
         self.tokens += self.devices
         
-        enumtokenset = set()
+        self._enum_tokens = OrderedSet()
         for enum_type in self._enum_types.values():
             for enum in enum_type:
-                if enum in enumtokenset:
+                if enum in self._enum_tokens:
                     continue
-                enumtokenset.add(enum)
+                self._enum_tokens.add(enum)
                 self.tokens.append(enum)
+                self._token_canonicals[enum] = clean(enum)
         
         for unitlist in UNITS.values():
             self.tokens += unitlist
@@ -201,6 +228,7 @@ class ThingtalkGrammar(AbstractGrammar):
         for i in range(MAX_ARG_VALUES):
             for entity in ENTITIES:
                 self.tokens.append(entity + "_" + str(i))
+                
         for generic_entity in self.entities:
             for i in range(MAX_ARG_VALUES):
                 self.tokens.append('GENERIC_ENTITY_' + generic_entity + "_" + str(i))
@@ -510,32 +538,132 @@ class ThingtalkGrammar(AbstractGrammar):
 
         self.state_names = state_names
 
-    def get_embeddings(self, use_types=False):
-        if not use_types:
-            return np.identity(self.output_size, np.float32)
+    def get_embeddings(self, input_words, input_embeddings):
+        '''
+        Create a feature matrix for each token in the TT program.
+        This feature matrix is dot-producted with the output from the decoder
+        LSTM (after a linear layer); whatever has the highest score is then
+        selected as output.
+        '''
         
-        num_entity_tokens = (len(ENTITIES) + len(self.entities)) * MAX_ARG_VALUES
-        num_other_tokens = len(self.tokens) - num_entity_tokens
+        # Token class:
+        # - 0: control
+        # - 1: begin token
+        # - 2; bookkeeping token
+        # - 3: operator
+        # - 4: unit
+        # - 5: value
+        # - 6: entity
+        # - 7: enum value
+        # - 8: device name
+        # - 9: function name
+        # - 10: parameter name
+        token_classes = 10
         
-        num_entities = len(ENTITIES) + len(self.entities)
-        embed_size = num_other_tokens + num_entities + MAX_ARG_VALUES
-        embedding = np.zeros((len(self.tokens), embed_size), dtype=np.float32)
-        for token_id, token in enumerate(self.tokens):
-            if '_' in token and token[0].isupper():
-                continue
-            embedding[token_id,token_id] = 1
-        for i, entity in enumerate(ENTITIES):
-            assert not np.any(embedding[:, num_other_tokens + i] > 0)
+        num_units = 0
+        for unitlist in UNITS.values():
+            num_units += len(unitlist)
+
+        input_embed_size = input_embeddings.shape[-1]
+        
+        function_types = 3 # trigger, query or action
+        depth = token_classes + self.num_control_tokens + len(BEGIN_TOKENS) + len(BOOKKEEPING_TOKENS) \
+            + len(SPECIAL_TOKENS) + len(OPERATORS) + num_units + len(VALUES) \
+            + len(ENTITIES) + MAX_ARG_VALUES + function_types + input_embed_size
+        
+        embedding = np.zeros((len(self.tokens), depth), dtype=np.float32)
+        
+        def embed_token(token):
+            token_embedding = np.zeros((input_embed_size,), dtype=np.float32)
+            canonical = self._token_canonicals[token]
+            if not canonical:
+                print("WARNING: token %s has no canonical" % (token,))
+                return token_embedding
+            for canonical_token in canonical.split(' '):
+                if canonical_token in input_words:
+                    token_embedding += input_embeddings[input_words[canonical_token]]
+                else:
+                    print("WARNING: missing word %s in canonical for output token %s" % (canonical_token, token))
+                    token_embedding += input_embeddings[input_words['<<UNK>>']]
+                return token_embedding
+        
+        off = token_classes
+        for i in range(self.num_control_tokens):
+            token_cls = 0
+            embedding[i, token_cls] = 1
+            embedding[i, off + i] = 1
+        off += self.num_control_tokens
+        for i, token in enumerate(BEGIN_TOKENS):
+            token_cls = 1
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, off + i] = 1
+        off += self.num_begin_tokens
+        for i, token in enumerate(itertools.chain(BOOKKEEPING_TOKENS, SPECIAL_TOKENS)):
+            token_cls = 2
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, off + i] = 1
+        off += len(BOOKKEEPING_TOKENS) + len(SPECIAL_TOKENS)
+        for i, token in enumerate(OPERATORS):
+            token_cls = 3
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, off + i] = 1
+        off += len(OPERATORS)
+        for unitlist in UNITS.values():
+            for i, token in enumerate(unitlist):
+                token_cls = 4
+                token_id = self.dictionary[token]
+                embedding[token_id, token_cls] = 1
+                embedding[token_id, off + i] = 1
+            off += len(unitlist)
+        for i, token in enumerate(VALUES):
+            token_cls = 5
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, off + i] = 1
+        off += len(VALUES)
+        for i, token_prefix in enumerate(ENTITIES):
             for j in range(MAX_ARG_VALUES):
-                token_id = self.dictionary[entity + '_' + str(j)]
-                embedding[token_id, num_other_tokens + i] = 1
-                embedding[token_id, num_other_tokens + num_entities + j] = 1
-        for i, entity in enumerate(self.entities):
-            assert not np.any(embedding[:, num_other_tokens + len(ENTITIES) + i] > 0)
+                token = token_prefix + '_' + str(j)
+                token_cls = 5
+                token_id = self.dictionary[token]
+                embedding[token_id, token_cls] = 1
+                embedding[token_id, off + i] = 1
+                embedding[token_id, off + len(ENTITIES) + j] = 1
+        off += len(ENTITIES)
+
+        for token_infix in self.entities:
             for j in range(MAX_ARG_VALUES):
-                token_id = self.dictionary['GENERIC_ENTITY_' + entity + '_' + str(j)]
-                embedding[token_id, num_other_tokens + len(ENTITIES) + i] = 1
-                embedding[token_id, num_other_tokens + num_entities + j] = 1
+                token = 'GENERIC_ENTITY_' + token_infix + '_' + str(j)
+                token_cls = 6
+                token_id = self.dictionary[token]
+                embedding[token_id, token_cls] = 1
+                embedding[token_id, off + j] = 1
+                embedding[token_id, -input_embed_size:] = embed_token(token)
+        for token in self._enum_tokens:
+            token_cls = 7
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, -input_embed_size:] = embed_token(token)
+        for token in self.devices:
+            token_cls = 8
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, -input_embed_size:] = embed_token(token)
+        for function_type_feature, function_type in enumerate(('triggers', 'queries', 'actions')):
+            for token in self.functions[function_type]:
+                token_cls = 8
+                token_id = self.dictionary[token]
+                embedding[token_id, token_cls] = 1
+                embedding[token_id, off + MAX_ARG_VALUES + function_type_feature] = 1
+                embedding[token_id, -input_embed_size:] = embed_token(token)
+        for token in self._param_tokens:
+            token_cls = 9
+            token_id = self.dictionary[token]
+            embedding[token_id, token_cls] = 1
+            embedding[token_id, -input_embed_size:] = embed_token(token)
         
         for i in range(len(embedding)):
             assert np.any(embedding[i] > 0)
