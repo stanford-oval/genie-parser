@@ -26,14 +26,21 @@ class ServerConfig():
         
         self._config['server'] = {
             'port': '8400',
-            'user': 'root',
+            'user': '',
         }
         
         self._config['db'] = {
-            'url': 'mysql://sempre:sempre@thingengine.crqccvnuyu19.us-west-2.rds.amazonaws.com/thingengine?charset=utf8mb4',
+            'url': '',
         }
 
-        self._config['ssl'] = dict()
+        self._config['ssl'] = {
+            'chain': '',
+            'key': ''
+        }
+        
+        self._config['models'] = {
+            'en': './model.en'
+        }
         
     @property
     def port(self):
@@ -54,6 +61,16 @@ class ServerConfig():
     @property
     def ssl_key(self):
         return self._config['ssl']['key']
+
+    @property
+    def languages(self):
+        return self._config['models'].keys()
+
+    def get_model_directory(self, language):
+        if language in self._config['models']:
+            return self._config['models'][language]
+        else:
+            return './model.' + language
 
     @staticmethod
     def load(filenames):

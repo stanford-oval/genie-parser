@@ -61,10 +61,6 @@ def load_language(app, tokenizer_service, tag, model_dir):
     print('Loaded language ' + tag)
 
 def run():
-    if len(sys.argv) < 2:
-        print("** Usage: python3 " + sys.argv[0] + " <<Language:Model Dir>>")
-        sys.exit(1)
-    
     np.random.seed(42)
     config = ServerConfig.load(('./server.conf',))
     
@@ -74,11 +70,16 @@ def run():
         thread_pool = ThreadPoolExecutor(max_workers=32)
     app = Application(config, thread_pool)
 
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_ctx.load_cert_chain(config.ssl_chain, config.ssl_key)
-    app.listen(config.port, ssl_options=ssl_ctx)
-    os.setgid(grp.getgrnam(config.user)[2])
-    os.setuid(pwd.getpwnam(config.user)[2])
+    if config.ssl_key:
+        ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_ctx.load_cert_chain(config.ssl_chain, config.ssl_key)
+        app.listen(config.port, ssl_options=ssl_ctx)
+    else:
+        app.listen(config.port)
+    
+    if config.user:
+        os.setgid(grp.getgrnam(config.user)[2])
+        os.setuid(pwd.getpwnam(config.user)[2])
 
     if sd:
         sd.notify('READY=1')
@@ -86,8 +87,8 @@ def run():
     tokenizer_service = TokenizerService()
     tokenizer_service.run()
     
-    for language, model_directory in map(lambda x : x.split(':'), sys.argv[1:]):
-        load_language(app, tokenizer_service, language, model_directory)
+    for language in config.languages:
+        load_language(app, tokenizer_service, language, config.get_model_directory(language))
 
     sys.stdout.flush()
     tornado.ioloop.IOLoop.current().start()

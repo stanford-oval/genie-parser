@@ -52,7 +52,7 @@ class QueryHandler(tornado.web.RequestHandler):
                     decoded = [grammar.tokens[x] for x in decoded]
                     print("Beam", i+1, decoded)
                     try:
-                        json_rep = dict(answer=json.dumps(json_syntax.to_json(decoded, grammar, values)), prob=1./len(sequences[0]), confidence=1)
+                        json_rep = dict(answer=json.dumps(json_syntax.to_json(decoded, grammar, values)), prob=1./len(sequences[0]), score=1)
                     except Exception as e:
                         print("Failed to represent " + str(decoded) + " as json", e)
                         traceback.print_exc(file=sys.stdout)
@@ -71,11 +71,16 @@ class QueryHandler(tornado.web.RequestHandler):
         tokenized = yield language.tokenizer.tokenize(query)
         result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0:
+        if len(result) > 0 and self.application.database:
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, target_json, click_count) " +
                                               "values (0, %(language)s, 'log', %(utterance)s, %(target_json)s, -1)",
                                               language=language.tag,
                                               utterance=query,
                                               target_json=result[0]['answer'])
+        
+        if language.exact:
+            exact = language.exact.get(query)
+            if exact:
+                result.insert(0, dict(answer=exact, prob=1, score='Infinity'))
         sys.stdout.flush()
         self.write(dict(candidates=result, sessionId='X'))

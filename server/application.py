@@ -24,6 +24,7 @@ import sqlalchemy
 
 from .query_handler import QueryHandler
 from .learn_handler import LearnHandler
+from .exact import ExactMatcher
 
 class LanguageContext(object):
     def __init__(self, tag, tokenizer, session, config, model):
@@ -37,13 +38,21 @@ class Application(tornado.web.Application):
     def __init__(self, config, thread_pool):
         super().__init__([(r"/query", QueryHandler), (r"/learn", LearnHandler)])
     
-        self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+        if config.db_url:
+            self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+        else:
+            self.database = None
         self.config = config
         self._languages = dict()
         self.thread_pool = thread_pool
         
     def add_language(self, tag, language):
         self._languages[tag] = language
+        if self.database:
+            language.exact = ExactMatcher(self.database, tag)
+            language.exact.load()
+        else:
+            language.exact = None
     
     def get_language(self, locale):
         '''
