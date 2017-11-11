@@ -25,6 +25,8 @@ import sys
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.python import debug as tf_debug
+
 from util.seq2seq import Seq2SeqEvaluator
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data
@@ -51,6 +53,10 @@ def run():
 
             with tf.Session() as sess:
                 loader.restore(sess, os.path.join(model_dir, 'best'))
+                
+                #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+                #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
+
                 test_eval.eval(sess, save_to_file=True)
             
 if __name__ == '__main__':

@@ -278,7 +278,7 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         logits = self._beam_where(previously_finished, beam_state.previous_logits, logits)
         
         # if we want to apply grammar constraints, this is the place to do it
-        logits = tf.identity(logits)
+        #logits = tf.identity(logits)
         print('logits', logits)
 
         # Calculate the scores for each beam
@@ -291,19 +291,42 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         # scores therefore is [batch_size, beam_width, output_size] (aka [batch, beam, transitions])
         # after top_k, we get back [batch, beam], as it picks the highest transitions overall
         scores = logits
-
+        
         vocab_size = logits.shape[-1].value
         time = tf.convert_to_tensor(time, name="time")
+        
+        # During the first time step we only consider the initial beam
+        scores_shape = tf.shape(scores)
+        scores_flat = tf.cond(
+            time > 0,
+            lambda: tf.reshape(scores, [self.batch_size, -1]),
+            lambda: scores[:, 0])
+        num_available_beam = tf.cond(
+            time > 0,
+            lambda: tf.reduce_prod(scores_shape[1:]), # aka beam_width * vocab_size
+            lambda: tf.reduce_prod(scores_shape[2:])) # aka vocab_size
        
         # Pick the next beams according to the specified successors function
-        next_beam_scores, word_indices = tf.nn.top_k(tf.reshape(scores, [self.batch_size, -1]), k=self._beam_width)
+        
+        # Optimization compared to Tensorflow code: if vocab_size >= beam_width, by time == 1
+        # we already have all the beams, and next beam size will be full
+        # If it's not, at time == 0 the next beam size is the number of available beams (== vocab_size)
+        # at time == 1, it's vocab_size^2 and so on
+        if vocab_size < self._beam_width:
+            next_beam_size = tf.minimum(
+                tf.convert_to_tensor(self._beam_width, dtype=tf.int32, name="beam_width"),
+                num_available_beam)
+        else:
+            next_beam_size = self._beam_width
+            
+        next_beam_scores, word_indices = tf.nn.top_k(scores_flat, k=next_beam_size)
         print('next_beam_scores', next_beam_scores)
         next_beam_scores.set_shape([None, self._beam_width])
         word_indices.set_shape([None, self._beam_width])
         
         # Pick out the beam_ids, and states according to the chosen predictions
         next_word_ids = tf.to_int32(word_indices % vocab_size)
-        next_beam_ids = tf.to_int32(word_indices / vocab_size)
+        next_beam_ids = tf.to_int32(word_indices // vocab_size)
         # stop back propagation across the word decision here, or tensorflow will crap itself as usual
         next_word_ids = tf.stop_gradient(next_word_ids)
         next_beam_ids = tf.stop_gradient(next_beam_ids)
@@ -531,10 +554,12 @@ class BeamAligner(BaseAligner):
         # now we add a second term that checks that the highest scored prediction is
         # correct
         predicted_time = tf.shape(preds.predicted_ids)[0]
+        print('predicted_time', predicted_time)
         length_diff = self.config.max_length - predicted_time
         padding = tf.zeros((length_diff, self.batch_size, self.config.beam_size), dtype=tf.int32)
         padded_predictions = tf.concat((preds.predicted_ids, padding), axis=0)
         padded_predictions.set_shape((self.config.max_length, None, self.config.beam_size))
+        print('padded_predictions', padded_predictions)
 
         prediction_mask = tf.transpose(tf.sequence_mask(self.output_length_placeholder, maxlen=self.config.max_length, dtype=tf.int32), [1, 0])
         masked_predictions = padded_predictions * tf.expand_dims(prediction_mask, axis=1)
@@ -542,12 +567,13 @@ class BeamAligner(BaseAligner):
         correct_sequence = tf.reduce_all(tf.equal(padded_predictions, tf.expand_dims(tf.transpose(self.output_placeholder, [1, 0]), axis=2)), axis=0)
         print('correct_sequence', correct_sequence)
 
-        gold_score = preds.beam_search_decoder_output.gold_score[predicted_time-1]
-        sequence_scores = preds.beam_search_decoder_output.scores[predicted_time-1]
-        incorrect_sequence_scores = tf.where(correct_sequence, tf.fill((self.batch_size, self.config.beam_size), -1e-8), sequence_scores)
-
-        highest_sequence_score = tf.reduce_max(incorrect_sequence_scores, axis=1)
-        correctness_margin = 1 - gold_score + highest_sequence_score
+        last_score = predicted_time-1
+        gold_score = preds.beam_search_decoder_output.gold_score[last_score]
+        sequence_scores = preds.beam_search_decoder_output.scores[last_score]
+        any_incorrect = tf.reduce_any(tf.logical_not(correct_sequence), axis=1)
+        incorrect_sequence_scores = tf.where(correct_sequence, tf.fill((self.batch_size, self.config.beam_size), -1e+8), sequence_scores)
+        highest_incorrect_sequence_score = tf.reduce_max(incorrect_sequence_scores, axis=1)
+        correctness_margin = tf.where(any_incorrect, 1 - gold_score + highest_incorrect_sequence_score, tf.zeros((self.batch_size,)))
         correctness_loss = tf.where(correctness_margin > 0, correctness_margin, tf.zeros((self.batch_size,)))
         print('correctness_loss', correctness_loss)
         correctness_loss = tf.reduce_mean(correctness_loss, axis=0)
