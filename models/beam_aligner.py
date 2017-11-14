@@ -527,7 +527,8 @@ class BeamAligner(BaseAligner):
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
-                                                beam_width=self.config.beam_size, output_layer=linear_layer,
+                                                beam_width=self.config.training_beam_size if training else self.config.beam_size,
+                                                output_layer=linear_layer,
                                                 gold_sequence=self.output_placeholder if training else None,
                                                 gold_sequence_length=(self.output_length_placeholder+1) if training else None)
         
@@ -544,11 +545,12 @@ class BeamAligner(BaseAligner):
         # transpose it to be [batch_size, beam_width, max_time] which is what we expect
         return tf.transpose(preds.predicted_ids, [1, 2, 0])
     
-    def add_loss_op(self, preds : FinalBeamSearchOptimizationDecoderOutput):
+    def add_loss_op(self, preds : FinalBeamSearchOptimizationDecoderOutput, training = True):
         # For beam search, the loss is computed as we go along, so we just average it along 
         # the beam here
         print('violation_loss', preds.total_loss)
         violation_loss = tf.reduce_mean(preds.total_loss, axis=0)
+        beam_size = self.config.training_beam_size if training else self.config.beam_size
 
         # the loss so far is the cost of falling off the beam
         # now we add a second term that checks that the highest scored prediction is
@@ -556,9 +558,9 @@ class BeamAligner(BaseAligner):
         predicted_time = tf.shape(preds.predicted_ids)[0]
         print('predicted_time', predicted_time)
         length_diff = self.config.max_length - predicted_time
-        padding = tf.zeros((length_diff, self.batch_size, self.config.beam_size), dtype=tf.int32)
+        padding = tf.zeros((length_diff, self.batch_size, beam_size), dtype=tf.int32)
         padded_predictions = tf.concat((preds.predicted_ids, padding), axis=0)
-        padded_predictions.set_shape((self.config.max_length, None, self.config.beam_size))
+        padded_predictions.set_shape((self.config.max_length, None, beam_size))
         print('padded_predictions', padded_predictions)
 
         prediction_mask = tf.transpose(tf.sequence_mask(self.output_length_placeholder, maxlen=self.config.max_length, dtype=tf.int32), [1, 0])
@@ -568,13 +570,15 @@ class BeamAligner(BaseAligner):
         print('correct_sequence', correct_sequence)
 
         last_score = predicted_time-1
-        gold_score = preds.beam_search_decoder_output.gold_score[last_score]
-        sequence_scores = preds.beam_search_decoder_output.scores[last_score]
-        any_incorrect = tf.reduce_any(tf.logical_not(correct_sequence), axis=1)
-        incorrect_sequence_scores = tf.where(correct_sequence, tf.fill((self.batch_size, self.config.beam_size), -1e+8), sequence_scores)
-        highest_incorrect_sequence_score = tf.reduce_max(incorrect_sequence_scores, axis=1)
-        correctness_margin = tf.where(any_incorrect, 1 - gold_score + highest_incorrect_sequence_score, tf.zeros((self.batch_size,)))
-        correctness_loss = tf.where(correctness_margin > 0, correctness_margin, tf.zeros((self.batch_size,)))
+        with tf.name_scope('gold_score'):
+            gold_score = preds.beam_search_decoder_output.gold_score[last_score]
+        with tf.name_scope('sequence_scores'):
+            sequence_scores = preds.beam_search_decoder_output.scores[last_score]
+        any_incorrect = tf.reduce_any(tf.logical_not(correct_sequence), axis=1, name='any_incorrect')
+        incorrect_sequence_scores = tf.where(correct_sequence, tf.fill((self.batch_size, beam_size), -1e+8), sequence_scores, name='incorrect_sequence_scores')
+        highest_incorrect_sequence_score = tf.reduce_max(incorrect_sequence_scores, axis=1, name='highest_incorrect_sequence_score')
+        correctness_margin = tf.where(any_incorrect, 1 - gold_score + highest_incorrect_sequence_score, tf.zeros((self.batch_size,)), name='correctness_margin')
+        correctness_loss = tf.where(correctness_margin > 0, correctness_margin, tf.zeros((self.batch_size,)), name='correctness_loss')
         print('correctness_loss', correctness_loss)
         correctness_loss = tf.reduce_mean(correctness_loss, axis=0)
         return violation_loss + correctness_loss

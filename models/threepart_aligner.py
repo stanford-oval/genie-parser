@@ -230,7 +230,7 @@ class ThreePartAligner(BaseAligner):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sequence, axis=1)
     
-    def add_loss_op(self, preds):
+    def add_loss_op(self, preds, _training=True):
         grammar = self.config.grammar
         first_value_token = grammar.num_functions + grammar.num_begin_tokens + grammar.num_control_tokens
 

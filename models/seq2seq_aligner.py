@@ -94,7 +94,7 @@ class Seq2SeqAligner(BaseAligner):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sample_id, axis=1)
     
-    def add_loss_op(self, result):
+    def add_loss_op(self, result, _training=True):
         logits = result.rnn_output
         with tf.control_dependencies([tf.assert_positive(tf.shape(logits)[1], data=[tf.shape(logits)])]):
             length_diff = tf.reshape(self.config.max_length - tf.shape(logits)[1], shape=(1,))

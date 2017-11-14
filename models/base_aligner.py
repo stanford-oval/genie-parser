@@ -47,14 +47,14 @@ class BaseAligner(BaseModel):
         # the training decoder
         with tf.variable_scope('RNNDec', initializer=xavier):
             train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=True)
-        self.loss = self.add_loss_op(train_preds) + self.add_regularization_loss()
+        self.loss = self.add_loss_op(train_preds, training=True) + self.add_regularization_loss()
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=True):
             eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False)
         self.pred = self.finalize_predictions(eval_preds)
-        self.eval_loss = self.add_loss_op(eval_preds)
+        self.eval_loss = self.add_loss_op(eval_preds, training=False)
 
         weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         size = 0
@@ -183,7 +183,7 @@ class BaseAligner(BaseModel):
     def finalize_predictions(self, preds):
         raise NotImplementedError()
 
-    def add_loss_op(self, preds):
+    def add_loss_op(self, preds, training = True):
         raise NotImplementedError()
 
     def add_training_op(self, loss):

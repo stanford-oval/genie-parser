@@ -64,7 +64,8 @@ class Config(object):
             output_embed_size=15,
             use_grammar_constraints='true',
             use_typed_embeddings='true',
-            beam_width=10
+            beam_width=10,
+            training_beam_width=10
         )
         
         self._grammar = None
@@ -141,6 +142,13 @@ class Config(object):
     def beam_size(self):
         if self._config['model']['model_type'] == 'beamsearch':
             return int(self._config['output']['beam_width'])
+        else:
+            return 1
+        
+    @property
+    def training_beam_size(self):
+        if self._config['model']['model_type'] == 'beamsearch':
+            return int(self._config['output']['training_beam_width'])
         else:
             return 1
         
