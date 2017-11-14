@@ -42,14 +42,18 @@ class Seq2SeqEvaluator(object):
         inputs, input_lengths, parses, labels, label_length = self.data
         sequences = []
         sum_eval_loss = 0
-        gold_programs = set()
-        correct_programs = [set() for _ in range(self._beam_size)]
-        for gold in labels:
-            try:
-                gold = gold[:list(gold).index(self.grammar.end)]
-            except ValueError:
-                pass
-            gold_programs.add(tuple(gold))
+        if save_to_file:
+            gold_programs = set()
+            correct_programs = [set() for _ in range(self._beam_size)]
+            for gold in labels:
+                try:
+                    gold = gold[:list(gold).index(self.grammar.end)]
+                except ValueError:
+                    pass
+                gold_programs.add(tuple(gold))
+        else:
+            gold_programs = set()
+            correct_programs = None
     
         dict_reverse = self.grammar.tokens
 
@@ -97,7 +101,10 @@ class Seq2SeqEvaluator(object):
                             pass
                         #self.grammar.normalize_sequence(decoded)
 
-                        decoded_tuple = tuple(decoded)
+                        if save_to_file:
+                            decoded_tuple = tuple(decoded)
+                        else:
+                            decoded_tuple = None
 
                         if is_ok_0 or (len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]):
                             ok_0[beam_pos] += 1
@@ -117,14 +124,18 @@ class Seq2SeqEvaluator(object):
                             print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)
 
                         if is_ok_full or self.grammar.compare(gold, decoded):
-                            correct_programs[beam_pos].add(decoded_tuple)
+                            if save_to_file:
+                                correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
                             is_ok_full = True
             
             acc_0 = ok_0.astype(np.float32)/len(labels)
             acc_fn = ok_full.astype(np.float32)/len(labels)
             acc_full = ok_full.astype(np.float32)/len(labels)
-            recall = [float(len(p))/len(gold_programs) for p in correct_programs]
+            if save_to_file:
+                recall = [float(len(p))/len(gold_programs) for p in correct_programs]
+            else:
+                recall = [0]
             print(self.tag, "ok 0:", acc_0)
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok full:", acc_full)
