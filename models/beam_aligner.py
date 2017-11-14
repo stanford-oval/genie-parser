@@ -31,7 +31,7 @@ from .base_aligner import BaseAligner
 from .seq2seq_aligner import ParentFeedingCellWrapper
 
 BeamSearchOptimizationDecoderOutput = namedtuple('BeamSearchOptimizationDecoderOutput', ('scores', 'gold_score', 'predicted_ids', 'parent_ids', 'loss'))
-BeamSearchOptimizationDecoderState = namedtuple('BeamSearchOptimizationDecoderState', ('cell_state', 'gold_cell_state', 'previous_gold_token', 'previous_score', 'previous_gold_score', 'previous_logits', 'finished'))
+BeamSearchOptimizationDecoderState = namedtuple('BeamSearchOptimizationDecoderState', ('cell_state', 'gold_cell_state', 'previous_gold_token', 'previous_score', 'previous_gold_score', 'previous_logits', 'num_available_beams', 'finished'))
 FinalBeamSearchOptimizationDecoderOutput = namedtuple('FinalBeamSearchOptimizationDecoderOutput', ('beam_search_decoder_output', 'predicted_ids', 'total_loss'))
 
 # Some of the code here was copied from Tensorflow contrib/seq2seq/python/ops/beam_search_decoder.py
@@ -193,6 +193,8 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
             previous_score=tf.zeros([self.batch_size, self._beam_width], dtype=tf.float32),
             previous_gold_score=tf.zeros([self.batch_size], dtype=tf.float32),
             previous_gold_token=self._start_tokens,
+            # During the first time step we only consider the initial beam
+            num_available_beams=tf.ones((self._batch_size,), dtype=tf.int32),
             finished=finished)
         
         return (finished, start_inputs, initial_state)
@@ -209,15 +211,20 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         """
         with tf.name_scope(name, "BeamSearchOptimizationDecoderStep", (time, inputs, state)):
             cell_state = state.cell_state
-            inputs = nest.map_structure(lambda x: self._merge_batch_beams(x, s=x.shape[2:]), inputs)
+            with tf.name_scope('merge_cell_input'):
+                inputs = nest.map_structure(lambda x: self._merge_batch_beams(x, s=x.shape[2:]), inputs)
             print('inputs', inputs)
-            cell_state = nest.map_structure(self._maybe_merge_batch_beams, cell_state, self._cell.state_size)
+            with tf.name_scope('merge_cell_state'):
+                cell_state = nest.map_structure(self._maybe_merge_batch_beams, cell_state, self._cell.state_size)
             cell_outputs, next_cell_state = self._cell(inputs, cell_state)
-            cell_outputs = nest.map_structure(self._split_batch_beams, cell_outputs, self._cell.output_size)
-            next_cell_state = nest.map_structure(self._maybe_split_batch_beams, next_cell_state, self._cell.state_size)
-            
             if self._output_layer is not None:
                 cell_outputs = self._output_layer(cell_outputs)
+
+            with tf.name_scope('split_cell_outputs'):
+                cell_outputs = nest.map_structure(self._split_batch_beams, cell_outputs, self._output_size)
+            with tf.name_scope('split_cell_state'):
+                next_cell_state = nest.map_structure(self._maybe_split_batch_beams, next_cell_state, self._cell.state_size)
+            
 
             if self._training:
                 gold_input = self._embedding_fn(state.previous_gold_token)
@@ -245,8 +252,8 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         # all output fields are [max_time, batch_size, ...]
         predicted_ids = tf.contrib.seq2seq.gather_tree(
             outputs.predicted_ids, outputs.parent_ids,
-            sequence_length=sequence_lengths)
-        total_loss = tf.reduce_sum(outputs.loss, axis=0)
+            sequence_length=sequence_lengths, name='predicted_ids')
+        total_loss = tf.reduce_sum(outputs.loss, axis=0, name='violation_loss')
         return FinalBeamSearchOptimizationDecoderOutput(beam_search_decoder_output=outputs, predicted_ids=predicted_ids, total_loss=total_loss), final_state
 
     def _beam_where(self, cond, x, y):
@@ -290,22 +297,22 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         #
         # scores therefore is [batch_size, beam_width, output_size] (aka [batch, beam, transitions])
         # after top_k, we get back [batch, beam], as it picks the highest transitions overall
-        scores = logits
+        scores = tf.identity(logits, name='beam_scores')
         
-        vocab_size = logits.shape[-1].value
+        vocab_size = self._output_size
         time = tf.convert_to_tensor(time, name="time")
         
-        # During the first time step we only consider the initial beam
-        scores_shape = tf.shape(scores)
-        scores_flat = tf.cond(
-            time > 0,
-            lambda: tf.reshape(scores, [self.batch_size, -1]),
-            lambda: scores[:, 0])
-        num_available_beam = tf.cond(
-            time > 0,
-            lambda: tf.reduce_prod(scores_shape[1:]), # aka beam_width * vocab_size
-            lambda: tf.reduce_prod(scores_shape[2:])) # aka vocab_size
-       
+        # Make sure to consider only beams that are available
+        assert0 = tf.Assert(tf.reduce_all(beam_state.num_available_beams >= 1), (time, beam_state.num_available_beams))
+        with tf.control_dependencies([assert0]):
+            with tf.name_scope('valid_beam_mask'):
+                valid_beam_mask = tf.sequence_mask(beam_state.num_available_beams, self._beam_width)
+                valid_beam_mask = tf.tile(tf.expand_dims(valid_beam_mask, axis=2), multiples=[1, 1, self._output_size])
+        
+        with tf.name_scope('beam_scores_flat'):
+            scores_flat = tf.where(valid_beam_mask, scores, tf.fill(tf.shape(scores), -1e+8))
+            scores_flat = tf.reshape(scores_flat, [self.batch_size, -1])
+        
         # Pick the next beams according to the specified successors function
         
         # Optimization compared to Tensorflow code: if vocab_size >= beam_width, by time == 1
@@ -313,11 +320,14 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         # If it's not, at time == 0 the next beam size is the number of available beams (== vocab_size)
         # at time == 1, it's vocab_size^2 and so on
         if vocab_size < self._beam_width:
+            # NOTE: this is correct but it will break nn.top_k
+            # sorry
             next_beam_size = tf.minimum(
-                tf.convert_to_tensor(self._beam_width, dtype=tf.int32, name="beam_width"),
-                num_available_beam)
+                tf.fill((self.batch_size,), self._beam_width),
+                beam_state.num_available_beams * self._output_size)
         else:
             next_beam_size = self._beam_width
+        num_available_beams = tf.fill((self.batch_size,), next_beam_size)
             
         next_beam_scores, word_indices = tf.nn.top_k(scores_flat, k=next_beam_size)
         print('next_beam_scores', next_beam_scores)
@@ -347,46 +357,50 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         # At training time, check for margin violations, and if so reset the beam
         if self._training:
             gold_finished = time >= self._gold_sequence_length
-            gold_token = tf.cond(time >= self._max_time,
-                    lambda: tf.fill((self.batch_size,), self._end_token),
-                    lambda: self._gold_sequence.read(time))
+            with tf.name_scope('gold_token'):
+                gold_token = tf.cond(time >= self._max_time,
+                        lambda: tf.fill((self.batch_size,), self._end_token),
+                        lambda: self._gold_sequence.read(time))
 
-            assert1 = tf.Assert(tf.reduce_all(gold_token <= self._output_size), (time, self._original_gold_sequence, gold_token))
+            assert1 = tf.Assert(tf.reduce_all(gold_token >= 0), (time, self._original_gold_sequence, gold_token))
             with tf.control_dependencies([assert1]):
                 indices = tf.stack((tf.range(self.batch_size), gold_token), axis=1)
-            gold_score = tf.where(gold_finished, beam_state.previous_gold_score, tf.gather_nd(gold_cell_outputs, indices))
+            gold_score = tf.where(gold_finished, beam_state.previous_gold_score, tf.gather_nd(gold_cell_outputs, indices), name='gold_score')
             
             # the score of the last element of the beam
-            beam_bottom_indices = tf.stack((tf.range(self.batch_size), tf.fill((self.batch_size,), self._beam_width-1)), axis=1)
+            beam_bottom_indices = tf.stack((tf.range(self.batch_size), tf.fill((self.batch_size,), self._beam_width-1)), axis=1, name='beam_bottom_indices')
             print('beam_bottom_indices', beam_bottom_indices)
-            beam_bottom_scores = tf.gather_nd(next_beam_scores, beam_bottom_indices)
+            beam_bottom_scores = tf.gather_nd(next_beam_scores, beam_bottom_indices, name='beam_bottom_scores')
             print('beam_bottom_scores', beam_bottom_scores)
             
-            margin = 1 - gold_score + beam_bottom_scores
+            margin = tf.add(1 - gold_score, beam_bottom_scores, name='beam_bottom_margin')
             print('margin', margin)
-            beam_violation = margin > 0
+            beam_violation = tf.greater(margin, 0, name='beam_violation')
             
-            loss = tf.where(beam_violation, margin, tf.zeros((self.batch_size,)))
+            loss = tf.where(beam_violation, margin, tf.zeros((self.batch_size,)), name='beam_violation_loss')
             print('loss', loss)
             
             reset_token = gold_token
-            next_word_ids = tf.where(beam_violation, self._maybe_tile_batch(reset_token), next_word_ids)
-            next_beam_scores = tf.where(beam_violation, self._maybe_tile_batch(gold_score), next_beam_scores)
-        
-            # Note: next_beam_ids is used only to reconstruct predicted_ids, so we leave it as is
-            # in practice, it means that we're not fully resetting the beam, rather we're building a bastardized
-            # beam that has the previous sequences
-            # this is ok because predicted_ids is only used at inference time (where none of this resetting
-            # business occurs)
-            tiled_gold_state = nest.map_structure(self._maybe_tile_batch, next_gold_cell_state)
-
-            # note the shape trickery: if .shape.ndims is 0 (a scalar) then we reset to gold for all examples
-            # in the batch
-            # this is technically incorrect, but it's ok because scalar shape is used for things like "time"
-            # in AttentionWrapper, which should advance the same way for the gold and the real cell
-            next_cell_state = nest.map_structure(lambda gold, predicted: tf.where(beam_violation, gold, predicted) if gold.shape.ndims >= 1 else gold,
-                                                 tiled_gold_state,
-                                                 next_cell_state)
+            with tf.name_scope('beam_reset'):
+                next_word_ids = tf.where(beam_violation, self._maybe_tile_batch(reset_token), next_word_ids)
+                
+                with tf.name_scope('next_beam_ids'):
+                    # choose all beams 0-10 as parent_ids
+                    all_beams = tf.reshape(tf.tile(tf.range(0, self._beam_width), [self.batch_size]), shape=(self.batch_size, self._beam_width))
+                    next_beam_ids = tf.where(beam_violation, all_beams, next_beam_ids)
+                next_beam_scores = tf.where(beam_violation, self._maybe_tile_batch(gold_score), next_beam_scores)
+                num_available_beams = tf.where(beam_violation, tf.ones((self.batch_size,), dtype=tf.int32), num_available_beams)
+                
+                tiled_gold_state = nest.map_structure(self._maybe_tile_batch, next_gold_cell_state)
+    
+                # note the shape trickery: if .shape.ndims is 0 (a scalar) then we reset to gold for all examples
+                # in the batch
+                # this is technically incorrect, but it's ok because scalar shape is used for things like "time"
+                # in AttentionWrapper, which should advance the same way for the gold and the real cell
+                with tf.name_scope('next_cell_state'):
+                    next_cell_state = nest.map_structure(lambda gold, predicted: tf.where(beam_violation, gold, predicted) if gold.shape.ndims >= 1 else gold,
+                                                         tiled_gold_state,
+                                                         next_cell_state)
         else:
             gold_token = self._start_tokens
             gold_score = beam_state.previous_gold_score
@@ -403,10 +417,12 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         next_state = BeamSearchOptimizationDecoderState(
             cell_state=next_cell_state,
             gold_cell_state=next_gold_cell_state,
+            # note: nothing in the code cares about previous score
             previous_score=next_beam_scores,
             previous_gold_score=gold_score,
             previous_logits=logits,
             previous_gold_token=gold_token,
+            num_available_beams=num_available_beams,
             finished=next_finished)
         
         output = BeamSearchOptimizationDecoderOutput(
@@ -563,10 +579,10 @@ class BeamAligner(BaseAligner):
         padded_predictions.set_shape((self.config.max_length, None, beam_size))
         print('padded_predictions', padded_predictions)
 
-        prediction_mask = tf.transpose(tf.sequence_mask(self.output_length_placeholder, maxlen=self.config.max_length, dtype=tf.int32), [1, 0])
+        prediction_mask = tf.transpose(tf.sequence_mask(self.output_length_placeholder, maxlen=self.config.max_length, dtype=tf.int32), [1, 0], name='prediction_mask')
         masked_predictions = padded_predictions * tf.expand_dims(prediction_mask, axis=1)
 
-        correct_sequence = tf.reduce_all(tf.equal(padded_predictions, tf.expand_dims(tf.transpose(self.output_placeholder, [1, 0]), axis=2)), axis=0)
+        correct_sequence = tf.reduce_all(tf.equal(padded_predictions, tf.expand_dims(tf.transpose(self.output_placeholder, [1, 0]), axis=2)), axis=0, name='correct_sequence')
         print('correct_sequence', correct_sequence)
 
         last_score = predicted_time-1
