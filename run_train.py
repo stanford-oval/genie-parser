@@ -68,7 +68,10 @@ def run():
                           n_epochs=config.n_epochs,
                           dropout=config.dropout)
 
-        with tf.Session() as sess:
+        tfconfig = tf.ConfigProto()
+        tfconfig.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
+
+        with tf.Session(config=tfconfig) as sess:
             # Run the Op to initialize the variables.
             sess.run(init)
             #sess = tf_debug.LocalCLIDebugWrapperSession(sess)

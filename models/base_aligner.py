@@ -106,7 +106,7 @@ class BaseAligner(BaseModel):
     def make_rnn_cell(self, id, for_decoder):
         hidden_size = self.config.decoder_hidden_size if for_decoder else self.config.encoder_hidden_size
         if self.config.rnn_cell_type == "lstm":
-            cell = tf.contrib.rnn.LSTMCell(hidden_size)
+            cell = tf.contrib.rnn.LSTMBlockCell(hidden_size)
         elif self.config.rnn_cell_type == "gru":
             cell = tf.contrib.rnn.GRUCell(hidden_size)
         elif self.config.rnn_cell_type == "basic-tanh":
