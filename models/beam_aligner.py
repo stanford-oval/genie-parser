@@ -31,7 +31,7 @@ from .base_aligner import BaseAligner
 from .seq2seq_aligner import ParentFeedingCellWrapper
 
 BeamSearchOptimizationDecoderOutput = namedtuple('BeamSearchOptimizationDecoderOutput', ('scores', 'gold_score', 'predicted_ids', 'parent_ids', 'loss'))
-BeamSearchOptimizationDecoderState = namedtuple('BeamSearchOptimizationDecoderState', ('cell_state', 'gold_cell_state', 'previous_gold_token', 'previous_score', 'previous_gold_score', 'previous_logits', 'num_available_beams', 'finished'))
+BeamSearchOptimizationDecoderState = namedtuple('BeamSearchOptimizationDecoderState', ('cell_state', 'gold_cell_state', 'previous_gold_token', 'previous_score', 'previous_gold_score', 'previous_logits', 'num_available_beams', 'gold_beam_id', 'finished'))
 FinalBeamSearchOptimizationDecoderOutput = namedtuple('FinalBeamSearchOptimizationDecoderOutput', ('beam_search_decoder_output', 'predicted_ids', 'total_loss'))
 
 # Some of the code here was copied from Tensorflow contrib/seq2seq/python/ops/beam_search_decoder.py
@@ -186,6 +186,8 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         print('start_inputs', start_inputs)
         finished = tf.zeros((self.batch_size, self._beam_width), dtype=tf.bool)
 
+        self._all_beams = tf.reshape(tf.tile(tf.range(0, self._beam_width), [self.batch_size]), shape=(self.batch_size, self._beam_width), name='all_beams')
+        self._initial_num_available_beams = tf.ones((self._batch_size,), dtype=tf.int32)
         initial_state = BeamSearchOptimizationDecoderState(
             cell_state=self._tiled_initial_cell_state,
             gold_cell_state=self._initial_cell_state,
@@ -194,7 +196,8 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
             previous_gold_score=tf.zeros([self.batch_size], dtype=tf.float32),
             previous_gold_token=self._start_tokens,
             # During the first time step we only consider the initial beam
-            num_available_beams=tf.ones((self._batch_size,), dtype=tf.int32),
+            num_available_beams=self._initial_num_available_beams,
+            gold_beam_id=tf.zeros([self.batch_size], dtype=tf.int32),
             finished=finished)
         
         return (finished, start_inputs, initial_state)
@@ -367,6 +370,12 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
                 indices = tf.stack((tf.range(self.batch_size), gold_token), axis=1)
             gold_score = tf.where(gold_finished, beam_state.previous_gold_score, tf.gather_nd(gold_cell_outputs, indices), name='gold_score')
             
+            # compute the highest beam that contains the gold token
+            is_gold_beam = tf.logical_and(tf.equal(next_beam_ids, tf.expand_dims(beam_state.gold_beam_id, axis=1)),
+                                          tf.equal(next_word_ids, tf.expand_dims(gold_token, axis=1)), name='is_gold_beam')
+            next_gold_beam_id = tf.argmax(tf.to_int32(is_gold_beam), axis=1, output_type=tf.int32, name='next_gold_beam_id')
+            print('next_gold_beam_id', next_gold_beam_id)
+            
             # the score of the last element of the beam
             beam_bottom_indices = tf.stack((tf.range(self.batch_size), tf.fill((self.batch_size,), self._beam_width-1)), axis=1, name='beam_bottom_indices')
             print('beam_bottom_indices', beam_bottom_indices)
@@ -382,14 +391,11 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
             
             reset_token = gold_token
             with tf.name_scope('beam_reset'):
-                next_word_ids = tf.where(beam_violation, self._maybe_tile_batch(reset_token), next_word_ids)
-                
-                with tf.name_scope('next_beam_ids'):
-                    # choose all beams 0-10 as parent_ids
-                    all_beams = tf.reshape(tf.tile(tf.range(0, self._beam_width), [self.batch_size]), shape=(self.batch_size, self._beam_width))
-                    next_beam_ids = tf.where(beam_violation, all_beams, next_beam_ids)
-                next_beam_scores = tf.where(beam_violation, self._maybe_tile_batch(gold_score), next_beam_scores)
-                num_available_beams = tf.where(beam_violation, tf.ones((self.batch_size,), dtype=tf.int32), num_available_beams)
+                next_word_ids = tf.where(beam_violation, self._maybe_tile_batch(reset_token), next_word_ids, name='next_word_ids')
+                next_beam_ids = tf.where(beam_violation, self._maybe_tile_batch(beam_state.gold_beam_id), next_beam_ids, name='next_beam_ids')
+                next_beam_scores = tf.where(beam_violation, self._maybe_tile_batch(gold_score), next_beam_scores, name='next_beam_scores')
+                num_available_beams = tf.where(beam_violation, self._initial_num_available_beams, num_available_beams, name='num_available_beams')
+                next_gold_beam_id = tf.where(beam_violation, tf.zeros((self.batch_size,), dtype=tf.int32), next_gold_beam_id, name='next_gold_beam_id')
                 
                 tiled_gold_state = nest.map_structure(self._maybe_tile_batch, next_gold_cell_state)
     
@@ -404,6 +410,7 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         else:
             gold_token = self._start_tokens
             gold_score = beam_state.previous_gold_score
+            next_gold_beam_id = tf.zeros((self.batch_size,), dtype=tf.int32)
             loss = tf.zeros((self.batch_size,), dtype=tf.float32)
 
         previously_finished = _tensor_gather_helper(
@@ -423,6 +430,7 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
             previous_logits=logits,
             previous_gold_token=gold_token,
             num_available_beams=num_available_beams,
+            gold_beam_id=next_gold_beam_id,
             finished=next_finished)
         
         output = BeamSearchOptimizationDecoderOutput(
