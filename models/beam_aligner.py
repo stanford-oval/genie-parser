@@ -53,8 +53,7 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
         self._output_size = output_layer.units if output_layer is not None else self._output.output_size
         self._batch_size = tf.size(start_tokens)
         self._beam_width = beam_width
-        self._initial_cell_state = initial_state
-        self._tiled_initial_cell_state = nest.map_structure(self._maybe_tile_batch, initial_state)
+        self._tiled_initial_cell_state = nest.map_structure(self._maybe_split_batch_beams, initial_state, self._cell.state_size)
         self._start_tokens = start_tokens
         self._tiled_start_tokens = self._maybe_tile_batch(start_tokens)
         self._end_token = end_token
@@ -390,7 +389,14 @@ class BeamSearchOptimizationDecoder(tf.contrib.seq2seq.Decoder):
                                   tf.gather_nd(logits, gold_score_indices), name='gold_score')
             
             with tf.name_scope('next_gold_cell_state'):
-                next_gold_cell_state = nest.map_structure(lambda state: tf.gather_nd(state, current_gold_beam_indices), next_cell_state)
+                def maybe_gather_nd(state):
+                    if len(state.shape) > 1:
+                        return tf.gather_nd(state, current_gold_beam_indices)
+                    else:
+                        # time, and other scalar things that advance equally across all batches beams and stuff
+                        # used by AttentionWrapper mainly
+                        return state
+                next_gold_cell_state = nest.map_structure(maybe_gather_nd, next_cell_state)
             
             # compute the highest beam that contains the gold token
             is_gold_beam = tf.logical_and(tf.equal(next_beam_ids, tf.expand_dims(beam_state.gold_beam_id, axis=1)),
@@ -560,24 +566,28 @@ class BeamAligner(BaseAligner):
             # flatten and repack the state
             enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
 
-        # to use these we need to tile the final encoder state / the memory
-        # but that conflicts with our use of cell_dec on untiled inputs for the gold
-        #cell_dec = ParentFeedingCellWrapper(cell_dec, tf.contrib.seq2seq.tile_batch(enc_final_state, self.config.beam_size))
-        if self.config.apply_attention and False:
-            attention = LuongAttention(decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
+        beam_width = self.config.training_beam_size if training else self.config.beam_size
+
+        #cell_dec = ParentFeedingCellWrapper(cell_dec, tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width))
+        if self.config.apply_attention:
+            attention = LuongAttention(decoder_hidden_size,
+                                       tf.contrib.seq2seq.tile_batch(enc_hidden_states, beam_width),
+                                       tf.contrib.seq2seq.tile_batch(self.input_length_placeholder, beam_width),
                                        probability_fn=tf.nn.softmax)
             cell_dec = AttentionWrapper(cell_dec, attention,
                                         cell_input_fn=lambda inputs, _: inputs,
                                         attention_layer_size=decoder_hidden_size,
-                                        initial_cell_state=enc_final_state)
-            enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
+                                        initial_cell_state=tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width))
+            enc_final_state = cell_dec.zero_state(self.batch_size * beam_width, dtype=tf.float32)
+        else:
+            enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width)
         
         print('enc_final_state', enc_final_state)
         linear_layer = tf_core_layers.Dense(self.config.output_size)
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
-                                                beam_width=self.config.training_beam_size if training else self.config.beam_size,
+                                                beam_width=beam_width,
                                                 output_layer=linear_layer,
                                                 gold_sequence=self.output_placeholder if training else None,
                                                 gold_sequence_length=(self.output_length_placeholder+1) if training else None)
