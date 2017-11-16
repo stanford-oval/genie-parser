@@ -629,7 +629,7 @@ class ThingtalkGrammar(AbstractGrammar):
             allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
             assert allowed_tokens.get_shape()[1:] == (self.output_size,)
 
-            constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
+            constrained_logits = tf.where(allowed_tokens, logits, tf.fill(tf.shape(allowed_tokens), -1e+10))
         return constrained_logits
 
     def value_transition(self, curr_state, next_symbols, batch_size):
