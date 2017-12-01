@@ -69,7 +69,8 @@ class SLRParserGenerator():
         for lhs, rules in grammar.items():
             self.grammar[lhs] = []
             for rule in rules:
-                assert len(rule) == 1 or len(rule) == 2
+                assert isinstance(rule, tuple)
+                #assert len(rule) == 1 or len(rule) == 2
                 rule_id = len(self.rules)
                 self.rules.append((lhs, rule))
                 self.grammar[lhs].append(rule_id)
@@ -184,7 +185,7 @@ class SLRParserGenerator():
                     # Note: our grammar doesn't include rules of the form A -> epsilon
                     # because it's meant for an SLR parser not an LL parser, so this is
                     # simpler than what Wikipedia describes in the LL parser article
-                    if _is_terminal(rule[0]) != '$':
+                    if _is_terminal(rule[0]):
                         first_set_rule = set([rule[0]])
                     else:
                         first_set_rule = first_sets.get(rule[0], set())
@@ -211,7 +212,6 @@ class SLRParserGenerator():
         def _is_nonterminal(symbol):
             return symbol[0] == '$'
         
-        follow_sets[self._start_symbol].add(EOF_TOKEN)
         while progress:
             progress = False
             for lhs, rule in self.rules:
@@ -220,8 +220,8 @@ class SLRParserGenerator():
                         if _is_nonterminal(rule[i+1]):
                             progress = _add_all(self._first_sets[rule[i+1]], follow_sets[rule[i]]) or progress
                         else:
-                            if rule[i+1] not in follow_sets[nonterm]:
-                                follow_sets[nonterm].add(rule[i+1])
+                            if rule[i+1] not in follow_sets[rule[i]]:
+                                follow_sets[rule[i]].add(rule[i+1])
                                 progress = True
                 if _is_nonterminal(rule[-1]):
                     progress = _add_all(follow_sets[lhs], follow_sets[rule[-1]]) or progress
@@ -283,6 +283,14 @@ class ShiftReduceParser:
         self._goto_table = goto_table
         self._start_symbol = start_symbol
         
+    @property
+    def num_rules(self):
+        return len(self._rules)
+    
+    @property
+    def num_states(self):
+        return len(self._action_table)
+        
     def parse(self, sequence):
         stack = [0]
         state = 0
@@ -341,7 +349,8 @@ TEST_GRAMMAR = {
 '$rule':    [('$stream', '$action')],
 '$command': [('$table', 'notify'),
              ('$table', '$action')],
-'$table':   [('$get',)],
+'$table':   [('$get',),
+             ('$table', '$filter')],
 '$stream':  [('monitor', '$table')],
 '$get':     [('$get', '$ip'),
              ('xkcd.get_comic',),
@@ -354,7 +363,12 @@ TEST_GRAMMAR = {
 '$number':  [('num0',),
              ('num1',)],
 '$string':  [('qs0',),
-             ('qs1',)]
+             ('qs1',)],
+'$filter':  [('param:number', '==', '$number'),
+             ('param:number', '>', '$number'),
+             ('param:number', '<', '$number'),
+             ('param:text', '==', '$string'),
+             ('param:text', '=~', '$string')]
 }   
 
 
