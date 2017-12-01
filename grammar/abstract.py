@@ -39,7 +39,7 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
     
-    def reconstruct_program(self, sequence):
+    def reconstruct_program(self, sequence, ignore_errors=False):
         ret = []
         for x in sequence:
             if x == self.end:

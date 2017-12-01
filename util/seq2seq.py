@@ -46,7 +46,7 @@ class Seq2SeqEvaluator(object):
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
             for gold in labels:
-                gold = self.grammar.reconstruct_program(gold)
+                gold = self.grammar.reconstruct_program(gold, ignore_errors=False)
                 gold_programs.add(tuple(gold))
         else:
             gold_programs = set()
@@ -75,7 +75,7 @@ class Seq2SeqEvaluator(object):
 
                 for i, seq in enumerate(sequences):
                     #print
-                    gold = self.grammar.reconstruct_program(label_batch[i])
+                    gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
                     #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
 
@@ -86,7 +86,7 @@ class Seq2SeqEvaluator(object):
                         if beam_pos >= self._beam_size:
                             break
                         #self.grammar.normalize_sequence(decoded)
-                        decoded = self.grammar.reconstruct_program(beam)
+                        decoded = self.grammar.reconstruct_program(beam, ignore_errors=True)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)

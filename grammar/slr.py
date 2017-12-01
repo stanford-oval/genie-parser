@@ -432,6 +432,8 @@ class ShiftReduceParser:
         for action, param in sequence:
             if action == 'shift':
                 pass
+            elif action == 'accept':
+                break
             else:
                 rule_id = param
                 lhs, rhs = self._rules[rule_id]
