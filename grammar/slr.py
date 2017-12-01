@@ -4,6 +4,8 @@ Created on Nov 30, 2017
 @author: gcampagn
 '''
 
+import sys
+
 EOF_TOKEN = '<<EOF>>'
 
 class ItemSetInfo:
@@ -34,7 +36,9 @@ class SLRParserGenerator():
     '''
     
     def __init__(self, grammar, start_symbol):
+        # optimizations first
         self._start_symbol = start_symbol
+        self._optimize_grammar(grammar)
         grammar['$ROOT'] = [(start_symbol, EOF_TOKEN)]
         self._number_rules(grammar)
         self._extract_terminals_non_terminals()
@@ -44,9 +48,98 @@ class SLRParserGenerator():
         self._build_state_transition_matrix()
         self._build_parse_tables()
         
+        self._check_first_sets()
+        self._check_follow_sets()
+        
     def build(self):
         return ShiftReduceParser(self.rules, self.action_table, self.goto_table, self._start_symbol)
-        
+    
+    def _optimize_grammar(self, grammar):
+        progress = True
+        i = 0
+        while progress:
+            progress = False
+            if DEBUG:
+                print("Optimization pass", i+1)            
+            progress = self._remove_empty_nonterminals(grammar) or progress
+            progress = self._remove_unreachable_nonterminals(grammar) or progress
+    
+    def _remove_empty_nonterminals(self, grammar):
+        progress = True
+        any_change = False
+        deleted = set()
+        while progress:
+            progress = False
+            for lhs, rules in grammar.items():
+                if len(rules) == 0:
+                    if lhs not in deleted:
+                        if DEBUG:
+                            print("Non-terminal", lhs, "is empty, deleted")
+                        progress = True
+                        any_change = True
+                    deleted.add(lhs)
+                else:
+                    new_rules = []
+                    any_rules_deleted = False
+                    for rule in rules:
+                        rule_is_deleted = False
+                        for rhs in rule:
+                            if rhs in deleted:
+                                rule_is_deleted = True
+                                break
+                        if not rule_is_deleted:
+                            new_rules.append(rule)
+                        else:
+                            if DEBUG:
+                                print("Rule", lhs, "->", rule, "deleted")
+                            any_rules_deleted = True
+                    if any_rules_deleted:
+                        grammar[lhs] = new_rules
+                        progress = True
+                        any_change = True
+        for lhs in deleted:
+            del grammar[lhs]
+        return any_change
+    
+    def _remove_unreachable_nonterminals(self, grammar):
+        stack = [self._start_symbol]
+        visited = set()
+        while len(stack) > 0:
+            nonterm = stack.pop()
+            if nonterm in visited:
+                continue
+            visited.add(nonterm)
+            for rhs in grammar[nonterm]:
+                for rhs_token in rhs:
+                    if rhs_token[0] == '$' and rhs_token not in visited:
+                        stack.append(rhs_token)
+                        if not rhs_token in grammar:
+                            raise ValueError("Non-terminal " + str(rhs_token) + " does not exist, in rule " + nonterm + " -> " + str(rhs))
+                        
+        todelete = set()
+        anychange = False
+        for lhs in grammar:
+            if lhs not in visited:
+                if DEBUG:
+                    print("Non-terminal " + lhs + " is not reachable, deleted")
+                todelete.add(lhs)
+                anychange = True
+        for lhs in todelete:
+            del grammar[lhs]
+        return anychange
+    
+    def _check_first_sets(self):
+        for lhs, first_set in self._first_sets.items():
+            if len(first_set) == 0:
+                print("WARNING: non-terminal " + lhs + " cannot start with any terminal")
+    
+    def _check_follow_sets(self):
+        for lhs, follow_set in self._follow_sets.items():
+            if lhs == '$ROOT':
+                continue
+            if len(follow_set) == 0:
+                print("WARNING: non-terminal " + lhs + " cannot be followed by any terminal")
+    
     def _extract_terminals_non_terminals(self):
         terminals = set()
         non_terminals = set()
@@ -62,6 +155,10 @@ class SLRParserGenerator():
         self.terminals.sort()
         self.non_terminals = list(non_terminals)
         self.non_terminals.sort()
+
+    def print_rules(self, fp=sys.stdout):
+        for lhs, rhs in self.rules:
+            print(lhs, '->', ' '.join(rhs), file=fp)
 
     def _number_rules(self, grammar):
         self.rules = []
@@ -261,7 +358,13 @@ class SLRParserGenerator():
                 lhs, _ = self.rules[rule_id]
                 for term in self.terminals:
                     if term in self._follow_sets.get(lhs, set()):
-                        if term in [item_set.info.id] and self.action_table[item_set.info.id][term] != ('reduce', rule_id):
+                        if term in self.action_table[item_set.info.id] and self.action_table[item_set.info.id][term] != ('reduce', rule_id):
+                            print("Item Set", item_set.info.id, item_set.info.intransitions)
+                            for rule in item_set.rules:
+                                rule_id, rhs = rule
+                                lhs, _ = self.rules[rule_id]
+                                print(rule_id, lhs, '->', rhs)
+                            print()
                             raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
                         self.action_table[item_set.info.id][term] = ('reduce', rule_id)
 
@@ -307,6 +410,10 @@ class ShiftReduceParser:
             if action == 'accept':
                 return result
             result.append((action, param))
+            #if action == 'shift':
+            #    print('shift', param, token)
+            #else:
+            #    print('reduce', param, self._rules[param])
             if action == 'shift':
                 state = param
                 stack.append(state)
