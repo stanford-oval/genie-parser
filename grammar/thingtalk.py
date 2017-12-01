@@ -673,60 +673,6 @@ class ThingtalkGrammar(AbstractGrammar):
         for token in self.tokens:
             print(token)
 
-    def split_batch_in_parts(self, labels_batch):
-        batch_size = len(labels_batch)
-        top_batch = np.empty((batch_size,), dtype=np.int32)
-        special_label_batch = np.zeros((batch_size, MAX_SPECIAL_LENGTH), dtype=np.int32)
-        part_function_batches = dict()
-        part_sequence_batches = dict()
-        part_sequence_length_batches = dict()
-        for part in ('trigger', 'query', 'action'):
-            part_function_batches[part] = np.zeros((batch_size,), dtype=np.int32)
-            part_sequence_batches[part] = np.zeros((batch_size, MAX_PRIMITIVE_LENGTH), dtype=np.int32)
-            part_sequence_length_batches[part] = np.zeros((batch_size,), dtype=np.int32)
-            
-        rule_token = self.dictionary['rule']
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        for i, label in enumerate(labels_batch):
-            top_batch[i] = label[0]
-            if top_batch[i] != rule_token:
-                special_label_batch[i] = label[1:1+MAX_SPECIAL_LENGTH]
-                for part in ('trigger', 'query', 'action'):
-                    if part == 'trigger':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens
-                    elif part == 'query':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
-                    else:
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
-                    # add dummy values to the sequences to preserve the ability to compute
-                    # losses and grammar constraints
-                    part_function_batches[part][i] = function_offset
-                    part_sequence_batches[part][i,0] = self.end
-            else:
-                special_label_batch[i,0] = self.end
-                j = 1
-                for part in ('trigger', 'query', 'action'):
-                    if part == 'trigger':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens
-                    elif part == 'query':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
-                    else:
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
-                    function_max = len(self.functions[part])
-                    assert function_offset <= label[j] < function_offset+function_max, (function_offset, function_max, label[j], self.tokens[label[j]])
-                    
-                    part_function_batches[part][i] = label[j]
-                    j += 1
-                    start = j
-                    while label[j] >= first_value_token:
-                        j+= 1
-                    end = j
-                    assert end-start+1 < MAX_PRIMITIVE_LENGTH
-                    part_sequence_batches[part][i,0:end-start] = label[start:end]
-                    part_sequence_batches[part][i,end-start] = self.end
-                    part_sequence_length_batches[part][i] = end-start+1
-        return top_batch, special_label_batch, part_function_batches, part_sequence_batches, part_sequence_length_batches
-
     def vectorize_program(self, program, max_length=60):
         vector, length = super().vectorize_program(program, max_length)
         self.normalize_sequence(vector)
@@ -757,26 +703,8 @@ class ThingtalkGrammar(AbstractGrammar):
                 print(e)
         return np.array(vectors, dtype=np.int32)
 
-    def get_function_init_state(self, function_tokens):
-        next_state = tf.gather(self.function_states, function_tokens - (self.num_begin_tokens + self.num_control_tokens))
-        assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [function_tokens])
-        with tf.control_dependencies([assert2]):
-            return tf.identity(next_state)
-
     def get_init_state(self, batch_size):
         return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
-
-    def constrain_value_logits(self, logits, curr_state):
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        num_value_tokens = self.output_size - first_value_token
-        value_allowed_token_matrix = np.concatenate((self.allowed_token_matrix[:,:self.num_control_tokens], self.allowed_token_matrix[:,first_value_token:]), axis=1)
-        
-        with tf.name_scope('constrain_logits'):
-            allowed_tokens = tf.gather(tf.constant(value_allowed_token_matrix), curr_state)
-            assert allowed_tokens.get_shape()[1:] == (self.num_control_tokens + num_value_tokens,)
-
-            constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
-        return constrained_logits
 
     def constrain_logits(self, logits, curr_state):
         with tf.name_scope('constrain_logits'):
@@ -785,24 +713,6 @@ class ThingtalkGrammar(AbstractGrammar):
 
             constrained_logits = tf.where(allowed_tokens, logits, tf.fill(tf.shape(allowed_tokens), -1e+10))
         return constrained_logits
-
-    def value_transition(self, curr_state, next_symbols, batch_size):
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        num_value_tokens = self.output_size - first_value_token
-        with tf.name_scope('grammar_transition'):
-            adjusted_next_symbols = tf.where(next_symbols >= self.num_control_tokens, next_symbols + (first_value_token - self.num_control_tokens), next_symbols)
-            
-            assert1 = tf.Assert(tf.reduce_all(tf.logical_and(next_symbols < num_value_tokens, next_symbols >= 0)), [curr_state, next_symbols])
-            with tf.control_dependencies([assert1]):
-                transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
-            assert transitions.get_shape()[1:] == (self.output_size,)
-            
-            indices = tf.stack((tf.range(0, batch_size), adjusted_next_symbols), axis=1)
-            next_state = tf.gather_nd(transitions, indices)
-            
-            assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [curr_state, adjusted_next_symbols, next_state])
-            with tf.control_dependencies([assert2]):
-                return tf.identity(next_state)
 
     def transition(self, curr_state, next_symbols, batch_size):
         with tf.name_scope('grammar_transition'):

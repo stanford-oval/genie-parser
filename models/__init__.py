@@ -22,7 +22,6 @@ import tensorflow as tf
 
 from .seq2seq_aligner import Seq2SeqAligner
 from .beam_aligner import BeamAligner
-from .threepart_aligner import ThreePartAligner
 
 from .config import Config
     
@@ -31,8 +30,6 @@ def create_model(config):
         model = Seq2SeqAligner(config)
     elif config.model_type == 'beamsearch':
         model = BeamAligner(config)
-    elif config.model_type == '3way':
-        model = ThreePartAligner(config)
     else:
         raise ValueError("Invalid model type %s" % (config.model_type,))
     
