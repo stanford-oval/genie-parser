@@ -18,9 +18,9 @@ Created on Mar 16, 2017
 @author: gcampagn
 '''
 
-import tensorflow as tf
 import numpy as np
 
+from grammar.abstract import AbstractGrammar
 from .general_utils import get_minibatches
 
 
@@ -29,7 +29,7 @@ class Seq2SeqEvaluator(object):
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, model, grammar, data, tag, reverse_dictionary=None, beam_size=10, batch_size=256):
+    def __init__(self, model, grammar : AbstractGrammar, data, tag : str, reverse_dictionary=None, beam_size=10, batch_size=256):
         self.model = model
         self.grammar = grammar
         self.data = data
@@ -46,17 +46,12 @@ class Seq2SeqEvaluator(object):
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
             for gold in labels:
-                try:
-                    gold = gold[:list(gold).index(self.grammar.end)]
-                except ValueError:
-                    pass
+                gold = self.grammar.reconstruct_program(gold)
                 gold_programs.add(tuple(gold))
         else:
             gold_programs = set()
             correct_programs = None
     
-        dict_reverse = self.grammar.tokens
-
         ok_0 = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
@@ -66,7 +61,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return [x for x in (self.grammar.tokens[x] for x in seq) if x.startswith('tt:')]
+            return [x for x in seq if x.startswith('tt:')]
 
         n_minibatches = 0
         try:
@@ -80,12 +75,8 @@ class Seq2SeqEvaluator(object):
 
                 for i, seq in enumerate(sequences):
                     #print
-                    gold = list(label_batch[i])
-                    try:
-                        gold = gold[:gold.index(self.grammar.end)]
-                    except ValueError:
-                        pass
-                    #print "GOLD:", ' '.join(dict_reverse[l] for l in gold)
+                    gold = self.grammar.reconstruct_program(label_batch[i])
+                    #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
 
                     is_ok_0 = False
@@ -94,12 +85,8 @@ class Seq2SeqEvaluator(object):
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        decoded = list(filter(lambda x: x != 0, beam))
-                        try:
-                            decoded = decoded[:decoded.index(self.grammar.end)]
-                        except ValueError:
-                            pass
                         #self.grammar.normalize_sequence(decoded)
+                        decoded = self.grammar.reconstruct_program(beam)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)
@@ -117,8 +104,8 @@ class Seq2SeqEvaluator(object):
 
                         if beam_pos == 0 and save_to_file:
                             sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
-                            gold_str = ' '.join(dict_reverse[l] for l in gold)
-                            decoded_str = ' '.join(dict_reverse[l] for l in decoded)
+                            gold_str = ' '.join(gold)
+                            decoded_str = ' '.join(decoded)
                             #gold_str = ' '.join(gold_functions)
                             #decoded_str = ' '.join(decoded_functions)
                             print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)

@@ -31,17 +31,15 @@ VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_loca
 TYPES = {
     'Location': (['='], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
     'Boolean':  (['='], ['true', 'false']),
-    'Bool': (['='], ['true', 'false']),
     'String': (['=', 'contains', 'starts_with', 'ends_with'], ['QUOTED_STRING']),
     'Date': (['=', '>', '<'], ['DATE']),
     'Time': (['='], ['TIME']),
     'Number': (['=', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
-    'Entity(tt:contact)': (['='], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:username)': (['='], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:hashtag)': (['='], ['HASHTAG', 'QUOTED_STRING']),
-    'Entity(tt:phone_number)': (['='], ['USERNAME', 'PHONE_NUMBER', 'QUOTED_STRING']),
-    'Entity(tt:email_address)': (['='], ['USERNAME', 'EMAIL_ADDRESS', 'QUOTED_STRING']),
-    'Entity(tt:url)': (['='], ['URL', 'QUOTED_STRING']),
+    'Entity(tt:username)': (['='], ['USERNAME']),
+    'Entity(tt:hashtag)': (['='], ['HASHTAG']),
+    'Entity(tt:phone_number)': (['='], ['PHONE_NUMBER']),
+    'Entity(tt:email_address)': (['='], ['EMAIL_ADDRESS']),
+    'Entity(tt:url)': (['='], ['URL']),
     'Entity(tt:picture)': (['='], [])
 }
 TYPE_RENAMES = {
@@ -50,7 +48,8 @@ TYPE_RENAMES = {
     'PhoneNumber': 'Entity(tt:phone_number)',
     'EmailAddress': 'Entity(tt:email_address)',
     'URL': 'Entity(tt:url)',
-    'Picture': 'Entity(tt:picture)'
+    'Picture': 'Entity(tt:picture)',
+    'Bool': 'Boolean'
 }
 
 UNITS = dict(C=["C", "F"],
@@ -249,46 +248,62 @@ class ThingtalkGrammar(AbstractGrammar):
         
         GRAMMAR = OrderedDict({
             '$input': [('rule', '$program'),
-                       ('setup', '$constant_Entity(tt:contact)', '$program'),
+                       ('setup', '$constant_Entity(tt:username)', '$program'),
                        ('policy', '$policy'),
                        ('bookkeeping', '$bookkeeping')],
-            '$policy': [('$constant_Entity(tt:contact)', '$program'),
-                        ('$program',)],
+            '$policy': [('$constant_Entity(tt:username)', '$policy_program'),
+                        ('$policy_program',)],
             '$bookkeeping': [('special', '$special'),
                              ('command', '$command')],
             '$special': [(x,) for x in SPECIAL_TOKENS],
             '$command': [('help', 'generic'),
                          ('help', '$constant_Entity(tt:device)')],
             '$program': [('$trigger', '$query', '$action')],
-            '$trigger': [('$triggers_function',),
-                         ('$triggers_function', 'if', '$filter'),
+            '$policy_program': [('$trigger', '$query', '$policy_action')],
+            '$trigger': [('$trigger_function',),
+                         ('$trigger_function', 'if', '$filter'),
                          ('tt:$builtin.now',)],
-            '$triggers_function': [('$triggers_function', '$in_param')],
-            '$query': [('$queries_function',),
-                       ('$queries_function', 'if', '$filter'),
+            '$trigger_function': [('$triggers_function_name',),
+                                  ('$triggers_function_name', '$constant_Entity(tt:username)'),
+                                  ('$trigger_function', '$in_param')],
+            '$triggers_function_name': [],
+            '$query': [('$query_function',),
+                       ('$query_function', 'if', '$filter'),
                        ('tt:$builtin.noop',)],
-            '$queries_function': [('$queries_function', '$in_param')],
-            '$action': [('$actions_function',),
-                        ('tt:$builtin.notify',)],
-            '$actions_function': [('$actions_function', '$in_param')],
+            '$query_function': [('$queries_function_name',),
+                                ('$queries_function_name', '$constant_Entity(tt:username)'),
+                                ('$query_function', '$in_param')],
+            '$queries_function_name': [],
+            '$action': [('$action_function',),
+                        ('tt:$builtin.notify',),
+                        ('tt:$builtin.return',)],
+            '$policy_action': [('$action_function',),
+                               ('$action_function', 'if', '$filter'),
+                               ('tt:$builtin.notify',)],
+            '$action_function': [('$actions_function_name',),
+                                 ('$actions_function_name', '$constant_Entity(tt:username)'),
+                                 ('$action_function', '$in_param')],
+            '$actions_function_name': [],
             '$filter': [('$atom_filter', 'and', '$filter'),
                         ('$atom_filter', 'or', '$filter'),
                         ('$atom_filter',)],
-            '$atom_filter': [],
-            '$in_param': []
+            '$value_filter': OrderedSet(), 
+            '$atom_filter': OrderedSet(),
+            '$in_param': OrderedSet(),
+            '$out_param': OrderedSet([('tt-param:$event',)])
         })
         
         def add_type(type, value_rules, operators):
             operator_rules = []
-            for op in operators:
-                operator_rules.append((op, '$value_' + type))
             assert all(isinstance(x, tuple) for x in value_rules)
-            GRAMMAR['$constant_' + type] = value_rules        
-            GRAMMAR['$value_' + type] = [('$constant_' + type,)]
-            GRAMMAR['$value_filter_' + type] = operator_rules            
-            GRAMMAR['$value_filter_Array(' + type + ')'] = [('has', '$value_' + type)]
+            GRAMMAR['$constant_' + type] = value_rules
             GRAMMAR['$bookkeeping'].append(('answer', '$constant_' + type))
+            for op in operators:
+                GRAMMAR['$value_filter'].add((op, '$constant_' + type))
+                GRAMMAR['$value_filter'].add((op, '$out_param'))
+            GRAMMAR['$value_filter'].add(('has', '$constant_' + type))
         
+        # base types
         for type, (operators, values) in TYPES.items():
             value_rules = []
             for v in values:
@@ -302,20 +317,25 @@ class ThingtalkGrammar(AbstractGrammar):
             value_rules = [('$constant_Number', unit) for unit in units]
             operators, _ = TYPES['Number']
             add_type('Measure(' + base_unit + ')', value_rules, operators)
+        for i in range(MAX_ARG_VALUES):
+            GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
+
+        # well known entities
         add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
+            
+        # other entities
         for generic_entity in self.entities:
             value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
             add_type('Entity(' + generic_entity + ')', value_rules, ['='])
-        for type_str, enum_type in self._enum_types.items():
-            value_rules = [(token,) for token in enum_type]
-            add_type(type_str, value_rules, ['='])
-        
+            
         # maps a parameter to the list of types it can possibly have
         # over the whole Thingpedia
         param_types = OrderedDict()
         
         for function_type in ('triggers', 'queries', 'actions'):
             for function_name, params in self.functions[function_type].items():
+                if function_name.startswith('tt:$'):
+                    continue
                 for param_name, param_type, param_direction in params:
                     if param_type in TYPE_RENAMES:
                         param_type = TYPE_RENAMES[param_type]
@@ -326,20 +346,30 @@ class ThingtalkGrammar(AbstractGrammar):
                     if param_name not in param_types:
                         param_types[param_name] = OrderedSet()
                     param_types[param_name].add((param_type, param_direction))
-                GRAMMAR['$' + function_type + '_function'].append((function_name,))
+                GRAMMAR['$' + function_type + '_function_name'].append((function_name,))
 
         for param_name, options in param_types.items():
             for (param_type, param_direction) in options:
                 if param_type == 'Any':
                     continue
                 if param_direction == 'out':
-                    if not param_type.startswith('Array('):
-                        GRAMMAR['$value_' + param_type].append(('tt-param:' + param_name,))
-                    GRAMMAR['$atom_filter'].append(('tt-param:' + param_name, '$value_filter_' + param_type))
+                    GRAMMAR['$out_param'].add(('tt-param:' + param_name,))
+                GRAMMAR['$atom_filter'].add(('tt-param:' + param_name, '$value_filter'))
+                
+                if param_type.startswith('Enum('):
+                    enum_type = self._enum_types[param_type]
+                    for enum in enum_type:
+                        GRAMMAR['$atom_filter'].add(('tt-param:' + param_name, '=', enum))
+                        if param_direction == 'in':
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, enum))
                 else:
-                    if param_type.startswith('Array('):
-                        continue
-                    GRAMMAR['$in_param'].append(('tt-param:' + param_name, '$value_' + param_type))
+                    if param_direction == 'in':
+                        GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$out_param'))
+                        GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_' + param_type))
+                        if param_type.startswith('Entity('):
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_String'))
+                        if param_type in ('Entity(tt:phone_number)', 'Entity(tt:email_address)'):
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_Entity(tt:username)'))
 
         generator = SLRParserGenerator(GRAMMAR, '$input')
         self._parser = generator.build()
@@ -491,12 +521,17 @@ class ThingtalkGrammar(AbstractGrammar):
         return self._parser.parse(program)
 
     def parse_all(self, fp):
+        max_length = 0
         for line in fp.readlines():
             try:
                 program = line.strip().split()
-                print(self._parser.parse(program))
+                parsed = self._parser.parse(program)
+                reduces = [x for x in parsed if x[0] =='reduce']
+                if len(reduces) > max_length:
+                    max_length = len(reduces)
             except ValueError as e:
-                print(e)
+                print(' '.join(program))
+                raise e
     
     def _normalize_invocation(self, seq, start):
         assert self.tokens[seq[start]].startswith('tt:')

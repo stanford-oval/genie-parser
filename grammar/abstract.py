@@ -39,6 +39,14 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['<<EOS>>']
     
+    def reconstruct_program(self, sequence):
+        ret = []
+        for x in sequence:
+            if x == self.end:
+                break
+            ret.append(self.tokens[x])
+        return ret
+    
     def vectorize_program(self, program, max_length):
         return vectorize(program, self.dictionary, max_length, add_eos=True)
     
