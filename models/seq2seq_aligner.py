@@ -21,10 +21,44 @@ Created on Jul 25, 2017
 import tensorflow as tf
 
 from .base_aligner import BaseAligner
-from .seq2seq_helpers import Seq2SeqDecoder
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
+from tensorflow.contrib.seq2seq import BasicDecoder, \
+    TrainingHelper, GreedyEmbeddingHelper
 from tensorflow.python.util import nest
+
+class DotProductLayer(tf.layers.Layer):
+    def __init__(self, against):
+        super().__init__()
+        self._against = against
+        self._depth_size = self._against.get_shape()[1]
+        self._output_size = self._against.get_shape()[0]
+    
+    def build(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
+        if input_shape[-1].value is None:
+            raise ValueError("Input to DotProductLayer must have the last dimension defined")
+        if input_shape[-1].value != self._depth_size:
+            self._space_transform = self.add_variable('kernel',
+                                                      shape=(input_shape[-1].value, self._depth_size),
+                                                      dtype=self.dtype,
+                                                      trainable=True)
+        else:
+            self._space_transform = None
+    
+    def call(self, input):
+        if self._space_transform:
+            input = tf.matmul(input, self._space_transform)
+        
+        # input is batch by depth
+        # self._against is output by depth
+        # result is batch by output
+        return tf.matmul(input, self._against, transpose_b=True)
+
+    def _compute_output_shape(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
+        input_shape = input_shape.with_rank_at_least(2)
+        return input_shape[:-1].concatenate(self._output_size)
 
 def pad_up_to(vector, size):
     rank = vector.get_shape().ndims - 1
@@ -114,10 +148,24 @@ class Seq2SeqAligner(BaseAligner):
                                         attention_layer_size=self.config.decoder_hidden_size,
                                         initial_cell_state=enc_final_state)
             enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
-        decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                 self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
-        return decoder.decode(cell_dec, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
-    
+        
+        go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
+        if training:
+            output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
+            outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
+            helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+        else:
+            helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
+        
+        if self.config.use_dot_product_output:
+            output_layer = DotProductLayer(output_embed_matrix)
+        else:
+            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        
+        decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
+        return final_outputs
+        
     def finalize_predictions(self, preds):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sample_id, axis=1)
