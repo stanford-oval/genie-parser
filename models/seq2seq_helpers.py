@@ -23,7 +23,6 @@ import tensorflow as tf
 from tensorflow.contrib.seq2seq import BasicDecoder, \
     TrainingHelper, GreedyEmbeddingHelper
 
-from .grammar_decoder import GrammarBasicDecoder
 from .config import Config
 
 class DotProductLayer(tf.layers.Layer):
@@ -87,12 +86,7 @@ class Seq2SeqDecoder(object):
         else:
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
-        if self.config.use_grammar_constraints:
-            decoder = GrammarBasicDecoder(self.config.grammar, cell_dec, helper, enc_final_state, output_layer=output_layer, training_output = self.output_placeholder if training else None,
-                                          grammar_helper=grammar_helper)
-        else:
-            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
-
+        decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
         
         return final_outputs

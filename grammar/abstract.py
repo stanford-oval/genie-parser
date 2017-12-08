@@ -52,45 +52,6 @@ class AbstractGrammar(object):
     
     def get_embeddings(self, *args):
         return np.identity(self.output_size, np.float32)
-    
-    def get_init_state(self, batch_size):
-        '''
-        Construct the initial state of the grammar state machine.
-        
-        Returns:
-            A tensor of dtype tf.int32 with shape (batch_size,)
-        '''
-        return tf.zeros((batch_size,), dtype=tf.int32)
-    
-    def constrain_logits(self, logits, curr_state):
-        '''
-        Apply grammar constraints to a Tensor of logits, and returns
-        the next predicted token
-        
-        Args:
-            logits: the logits produced by the current step of sequence decoding
-            curr_state: the state returned by the previous call of transition() or None
-        
-        Returns:
-            a tf.Tensor with the same shape as logits
-        '''
-        return logits
-
-    def transition(self, curr_state, next_symbols, batch_size):
-        '''
-        Advance the grammar state after the given symbols have been chosen as the
-        decoder output.
-        
-        Args:
-            curr_state: the current grammar state
-            next_symbols: the current output of the decoder
-            batch_size: the size of the batch
-            
-        Returns:
-            the new state of the grammar (potentially None if the grammar does not need
-            to keep state)
-        '''
-        return curr_state
 
     def compare(self, seq1, seq2):
         '''
