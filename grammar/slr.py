@@ -478,21 +478,60 @@ TEST_GRAMMAR = {
              ('param:number', '<', '$number'),
              ('param:text', '==', '$string'),
              ('param:text', '=~', '$string')]
-}   
+}
+
+# The grammar of nesting parenthesis
+# this is context free but not regular
+# (also not parsable with a Petri-net)
+#
+# The reduce sequence will be: the reduction of the inner most parenthesis pair,
+# followed by the reduction for the next parenthesis, in order
+#
+# This has one important consequence: if the NN produces the sequence
+# X Y Z* ...
+# where X is reduction 4 or 5 (a or b), Y is reduction 0 or 1, and Z
+# is 2 or 3, it will automatically produce a well-formed string in the language
+# The NN is good at producing never ending sequences of the same thing (in
+# fact, it tends to do that too much), so it should have no trouble with
+# this language 
+PARENTHESIS_GRAMMAR = {
+'$S': [('(', '$V', ')'),
+       ('[', '$V', ']'),
+       ('(', '$S', ')'),
+       ('[', '$S', ']')],
+'$V': [('a',), ('b',)]
+}
 
 
 if __name__ == '__main__':
-    generator = SLRParserGenerator(TEST_GRAMMAR, '$prog')
-    print("Action table:")
-    for i, actions in enumerate(generator.action_table):
-        print(i, ":", actions)
-    
-    print()          
-    print("Goto table:")
-    for i, next_states in enumerate(generator.goto_table):
-        print(i, ":", next_states)
-    
-    parser = generator.build()
-    
-    print(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0']))
-    print(parser.reconstruct(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'])))
+    if False:
+        generator = SLRParserGenerator(TEST_GRAMMAR, '$prog')
+        print("Action table:")
+        for i, actions in enumerate(generator.action_table):
+            print(i, ":", actions)
+        
+        print()          
+        print("Goto table:")
+        for i, next_states in enumerate(generator.goto_table):
+            print(i, ":", next_states)
+        
+        parser = generator.build()
+        
+        print(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0']))
+        print(parser.reconstruct(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'])))
+    else:
+        generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, '$S')
+        print("Action table:")
+        for i, actions in enumerate(generator.action_table):
+            print(i, ":", actions)
+        
+        print()          
+        print("Goto table:")
+        for i, next_states in enumerate(generator.goto_table):
+            print(i, ":", next_states)
+        
+        parser = generator.build()
+        
+        print(parser.parse(['(', '(', '(', 'a', ')', ')', ')']))
+        print(parser.parse(['[', '[', '[', 'a', ']', ']', ']']))
+        print(parser.parse(['(', '[', '(', 'b', ')', ']', ')']))
