@@ -63,11 +63,11 @@ def get_thingpedia(input_words, workdir, snapshot):
             if device['kind_canonical']:
                 add_words(input_words, device['kind_canonical'])
             else:
-                print('WARNING: missing canonical for tt-device:%s' % (device['kind'],))
+                print('WARNING: missing canonical for device:%s' % (device['kind'],))
             for function_type in ('triggers', 'queries', 'actions'):
                 for function_name, function in device[function_type].items():
                     if not function['canonical']:
-                        print('WARNING: missing canonical for tt:%s.%s' % (device['kind'], function_name))
+                        print('WARNING: missing canonical for @%s.%s' % (device['kind'], function_name))
                     else:
                         add_words(input_words, function['canonical'])
                     for argname, argcanonical in zip(function['args'], function['argcanonicals']):

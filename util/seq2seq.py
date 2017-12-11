@@ -61,7 +61,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return [x for x in seq if x.startswith('tt:')]
+            return [x for x in seq if (x.startswith('tt:') or x.startswith('@'))]
 
         n_minibatches = 0
         try:

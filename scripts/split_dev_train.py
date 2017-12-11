@@ -21,7 +21,7 @@ import sys
 import os
 
 def get_functions(prog):
-    return [x for x in prog.split(' ') if x.startswith('tt:') and not x.startswith('tt:$builtin.')]
+    return [x for x in prog.split(' ') if (x.startswith('tt:') or x.startswith('@')) and not x.startswith('tt:$builtin.')]
 
 def is_compound(prog):
     return len(get_functions(prog)) >= 2
@@ -38,7 +38,7 @@ def writefile(filename, data):
 def is_remote(prog):
     prog = prog.split(' ')
     for i in range(len(prog)-1):
-        if prog[i].startswith('tt:') and prog[i+1].startswith('USERNAME_'):
+        if (prog[i].startswith('tt:') or prog[i].startswith('@')) and prog[i+1].startswith('USERNAME_'):
             return True
     return False
 
