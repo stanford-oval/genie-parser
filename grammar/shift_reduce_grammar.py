@@ -24,6 +24,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
+        return generator.terminals
         
     USE_SHIFT_REDUCE = True
     
