@@ -26,23 +26,23 @@ def run():
     np.random.seed(42)
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
-    train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
-    print("unknown", unknown_tokens)
-    
+
+    # load programs
+    all_programs = np.load(sys.argv[2], allow_pickle=False)
+
     # concatenate all programs into one vector
-    all_programs = np.reshape(train_data[1], (-1,))
+    all_programs = np.reshape(all_programs, (-1,))
     
     counts = np.bincount(all_programs, minlength=config.output_size)
+    #config.grammar.print_all_actions()
     
     # ignore the control tokens
-    counts = counts[config.grammar.num_control_tokens:]
-    
-    X = np.arange(config.grammar.num_control_tokens, config.output_size)
-    
-    plt.figure()
-    plt.bar(X, counts, width=1)
-    
-    plt.show()
+    begin = int(sys.argv[3])
+    end = int(sys.argv[4])
+
+    for i in range(begin, end):
+        lhs, rhs = config.grammar._parser.rules[i - config.grammar.num_control_tokens]
+        print(i, counts[i], (lhs + ' -> ' + (' '.join(rhs))), sep='\t')
 
 if __name__ == '__main__':
     run()

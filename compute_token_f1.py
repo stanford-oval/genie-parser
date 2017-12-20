@@ -54,8 +54,8 @@ def run():
         for i in range(output_size):
             print(i, precision[i], recall[i], f1[i], sep='\t', file=out)
     
-    overall_precision = np.nanmean(precision)
-    overall_recall = np.nanmean(recall)
+    overall_precision = np.exp(np.prod(precision, dtype=np.float64), 1/len(precision))
+    overall_recall = np.exp(np.prod(recall, dtype=np.float64), 1/len(recall))
     overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall)
     print(overall_precision, overall_recall, overall_f1)
 

@@ -43,7 +43,9 @@ class Seq2SeqEvaluator(object):
         output_size = self.grammar.output_size
         print('output_size', output_size)
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
-        
+        for i in range(output_size):
+             confusion_matrix[i,i] += 1
+
         n_minibatches = 0
         total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)

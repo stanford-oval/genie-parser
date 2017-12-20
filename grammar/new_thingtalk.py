@@ -11,7 +11,7 @@ import ssl
 import re
 import sys
 import itertools
-
+import numpy as np
 from .shift_reduce_grammar import ShiftReduceGrammar
 
 from collections import OrderedDict
@@ -303,6 +303,9 @@ if __name__ == '__main__':
     grammar = NewThingTalkGrammar(sys.argv[1])
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    grammar.parse_all(sys.stdin)
+    vectors = []
+    for line in sys.stdin:
+        vectors.append(grammar.vectorize_program(line.strip())[0])
+    np.save('programs.npy', np.array(vectors), allow_pickle=False)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name
