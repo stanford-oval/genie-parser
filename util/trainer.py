@@ -59,7 +59,7 @@ class Trainer(object):
             losses.append(float(loss))
             grad_norms.append(float(grad_norm))
             n_minibatches += 1
-            progbar.update(n_minibatches)
+            progbar.update(n_minibatches, values=[('loss', loss)])
         return total_loss / n_minibatches
 
     def fit(self, sess):

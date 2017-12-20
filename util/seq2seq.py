@@ -21,7 +21,7 @@ Created on Mar 16, 2017
 import numpy as np
 
 from grammar.abstract import AbstractGrammar
-from .general_utils import get_minibatches
+from .general_utils import get_minibatches, Progbar
 
 
 class Seq2SeqEvaluator(object):
@@ -64,6 +64,8 @@ class Seq2SeqEvaluator(object):
             return [x for x in seq if (x.startswith('tt:') or x.startswith('@'))]
 
         n_minibatches = 0
+        total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
+        progbar = Progbar(total_n_minibatches)
         try:
             for data_batch in get_minibatches(self.data, self._batch_size):
                 input_batch, input_length_batch, _, label_batch, _ = data_batch
@@ -115,6 +117,7 @@ class Seq2SeqEvaluator(object):
                                 correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
                             is_ok_full = True
+                progbar.update(n_minibatches)
             
             acc_0 = ok_0.astype(np.float32)/len(labels)
             acc_fn = ok_full.astype(np.float32)/len(labels)
