@@ -58,9 +58,9 @@ def get_thingpedia(input_words, workdir, snapshot):
     with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
         output['devices'] = json.load(res)['data']
         for device in output['devices']:
-            if device['kind_type'] == 'global':
+            if device['kind_type'] in ('global', 'category', 'discovery'):
                 continue
-            if device['kind_canonical']:
+            if device.get('kind_canonical', None):
                 add_words(input_words, device['kind_canonical'])
             else:
                 print('WARNING: missing canonical for device:%s' % (device['kind'],))
@@ -111,7 +111,7 @@ def create_dictionary(input_words, dataset):
         
         with open(os.path.join(dataset, filename), 'r') as fp:
             for line in fp:
-                _, sentence, _, _ = line.strip().split('\t')
+                sentence = line.strip().split('\t')[1]
                 add_words(input_words, sentence)
 
 def save_dictionary(input_words, workdir):
