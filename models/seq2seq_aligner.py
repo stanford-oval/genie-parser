@@ -163,7 +163,7 @@ class Seq2SeqAligner(BaseAligner):
             output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
-        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.max_length)
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
         return final_outputs
         
     def finalize_predictions(self, preds):
