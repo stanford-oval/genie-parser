@@ -24,8 +24,8 @@ TYPES = {
     'Boolean':  (['=='], ['true', 'false']),
     'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['QUOTED_STRING']),
     'Date': (['==', '>', '<', '>=', '<='], ['DATE', 'now',
-        ('start_of', 'hour'), ('start_of', 'day'), ('start_of', 'week'), ('start_of', 'month', 'start_of', 'year'),
-        ('end_of', 'hour'), ('end_of', 'day'), ('end_of', 'week'), ('end_of', 'month', 'end_of', 'year'),
+        ('start_of', 'unit:hour'), ('start_of', 'unit:day'), ('start_of', 'unit:week'), ('start_of', 'unit:mon', 'start_of', 'unit:year'),
+        ('end_of', 'unit:hour'), ('end_of', 'unit:day'), ('end_of', 'unit:week'), ('end_of', 'unit:mon', 'end_of', 'unit:year'),
         ('$constant_Date', '+', '$constant_Measure(ms)')]),
     'Time': (['=='], ['TIME']),
     'Number': (['==', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
@@ -158,6 +158,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             '$table': [('$thingpedia_queries',),
                        ('(', '$table', ')', 'filter', '$filter'),
                        ('$out_param', 'of', '(', '$table', ')'),
+                       ('[', '$out_param_list', ']', 'of', '(', '$table', ')'),
                        ('aggregate', 'min', '$out_param', 'of', '(', '$table', ')'),
                        ('aggregate', 'max', '$out_param', 'of', '(', '$table', ')'),
                        ('aggregate', 'sum', '$out_param', 'of', '(', '$table', ')'),
@@ -190,6 +191,8 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             '$param_passing': OrderedSet(),
             '$const_param': OrderedSet(),
             '$out_param': OrderedSet(),
+            '$out_param_list': [('$out_param',),
+                                ('$out_param_list', ',', '$out_param')],
 
             '$filter': [('$or_filter',),
                         ('$filter', 'and', '$or_filter',)],
@@ -211,7 +214,8 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             for op in operators:
                 GRAMMAR['$atom_filter'].add(('$out_param', op, '$constant_' + type))
                 GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
-            GRAMMAR['$atom_filter'].add(('$out_param', 'has', '$constant_' + type))
+            GRAMMAR['$atom_filter'].add(('$out_param', 'contains', '$constant_' + type))
+            GRAMMAR['$atom_filter'].add(('$out_param', 'in_array', '$constant_Array'))
         
         # base types
         for type, (operators, values) in TYPES.items():
@@ -226,8 +230,8 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                     value_rules.append((v,))
             add_type(type, value_rules, operators)
         for base_unit, units in UNITS.items():
-            value_rules = [('$constant_Number', unit) for unit in units]
-            value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', unit) for unit in units]
+            value_rules = [('$constant_Number', 'unit:' + unit) for unit in units]
+            value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
             operators, _ = TYPES['Number']
             add_type('Measure(' + base_unit + ')', value_rules, operators)
         for i in range(MAX_ARG_VALUES):
@@ -267,7 +271,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                 if param_type.startswith('Enum('):
                     enum_type = self._enum_types[param_type]
                     for enum in enum_type:
-                        GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'enum:' + enum))
+                        GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
                         if param_direction == 'in':
                             GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'enum:' + enum))
                 else:
@@ -275,6 +279,8 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                         GRAMMAR['$out_param'].add(('param:' + param_name,))
                     if param_direction == 'in':
                         GRAMMAR['$param_passing'].add(('param:' + param_name, '=', '$out_param'))
+                        if param_type == 'String':
+                            GRAMMAR['$param_passing'].add(('param:' + param_name, '=', 'event'))
                         GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'undefined'))
                     if param_direction == 'in':
                         GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_' + param_type))
