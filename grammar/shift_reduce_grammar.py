@@ -14,7 +14,6 @@ class ShiftReduceGrammar(AbstractGrammar):
         super().__init__()
         
         self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
-        self.num_control_tokens = 3
         
         self._parser = None
 
@@ -25,7 +24,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
         return generator.terminals
-        
+    
     USE_SHIFT_REDUCE = True
     
     @property
@@ -77,6 +76,41 @@ class ShiftReduceGrammar(AbstractGrammar):
                     raise
         else:
             return super().reconstruct_program(sequence)
+
+    def print_all_actions(self):
+        print(0, 'pad')
+        print(1, 'accept')
+        print(2, 'start')
+        for i, (lhs, rhs) in enumerate(self._parser.rules):
+            print(i+self.num_control_tokens, 'reduce', lhs, '->', ' '.join(rhs))
+
+    def print_prediction(self, sequence):
+        if not self.USE_SHIFT_REDUCE:
+            super().print_prediction(sequence)
+            return
+    
+        for action in sequence:
+            if action == 0:
+                print('pad')
+            elif action == 1:
+                print('accept')
+            elif action == 2:
+                print('start')
+            else:
+                lhs, rhs = self._parser.rules[action - self.num_control_tokens]
+                print('reduce', action - self.num_control_tokens, ':', lhs, '->', ' '.join(rhs))
+
+    def prediction_to_string(self, sequence):
+        def action_to_string(action):
+            if action == 0:
+                return 'P'
+            elif action == 1:
+                return 'A'
+            elif action == 2:
+                return 'S'
+            else:
+                return 'R' + str(action - self.num_control_tokens)
+        return list(map(action_to_string, sequence))
 
     def parse(self, program):
         return self._parser.parse(program)

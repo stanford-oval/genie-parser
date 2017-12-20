@@ -146,6 +146,7 @@ class Seq2SeqAligner(BaseAligner):
             cell_dec = AttentionWrapper(cell_dec, attention,
                                         cell_input_fn=lambda inputs, _: inputs,
                                         attention_layer_size=self.config.decoder_hidden_size,
+                                        alignment_history=True,
                                         initial_cell_state=enc_final_state)
             enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
         
@@ -163,7 +164,13 @@ class Seq2SeqAligner(BaseAligner):
             output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
-        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, impute_finished=True, maximum_iterations=self.config.max_length)
+        final_outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
+                                                                          impute_finished=True,
+                                                                          maximum_iterations=self.config.max_length,
+                                                                          swap_memory=True)
+        if self.config.apply_attention:
+            # convert alignment history from time-major to batch major
+            self.attention_scores = tf.transpose(final_state.alignment_history.stack(), [1, 0, 2])
         return final_outputs
         
     def finalize_predictions(self, preds):

@@ -381,14 +381,14 @@ class ShiftReduceParser:
     
     def __init__(self, rules, action_table, goto_table, start_symbol):
         super().__init__()
-        self._rules = rules
+        self.rules = rules
         self._action_table = action_table
         self._goto_table = goto_table
         self._start_symbol = start_symbol
         
     @property
     def num_rules(self):
-        return len(self._rules)
+        return len(self.rules)
     
     @property
     def num_states(self):
@@ -420,7 +420,7 @@ class ShiftReduceParser:
                 i += 1
             else:
                 rule_id = param
-                lhs, rhs = self._rules[rule_id]
+                lhs, rhs = self.rules[rule_id]
                 for _ in rhs:
                     stack.pop()
                 state = stack[-1]
@@ -436,7 +436,7 @@ class ShiftReduceParser:
                 break
             else:
                 rule_id = param
-                lhs, rhs = self._rules[rule_id]
+                lhs, rhs = self.rules[rule_id]
                 new_prog = []
                 for symbol in rhs:
                     new_prog += stacks[symbol].pop() if symbol[0] == '$' else (symbol,)

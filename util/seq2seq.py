@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+from sklearn.metrics.classification import confusion_matrix
 '''
 Created on Mar 16, 2017
 
@@ -37,6 +38,30 @@ class Seq2SeqEvaluator(object):
         self._reverse_dictionary = reverse_dictionary
         self._beam_size = beam_size
         self._batch_size = batch_size
+        
+    def compute_confusion_matrix(self, session):
+        output_size = self.grammar.output_size
+        print('output_size', output_size)
+        confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
+        
+        n_minibatches = 0
+        total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
+        progbar = Progbar(total_n_minibatches)
+        
+        for data_batch in get_minibatches(self.data, self._batch_size):
+            input_batch, input_length_batch, _, label_batch, _ = data_batch
+            sequences, _ = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
+            n_minibatches += 1
+    
+            for i, beam in enumerate(sequences):
+                gold = label_batch[i]
+                prediction = beam[0] # top of the beam
+                
+                for i in range(len(gold)):
+                    pred_action = prediction[i] if i < len(prediction) else 0 # pad
+                    confusion_matrix[pred_action,gold[i]] += 1
+            progbar.update(n_minibatches)
+        return confusion_matrix
         
     def eval(self, session, save_to_file=False):
         inputs, input_lengths, parses, labels, label_length = self.data

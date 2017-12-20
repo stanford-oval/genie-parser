@@ -24,6 +24,7 @@ class AbstractGrammar(object):
     def __init__(self):
         self.tokens = []
         self.dictionary = dict()
+        self.num_control_tokens = 3
         
     @property
     def output_size(self):
@@ -46,6 +47,9 @@ class AbstractGrammar(object):
                 break
             ret.append(self.tokens[x])
         return ret
+    
+    def print_prediction(self, sequence):
+        print(' '.join(self.tokens[x] for x in sequence))
     
     def vectorize_program(self, program, max_length):
         return vectorize(program, self.dictionary, max_length, add_eos=True)

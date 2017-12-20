@@ -31,18 +31,16 @@ import matplotlib
 matplotlib.use('GTK3Cairo')
 import matplotlib.pyplot as plt
 
-from util.seq2seq import Seq2SeqEvaluator
-from util.loader import vectorize, unknown_tokens, load_data
-from model import initialize
+from models import Config, create_model
+from util.loader import vectorize
 
-plt.rc('font', size=20)
+#plt.rc('font', size=20)
 
 def show_heatmap(x, y, attention):
     #print attention[:len(y),:len(x)]
     #print attention[:len(y),:len(x)].shape
     #data = np.transpose(attention[:len(y),:len(x)])
-    data = attention[:len(y),:len(x)]
-    x, y = y, x
+    data = attention[:len(y),:len(x)].T
 
     #ax = plt.axes(aspect=0.4)
     ax = plt.axes()
@@ -52,7 +50,7 @@ def show_heatmap(x, y, attention):
     xlabels = y
     yticks = np.arange(len(x)) + 0.5
     ylabels = x
-    plt.xticks(xticks, xlabels, rotation='vertical')
+    plt.xticks(xticks, xlabels)#, rotation='vertical')
     ax.set_yticks(yticks)
     ax.set_yticklabels(ylabels)
     
@@ -67,20 +65,16 @@ def show_heatmap(x, y, attention):
     #plt.savefig('./attention-out.pdf')
 
 def run():
-    if len(sys.argv) < 6:
-        print("** Usage: python " + sys.argv[0] + " <<Benchmark: tt/geo>> <<Model: bagofwords/seq2seq>> <<Input Vocab>> <<Word Embeddings>> <<Model Directory>>")
+    if len(sys.argv) < 2:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>>")
         sys.exit(1)
 
     np.random.seed(42)
-    benchmark = sys.argv[1]
-    config, words, reverse, model = initialize(benchmark=benchmark, model_type=sys.argv[2], input_words=sys.argv[3], embedding_file=sys.argv[4]);
-    model_dir = sys.argv[5]
-
-    config.apply_cmdline(sys.argv[6:])
+    model_dir = sys.argv[1]
+    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    model = create_model(config)
     
-    print("unknown", unknown_tokens)
-
-    histfile = ".history"
+    histfile = ".almondnn_history"
     try:
         readline.read_history_file(histfile)
         # default history len is -1 (infinite), which may grow unruly
@@ -89,12 +83,9 @@ def run():
         pass
     atexit.register(readline.write_history_file, histfile)
 
-    # Tell TensorFlow that the model will be built into the default Graph.
-    # (not required but good practice)
     with tf.Graph().as_default():
+        tf.set_random_seed(1234)
         with tf.device('/cpu:0'):
-            # Build the model and add the variable initializer Op
-            model.capture_attention = True
             model.build()
             loader = tf.train.Saver()
 
@@ -108,27 +99,29 @@ def run():
                         if not line:
                             continue
                         
-                        input, input_length = vectorize(line, words, config.max_length)
-                        fake_input, fake_length = vectorize('ig to fb', words, config.max_length)
+                        sentence, sentence_length = vectorize(line, config.dictionary, config.max_length)
+                        fake_input, fake_length = vectorize('ig to fb', config.dictionary, config.max_length)
+                        fake_parse = np.zeros((2*config.max_length-1,))
                         
-                        feed = model.create_feed_dict([input, fake_input], [input_length, fake_length])
+                        feed = model.create_feed_dict([sentence, fake_input],
+                                                      [sentence_length, fake_length],
+                                                      [fake_parse, fake_parse])
                         predictions, attention_scores = sess.run((model.pred, model.attention_scores), feed_dict=feed)
                         
                         assert len(predictions) == 2
                         assert len(attention_scores) == 2
                         
-                        decoded = list(config.grammar.decode_output(predictions[0,0]))
+                        prediction = predictions[0,0]
+                        index, = np.where(prediction == config.grammar.end)
+                        prediction = prediction[:index[0]+1]
+                        config.grammar.print_prediction(prediction)
                         try:
-                            decoded = decoded[:decoded.index(config.grammar.end)]
-                        except ValueError:
-                            pass
-                        output = [config.grammar.tokens[x] for x in decoded]
+                            print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
+                        except (KeyError, TypeError, IndexError, ValueError):
+                            print('failed to predict')
                         
-                        print(' '.join(output))
-                        
-                        input = [reverse[x] for x in input[:input_length]]
-                        
-                        show_heatmap(input, output, attention_scores[0])
+                        sentence = list(config.reverse_dictionary[x] for x in sentence[:sentence_length])
+                        show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
                 except EOFError:
                     pass
             
