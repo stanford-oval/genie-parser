@@ -99,8 +99,8 @@ def run():
                         if not line:
                             continue
                         
-                        sentence, sentence_length = vectorize(line, config.dictionary, config.max_length)
-                        fake_input, fake_length = vectorize('ig to fb', config.dictionary, config.max_length)
+                        sentence, sentence_length = vectorize(line, config.dictionary, config.max_length, add_eos=True)
+                        fake_input, fake_length = vectorize('ig to fb', config.dictionary, config.max_length, add_eos=True)
                         fake_parse = np.zeros((2*config.max_length-1,))
                         
                         feed = model.create_feed_dict([sentence, fake_input],

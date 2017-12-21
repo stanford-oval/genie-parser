@@ -39,6 +39,7 @@ class Config(object):
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
+            attention_probability_fn='softmax'
         )
         self._config['training'] = OrderedDict(
             batch_size=256,
@@ -204,6 +205,10 @@ class Config(object):
     @property
     def apply_attention(self):
         return self._config['model'].getboolean('apply_attention')
+    
+    @property
+    def attention_probability_fn(self):
+        return self._config['model']['attention_probability_fn']
     
     @property
     def grammar(self):
