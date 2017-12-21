@@ -76,7 +76,7 @@ for filename in traindevfiles:
 
 print('Total train+dev: %d sentences, %d programs' % (len(traindevall), len(traindevprogs)))
 
-dev_progs = random.sample(traindevprogs, len(traindevprogs)//10)
+dev_progs = set(random.sample(traindevprogs, len(traindevprogs)//10))
 #dev_progs = set(x for x in dev_progs if is_compound(x))
 
 print('%d dev programs' % len(dev_progs))
@@ -115,6 +115,9 @@ for prefix,dataset in trainsets.items():
 for prefix,dataset in devsets.items():
     writefile(os.path.join(sys.argv[1], prefix + '-dev.tsv'), dataset)
 writefile(os.path.join(sys.argv[1], 'filtered-base-author.tsv'), base_author)
-writefile(os.path.join(sys.argv[1], 'filtered-generated.tsv'), generated)
-writefile(os.path.join(sys.argv[1], 'train-nosynthetic.tsv'), itertools.chain(base_author, trainall))
-writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall, generated))
+if len(generated) > 0:
+    writefile(os.path.join(sys.argv[1], 'filtered-generated.tsv'), generated)
+    writefile(os.path.join(sys.argv[1], 'train-nosynthetic.tsv'), itertools.chain(base_author, trainall))
+    writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall, generated))
+else:
+    writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall))
