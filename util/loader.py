@@ -94,8 +94,9 @@ def load_dictionary(file, use_types=False, grammar=None):
 
     # special tokens
     words['<<PAD>>'] = len(words)
+    words['<<EOS>>'] = len(words)
     words['<<UNK>>'] = len(words)
-    reverse = ['<<PAD>>', '<<UNK>>']
+    reverse = ['<<PAD>>', '<<EOS>>', '<<UNK>>']
     def add_word(word):
         if word not in words:
             words[word] = len(words)
@@ -138,18 +139,27 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     original_embed_size = embed_size
     if use_types:
         num_entities = len(ENTITIES) + len(grammar.entities)
-        embed_size += num_entities + MAX_ARG_VALUES
+        embed_size += num_entities + MAX_ARG_VALUES + 1
+
+    # <<PAD>> tokens are ignored because dynamic_rnn propagates the state
+    # past the end, so it does not matter what embedding they have
+    # we give <<UNK>> tokens the fully 0 vector (which means they have no
+    # effect on the sentence)
+    # we reserve the last feature in the embedding for <<EOS>>
+    # <<EOS>> thus is a one-hot vector
     
     embeddings_matrix = np.zeros((n_tokens, embed_size), dtype='float32')
+    embeddings_matrix[words['<<EOS>>'], embed_size-1] = 1.
+
     for token, id in words.items():
-        if token in ('<<PAD>>', '<<UNK>>'):
+        if token in ('<<PAD>>', '<<UNK>>', '<<EOS>>'):
             continue
         if use_types and token[0].isupper():
             continue
         if token in word_vectors:
             vec = word_vectors[token]
             embeddings_matrix[id, 0:len(vec)] = vec
-        elif token not in ('<<EOS>>', '<<GO>>'):
+        else:
             raise ValueError("missing vector for", token)
     if use_types:
         for i, entity in enumerate(ENTITIES):
@@ -180,7 +190,7 @@ def load_data(from_file, input_words, grammar, max_length):
             else:
                 _, sentence, canonical = split
                 parse = None
-            input, in_len = vectorize(sentence, input_words, max_length, add_eos=False)
+            input, in_len = vectorize(sentence, input_words, max_length, add_eos=True)
             inputs.append(input)
             input_lengths.append(in_len)
             label, label_len = grammar.vectorize_program(canonical, max_length)
