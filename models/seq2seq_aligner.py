@@ -141,12 +141,19 @@ class Seq2SeqAligner(BaseAligner):
         else:
             cell_dec = InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
+            input_length = tf.shape(self.input_placeholder)[1]
+            
             if self.config.attention_probability_fn == 'softmax':
                 probability_fn = tf.nn.softmax
             elif self.config.attention_probability_fn == 'hardmax':
                 probability_fn = tf.contrib.seq2seq.hardmax
             elif self.config.attention_probability_fn == 'sparsemax':
-                probability_fn = tf.contrib.sparsemax.sparsemax
+                def sparsemax(attentionscores):
+                    originalshape = tf.shape(attentionscores)
+                    attentionscores = tf.reshape(attentionscores, (self.batch_size, input_length))
+                    attentionscores = tf.contrib.sparsemax.sparsemax(attentionscores)
+                    return tf.reshape(attentionscores, originalshape)
+                probability_fn = sparsemax
             else:
                 raise ValueError("Invalid attention_probability_fn " + str(self.config.attention_probability_fn))
             
