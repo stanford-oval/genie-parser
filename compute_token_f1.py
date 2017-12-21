@@ -30,7 +30,9 @@ def run():
         with tf.device('/cpu:0'):
             model.build()
             
-            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
+            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary,
+                                         beam_size=config.beam_size,
+                                         batch_size=64)
             loader = tf.train.Saver()
 
             with tf.Session() as sess:
@@ -46,6 +48,8 @@ def run():
     #
     # see "A systematic analysis of performance measures for classification tasks"
     # MarinaSokolova, GuyLapalme, Information Processing & Management, 2009
+    confusion_matrix = np.ma.asarray(confusion_matrix)
+    
     precision = np.diagonal(confusion_matrix) / np.sum(confusion_matrix, axis=1)
     recall = np.diagonal(confusion_matrix) / np.sum(confusion_matrix, axis=0)
     f1 = 2 * (precision * recall) / (precision + recall)
@@ -54,8 +58,11 @@ def run():
         for i in range(output_size):
             print(i, precision[i], recall[i], f1[i], sep='\t', file=out)
     
-    overall_precision = np.exp(np.prod(precision, dtype=np.float64), 1/len(precision))
-    overall_recall = np.exp(np.prod(recall, dtype=np.float64), 1/len(recall))
+    precision = np.ma.masked_invalid(precision)
+    recall = np.ma.masked_invalid(recall)
+    
+    overall_precision = np.power(np.prod(precision, dtype=np.float64), 1/len(precision))
+    overall_recall = np.power(np.prod(recall, dtype=np.float64), 1/len(recall))
     overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall)
     print(overall_precision, overall_recall, overall_f1)
 

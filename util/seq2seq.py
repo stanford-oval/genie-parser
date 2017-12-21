@@ -43,14 +43,12 @@ class Seq2SeqEvaluator(object):
         output_size = self.grammar.output_size
         print('output_size', output_size)
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
-        for i in range(output_size):
-             confusion_matrix[i,i] += 1
 
         n_minibatches = 0
         total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         
-        for data_batch in get_minibatches(self.data, self._batch_size):
+        for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
             input_batch, input_length_batch, _, label_batch, _ = data_batch
             sequences, _ = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
             n_minibatches += 1
@@ -94,7 +92,7 @@ class Seq2SeqEvaluator(object):
         total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         try:
-            for data_batch in get_minibatches(self.data, self._batch_size):
+            for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
                 input_batch, input_length_batch, _, label_batch, _ = data_batch
                 sequences, eval_loss = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
                 sum_eval_loss += eval_loss
