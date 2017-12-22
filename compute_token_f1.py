@@ -32,7 +32,7 @@ def run():
             
             test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary,
                                          beam_size=config.beam_size,
-                                         batch_size=64)
+                                         batch_size=1024)
             loader = tf.train.Saver()
 
             with tf.Session() as sess:

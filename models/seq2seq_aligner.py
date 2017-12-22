@@ -1,4 +1,4 @@
-# Copyright 2017 Giovanni Campagna <gcampagn@cs.stanford.edu>
+# Copyright 2017 Giovanni Campagna <gcampagn@cs.stanford.edu
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -145,21 +145,29 @@ class Seq2SeqAligner(BaseAligner):
             
             if self.config.attention_probability_fn == 'softmax':
                 probability_fn = tf.nn.softmax
+                score_mask_value = float('-inf')
             elif self.config.attention_probability_fn == 'hardmax':
                 probability_fn = tf.contrib.seq2seq.hardmax
+                score_mask_value = float('-inf')
             elif self.config.attention_probability_fn == 'sparsemax':
-                def sparsemax(attentionscores):
-                    originalshape = tf.shape(attentionscores)
-                    attentionscores = tf.reshape(attentionscores, (self.batch_size, input_length))
+                def sparsemax(originalattentionscores):
+                    originalshape = tf.shape(originalattentionscores)
+                    attentionscores = tf.reshape(originalattentionscores, (self.batch_size, input_length))
                     attentionscores = tf.contrib.sparsemax.sparsemax(attentionscores)
-                    return tf.reshape(attentionscores, originalshape)
+                    with tf.control_dependencies([tf.verify_tensor_all_finite(originalattentionscores, 'what'),
+                                                  tf.assert_non_negative(attentionscores),
+                                                  tf.assert_less_equal(attentionscores, 1., summarize=60)]):
+                        return tf.reshape(attentionscores, originalshape)
                 probability_fn = sparsemax
+                # sparsemax does not deal with -inf properly, and has significant numerical stability issues
+                # with large numbers (positive or negative)
+                score_mask_value = -1e+5
             else:
                 raise ValueError("Invalid attention_probability_fn " + str(self.config.attention_probability_fn))
             
-            with tf.variable_scope(name='attention', initializer=tf.identity_initializer(dtype=tf.float32)):
+            with tf.variable_scope('attention', initializer=tf.initializers.identity(dtype=tf.float32)):
                 attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
-                                           probability_fn=probability_fn)
+                                           probability_fn=probability_fn, score_mask_value=score_mask_value)
             cell_dec = AttentionWrapper(cell_dec, attention,
                                         cell_input_fn=lambda inputs, _: inputs,
                                         attention_layer_size=self.config.decoder_hidden_size,
@@ -207,5 +215,5 @@ class Seq2SeqAligner(BaseAligner):
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
         loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
 
-        with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask], summarize=256*60*300)]):
+        with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
             return tf.identity(loss)
