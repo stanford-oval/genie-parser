@@ -50,15 +50,18 @@ class Seq2SeqAligner(BaseAligner):
     
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
-                                              self.config.decoder_hidden_size, self.dropout_placeholder)
+                                              self.config.output_embed_size,
+#                                              + self.config.encoder_hidden_size,
+                                              self.config.decoder_hidden_size,
+                                              self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
                                                                           enc_hidden_states,
                                                                           enc_final_state)
         
-        if self.config.connect_output_decoder:
-            cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
-        else:
-            cell_dec = common.InputIgnoringCellWrapper(cell_dec, enc_final_state)
+        #if self.config.connect_output_decoder:
+        #    cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
+        #else:
+        #    cell_dec = common.InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
             cell_dec, enc_final_state = common.apply_attention(cell_dec,
                                                                enc_hidden_states,

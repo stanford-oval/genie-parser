@@ -108,11 +108,13 @@ class BaseAligner(BaseModel):
     def add_encoder_op(self, inputs):
         if self.config.encoder_type == "rnn":
             encoder = RNNEncoder(cell_type=self.config.rnn_cell_type,
+                                 input_size=self.config.input_projection,
                                  output_size=self.config.encoder_hidden_size,
                                  dropout=self.dropout_placeholder,
                                  num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == 'birnn':
             encoder = BiRNNEncoder(cell_type=self.config.rnn_cell_type,
+                                   input_size=self.config.input_projection,
                                    output_size=self.config.encoder_hidden_size,
                                    dropout=self.dropout_placeholder,
                                    num_layers=self.config.rnn_layers)
@@ -122,6 +124,7 @@ class BaseAligner(BaseModel):
                                         dropout=self.dropout_placeholder)
         elif self.config.encoder_type == "tree":
             encoder = TreeEncoder(cell_type=self.config.rnn_cell_type,
+                                  input_size=self.config.input_projection,
                                   output_size=self.config.encoder_hidden_size,
                                   dropout=self.dropout_placeholder,
                                   num_layers=self.config.rnn_layers,

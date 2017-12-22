@@ -118,6 +118,7 @@ class TreeEncoder(BaseEncoder):
         with tf.variable_scope('treeenc'):
             tree_cell = self._make_tree_cell(0)
             rnn_cell = common.make_rnn_cell(self.config.rnn_cell_type,
+                                            self.config.output_embed_size,
                                             self.config.decoder_hidden_size,
                                             self.dropout_placeholder)
         

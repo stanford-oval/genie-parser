@@ -23,7 +23,7 @@ from tensorflow.python.util import nest
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
-def make_rnn_cell(cell_type, hidden_size, dropout):
+def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
     if cell_type == "lstm":
         cell = tf.contrib.rnn.LSTMBlockCell(hidden_size)
     elif cell_type == "gru":
@@ -32,15 +32,18 @@ def make_rnn_cell(cell_type, hidden_size, dropout):
         cell = tf.contrib.rnn.BasicRNNCell(hidden_size)
     else:
         raise ValueError("Invalid RNN Cell type")
+    print('input_size', input_size)
     cell = tf.contrib.rnn.DropoutWrapper(cell,
                                          variational_recurrent=True,
                                          output_keep_prob=dropout,
                                          state_keep_prob=dropout,
+                                         input_keep_prob=dropout,
+                                         input_size=input_size,
                                          dtype=tf.float32)
     return cell
 
-def make_multi_rnn_cell(num_layers, cell_type, hidden_size, dropout):
-    return tf.contrib.rnn.MultiRNNCell([make_rnn_cell(cell_type, hidden_size, dropout) for _ in range(num_layers)])
+def make_multi_rnn_cell(num_layers, cell_type, input_size, hidden_size, dropout):
+    return tf.contrib.rnn.MultiRNNCell([make_rnn_cell(cell_type, input_size, hidden_size, dropout) for _ in range(num_layers)])
 
 class DotProductLayer(tf.layers.Layer):
     def __init__(self, against):

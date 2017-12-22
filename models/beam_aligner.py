@@ -547,7 +547,9 @@ class BeamAligner(BaseAligner):
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.num_layers, self.config.rnn_cell_type,
-                                              self.config.decoder_hidden_size, self.dropout_placeholder)
+                                              self.config.output_embed_size,
+                                              self.config.decoder_hidden_size,
+                                              self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
                                                                           enc_hidden_states,
                                                                           enc_final_state)

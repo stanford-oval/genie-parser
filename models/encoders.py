@@ -32,14 +32,15 @@ class RNNEncoder(BaseEncoder):
     Use an RNN to encode the sentence
     '''
 
-    def __init__(self, cell_type, num_layers, *args, **kw):
+    def __init__(self, cell_type, input_size, num_layers, *args, **kw):
         super().__init__(*args, **kw)
         self._num_layers = num_layers
+        self._input_size = input_size
         self._cell_type = cell_type
     
     def encode(self, inputs, input_length, _parses):
         with tf.name_scope('RNNEncoder'):
-            cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self.output_size, self._dropout)
+            cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self._input_size, self.output_size, self._dropout)
             return tf.nn.dynamic_rnn(cell_enc, inputs, sequence_length=input_length,
                                      dtype=tf.float32)
 
@@ -47,8 +48,8 @@ class RNNEncoder(BaseEncoder):
 class BiRNNEncoder(RNNEncoder):
     def encode(self, inputs, input_length, _parses):
         with tf.name_scope('BiRNNEncoder'):
-            fw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self.output_size, self._dropout)
-            bw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self.output_size, self._dropout)
+            fw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self._input_size, self.output_size, self._dropout)
+            bw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self._input_size, self.output_size, self._dropout)
 
             outputs, output_state = tf.nn.bidirectional_dynamic_rnn(fw_cell_enc, bw_cell_enc, inputs, input_length,
                                                                     dtype=tf.float32)
