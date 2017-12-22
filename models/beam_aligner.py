@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.   
-from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 '''
 Created on Jul 25, 2017
 
@@ -21,14 +20,13 @@ Created on Jul 25, 2017
 
 import tensorflow as tf
 
-from tensorflow.python.layers import core as tf_core_layers
 from tensorflow.python.util import nest
-from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper, BeamSearchDecoder
+from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
 from collections import namedtuple
 
 from .base_aligner import BaseAligner
-from .seq2seq_aligner import ParentFeedingCellWrapper
+from . import common
 
 BeamSearchOptimizationDecoderOutput = namedtuple('BeamSearchOptimizationDecoderOutput',
                                                  ('scores', 'gold_score', 'predicted_ids', 'parent_ids', 'loss'))
@@ -548,8 +546,8 @@ class BeamAligner(BaseAligner):
             raise ValueError("Must specify a beam size of more than 1 with seq2seq model")
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, for_decoder=True) for i in range(self.config.rnn_layers)])
-
+        cell_dec = common.make_multi_rnn_cell(self.config.num_layers, self.config.rnn_cell_type,
+                                              self.config.decoder_hidden_size, self.dropout_placeholder)
         encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
         decoder_hidden_size = int(cell_dec.output_size)
         
@@ -583,7 +581,7 @@ class BeamAligner(BaseAligner):
             enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width)
         
         print('enc_final_state', enc_final_state)
-        linear_layer = tf_core_layers.Dense(self.config.output_size)
+        linear_layer = tf.layers.Dense(self.config.output_size)
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,

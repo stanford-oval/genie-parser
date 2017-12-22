@@ -21,95 +21,12 @@ Created on Jul 25, 2017
 import tensorflow as tf
 
 from .base_aligner import BaseAligner
+from . import common
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 from tensorflow.contrib.seq2seq import BasicDecoder, \
     TrainingHelper, GreedyEmbeddingHelper
 from tensorflow.python.util import nest
-
-class DotProductLayer(tf.layers.Layer):
-    def __init__(self, against):
-        super().__init__()
-        self._against = against
-        self._depth_size = self._against.get_shape()[1]
-        self._output_size = self._against.get_shape()[0]
-    
-    def build(self, input_shape):
-        input_shape = tf.TensorShape(input_shape)
-        if input_shape[-1].value is None:
-            raise ValueError("Input to DotProductLayer must have the last dimension defined")
-        if input_shape[-1].value != self._depth_size:
-            self._space_transform = self.add_variable('kernel',
-                                                      shape=(input_shape[-1].value, self._depth_size),
-                                                      dtype=self.dtype,
-                                                      trainable=True)
-        else:
-            self._space_transform = None
-    
-    def call(self, input):
-        if self._space_transform:
-            input = tf.matmul(input, self._space_transform)
-        
-        # input is batch by depth
-        # self._against is output by depth
-        # result is batch by output
-        return tf.matmul(input, self._against, transpose_b=True)
-
-    def _compute_output_shape(self, input_shape):
-        input_shape = tf.TensorShape(input_shape)
-        input_shape = input_shape.with_rank_at_least(2)
-        return input_shape[:-1].concatenate(self._output_size)
-
-def pad_up_to(vector, size):
-    rank = vector.get_shape().ndims - 1
-    
-    length_diff = tf.reshape(size - tf.shape(vector)[1], shape=(1,))
-    with tf.control_dependencies([tf.assert_non_negative(length_diff, data=(vector, size, tf.shape(vector)))]):
-        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0,0]*(rank-1)], axis=0), shape=((rank+1), 2))
-        return tf.pad(vector, padding, mode='constant')
-
-class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
-    '''
-    A cell wrapper that concatenates a fixed Tensor to the input
-    before calling the wrapped cell
-    '''
-    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, parent_state):
-        super().__init__()
-        self._wrapped = wrapped
-        self._flat_parent_state = tf.concat(nest.flatten(parent_state), axis=1)
-        
-    def call(self, input, state):
-        concat_input = tf.concat((self._flat_parent_state, input), axis=1)
-        return self._wrapped.call(concat_input, state)
-    
-    @property
-    def output_size(self):
-        return self._wrapped.output_size
-    
-    @property
-    def state_size(self):
-        return self._wrapped.state_size
-
-class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
-    '''
-    A cell wrapper that replaces the cell input with a fixed Tensor
-    and ignores whatever input is passed in
-    '''
-    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, constant_input):
-        super().__init__()
-        self._wrapped = wrapped
-        self._flat_constant_input = tf.concat(nest.flatten(constant_input), axis=1)
-        
-    def call(self, input, state):
-        return self._wrapped.call(self._flat_constant_input, state)
-    
-    @property
-    def output_size(self):
-        return self._wrapped.output_size
-    
-    @property
-    def state_size(self):
-        return self._wrapped.state_size
 
 class Seq2SeqAligner(BaseAligner):
     '''
@@ -118,7 +35,8 @@ class Seq2SeqAligner(BaseAligner):
     '''
     
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
+        cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
+                                              self.config.decoder_hidden_size, self.dropout_placeholder)
         
         encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
         decoder_hidden_size = int(cell_dec.output_size)
@@ -137,9 +55,9 @@ class Seq2SeqAligner(BaseAligner):
             enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
         
         if self.config.connect_output_decoder:
-            cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
+            cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
         else:
-            cell_dec = InputIgnoringCellWrapper(cell_dec, enc_final_state)
+            cell_dec = common.InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
             input_length = tf.shape(self.input_placeholder)[1]
             
@@ -184,7 +102,7 @@ class Seq2SeqAligner(BaseAligner):
             helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
         
         if self.config.use_dot_product_output:
-            output_layer = DotProductLayer(output_embed_matrix)
+            output_layer = common.DotProductLayer(output_embed_matrix)
         else:
             output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
