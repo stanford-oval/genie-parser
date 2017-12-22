@@ -62,7 +62,6 @@ class Config(object):
             grammar_input_file='./thingpedia.json',
             train_output_embeddings='true',
             output_embed_size=15,
-            use_grammar_constraints='true',
             beam_width=10,
             training_beam_width=10,
             use_dot_product_output='false',
@@ -208,10 +207,6 @@ class Config(object):
     @property
     def grammar(self):
         return self._grammar
-    
-    @property
-    def use_grammar_constraints(self):
-        return self._config['output'].getboolean('use_grammar_constraints')
     
     @property
     def dictionary_size(self):

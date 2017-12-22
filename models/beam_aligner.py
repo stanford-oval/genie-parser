@@ -590,9 +590,6 @@ class BeamAligner(BaseAligner):
                                                 gold_sequence=self.output_placeholder if training else None,
                                                 gold_sequence_length=(self.output_length_placeholder+1) if training else None)
         
-        if self.config.use_grammar_constraints:
-            raise NotImplementedError("Grammar constraints are not implemented for the beam search yet")
-        
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, output_time_major=True, maximum_iterations=self.config.max_length)
         return final_outputs
         
