@@ -134,28 +134,30 @@ class BaseAligner(BaseModel):
     def add_input_op(self, xavier):
         with tf.variable_scope('embed', initializer=xavier):
             # first the embed the input
-            if self.config.train_input_embeddings:
-                if self.config.input_embedding_matrix:
-                    initializer = tf.constant_initializer(self.config.input_embedding_matrix)
+            with tf.variable_scope('input'):
+                if self.config.train_input_embeddings:
+                    if self.config.input_embedding_matrix:
+                        initializer = tf.constant_initializer(self.config.input_embedding_matrix)
+                    else:
+                        initializer = None
+                    input_embed_matrix = tf.get_variable('embedding',
+                                                         shape=(self.config.dictionary_size, self.config.input_embed_size),
+                                                         initializer=initializer)
                 else:
-                    initializer = None
-                input_embed_matrix = tf.get_variable('input_embedding',
-                                                     shape=(self.config.dictionary_size, self.config.input_embed_size),
-                                                     initializer=initializer)
-            else:
-                input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
-
-            # dictionary size x embed_size
-            assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.input_embed_size)
+                    input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
+    
+                # dictionary size x embed_size
+                assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.input_embed_size)
 
             # now embed the output
-            if self.config.train_output_embeddings:
-                output_embed_matrix = tf.get_variable('output_embedding',
-                                                      shape=(self.config.output_size, self.config.output_embed_size))
-            else:
-                output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
-
-            assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
+            with tf.variable_scope('output'):
+                if self.config.train_output_embeddings:
+                    output_embed_matrix = tf.get_variable('embedding',
+                                                          shape=(self.config.output_size, self.config.output_embed_size))
+                else:
+                    output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
+    
+                assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
 
         inputs = tf.nn.embedding_lookup([input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
@@ -171,13 +173,14 @@ class BaseAligner(BaseModel):
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
         raise NotImplementedError()
 
-    def add_regularization_loss(self):
-        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.split('/')[-1] in ('kernel:0', 'weights:0')]
-        
-        if self.config.l2_regularization == 0.0:
-            return 0
+    def _add_l2_helper(self, where, amount):
+        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.endswith(where)]
+        regularizer = tf.contrib.layers.l2_regularizer(amount)
+        return tf.contrib.layers.apply_regularization(regularizer, weights)
 
-        return tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(self.config.l2_regularization), weights)
+    def add_regularization_loss(self):
+        return self._add_l2_helper('/kernel:0', self.config.l2_regularization) + \
+            self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization)
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()
