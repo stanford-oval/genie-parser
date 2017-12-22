@@ -127,7 +127,7 @@ class Seq2SeqEvaluator(object):
                             is_ok_full = True
                         
                         if beam_pos == 0:
-                            length_diff = len(gold) - len(beam)
+                            length_diff = len(label_batch[i]) - len(beam)
                             if length_diff > 0:
                                 padded_pred = np.concatenate((beam, np.zeros((length_diff,), np.int32)), axis=0)
                             else:
