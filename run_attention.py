@@ -70,6 +70,8 @@ def run():
         sys.exit(1)
 
     np.random.seed(42)
+    tf.set_random_seed(1234)
+    
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     model = create_model(config)
@@ -84,7 +86,6 @@ def run():
     atexit.register(readline.write_history_file, histfile)
 
     with tf.Graph().as_default():
-        tf.set_random_seed(1234)
         with tf.device('/cpu:0'):
             model.build()
             loader = tf.train.Saver()

@@ -35,8 +35,7 @@ class BaseAligner(BaseModel):
     def build(self):
         self.add_placeholders()
         
-        
-        xavier = tf.contrib.layers.xavier_initializer(seed=1234)
+        xavier = tf.contrib.layers.xavier_initializer()
         inputs, output_embed_matrix = self.add_input_op(xavier)
         
         # the encoder
@@ -113,7 +112,7 @@ class BaseAligner(BaseModel):
             cell = tf.contrib.rnn.BasicRNNCell(hidden_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder, seed=8 + 33 * id)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.dropout_placeholder)
         return cell
 
     def add_encoder_op(self, inputs):

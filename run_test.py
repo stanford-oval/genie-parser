@@ -37,6 +37,7 @@ def run():
         sys.exit(1)
 
     np.random.seed(42)
+    
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     model = create_model(config)

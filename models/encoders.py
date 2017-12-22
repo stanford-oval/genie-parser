@@ -45,7 +45,7 @@ class RNNEncoder(BaseEncoder):
             cell = tf.contrib.rnn.BasicRNNCell(self.output_size)
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout)
         return cell
     
     def encode(self, inputs, input_length, _parses):
@@ -94,6 +94,6 @@ class BagOfWordsEncoder(BaseEncoder):
             if self._cell_type == 'lstm':
                 enc_final_state = (tf.contrib.rnn.LSTMStateTuple(enc_final_state, enc_final_state),)
 
-            enc_output = tf.nn.dropout(enc_hidden_states, keep_prob=self._dropout, seed=12345)
+            enc_output = tf.nn.dropout(enc_hidden_states, keep_prob=self._dropout)
 
             return enc_output, enc_final_state
