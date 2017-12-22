@@ -57,9 +57,9 @@ class Seq2SeqEvaluator(object):
                 gold = label_batch[i]
                 prediction = beam[0] # top of the beam
                 
-                for i in range(len(gold)):
-                    pred_action = prediction[i] if i < len(prediction) else 0 # pad
-                    confusion_matrix[pred_action,gold[i]] += 1
+                for j in range(len(gold)):
+                    pred_action = prediction[j] if j < len(prediction) else 0 # pad
+                    confusion_matrix[pred_action,gold[j]] += 1
             progbar.update(n_minibatches)
         return confusion_matrix
         
@@ -87,6 +87,8 @@ class Seq2SeqEvaluator(object):
         def get_functions(seq):
             return [x for x in seq if (x.startswith('tt:') or x.startswith('@'))]
 
+        output_size = self.grammar.output_size
+        confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
         n_minibatches = 0
         total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
@@ -123,6 +125,14 @@ class Seq2SeqEvaluator(object):
                                 correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
                             is_ok_full = True
+                        
+                        if beam_pos == 0:
+                            length_diff = len(gold) - len(beam)
+                            if length_diff > 0:
+                                padded_pred = np.concatenate((beam, np.zeros((length_diff,), np.int32)), axis=0)
+                            else:
+                                padded_pred = beam
+                            confusion_matrix[padded_pred,label_batch[i]] += 1
 
                         if beam_pos == 0 and save_to_file:
                             sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
@@ -132,20 +142,63 @@ class Seq2SeqEvaluator(object):
                 
                 n_minibatches += 1
                 example_counter = n_minibatches * self._batch_size
-                progbar.update(n_minibatches, values=[('loss', eval_loss)], exact=[('accuracy', ok_full[0]/example_counter)])
+                progbar.update(n_minibatches, values=[('loss', eval_loss)],
+                               exact=[('accuracy', ok_full[0]/example_counter),
+                                      ('function accuracy', ok_fn[0]/example_counter)])
             
-            acc_fn = ok_full.astype(np.float32)/len(labels)
-            acc_full = ok_full.astype(np.float32)/len(labels)
+            # precision: sum over columns (% of the sentences where this token was predicted
+            # in which it was actually meant to be there)
+            # recall: sum over rows (% of the sentences where this token was meant
+            # to be there in which it was actually predicted)
+            #
+            # see "A systematic analysis of performance measures for classification tasks"
+            # MarinaSokolova, GuyLapalme, Information Processing & Management, 2009
+            confusion_matrix = np.ma.asarray(confusion_matrix)
+            
+            parse_action_precision = np.diagonal(confusion_matrix) / np.sum(confusion_matrix, axis=1)
+            parse_action_recall = np.diagonal(confusion_matrix) / np.sum(confusion_matrix, axis=0)
+        
+            if save_to_file:
+                parse_action_f1 = 2 * (parse_action_precision * parse_action_recall) / (parse_action_precision + parse_action_recall)
+                with open(self.tag + '-f1.tsv', 'w') as out:
+                    for i in range(output_size):
+                        print(i, parse_action_precision[i], parse_action_recall[i], parse_action_f1[i], sep='\t', file=out)
+            
+            parse_action_precision = np.ma.masked_invalid(parse_action_precision)
+            parse_action_recall = np.ma.masked_invalid(parse_action_recall)
+            
+            overall_parse_action_precision = np.power(np.prod(parse_action_precision, dtype=np.float64), 1/len(parse_action_precision))
+            overall_parse_action_recall = np.power(np.prod(parse_action_recall, dtype=np.float64), 1/len(parse_action_recall))
+            
+            # avoid division by 0
+            if np.abs(overall_parse_action_precision + overall_parse_action_recall) < 1e-6:
+                overall_parse_action_f1 = 0
+            else:
+                overall_parse_action_f1 = 2 * (overall_parse_action_precision * overall_parse_action_recall) / \
+                    (overall_parse_action_precision + overall_parse_action_recall)
+            
+            acc_fn = ok_full.astype(np.float32)/len(self.data[0])
+            acc_full = ok_full.astype(np.float32)/len(self.data[0])
             if save_to_file:
                 recall = [float(len(p))/len(gold_programs) for p in correct_programs]
             else:
                 recall = [0]
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok full:", acc_full)
-            print(self.tag, "recall:", recall)
+            print(self.tag, "program recall:", recall)
+            print(self.tag, "parse-action precision:", overall_parse_action_precision)
+            print(self.tag, "parse-action recall:", overall_parse_action_recall)
+            print(self.tag, "parse-action F1:", overall_parse_action_f1)
+            metrics = {
+                'eval_loss': (sum_eval_loss / n_minibatches),
+                'accuracy': acc_full[0],
+                'function_accuracy': acc_fn[0],
+                'program_recall': recall[0],
+                'parse_action_precision': overall_parse_action_precision,
+                'parse_action_recall': overall_parse_action_recall,
+                'parse_action_f1': overall_parse_action_f1
+            }
+            return metrics
         finally:
             if fp is not None:
                 fp.close()
-        
-        return acc_full[0], (sum_eval_loss / n_minibatches), acc_fn[0], recall[0] 
-        

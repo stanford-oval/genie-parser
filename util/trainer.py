@@ -32,7 +32,13 @@ class Trainer(object):
     Train a model on data
     '''
 
-    def __init__(self, model, train_data, train_eval, dev_eval, saver, model_dir='./model', max_length=40, batch_size=256, n_epochs=40, **kw):
+    def __init__(self, model, train_data, train_eval, dev_eval, saver,
+                 opt_eval_metric='accuracy',
+                 model_dir='./model',
+                 max_length=40,
+                 batch_size=256,
+                 n_epochs=40,
+                 **kw):
         '''
         Constructor
         '''
@@ -43,6 +49,7 @@ class Trainer(object):
         self.dev_eval = dev_eval
         self.saver = saver
 
+        self._opt_eval_metric = opt_eval_metric
         self._model_dir = model_dir
         self._max_length = max_length
         self._batch_size = batch_size
@@ -65,12 +72,9 @@ class Trainer(object):
     def fit(self, sess):
         best = None
         best_train = None
-        accuracy_stats = []
-        function_accuracy_stats = []
-        eval_losses = []
-        recall = []
         losses = []
         grad_norms = []
+        eval_metrics = dict()
         # flush stdout so we show the output before the first progress bar
         sys.stdout.flush()
         try:
@@ -82,28 +86,24 @@ class Trainer(object):
                 print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
                 #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
 
-                train_acc, train_eval_loss, train_acc_fn, train_recall = self.train_eval.eval(sess, save_to_file=False)
-                if self.dev_eval is not None:
-                    dev_acc, dev_eval_loss, dev_acc_fn, dev_recall = self.dev_eval.eval(sess, save_to_file=False)
-                    if best is None or dev_acc > best:
-                        print('Found new best model')
-                        self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                        if dev_acc > 0:
-                            best = dev_acc
-                            best_train = train_acc
-                    accuracy_stats.append((float(train_acc), float(dev_acc)))
-                    function_accuracy_stats.append((float(train_acc_fn), float(dev_acc_fn)))
-                    eval_losses.append((float(train_eval_loss), float(dev_eval_loss)))
-                    recall.append((float(train_recall), float(dev_recall)))
-                else:
-                    accuracy_stats.append((float(train_acc),))
-                    function_accuracy_stats.append((float(train_acc_fn),))
-                    eval_losses.append((float(train_eval_loss),))
-                    recall.append((float(train_recall),))
+                train_metrics = self.train_eval.eval(sess, save_to_file=False)
+                dev_metrics = self.dev_eval.eval(sess, save_to_file=False)
+                for metric, dev_value in dev_metrics.items():
+                    if metric not in eval_metrics:
+                        eval_metrics[metric] = []
+                    eval_metrics[metric].append((float(train_metrics[metric]), float(dev_value)))
+                comparison_metric = dev_metrics[self._opt_eval_metric]
+                
+                if best is None or comparison_metric > best:
+                    print('Found new model with best ' + self._opt_eval_metric)
+                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                    best = comparison_metric
+                    best_train = train_metrics[self._opt_eval_metric]
                 print()
                 sys.stdout.flush()
         finally:
             with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-                json.dump(dict(accuracy=accuracy_stats, eval_loss=eval_losses, function_accuracy=function_accuracy_stats, recall=recall,
-                               loss=losses, grad=grad_norms), fp)
+                output = dict(loss=losses, grad=grad_norms)
+                output.update(eval_metrics)
+                json.dump(output, fp)
         return best, best_train
