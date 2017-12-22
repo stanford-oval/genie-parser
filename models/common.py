@@ -21,6 +21,8 @@ Created on Dec 22, 2017
 import tensorflow as tf
 from tensorflow.python.util import nest
 
+from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
+
 def make_rnn_cell(cell_type, hidden_size, dropout):
     if cell_type == "lstm":
         cell = tf.contrib.rnn.LSTMBlockCell(hidden_size)
@@ -123,3 +125,56 @@ class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
     @property
     def state_size(self):
         return self._wrapped.state_size
+    
+def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
+    encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
+    decoder_hidden_size = int(cell_dec.output_size)
+
+    # if encoder and decoder have different sizes, add a projection layer
+    if encoder_hidden_size != decoder_hidden_size:
+        assert False, (encoder_hidden_size, decoder_hidden_size)
+        with tf.variable_scope('hidden_projection'):
+            kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
+        
+            # apply a relu to the projection for good measure
+            enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
+            enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
+    else:
+        # flatten and repack the state
+        enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
+    
+    return enc_hidden_states, enc_final_state
+
+def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn):
+    if attention_probability_fn == 'softmax':
+        probability_fn = tf.nn.softmax
+        score_mask_value = float('-inf')
+    elif attention_probability_fn == 'hardmax':
+        probability_fn = tf.contrib.seq2seq.hardmax
+        score_mask_value = float('-inf')
+    elif attention_probability_fn == 'sparsemax':
+        def sparsemax(attentionscores):
+            attentionscores = tf.contrib.sparsemax.sparsemax(attentionscores)
+            with tf.control_dependencies([tf.assert_non_negative(attentionscores),
+                                          tf.assert_less_equal(attentionscores, 1., summarize=60)]):
+                return tf.identity(attentionscores)
+        probability_fn = sparsemax
+        # sparsemax does not deal with -inf properly, and has significant numerical stability issues
+        # with large numbers (positive or negative)
+        score_mask_value = -1e+5
+    else:
+        raise ValueError("Invalid attention_probability_fn " + str(attention_probability_fn))
+    
+    with tf.variable_scope('attention', initializer=tf.initializers.identity(dtype=tf.float32)):
+        attention = LuongAttention(int(cell_dec.output_size), enc_hidden_states,
+                                   memory_sequence_length=input_length,
+                                   probability_fn=probability_fn,
+                                   score_mask_value=score_mask_value)
+    cell_dec = AttentionWrapper(cell_dec, attention,
+                                cell_input_fn=lambda inputs, _: inputs,
+                                attention_layer_size=int(cell_dec.output_size),
+                                alignment_history=True,
+                                initial_cell_state=enc_final_state)
+    enc_final_state = cell_dec.zero_state(batch_size, dtype=tf.float32)
+    
+    return cell_dec, enc_final_state
