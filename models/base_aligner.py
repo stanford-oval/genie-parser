@@ -104,17 +104,25 @@ class BaseAligner(BaseModel):
 
     def add_encoder_op(self, inputs):
         if self.config.encoder_type == "rnn":
-            encoder = RNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
-                                 dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
+            encoder = RNNEncoder(cell_type=self.config.rnn_cell_type,
+                                 output_size=self.config.encoder_hidden_size,
+                                 dropout=self.dropout_placeholder,
+                                 num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == 'birnn':
-            encoder = BiRNNEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
-                                   dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers)
+            encoder = BiRNNEncoder(cell_type=self.config.rnn_cell_type,
+                                   output_size=self.config.encoder_hidden_size,
+                                   dropout=self.dropout_placeholder,
+                                   num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == "bagofwords":
-            encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
+            encoder = BagOfWordsEncoder(cell_type=self.config.rnn_cell_type,
+                                        output_size=self.config.encoder_hidden_size,
                                         dropout=self.dropout_placeholder)
         elif self.config.encoder_type == "tree":
-            encoder = TreeEncoder(cell_type=self.config.rnn_cell_type, embed_size=self.config.embed_size, output_size=self.config.encoder_hidden_size,
-                                  dropout=self.dropout_placeholder, num_layers=self.config.rnn_layers, max_time=self.config.max_length)
+            encoder = TreeEncoder(cell_type=self.config.rnn_cell_type,
+                                  output_size=self.config.encoder_hidden_size,
+                                  dropout=self.dropout_placeholder,
+                                  num_layers=self.config.rnn_layers,
+                                  max_time=self.config.max_length)
         else:
             raise ValueError("Invalid encoder type")
         return encoder.encode(inputs, self.input_length_placeholder, self.constituency_parse_placeholder)
@@ -124,27 +132,26 @@ class BaseAligner(BaseModel):
         return tf.shape(self.input_placeholder)[0]
 
     def add_input_op(self, xavier):
-        with tf.variable_scope('embed'):
+        with tf.variable_scope('embed', initializer=xavier):
             # first the embed the input
             if self.config.train_input_embeddings:
                 if self.config.input_embedding_matrix:
                     initializer = tf.constant_initializer(self.config.input_embedding_matrix)
                 else:
-                    initializer = xavier
+                    initializer = None
                 input_embed_matrix = tf.get_variable('input_embedding',
-                                                     shape=(self.config.dictionary_size, self.config.embed_size),
+                                                     shape=(self.config.dictionary_size, self.config.input_embed_size),
                                                      initializer=initializer)
             else:
                 input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
 
             # dictionary size x embed_size
-            assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.embed_size)
+            assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.input_embed_size)
 
             # now embed the output
             if self.config.train_output_embeddings:
                 output_embed_matrix = tf.get_variable('output_embedding',
-                                                      shape=(self.config.output_size, self.config.output_embed_size),
-                                                      initializer=xavier)
+                                                      shape=(self.config.output_size, self.config.output_embed_size))
             else:
                 output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
 
@@ -152,8 +159,14 @@ class BaseAligner(BaseModel):
 
         inputs = tf.nn.embedding_lookup([input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
-        assert inputs.get_shape()[1:] == (self.config.max_length, self.config.embed_size)
-        return inputs, output_embed_matrix
+        assert inputs.get_shape()[1:] == (self.config.max_length, self.config.input_embed_size)
+        
+        # now project the input down to a small size
+        input_projection = tf.layers.Dense(units=self.config.input_projection,
+                                           activation=tf.nn.relu,
+                                           name='input_projection')
+        
+        return input_projection(inputs), output_embed_matrix
     
     def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
         raise NotImplementedError()
@@ -173,8 +186,6 @@ class BaseAligner(BaseModel):
         raise NotImplementedError()
 
     def add_training_op(self, loss):
-        #optimizer = tf.train.AdamOptimizer(self.config.lr)
-        #optimizer = tf.train.AdagradOptimizer(self.config.lr)
         optclass = getattr(tf.train, self.config.optimizer + 'Optimizer')
         assert issubclass(optclass, tf.train.Optimizer)
         optimizer = optclass(self.config.learning_rate)

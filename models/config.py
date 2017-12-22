@@ -33,9 +33,6 @@ class Config(object):
             encoder_type='birnn',
             encoder_hidden_size=35,
             decoder_hidden_size=70,
-            function_hidden_size=100,
-            function_nonlinearity='tanh',
-            first_token_hidden_size=25,
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
@@ -54,6 +51,7 @@ class Config(object):
             input_words='./input_words.txt',
             input_embeddings='./embeddings-300.txt',
             input_embed_size=300,
+            input_projection=50,
             max_length=60,
             train_input_embeddings='false',
             use_typed_embeddings='true'
@@ -75,7 +73,7 @@ class Config(object):
         self._reverse = None
         self._embeddings_matrix = None
         self._output_embeddings_matrix = None
-        self._embed_size = int(self._config['input']['input_embed_size'])
+        self._input_embed_size = 0
             
     @property
     def model_type(self):
@@ -94,8 +92,12 @@ class Config(object):
         return float(self._config['training']['dropout'])
     
     @property
-    def embed_size(self):
-        return self._embed_size
+    def input_embed_size(self):
+        return self._input_embed_size
+    
+    @property
+    def input_projection(self):
+        return int(self._config['input']['input_projection'])
     
     @property
     def output_embed_size(self):
@@ -123,18 +125,6 @@ class Config(object):
             return int(model_conf['hidden_size'])
         else:
             return int(model_conf['decoder_hidden_size'])
-    
-    @property
-    def function_hidden_size(self):
-        return int(self._config['model']['function_hidden_size'])
-    
-    @property
-    def function_nonlinearity(self):
-        return self._config['model']['function_nonlinearity']
-
-    @property
-    def first_token_hidden_size(self):
-        return int(self._config['model']['first_token_hidden_size'])
     
     @property
     def batch_size(self):
@@ -247,7 +237,7 @@ class Config(object):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
-        self._embed_size = int(self._config['input']['input_embed_size'])
+        self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
         
@@ -264,11 +254,12 @@ class Config(object):
             assert not self.typed_input_embeddings
             self._embeddings_matrix = None
         else:
-            self._embeddings_matrix, self._embed_size = load_embeddings(self._config['input']['input_embeddings'], words,
-                                                                        use_types=self.typed_input_embeddings,
-                                                                        grammar=self._grammar,
-                                                                        embed_size=self.embed_size)
-        print("Input embed size", self._embed_size)
+            self._embeddings_matrix, self._input_embed_size = load_embeddings(self._config['input']['input_embeddings'],
+                                                                              words,
+                                                                              use_types=self.typed_input_embeddings,
+                                                                              grammar=self._grammar,
+                                                                              embed_size=self._input_embed_size)
+        print("Input embed size", self._input_embed_size)
         
         if self._config['output'].get('output_embeddings', None):
             self._output_embeddings_matrix, _ = load_embeddings(self._config['output']['output_embeddings'],
