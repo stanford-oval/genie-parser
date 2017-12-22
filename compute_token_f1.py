@@ -21,7 +21,7 @@ import numpy as np
 import itertools
 import tensorflow as tf
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from models import Config, create_model
 from util.loader import load_data, unknown_tokens
 

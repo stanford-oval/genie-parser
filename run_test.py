@@ -27,7 +27,7 @@ import tensorflow as tf
 
 from tensorflow.python import debug as tf_debug
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data
 

@@ -64,10 +64,10 @@ class Seq2SeqEvaluator(object):
         return confusion_matrix
         
     def eval(self, session, save_to_file=False):
-        inputs, input_lengths, parses, labels, label_length = self.data
         sequences = []
         sum_eval_loss = 0
         if save_to_file:
+            inputs, input_lengths, parses, labels, label_length = self.data
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
             for gold in labels:
@@ -77,7 +77,6 @@ class Seq2SeqEvaluator(object):
             gold_programs = set()
             correct_programs = None
     
-        ok_0 = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
         fp = None
@@ -96,23 +95,17 @@ class Seq2SeqEvaluator(object):
                 input_batch, input_length_batch, _, label_batch, _ = data_batch
                 sequences, eval_loss = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
                 sum_eval_loss += eval_loss
-                n_minibatches += 1
-                #print sequences.shape
-                #print sequences
 
                 for i, seq in enumerate(sequences):
-                    #print
                     gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
                     #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
 
-                    is_ok_0 = False
                     is_ok_fn = False
                     is_ok_full = False
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        #self.grammar.normalize_sequence(decoded)
                         decoded = self.grammar.reconstruct_program(beam, ignore_errors=True)
 
                         if save_to_file:
@@ -120,38 +113,33 @@ class Seq2SeqEvaluator(object):
                         else:
                             decoded_tuple = None
 
-                        if is_ok_0 or (len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]):
-                            ok_0[beam_pos] += 1
-                            is_ok_0 = True
-
                         decoded_functions = get_functions(decoded)
-                        if is_ok_fn or (is_ok_0 and gold_functions == decoded_functions):
+                        if is_ok_fn or gold_functions == decoded_functions:
                             ok_fn[beam_pos] += 1
                             is_ok_fn = True
-
-                        if beam_pos == 0 and save_to_file:
-                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
-                            gold_str = ' '.join(gold)
-                            decoded_str = ' '.join(decoded)
-                            #gold_str = ' '.join(gold_functions)
-                            #decoded_str = ' '.join(decoded_functions)
-                            print(sentence, gold_str, decoded_str, (gold_str == decoded_str), sep='\t', file=fp)
-
+                            
                         if is_ok_full or self.grammar.compare(gold, decoded):
                             if save_to_file:
                                 correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
                             is_ok_full = True
-                progbar.update(n_minibatches)
+
+                        if beam_pos == 0 and save_to_file:
+                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
+                            gold_str = ' '.join(gold)
+                            decoded_str = ' '.join(decoded)
+                            print(sentence, gold_str, decoded_str, is_ok_full, sep='\t', file=fp)
+                
+                n_minibatches += 1
+                example_counter = n_minibatches * self._batch_size
+                progbar.update(n_minibatches, values=[('loss', eval_loss)], exact=[('accuracy', ok_full[0]/example_counter)])
             
-            acc_0 = ok_0.astype(np.float32)/len(labels)
             acc_fn = ok_full.astype(np.float32)/len(labels)
             acc_full = ok_full.astype(np.float32)/len(labels)
             if save_to_file:
                 recall = [float(len(p))/len(gold_programs) for p in correct_programs]
             else:
                 recall = [0]
-            print(self.tag, "ok 0:", acc_0)
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok full:", acc_full)
             print(self.tag, "recall:", recall)

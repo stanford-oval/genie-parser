@@ -20,7 +20,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from util.trainer import Trainer
 
 from models import Config, create_model
