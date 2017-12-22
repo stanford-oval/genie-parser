@@ -25,7 +25,22 @@ from . import common
 
 from tensorflow.contrib.seq2seq import BasicDecoder, \
     TrainingHelper, GreedyEmbeddingHelper
-from tensorflow.python.util import nest
+
+class MinDistanceGreedyEmbeddingHelper(GreedyEmbeddingHelper):
+    def __init__(self, embedding, start_tokens, end_token):
+        super().__init__(embedding, start_tokens, end_token)
+        self._embedding = embedding
+    
+    def sample(self, time, outputs, state, name=None):
+        """sample for MinDistanceGreedyEmbeddingHelper."""
+        
+        difference = tf.expand_dims(outputs, axis=1) - \
+            tf.expand_dims(self._embedding, axis=0)
+        print('difference', difference)
+        
+        l2_distance = tf.norm(difference, ord=2, axis=2)
+        sample_ids = tf.cast(tf.argmax(l2_distance, axis=1), tf.int32)
+        return sample_ids
 
 class Seq2SeqAligner(BaseAligner):
     '''
@@ -33,7 +48,7 @@ class Seq2SeqAligner(BaseAligner):
     during training, and a greedy decoder during inference 
     '''
     
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
                                               self.config.decoder_hidden_size, self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
@@ -55,13 +70,15 @@ class Seq2SeqAligner(BaseAligner):
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         if training:
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
-            outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
+            outputs = tf.nn.embedding_lookup([self.output_embed_matrix], output_ids_with_go)
             helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+        elif self.config.use_dot_product_output:
+            helper = MinDistanceGreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         else:
-            helper = GreedyEmbeddingHelper(output_embed_matrix, go_vector, self.config.grammar.end)
+            helper = GreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         
         if self.config.use_dot_product_output:
-            output_layer = common.DotProductLayer(output_embed_matrix)
+            output_layer = tf.layers.Dense(self.config.output_embed_size, use_bias=True)
         else:
             output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
@@ -85,12 +102,26 @@ class Seq2SeqAligner(BaseAligner):
             length_diff = tf.reshape(self.config.max_length - tf.shape(logits)[1], shape=(1,))
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
         preds = tf.pad(logits, padding, mode='constant')
+        preds.set_shape((None, self.config.max_length, result.rnn_output.shape[2]))
         
-        # add epsilon to avoid division by 0
-        preds = preds + 1e-5
-
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
-        loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
+        
+        if self.config.use_dot_product_output:
+            # use a distance loss against the embedding of the real solution
+            with tf.name_scope('label_encoding'):
+                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
+                
+            difference = preds - label_encoded
+            print('difference', difference)
+            l2_distance = tf.norm(difference, ord=2, axis=2)
+            print('l2_distance', l2_distance)
+            l2_distance = l2_distance * tf.cast(mask, tf.float32)
+            
+            return tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
+        else:
+            # add epsilon to avoid division by 0
+            preds = preds + 1e-5
+            loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
 
-        with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
-            return tf.identity(loss)
+            with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
+                return tf.identity(loss)

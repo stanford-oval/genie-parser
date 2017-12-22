@@ -545,7 +545,7 @@ class BeamAligner(BaseAligner):
         if config.beam_size <= 1:
             raise ValueError("Must specify a beam size of more than 1 with seq2seq model")
 
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.num_layers, self.config.rnn_cell_type,
                                               self.config.decoder_hidden_size, self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
@@ -572,12 +572,12 @@ class BeamAligner(BaseAligner):
         print('enc_final_state', enc_final_state)
         
         if self.config.use_dot_product_output:
-            output_layer = common.DotProductLayer(output_embed_matrix)
+            output_layer = common.DotProductLayer(self.output_embed_matrix)
         else:
             output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
-        decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
+        decoder = BeamSearchOptimizationDecoder(training, cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
                                                 beam_width=beam_width,
                                                 output_layer=output_layer,

@@ -36,7 +36,7 @@ class BaseAligner(BaseModel):
         self.add_placeholders()
         
         xavier = tf.contrib.layers.xavier_initializer()
-        inputs, output_embed_matrix = self.add_input_op(xavier)
+        inputs = self.add_input_op(xavier)
         
         # the encoder
         with tf.variable_scope('RNNEnc', initializer=xavier):
@@ -45,15 +45,18 @@ class BaseAligner(BaseModel):
 
         # the training decoder
         with tf.variable_scope('RNNDec', initializer=xavier):
-            train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=True)
-        self.loss = self.add_loss_op(train_preds) + self.add_regularization_loss()
+            train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
+
+        with tf.name_scope('training_loss'):
+            self.loss = self.add_loss_op(train_preds) + self.add_regularization_loss()
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
         with tf.variable_scope('RNNDec', initializer=xavier, reuse=True):
-            eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, output_embed_matrix=output_embed_matrix, training=False)
+            eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
         self.pred = self.finalize_predictions(eval_preds)
-        self.eval_loss = self.add_loss_op(eval_preds)
+        with tf.name_scope('eval_loss'):
+            self.eval_loss = self.add_loss_op(eval_preds)
 
         weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         size = 0
@@ -140,26 +143,26 @@ class BaseAligner(BaseModel):
                         initializer = tf.constant_initializer(self.config.input_embedding_matrix)
                     else:
                         initializer = None
-                    input_embed_matrix = tf.get_variable('embedding',
+                    self.input_embed_matrix = tf.get_variable('embedding',
                                                          shape=(self.config.dictionary_size, self.config.input_embed_size),
                                                          initializer=initializer)
                 else:
-                    input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
+                    self.input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
     
                 # dictionary size x embed_size
-                assert input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.input_embed_size)
+                assert self.input_embed_matrix.get_shape() == (self.config.dictionary_size, self.config.input_embed_size)
 
             # now embed the output
             with tf.variable_scope('output'):
                 if self.config.train_output_embeddings:
-                    output_embed_matrix = tf.get_variable('embedding',
+                    self.output_embed_matrix = tf.get_variable('embedding',
                                                           shape=(self.config.output_size, self.config.output_embed_size))
                 else:
-                    output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
+                    self.output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
     
-                assert output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
+                assert self.output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
 
-        inputs = tf.nn.embedding_lookup([input_embed_matrix], self.input_placeholder)
+        inputs = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.input_embed_size)
         
@@ -168,9 +171,9 @@ class BaseAligner(BaseModel):
                                            activation=tf.nn.relu,
                                            name='input_projection')
         
-        return input_projection(inputs), output_embed_matrix
+        return input_projection(inputs)
     
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         raise NotImplementedError()
 
     def _add_l2_helper(self, where, amount):
