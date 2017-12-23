@@ -56,12 +56,12 @@ class Trainer(object):
         self._n_epochs = n_epochs
         self._extra_kw = kw
 
-    def run_epoch(self, sess, losses, grad_norms, batch_number):
+    def run_epoch(self, sess, losses, grad_norms, epoch):
         n_minibatches, total_loss = 0, 0
         total_n_minibatches = (len(self.train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches(self.train_data, self._batch_size):
-            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=batch_number, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))
             grad_norms.append(float(grad_norm))
@@ -79,12 +79,8 @@ class Trainer(object):
         sys.stdout.flush()
         try:
             for epoch in range(self._n_epochs):
-                start_time = time.time()
-
-                average_loss = self.run_epoch(sess, losses, grad_norms, batch_number=epoch)
-                duration = time.time() - start_time
-                print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
-                #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
+                average_loss = self.run_epoch(sess, losses, grad_norms, epoch)
+                print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
 
                 train_metrics = self.train_eval.eval(sess, save_to_file=False)
                 dev_metrics = self.dev_eval.eval(sess, save_to_file=False)
