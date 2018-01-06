@@ -177,7 +177,7 @@ class Seq2SeqEvaluator(object):
                 overall_parse_action_f1 = 2 * (overall_parse_action_precision * overall_parse_action_recall) / \
                     (overall_parse_action_precision + overall_parse_action_recall)
             
-            acc_fn = ok_full.astype(np.float32)/len(self.data[0])
+            acc_fn = ok_fn.astype(np.float32)/len(self.data[0])
             acc_full = ok_full.astype(np.float32)/len(self.data[0])
             if save_to_file:
                 recall = [float(len(p))/len(gold_programs) for p in correct_programs]
