@@ -97,6 +97,10 @@ class Trainer(object):
                     best_train = train_metrics[self._opt_eval_metric]
                 print()
                 sys.stdout.flush()
+                with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
+                    output = dict(loss=losses, grad=grad_norms)
+                    output.update(eval_metrics)
+                    json.dump(output, fp)
         finally:
             with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
                 output = dict(loss=losses, grad=grad_norms)
