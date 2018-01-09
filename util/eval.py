@@ -77,6 +77,7 @@ class Seq2SeqEvaluator(object):
             gold_programs = set()
             correct_programs = None
     
+        ok_grammar = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
         fp = None
@@ -103,6 +104,7 @@ class Seq2SeqEvaluator(object):
                     #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
 
+                    is_ok_grammar = False
                     is_ok_fn = False
                     is_ok_full = False
                     for beam_pos, beam in enumerate(seq):
@@ -114,13 +116,17 @@ class Seq2SeqEvaluator(object):
                             decoded_tuple = tuple(decoded)
                         else:
                             decoded_tuple = None
+                        
+                        if is_ok_grammar or len(decoded) > 0:
+                            ok_grammar[beam_pos] += 1
+                            is_ok_grammar = True
 
                         decoded_functions = get_functions(decoded)
-                        if is_ok_fn or gold_functions == decoded_functions:
+                        if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
                             ok_fn[beam_pos] += 1
                             is_ok_fn = True
                             
-                        if is_ok_full or self.grammar.compare(gold, decoded):
+                        if is_ok_full or (is_ok_grammar and self.grammar.compare(gold, decoded)):
                             if save_to_file:
                                 correct_programs[beam_pos].add(decoded_tuple)
                             ok_full[beam_pos] += 1
@@ -177,12 +183,14 @@ class Seq2SeqEvaluator(object):
                 overall_parse_action_f1 = 2 * (overall_parse_action_precision * overall_parse_action_recall) / \
                     (overall_parse_action_precision + overall_parse_action_recall)
             
+            acc_grammar = ok_grammar.astype(np.float32)/len(self.data[0])
             acc_fn = ok_fn.astype(np.float32)/len(self.data[0])
             acc_full = ok_full.astype(np.float32)/len(self.data[0])
             if save_to_file:
                 recall = [float(len(p))/len(gold_programs) for p in correct_programs]
             else:
                 recall = [0]
+            print(self.tag, "ok grammar:", acc_grammar)
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok full:", acc_full)
             print(self.tag, "program recall:", recall)
@@ -191,6 +199,7 @@ class Seq2SeqEvaluator(object):
             print(self.tag, "parse-action F1:", overall_parse_action_f1)
             metrics = {
                 'eval_loss': (sum_eval_loss / n_minibatches),
+                'correct grammar': acc_grammar[0],
                 'accuracy': acc_full[0],
                 'function_accuracy': acc_fn[0],
                 'program_recall': recall[0],
