@@ -90,7 +90,7 @@ class Trainer(object):
                     eval_metrics[metric].append((float(train_metrics[metric]), float(dev_value)))
                 comparison_metric = dev_metrics[self._opt_eval_metric]
                 
-                if best is None or comparison_metric > best:
+                if best is None or comparison_metric >= best:
                     print('Found new model with best ' + self._opt_eval_metric)
                     self.saver.save(sess, os.path.join(self._model_dir, 'best'))
                     best = comparison_metric
