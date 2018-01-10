@@ -546,7 +546,7 @@ class BeamAligner(BaseAligner):
             raise ValueError("Must specify a beam size of more than 1 with seq2seq model")
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
-        cell_dec = common.make_multi_rnn_cell(self.config.num_layers, self.config.rnn_cell_type,
+        cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
                                               self.config.output_embed_size,
                                               self.config.decoder_hidden_size,
                                               self.dropout_placeholder)
