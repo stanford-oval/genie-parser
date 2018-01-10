@@ -77,7 +77,7 @@ class Seq2SeqAligner(BaseAligner):
             #helper = TrainingHelper(outputs, self.output_length_placeholder+1)
             helper = ScheduledEmbeddingTrainingHelper(inputs=outputs, sequence_length=self.output_length_placeholder+1,
                                                       embedding=self.output_embed_matrix,
-                                                      sampling_probability=tf.minimum(0.1*tf.cast(self.epoch_placeholder, tf.float32), 1))
+                                                      sampling_probability=tf.minimum(0.075*tf.cast(self.epoch_placeholder, tf.float32), 1))
         elif self.config.use_dot_product_output:
             helper = MinDistanceGreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         else:
