@@ -52,7 +52,7 @@ def vectorize_constituency_parse(parse, max_length, expect_length):
 
 def vectorize(sentence, words, max_length, add_eos=False):
     vector = np.zeros((max_length,), dtype=np.int32)
-    assert words['<<PAD>>'] == 0
+    assert words['<<EOS>>'] == 0
     #vector[0] = words['<<GO>>']
     if isinstance(sentence, str):
         sentence = sentence.split(' ')
@@ -93,10 +93,9 @@ def load_dictionary(file, use_types=False, grammar=None):
     words = dict()
 
     # special tokens
-    words['<<PAD>>'] = len(words)
     words['<<EOS>>'] = len(words)
     words['<<UNK>>'] = len(words)
-    reverse = ['<<PAD>>', '<<EOS>>', '<<UNK>>']
+    reverse = ['<<EOS>>', '<<UNK>>']
     def add_word(word):
         if word not in words:
             words[word] = len(words)
@@ -141,8 +140,6 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
         num_entities = len(ENTITIES) + len(grammar.entities)
         embed_size += num_entities + MAX_ARG_VALUES + 1
 
-    # <<PAD>> tokens are ignored because dynamic_rnn propagates the state
-    # past the end, so it does not matter what embedding they have
     # we give <<UNK>> tokens the fully 0 vector (which means they have no
     # effect on the sentence)
     # we reserve the last feature in the embedding for <<EOS>>
@@ -152,7 +149,7 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     embeddings_matrix[words['<<EOS>>'], embed_size-1] = 1.
 
     for token, id in words.items():
-        if token in ('<<PAD>>', '<<UNK>>', '<<EOS>>'):
+        if token in ('<<UNK>>', '<<EOS>>'):
             continue
         if use_types and token[0].isupper():
             continue

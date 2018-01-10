@@ -32,13 +32,13 @@ class AbstractGrammar(object):
         - tokens: the list of string tokens in the grammar
         - dictionary: a mapping from token to its ID
         
-    All Grammars must include a mapping for <<GO>>, <<EOS>> and <<PAD>>
+    All Grammars must include a mapping for <<GO>> and <<EOS>>
     '''
     
     def __init__(self):
         self.tokens = []
         self.dictionary = dict()
-        self.num_control_tokens = 3
+        self.num_control_tokens = 2
         
     @property
     def output_size(self):
