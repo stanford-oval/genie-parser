@@ -198,7 +198,7 @@ class Seq2SeqEvaluator(object):
             print(self.tag, "parse-action F1:", overall_parse_action_f1)
             metrics = {
                 'eval_loss': (sum_eval_loss / n_minibatches),
-                'correct grammar': acc_grammar[0],
+                'grammar_accuracy': acc_grammar[0],
                 'accuracy': acc_full[0],
                 'function_accuracy': acc_fn[0],
                 'program_recall': recall[0],
