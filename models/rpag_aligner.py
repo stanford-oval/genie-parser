@@ -16,7 +16,7 @@ from . import common
 # context_vector is psi
 # committment_vector is c
 # alignment_vector is alpha
-RPAGDecoderState = namedtuple('RPAGDecoderState', ('cell_state', 'context_vector', 'commitment_vector', 'alignment_vector'))
+RPAGDecoderState = namedtuple('RPAGDecoderState', ('cell_state', 'context_vector', 'commitment_vector', 'alignment_vector', 'alignment_history'))
 RPAGDecoderOutput = namedtuple('RPAGDecoderOutput', ('rnn_output', 'sample_id'))
 
 class RPAGDecoder(tf.contrib.seq2seq.Decoder):
@@ -65,7 +65,8 @@ class RPAGDecoder(tf.contrib.seq2seq.Decoder):
             initial_state = RPAGDecoderState(cell_state=self._initial_cell_state,
                                              context_vector=tf.zeros((self._batch_size, self._context_vector_size,), dtype=tf.float32),
                                              commitment_vector=initial_commit,
-                                             alignment_vector=tf.zeros((self._batch_size, self._enc_max_time,), dtype=tf.float32))
+                                             alignment_vector=tf.zeros((self._batch_size, self._enc_max_time,), dtype=tf.float32),
+                                             alignment_history=tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True))
             
             first_inputs = self._embedding_fn(self._start_tokens)
             finished = tf.zeros((self._batch_size,), dtype=tf.bool)
@@ -133,7 +134,8 @@ class RPAGDecoder(tf.contrib.seq2seq.Decoder):
             next_state = RPAGDecoderState(cell_state=rnn_state,
                                           context_vector=context_vector,
                                           commitment_vector=commit_vector,
-                                          alignment_vector=align_vector)
+                                          alignment_vector=align_vector,
+                                          alignment_history=state.alignment_history.write(time, align_vector))
             
             return (output, next_state, next_inputs, finished)
 
@@ -168,6 +170,9 @@ class RPAGAligner(BaseAligner):
                                                                           impute_finished=True,
                                                                           maximum_iterations=self.config.max_length,
                                                                           swap_memory=True)
+        
+        # convert alignment history from time-major to batch major
+        self.attention_scores = tf.transpose(final_state.alignment_history.stack(), [1, 0, 2])
         
         return final_outputs
     

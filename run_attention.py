@@ -114,7 +114,8 @@ def run():
                         
                         prediction = predictions[0,0]
                         index, = np.where(prediction == config.grammar.end)
-                        prediction = prediction[:index[0]+1]
+                        if index:
+                            prediction = prediction[:index[0]+1]
                         config.grammar.print_prediction(prediction)
                         try:
                             print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
