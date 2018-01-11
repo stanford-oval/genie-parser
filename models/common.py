@@ -176,7 +176,7 @@ def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, 
     cell_dec = AttentionWrapper(cell_dec, attention,
                                 cell_input_fn=lambda inputs, _: inputs,
                                 attention_layer_size=int(cell_dec.output_size),
-                                #alignment_history=True,
+                                alignment_history=True,
                                 initial_cell_state=enc_final_state)
     enc_final_state = cell_dec.zero_state(batch_size, dtype=tf.float32)
     

@@ -74,10 +74,10 @@ class Seq2SeqAligner(BaseAligner):
         if training:
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([self.output_embed_matrix], output_ids_with_go)
-            #helper = TrainingHelper(outputs, self.output_length_placeholder+1)
-            helper = ScheduledEmbeddingTrainingHelper(inputs=outputs, sequence_length=self.output_length_placeholder+1,
-                                                      embedding=self.output_embed_matrix,
-                                                      sampling_probability=tf.minimum(0.075*tf.cast(self.epoch_placeholder, tf.float32), 1))
+            helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+            #helper = ScheduledEmbeddingTrainingHelper(inputs=outputs, sequence_length=self.output_length_placeholder+1,
+            #                                          embedding=self.output_embed_matrix,
+            #                                          sampling_probability=tf.minimum(0.075*tf.cast(self.epoch_placeholder, tf.float32), 1))
         elif self.config.use_dot_product_output:
             helper = MinDistanceGreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         else:

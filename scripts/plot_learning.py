@@ -42,7 +42,7 @@ def learning():
     function_accuracy = np.array(data['function_accuracy'])
     train_fnacc = 100*function_accuracy[:,0]
     dev_fnacc = 100*function_accuracy[:,1]
-    grammar_accuracy = np.array(data.get('grammar_accuracy', data['correct grammar']))
+    grammar_accuracy = np.array(data.get('grammar_accuracy', None) or data['correct grammar'])
     train_gracc = 100*grammar_accuracy[:,0]
     dev_gracc = 100*grammar_accuracy[:,1]
     #recall = np.array(data['recall'])

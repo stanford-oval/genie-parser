@@ -163,7 +163,7 @@ class RPAGAligner(BaseAligner):
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = RPAGDecoder(cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
                               enc_final_state, enc_hidden_states, self.input_length_placeholder,
-                              plan_length=5, output_layer=output_layer)
+                              plan_length=10, output_layer=output_layer)
         final_outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
                                                                           impute_finished=True,
                                                                           maximum_iterations=self.config.max_length,
