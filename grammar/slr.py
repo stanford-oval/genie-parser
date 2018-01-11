@@ -452,8 +452,8 @@ class ShiftReduceParser:
                 rule_id = param
                 lhs, rhs = self.rules[rule_id]
                 new_prog = []
-                for symbol in rhs:
-                    new_prog += stacks[symbol].pop() if symbol[0] == '$' else (symbol,)
+                for symbol in reversed(rhs):
+                    new_prog = (stacks[symbol].pop() if symbol[0] == '$' else [symbol]) + new_prog
                 if lhs not in stacks:
                     stacks[lhs] = []
                 stacks[lhs].append(new_prog)
