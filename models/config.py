@@ -45,6 +45,7 @@ class Config(object):
             dropout=0.5,
             gradient_clip=0.5,
             l2_regularization=0.0,
+            l1_regularization=0.0,
             embedding_l2_regularization=0.0,
             optimizer='RMSProp'
         )
@@ -159,6 +160,10 @@ class Config(object):
     @property
     def l2_regularization(self):
         return float(self._config['training']['l2_regularization'])
+
+    @property
+    def l1_regularization(self):
+        return float(self._config['training']['l1_regularization'])
 
     @property
     def embedding_l2_regularization(self):

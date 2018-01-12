@@ -186,9 +186,16 @@ class BaseAligner(BaseModel):
         regularizer = tf.contrib.layers.l2_regularizer(amount)
         return tf.contrib.layers.apply_regularization(regularizer, weights)
 
+    def _add_l1_helper(self, amount):
+        # we apply L1 to biases too (which keeps them sparse too)
+        weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        regularizer = tf.contrib.layers.l1_regularizer(amount)
+        return tf.contrib.layers.apply_regularization(regularizer, weights)
+
     def add_regularization_loss(self):
         return self._add_l2_helper('/kernel:0', self.config.l2_regularization) + \
-            self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization)
+            self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization) + \
+            self._add_l1_helper(self.config.l1_regularization)
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()
