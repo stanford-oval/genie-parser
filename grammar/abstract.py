@@ -65,6 +65,9 @@ class AbstractGrammar(object):
     def print_prediction(self, sequence):
         print(' '.join(self.tokens[x] for x in sequence))
     
+    def prediction_to_string(self, sequence):
+        return [self.tokens[x] for x in sequence]
+    
     def vectorize_program(self, program, max_length):
         return vectorize(program, self.dictionary, max_length, add_eos=True)
     
