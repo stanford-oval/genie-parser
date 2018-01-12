@@ -114,7 +114,7 @@ def run():
                         
                         prediction = predictions[0,0]
                         index, = np.where(prediction == config.grammar.end)
-                        if index:
+                        if len(index):
                             prediction = prediction[:index[0]+1]
                         config.grammar.print_prediction(prediction)
                         try:

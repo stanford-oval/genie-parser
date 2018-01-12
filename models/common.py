@@ -36,7 +36,7 @@ def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
     cell = tf.contrib.rnn.DropoutWrapper(cell,
                                          variational_recurrent=True,
                                          output_keep_prob=dropout,
-                                         state_keep_prob=dropout,
+                                         state_keep_prob=dropout if cell_type != 'gru' else 1.0,
                                          input_keep_prob=dropout,
                                          input_size=input_size,
                                          dtype=tf.float32)
