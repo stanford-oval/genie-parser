@@ -135,7 +135,7 @@ class Seq2SeqAligner(BaseAligner):
         
         if self.config.decoder_action_count_loss > 0:
             with tf.name_scope('action_count_loss'):
-                action_count_loss = tf.nn.l2_loss(tf.cast(self.label_action_counts, dtype=tf.float32) - self.action_counts)
+                action_count_loss = tf.reduce_sum(tf.abs(tf.cast(self.label_action_counts, dtype=tf.float32) - self.action_counts), axis=1)
                 action_count_loss = tf.reduce_mean(action_count_loss)
         else:
             action_count_loss = 0

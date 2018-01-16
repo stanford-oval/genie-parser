@@ -41,7 +41,7 @@ class StackRNNCell(tf.contrib.rnn.RNNCell):
         self._stack_size = stack_size
         self._stack_top_k = stack_top_k
 
-        self._action_layers = [tf.layers.Dense(3, name=('action_layer_%d' % i)) for i in range(self._num_stacks)] # push, pop, nop
+        self._action_layers = [tf.layers.Dense(3, activation=tf.nn.softmax, name=('action_layer_%d' % i)) for i in range(self._num_stacks)] # push, pop, nop
         self._push_layers = [tf.layers.Dense(self._num_units, activation=tf.sigmoid, use_bias=False, name=('push_layer_%d' % i)) for i in range(self._num_stacks)]
         self._cell_layer = tf.layers.Dense(self._num_units, activation=activation, name='cell_layer')
         
