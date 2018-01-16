@@ -23,6 +23,79 @@ from tensorflow.python.util import nest
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
+from collections import namedtuple
+
+StackRNNState = namedtuple('StackRNNState', ('hidden_state', 'stacks'))
+
+class StackRNNCell(tf.contrib.rnn.RNNCell):
+    '''
+    Stack-Augmented RNN Cell, from:
+    "Inferring Algorithmic Patterns with Stack-Augmented Recurrent Nets"
+    '''
+    
+    def __init__(self, num_units, num_stacks=2, stack_size=50, stack_top_k=2, activation=tf.sigmoid):
+        super().__init__()
+        
+        self._num_units = num_units
+        self._num_stacks = num_stacks
+        self._stack_size = stack_size
+        self._stack_top_k = stack_top_k
+
+        self._action_layers = [tf.layers.Dense(3, name=('action_layer_%d' % i)) for i in range(self._num_stacks)] # push, pop, nop
+        self._push_layers = [tf.layers.Dense(self._num_units, activation=tf.sigmoid, use_bias=False, name=('push_layer_%d' % i)) for i in range(self._num_stacks)]
+        self._cell_layer = tf.layers.Dense(self._num_units, activation=activation, name='cell_layer')
+        
+    def call(self, input, state):
+        batch_size = tf.shape(input)[0]
+             
+        new_stacks = []
+        for i in range(self._num_stacks):
+            with tf.name_scope('stack_%d' % i):
+                action = self._action_layers[i](state.hidden_state)
+                push_prob = tf.expand_dims(action[:,0], axis=1)
+                pop_prob = tf.expand_dims(action[:,1], axis=1)
+                nop_prob = tf.expand_dims(action[:,2], axis=1)
+                
+                stack = tf.reshape(state.stacks[i], (batch_size, self._stack_size, self._num_units))
+                print('stack', stack)
+                
+                stack_0 = stack[:,0]
+                stack_1 = stack[:,1]
+                with tf.name_scope('new_stack_0'): 
+                    new_stack_0 = tf.expand_dims(push_prob * self._push_layers[i](state.hidden_state) +
+                                                 pop_prob * stack_1 + nop_prob * stack_0, axis=1)
+                print('new_stack_0', new_stack_0)
+                with tf.name_scope('new_stack_i'):
+                    stack_push = (stack[:,:-1])
+                    print('stack_push', stack_push)
+                    stack_pop = tf.concat((stack[:,2:], tf.zeros((batch_size, 1, self._num_units), dtype=tf.float32)), axis=1)
+                    print('stack_pop', stack_pop)
+                    stack_nop = stack[:,1:]
+                    print('stack_nop', stack_nop)
+                    
+                    new_stack_i = tf.expand_dims(push_prob, axis=1) * stack_push + \
+                        tf.expand_dims(pop_prob, axis=1) * stack_pop + \
+                        tf.expand_dims(nop_prob, axis=1) * stack_nop
+                new_stack = tf.concat((new_stack_0, new_stack_i), axis=1)
+                print('new_stack', new_stack)
+                new_stacks.append(new_stack)
+        
+        stack_tops = [tf.reshape(stack[:,:self._stack_top_k], (batch_size, self._stack_top_k * self._num_units)) for stack in new_stacks]
+        flat_input = tf.concat([input, state.hidden_state] + stack_tops, axis=1)
+        new_hidden_state = self._cell_layer(flat_input)
+
+        return new_hidden_state, StackRNNState(hidden_state=new_hidden_state,
+                                               stacks=tuple(tf.reshape(stack, (batch_size, self._stack_size * self._num_units)) for stack in new_stacks))
+    
+    @property
+    def output_size(self):
+        return self._num_units
+    
+    @property
+    def state_size(self):
+        return StackRNNState(hidden_state=tf.TensorShape((self._num_units,)),
+                             stacks=tuple(tf.TensorShape((self._stack_size * self._num_units)) for _ in range(self._num_stacks)))
+
 def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
     if cell_type == "lstm":
         cell = tf.contrib.rnn.LSTMBlockCell(hidden_size)
@@ -30,6 +103,8 @@ def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
         cell = tf.contrib.rnn.GRUBlockCellV2(hidden_size)
     elif cell_type == "basic-tanh":
         cell = tf.contrib.rnn.BasicRNNCell(hidden_size)
+    elif cell_type == 'stackrnn':
+        cell = StackRNNCell(hidden_size)
     else:
         raise ValueError("Invalid RNN Cell type")
     print('input_size', input_size)
