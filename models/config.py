@@ -46,6 +46,7 @@ class Config(object):
             gradient_clip=0.5,
             l2_regularization=0.0,
             l1_regularization=0.0,
+            decoder_action_count_loss=0.0,
             embedding_l2_regularization=0.0,
             optimizer='RMSProp'
         )
@@ -126,6 +127,10 @@ class Config(object):
             return int(model_conf['hidden_size'])
         else:
             return int(model_conf['decoder_hidden_size'])
+    
+    @property
+    def decoder_action_count_loss(self):
+        return float(self._config['training']['decoder_action_count_loss'])
     
     @property
     def batch_size(self):
