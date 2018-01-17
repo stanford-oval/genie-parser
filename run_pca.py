@@ -84,7 +84,7 @@ def run():
         with tf.Session() as sess:
             loader.restore(sess, os.path.join(model_dir, 'best'))
                 
-            inputs, input_lengths, parses, _, _ = train_data
+            inputs, input_lengths, parses, _, _, _ = train_data
             
             final_encoder_state = tf.concat(nest.flatten(model.final_encoder_state), axis=1)
             final_encoder_size = final_encoder_state.get_shape()[1]
@@ -110,7 +110,7 @@ def run():
             V = V[:2]
             V_array, mean_array = sess.run([V, mean])
                 
-            inputs, input_lengths, parses, labels, label_lengths = pca_data
+            inputs, input_lengths, parses, labels, label_lengths, _ = pca_data
             
             X = final_encoder_state
             centered_X = X - tf.constant(mean_array)

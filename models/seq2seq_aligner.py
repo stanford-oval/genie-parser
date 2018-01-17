@@ -19,8 +19,6 @@ Created on Jul 25, 2017
 '''
 
 import tensorflow as tf
-from tensorflow.python.util import nest
-import numpy as np
 
 from .base_aligner import BaseAligner
 from . import common
@@ -59,12 +57,6 @@ class Seq2SeqAligner(BaseAligner):
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
                                                                           enc_hidden_states,
                                                                           enc_final_state)
-        
-        if self.config.decoder_action_count_loss > 0:
-            count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
-            self.action_counts = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
-        else:
-            self.action_counts = None
         
         #if self.config.connect_output_decoder:
         #    cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
@@ -110,21 +102,6 @@ class Seq2SeqAligner(BaseAligner):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sample_id, axis=1)
     
-    def add_placeholders(self):
-        super().add_placeholders()
-        self.label_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, self.config.grammar.output_size))
-    
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1, batch_number=0, epoch=0):
-        feed_dict = super().create_feed_dict(inputs_batch, input_length_batch, parses_batch, labels_batch, label_length_batch,
-                                             dropout, batch_number, epoch)
-        if self.config.decoder_action_count_loss > 0 and labels_batch is not None:
-            action_count_batch = np.zeros((len(labels_batch), self.config.grammar.output_size), dtype=np.int32)
-            for i in range(len(labels_batch)):
-                action_count_batch[i] = np.bincount(labels_batch[i][:label_length_batch[i]],
-                                                    minlength=self.config.grammar.output_size)
-            feed_dict[self.label_action_counts] = action_count_batch
-        return feed_dict
-    
     def add_loss_op(self, result):
         logits = result.rnn_output
         with tf.control_dependencies([tf.assert_positive(tf.shape(logits)[1], data=[tf.shape(logits)])]):
@@ -134,13 +111,6 @@ class Seq2SeqAligner(BaseAligner):
         preds.set_shape((None, self.config.max_length, result.rnn_output.shape[2]))
         
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
-        
-        if self.config.decoder_action_count_loss > 0:
-            with tf.name_scope('action_count_loss'):
-                action_count_loss = tf.reduce_sum(tf.abs(tf.cast(self.label_action_counts, dtype=tf.float32) - self.action_counts), axis=1)
-                action_count_loss = tf.reduce_mean(action_count_loss)
-        else:
-            action_count_loss = 0
         
         if self.config.use_dot_product_output:
             # use a distance loss against the embedding of the real solution
@@ -153,17 +123,9 @@ class Seq2SeqAligner(BaseAligner):
             print('l2_distance', l2_distance)
             l2_distance = l2_distance * tf.cast(mask, tf.float32)
             
-            total_loss = action_count_loss
-            if self.config.decoder_sequence_loss > 0:
-                total_loss += self.config.decoder_sequence_loss * tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
-            return total_loss
+            return tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
         else:
             # add epsilon to avoid division by 0
             preds = preds + 1e-5
-            loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
-
-            total_loss = action_count_loss
-            if self.config.decoder_sequence_loss > 0:
-                with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
-                    total_loss += self.config.decoder_sequence_loss * loss
-            return total_loss
+            return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
+                                                    tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)

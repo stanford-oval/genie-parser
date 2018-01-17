@@ -19,6 +19,8 @@ Created on Jul 20, 2017
 '''
 
 import tensorflow as tf
+import numpy as np
+from tensorflow.python.util import nest
 
 from .base_model import BaseModel
 from .encoders import RNNEncoder, BiRNNEncoder, BagOfWordsEncoder
@@ -39,24 +41,52 @@ class BaseAligner(BaseModel):
         inputs = self.add_input_op(xavier)
         
         # the encoder
-        with tf.variable_scope('RNNEnc', initializer=xavier):
+        with tf.variable_scope('encoder', initializer=xavier):
             enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs)
         self.final_encoder_state = enc_final_state
+        
+        if self.config.decoder_action_count_loss > 0:
+            count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
+            self.action_counts = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
+        else:
+            self.action_counts = None
 
         # the training decoder
-        with tf.variable_scope('RNNDec', initializer=xavier):
+        with tf.variable_scope('decoder', initializer=xavier):
             train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
 
+        if self.config.decoder_action_count_loss > 0:
+            with tf.name_scope('action_count_loss'):
+                action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
+                action_count_loss = self.config.decoder_action_count_loss * tf.reduce_mean(self.output_weight_placeholder * action_count_loss)
+        else:
+            action_count_loss = 0
+        
+        if self.config.decoder_sequence_loss > 0:
+            with tf.name_scope('training_sequence_loss'):
+                training_sequence_loss = self.add_loss_op(train_preds)
+        else:
+            training_sequence_loss = 0
+        
         with tf.name_scope('training_loss'):
-            self.loss = self.add_loss_op(train_preds) + self.add_regularization_loss()
+            self.loss = self.config.decoder_action_count_loss * action_count_loss + \
+                self.config.decoder_sequence_loss * training_sequence_loss + \
+                self.add_regularization_loss()
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
-        with tf.variable_scope('RNNDec', initializer=xavier, reuse=True):
+        with tf.variable_scope('decoder', initializer=xavier, reuse=True):
             eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
         self.pred = self.finalize_predictions(eval_preds)
+        
+        if self.config.decoder_sequence_loss > 0:
+            with tf.name_scope('eval_sequence_loss'):
+                eval_sequence_loss = self.add_loss_op(eval_preds)
+        else:
+            eval_sequence_loss = 0
         with tf.name_scope('eval_loss'):
-            self.eval_loss = self.add_loss_op(eval_preds)
+            self.eval_loss = self.config.decoder_action_count_loss * action_count_loss + \
+                self.config.decoder_sequence_loss * eval_sequence_loss
 
         weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         size = 0
@@ -80,20 +110,24 @@ class BaseAligner(BaseModel):
         self.add_extra_placeholders()
         
     def add_input_placeholders(self):
-        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
-        self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
-        self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1))
+        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='input_sequence')
+        self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='input_length')
+        self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1), name='input_constituency_parse')
         
     def add_output_placeholders(self):
-        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length))
-        self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,))
+        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='output_sequence')
+        self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='output_length')
+        self.output_weight_placeholder = tf.placeholder(tf.float32, shape=(None,), name='output_weight')
+        self.output_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, self.config.grammar.output_size), name='output_action_counts')
         
     def add_extra_placeholders(self):
-        self.batch_number_placeholder = tf.placeholder(tf.int32, shape=())
-        self.epoch_placeholder = tf.placeholder(tf.int32, shape=())
-        self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
+        self.batch_number_placeholder = tf.placeholder(tf.int32, shape=(), name='batch_number')
+        self.epoch_placeholder = tf.placeholder(tf.int32, shape=(), name='epoch_number')
+        self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name='dropout_probability')
 
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch, labels_batch=None, label_length_batch=None, dropout=1, batch_number=0, epoch=0):
+    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch,
+                         labels_batch=None, label_length_batch=None, label_weight_batch=None,
+                         dropout=1, batch_number=0, epoch=0):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
         feed_dict[self.input_length_placeholder] = input_length_batch
@@ -102,9 +136,20 @@ class BaseAligner(BaseModel):
             feed_dict[self.output_placeholder] = labels_batch
         if label_length_batch is not None:
             feed_dict[self.output_length_placeholder] = label_length_batch
+        if label_weight_batch is not None:
+            feed_dict[self.output_weight_placeholder] = label_weight_batch
         feed_dict[self.dropout_placeholder] = dropout
         feed_dict[self.batch_number_placeholder] = batch_number
         feed_dict[self.epoch_placeholder] = epoch
+        
+        if self.config.decoder_action_count_loss > 0 and labels_batch is not None:
+            action_count_batch = np.zeros((len(labels_batch), self.config.grammar.output_size), dtype=np.int32)
+            for i in range(len(labels_batch)):
+                action_count_batch[i] = np.bincount(labels_batch[i][:label_length_batch[i]],
+                                                    minlength=self.config.grammar.output_size)
+            feed_dict[self.output_action_counts] = action_count_batch
+        return feed_dict
+        
         return feed_dict
 
     def add_encoder_op(self, inputs):
@@ -149,8 +194,8 @@ class BaseAligner(BaseModel):
                     else:
                         initializer = None
                     self.input_embed_matrix = tf.get_variable('embedding',
-                                                         shape=(self.config.dictionary_size, self.config.input_embed_size),
-                                                         initializer=initializer)
+                                                              shape=(self.config.dictionary_size, self.config.input_embed_size),
+                                                              initializer=initializer)
                 else:
                     self.input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
     
@@ -161,7 +206,7 @@ class BaseAligner(BaseModel):
             with tf.variable_scope('output'):
                 if self.config.train_output_embeddings:
                     self.output_embed_matrix = tf.get_variable('embedding',
-                                                          shape=(self.config.output_size, self.config.output_embed_size))
+                                                               shape=(self.config.output_size, self.config.output_embed_size))
                 else:
                     self.output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
     
@@ -173,7 +218,6 @@ class BaseAligner(BaseModel):
         
         # now project the input down to a small size
         input_projection = tf.layers.Dense(units=self.config.input_projection,
-                                           activation=tf.nn.relu,
                                            name='input_projection')
         
         return input_projection(inputs)
