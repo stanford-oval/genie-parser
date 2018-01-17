@@ -201,8 +201,8 @@ class Seq2SeqEvaluator(object):
             parse_action_precision = np.ma.masked_invalid(parse_action_precision)
             parse_action_recall = np.ma.masked_invalid(parse_action_recall)
             
-            overall_parse_action_precision = np.power(np.prod(parse_action_precision, dtype=np.float64), 1/len(parse_action_precision))
-            overall_parse_action_recall = np.power(np.prod(parse_action_recall, dtype=np.float64), 1/len(parse_action_recall))
+            overall_parse_action_precision = np.power(np.prod(parse_action_precision, dtype=np.float64), 1/parse_action_precision.count())
+            overall_parse_action_recall = np.power(np.prod(parse_action_recall, dtype=np.float64), 1/parse_action_recall.count())
             
             # avoid division by 0
             if np.abs(overall_parse_action_precision + overall_parse_action_recall) < 1e-6:
@@ -243,9 +243,9 @@ class Seq2SeqEvaluator(object):
                             print(i, action_count_precision[i], action_count_recall[i], action_count_f1[i], sep='\t', file=out)
                 
                 action_count_precision = np.ma.masked_invalid(action_count_precision)
-                action_count_avg_precision = np.power(np.prod(action_count_precision, dtype=np.float64), 1/len(action_count_precision))
+                action_count_avg_precision = np.power(np.prod(action_count_precision, dtype=np.float64), 1/action_count_precision.count())
                 action_count_recall = np.ma.masked_invalid(action_count_recall)
-                action_count_avg_recall = np.power(np.prod(action_count_recall, dtype=np.float64), 1/len(action_count_recall))
+                action_count_avg_recall = np.power(np.prod(action_count_recall, dtype=np.float64), 1/action_count_recall.count())
                 print(self.tag, "action-count avg precision:", action_count_avg_precision)
                 print(self.tag, "action-count avg recall:", action_count_avg_recall)
                 print(self.tag, "action-count min precision:", np.min(action_count_precision))
