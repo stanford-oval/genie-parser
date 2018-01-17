@@ -47,6 +47,7 @@ class Config(object):
             l2_regularization=0.0,
             l1_regularization=0.0,
             decoder_action_count_loss=0.0,
+            decoder_sequence_loss=1.0,
             embedding_l2_regularization=0.0,
             optimizer='RMSProp'
         )
@@ -131,6 +132,10 @@ class Config(object):
     @property
     def decoder_action_count_loss(self):
         return float(self._config['training']['decoder_action_count_loss'])
+    
+    @property
+    def decoder_sequence_loss(self):
+        return float(self._config['training']['decoder_sequence_loss'])
     
     @property
     def batch_size(self):

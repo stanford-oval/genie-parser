@@ -63,6 +63,8 @@ class Seq2SeqAligner(BaseAligner):
         if self.config.decoder_action_count_loss > 0:
             count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
             self.action_counts = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
+        else:
+            self.action_counts = None
         
         #if self.config.connect_output_decoder:
         #    cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
@@ -151,11 +153,17 @@ class Seq2SeqAligner(BaseAligner):
             print('l2_distance', l2_distance)
             l2_distance = l2_distance * tf.cast(mask, tf.float32)
             
-            return action_count_loss + tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
+            total_loss = action_count_loss
+            if self.config.decoder_sequence_loss > 0:
+                total_loss += self.config.decoder_sequence_loss * tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
+            return total_loss
         else:
             # add epsilon to avoid division by 0
             preds = preds + 1e-5
             loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
 
-            with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
-                return action_count_loss + tf.identity(loss)
+            total_loss = action_count_loss
+            if self.config.decoder_sequence_loss > 0:
+                with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
+                    total_loss += self.config.decoder_sequence_loss * loss
+            return total_loss
