@@ -50,23 +50,26 @@ def vectorize_constituency_parse(parse, max_length, expect_length):
         raise ValueError('truncated constituency parse ' + str(parse))
     return vector
 
-def vectorize(sentence, words, max_length, add_eos=False):
+def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
     vector = np.zeros((max_length,), dtype=np.int32)
-    assert words['<<EOS>>'] == 0
-    #vector[0] = words['<<GO>>']
+    assert words['</s>'] == 0
     if isinstance(sentence, str):
         sentence = sentence.split(' ')
-    i = 0
+    if add_start:
+        vector[0] = words['<s>']
+        i = 1
+    else:
+        i = 0
     for i, word in enumerate(sentence):
         word = word.strip()
         if len(word) == 0:
             raise ValueError("empty token in " + str(sentence))
         if word in words:
             vector[i] = words[word]
-        elif '<<UNK>>' in words:
+        elif '<unk>' in words:
             unknown_tokens.add(word)
             #print("sentence: ", sentence, "; word: ", word)
-            vector[i] = words['<<UNK>>']
+            vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)
         if i+1 == max_length:
@@ -74,7 +77,7 @@ def vectorize(sentence, words, max_length, add_eos=False):
     length = i+1
     if add_eos:
         if length < max_length:
-            vector[length] = words['<<EOS>>']
+            vector[length] = words['</s>']
             length += 1
         else:
             print("unterminated sentence", sentence)
@@ -93,9 +96,10 @@ def load_dictionary(file, use_types=False, grammar=None):
     words = dict()
 
     # special tokens
-    words['<<EOS>>'] = len(words)
-    words['<<UNK>>'] = len(words)
-    reverse = ['<<EOS>>', '<<UNK>>']
+    words['</s>'] = len(words)
+    words['<s>'] = len(words)
+    words['<unk>'] = len(words)
+    reverse = ['</s>', '<s>', '<unk>']
     def add_word(word):
         if word not in words:
             words[word] = len(words)
@@ -138,18 +142,21 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     original_embed_size = embed_size
     if use_types:
         num_entities = len(ENTITIES) + len(grammar.entities)
-        embed_size += num_entities + MAX_ARG_VALUES + 1
+        embed_size += num_entities + MAX_ARG_VALUES + 2
+    else:
+        embed_size += 2
 
-    # we give <<UNK>> tokens the fully 0 vector (which means they have no
+    # we give <unk> tokens the fully 0 vector (which means they have no
     # effect on the sentence)
-    # we reserve the last feature in the embedding for <<EOS>>
-    # <<EOS>> thus is a one-hot vector
-    
+    # we reserve the last two features in the embedding for <s> and </s>
+    # </s> thus is a one-hot vector
+
     embeddings_matrix = np.zeros((n_tokens, embed_size), dtype='float32')
-    embeddings_matrix[words['<<EOS>>'], embed_size-1] = 1.
+    embeddings_matrix[words['</s>'], embed_size-1] = 1.
+    embeddings_matrix[words['<s>'], embed_size-2] = 1.
 
     for token, id in words.items():
-        if token in ('<<UNK>>', '<<EOS>>'):
+        if token in ('<unk>', '</s>', '<s>'):
             continue
         if use_types and token[0].isupper():
             continue
@@ -190,7 +197,7 @@ def load_data(from_file, input_words, grammar, max_length):
             else:
                 _, sentence, canonical = split
                 parse = None
-            input, in_len = vectorize(sentence, input_words, max_length, add_eos=True)
+            input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
             inputs.append(input)
             input_lengths.append(in_len)
             label, label_len = grammar.vectorize_program(canonical, max_length)
@@ -201,7 +208,7 @@ def load_data(from_file, input_words, grammar, max_length):
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
-    
+
     action_weight = len(labels) / total_output_counts
     label_weights = []
     for i in range(len(labels)):
@@ -213,5 +220,5 @@ def load_data(from_file, input_words, grammar, max_length):
     print('max label weight in', from_file, np.max(label_weights))
     print('min label weight in', from_file, np.min(label_weights))
     print('avg label weight in', from_file, np.mean(label_weights))
-    
+
     return inputs, input_lengths, parses, labels, label_lengths, label_weights

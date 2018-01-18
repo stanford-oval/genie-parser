@@ -31,28 +31,28 @@ class AbstractGrammar(object):
     A Grammar defines the following attributes:
         - tokens: the list of string tokens in the grammar
         - dictionary: a mapping from token to its ID
-        
-    All Grammars must include a mapping for <<GO>> and <<EOS>>
+
+    All Grammars must include a mapping for <s> and </s>
     '''
-    
+
     def __init__(self):
         self.tokens = []
         self.dictionary = dict()
         self.num_control_tokens = 2
-        
+
     @property
     def output_size(self):
         return len(self.tokens)
-        
+
     @property
     def start(self):
         ''' The ID of the start token when decoding '''
-        return self.dictionary['<<GO>>']
-    
+        return self.dictionary['<s>']
+
     @property
     def end(self):
         ''' The ID of the end token, which signals end of decoding '''
-        return self.dictionary['<<EOS>>']
+        return self.dictionary['</s>']
     
     def reconstruct_program(self, sequence, ignore_errors=False):
         ret = []

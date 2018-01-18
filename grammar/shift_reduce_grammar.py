@@ -27,7 +27,7 @@ class ShiftReduceGrammar(AbstractGrammar):
     def __init__(self):
         super().__init__()
         
-        self.tokens = ['<<EOS>>', '<<GO>>']
+        self.tokens = ['</s>', '<s>']
         
         self._parser = None
 

@@ -429,7 +429,7 @@ class ThingtalkGrammar(ShiftReduceGrammar):
                     token_embedding += input_embeddings[input_words[canonical_token]]
                 else:
                     print("WARNING: missing word %s in canonical for output token %s" % (canonical_token, token))
-                    token_embedding += input_embeddings[input_words['<<UNK>>']]
+                    token_embedding += input_embeddings[input_words['<unk>']]
                 return token_embedding
         
         off = token_classes
