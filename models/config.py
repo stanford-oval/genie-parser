@@ -46,9 +46,10 @@ class Config(object):
             gradient_clip=0.5,
             l2_regularization=0.0,
             l1_regularization=0.0,
+            embedding_l2_regularization=0.0,
+            scheduled_sampling=0.0,
             decoder_action_count_loss=0.0,
             decoder_sequence_loss=1.0,
-            embedding_l2_regularization=0.0,
             optimizer='RMSProp'
         )
         self._config['input'] = OrderedDict(
@@ -136,6 +137,10 @@ class Config(object):
     @property
     def decoder_sequence_loss(self):
         return float(self._config['training']['decoder_sequence_loss'])
+    
+    @property
+    def scheduled_sampling(self):
+        return float(self._config['training']['scheduled_sampling'])
     
     @property
     def batch_size(self):
