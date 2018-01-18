@@ -127,5 +127,40 @@ class Seq2SeqAligner(BaseAligner):
         else:
             # add epsilon to avoid division by 0
             preds = preds + 1e-5
-            return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
-                                                    tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)
+            
+            # as in Crammer and Singer, "On the Algorithmic Implementation of Multiclass Kernel-based Vector Machines"
+            
+            flat_mask = tf.reshape(mask, (self.batch_size * self.config.max_length,))
+            print('flat_mask', flat_mask)
+            flat_preds = tf.reshape(preds, (self.batch_size * self.config.max_length, self.config.output_size))
+            print('flat_preds', flat_preds)
+            flat_gold = tf.reshape(self.output_placeholder, (self.batch_size * self.config.max_length,))
+            print('flat_gold', flat_gold)
+            
+            flat_indices = tf.range(self.batch_size * self.config.max_length, dtype=tf.int32)
+            flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
+            print('flat_gold_indices', flat_gold_indices)
+            
+            one_hot_gold = tf.one_hot(self.output_placeholder, depth=self.config.output_size, dtype=tf.float32)
+            print('one_hot_gold', one_hot_gold)
+            marginal_scores = preds - one_hot_gold + 1
+            print('marginal_scores', marginal_scores)
+            
+            marginal_scores = tf.reshape(marginal_scores, (self.batch_size * self.config.max_length, self.config.output_size))
+            print('marginal_scores', marginal_scores)
+            max_margin = tf.reduce_max(marginal_scores, axis=1)
+            print('max_margin', max_margin)
+            
+            gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
+            print('gold_score', gold_score)
+            margin = max_margin - gold_score
+            print('margin', margin)
+            
+            margin = margin * flat_mask
+            
+            margin = tf.reshape(margin, (self.batch_size, self.config.max_length))
+            
+            return tf.reduce_mean(tf.reduce_sum(margin, axis=1), axis=0)
+            
+            #return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
+            #                                        tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)
