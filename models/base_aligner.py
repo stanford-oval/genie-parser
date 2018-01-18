@@ -47,7 +47,8 @@ class BaseAligner(BaseModel):
         
         if self.config.decoder_action_count_loss > 0:
             count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
-            self.action_counts = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
+            action_count_logits = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
+            self.action_counts = action_count_logits > 0
         else:
             self.action_counts = None
 
@@ -61,7 +62,7 @@ class BaseAligner(BaseModel):
                 #binarized_predictions = tf.cast(self.action_counts >= 0.5, dtype=tf.float32)
                 #action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
                 
-                action_count_loss = tf.losses.hinge_loss(labels=binarized_label, logits=self.action_counts,
+                action_count_loss = tf.losses.hinge_loss(labels=binarized_label, logits=action_count_logits,
                                                          reduction=tf.losses.Reduction.NONE)
                 action_count_loss = tf.reduce_sum(action_count_loss, axis=1)
                 action_count_loss = tf.reduce_sum(self.output_weight_placeholder * action_count_loss) / tf.reduce_sum(self.output_weight_placeholder)
@@ -236,16 +237,15 @@ class BaseAligner(BaseModel):
         regularizer = tf.contrib.layers.l2_regularizer(amount)
         return tf.contrib.layers.apply_regularization(regularizer, weights)
 
-    def _add_l1_helper(self, amount):
-        # we apply L1 to biases too (which keeps them sparse too)
-        weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+    def _add_l1_helper(self, where, amount):
+        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.endswith(where)]
         regularizer = tf.contrib.layers.l1_regularizer(amount)
         return tf.contrib.layers.apply_regularization(regularizer, weights)
 
     def add_regularization_loss(self):
         return self._add_l2_helper('/kernel:0', self.config.l2_regularization) + \
             self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization) + \
-            self._add_l1_helper(self.config.l1_regularization)
+            self._add_l1_helper('/kernel:0', self.config.l1_regularization)
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()

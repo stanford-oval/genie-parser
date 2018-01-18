@@ -49,6 +49,8 @@ def run():
     if not os.path.exists(model_conf):
         config.save(model_conf)
 
+    np.save('train-weights.npy', train_data[-1])
+
     with tf.Graph().as_default():
         tf.set_random_seed(1234)
         model.build()
