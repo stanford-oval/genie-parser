@@ -57,8 +57,14 @@ class BaseAligner(BaseModel):
 
         if self.config.decoder_action_count_loss > 0:
             with tf.name_scope('action_count_loss'):
-                action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
-                action_count_loss = self.config.decoder_action_count_loss * tf.reduce_mean(self.output_weight_placeholder * action_count_loss)
+                binarized_label = tf.cast(self.output_action_counts >= 1, dtype=tf.float32)
+                #binarized_predictions = tf.cast(self.action_counts >= 0.5, dtype=tf.float32)
+                #action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
+                
+                action_count_loss = tf.losses.hinge_loss(labels=binarized_label, logits=self.action_counts,
+                                                         reduction=tf.losses.Reduction.NONE)
+                action_count_loss = tf.reduce_sum(action_count_loss, axis=1)
+                action_count_loss = tf.reduce_sum(self.output_weight_placeholder * action_count_loss) / tf.reduce_sum(self.output_weight_placeholder)
         else:
             action_count_loss = 0
         
