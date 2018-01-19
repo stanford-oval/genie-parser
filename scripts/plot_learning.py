@@ -48,6 +48,12 @@ def learning():
     #recall = np.array(data['recall'])
     #train_recall = 100*recall[:,0]
     #dev_recall = 100*recall[:,1]
+    precision = np.array(data['parse_action_precision'])
+    train_precision = 100*precision[:,0]
+    dev_precision = 100*precision[:,1]
+    recall = np.array(data['parse_action_recall'])
+    train_recall = 100*recall[:,0]
+    dev_recall = 100*recall[:,1]
     f1 = np.array(data['parse_action_f1'])
     train_f1 = 100*f1[:,0]
     dev_f1 = 100*f1[:,1]
@@ -57,22 +63,22 @@ def learning():
 
     plt.suptitle(sys.argv[1])
 
-    plt.subplot(3, 2, 1)
+    plt.subplot(3, 3, 1)
     plt.title('Training Loss')
     X = 200+np.arange(len(loss))
     plt.xlabel('Minibatch #')
     plt.plot(X, loss)
     plt.plot(X[5:-5], movingaverage(loss,11), 'y-')
-    plt.legend(["Loss"], loc="upper right")
+    #plt.legend(["Loss"], loc="upper right")
 
-    plt.subplot(3, 2, 3)
+    plt.subplot(3, 3, 4)
     plt.title('Gradient')
     plt.xlabel('Minibatch #')
     plt.plot(X, grad_norm)
-    plt.legend(["Gradient"], loc='upper right')
+    #plt.legend(["Gradient"], loc='upper right')
 
     X = 1 + np.arange(len(train_eval_loss))
-    plt.subplot(3, 2, 5)
+    plt.subplot(3, 3, 7)
     plt.title('Evaluation Loss')
     plt.xlim(1, len(train_eval_loss)+0.5)
     plt.xticks(X)
@@ -82,7 +88,7 @@ def learning():
     #plt.plot(X[2:-2], movingaverage(dev_eval_loss, 5), '--')
     plt.legend(['Train Loss', 'Dev Loss'], loc='upper right')
 
-    plt.subplot(3, 2, 2)
+    plt.subplot(3, 3, 2)
     plt.title('Function Accuracy')
     plt.xlim(1, len(train_eval_loss)+0.5)
     plt.xticks(X)
@@ -92,7 +98,7 @@ def learning():
     plt.ylim(0, 100)
     plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
 
-    plt.subplot(3, 2, 4)
+    plt.subplot(3, 3, 5)
     plt.title('Program Accuracy')
     plt.xlim(1, len(train_eval_loss)+0.5)
     plt.xticks(X)
@@ -102,7 +108,7 @@ def learning():
     plt.ylim(0, 100)
     plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
     
-    plt.subplot(3, 2, 6)
+    plt.subplot(3, 3, 8)
     plt.title('Grammar Accuracy')
     plt.xlim(1, len(train_eval_loss)+0.5)
     plt.xticks(X)
@@ -112,16 +118,35 @@ def learning():
     plt.ylim(0, 100)
     plt.legend(["Train Accuracy", "Dev Accuracy"], loc="lower right")
 
-    #plt.subplot(3, 2, 6)
-    #plt.title('Parse-Action F1 score')
-    #plt.xlim(1, len(train_eval_loss)+0.5)
-    #plt.xticks(X)
-    #plt.xlabel('Train Epoch')
-    #plt.plot(X, train_f1)
-    #plt.plot(X, dev_f1)
-    #plt.ylim(0, 100)
-    #plt.legend(["Train F1", "Dev F1"], loc="lower right")
+    plt.subplot(3, 3, 3)
+    plt.title('Parse-Action Precision')
+    plt.xlim(1, len(train_eval_loss)+0.5)
+    plt.xticks(X)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_precision)
+    plt.plot(X, dev_precision)
+    plt.ylim(0, 100)
+    plt.legend(["Train Precision", "Dev Precision"], loc="lower right")
 
+    plt.subplot(3, 3, 6)
+    plt.title('Parse-Action Recall')
+    plt.xlim(1, len(train_eval_loss)+0.5)
+    plt.xticks(X)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_recall)
+    plt.plot(X, dev_recall)
+    plt.ylim(0, 100)
+    plt.legend(["Train Recall", "Dev Recall"], loc="lower right")
+
+    plt.subplot(3, 3, 9)
+    plt.title('Parse-Action F1 Score')
+    plt.xlim(1, len(train_eval_loss)+0.5)
+    plt.xticks(X)
+    plt.xlabel('Train Epoch')
+    plt.plot(X, train_f1)
+    plt.plot(X, dev_f1)
+    plt.ylim(0, 100)
+    plt.legend(["Train F1", "Dev F1"], loc="lower right")
 
 #     plt.subplot(3, 2, 6)
 #     plt.title('Recall')

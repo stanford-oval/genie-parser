@@ -107,7 +107,6 @@ def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
         cell = StackRNNCell(hidden_size)
     else:
         raise ValueError("Invalid RNN Cell type")
-    print('input_size', input_size)
     cell = tf.contrib.rnn.DropoutWrapper(cell,
                                          variational_recurrent=True,
                                          output_keep_prob=dropout,
