@@ -60,7 +60,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
         i = 1
     else:
         i = 0
-    for i, word in enumerate(sentence):
+    for word in sentence:
         word = word.strip()
         if len(word) == 0:
             raise ValueError("empty token in " + str(sentence))
@@ -72,9 +72,10 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
             vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)
-        if i+1 == max_length:
+        i += 1
+        if i == max_length:
             break
-    length = i+1
+    length = i
     if add_eos:
         if length < max_length:
             vector[length] = words['</s>']

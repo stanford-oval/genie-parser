@@ -64,8 +64,8 @@ def run():
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     
-    if False:
-        sentences, _, _, labels, _, = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
+    if True:
+        sentences, _, _, labels, _, _ = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
         print("unknown", unknown_tokens)
         
         correlation_matrix = np.zeros((config.dictionary_size, config.grammar.output_size), dtype=np.int32)
