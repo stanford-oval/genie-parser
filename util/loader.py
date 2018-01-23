@@ -90,7 +90,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
 ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
             'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
             'TIME', 'URL', 'USERNAME']
-MAX_ARG_VALUES = 8
+MAX_ARG_VALUES = 5
 
 def load_dictionary(file, use_types=False, grammar=None):
     print("Loading dictionary from %s..." % (file,))
@@ -110,7 +110,9 @@ def load_dictionary(file, use_types=False, grammar=None):
         for i, entity in enumerate(ENTITIES):
             for j in range(MAX_ARG_VALUES):
                 add_word(entity + '_' + str(j))
-        for i, entity in enumerate(grammar.entities):
+        for i, (entity, has_ner) in enumerate(grammar.entities):
+            if not has_ner:
+                continue
             for j in range(MAX_ARG_VALUES):
                 add_word('GENERIC_ENTITY_' + entity + '_' + str(j))
 
@@ -121,11 +123,6 @@ def load_dictionary(file, use_types=False, grammar=None):
                 continue
             add_word(word)
     return words, reverse
-
-ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
-            'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
-            'TIME', 'URL', 'USERNAME']
-MAX_ARG_VALUES = 10
 
 def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=300):
     print("Loading pretrained embeddings...", end=' ')
@@ -172,7 +169,9 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
                 token_id = words[entity + '_' + str(j)]
                 embeddings_matrix[token_id, original_embed_size + i] = 1.
                 embeddings_matrix[token_id, original_embed_size + num_entities + j] = 1.
-        for i, entity in enumerate(grammar.entities):
+        for i, (entity, has_ner) in enumerate(grammar.entities):
+            if not has_ner:
+                continue
             for j in range(MAX_ARG_VALUES):
                 token_id = words['GENERIC_ENTITY_' + entity + '_' + str(j)]
                 embeddings_matrix[token_id, original_embed_size + len(ENTITIES) + i] = 1.

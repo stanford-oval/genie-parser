@@ -45,7 +45,10 @@ class ShiftReduceGrammar(AbstractGrammar):
     def output_size(self):
         if self.USE_SHIFT_REDUCE:
             # padding, eos, go, reduce 0 to n-1
-            return self.num_control_tokens + self._parser.num_rules
+            # the last rule is $ROOT -> $input <<EOF>>
+            # which is a pseudo-rule needed for the SLR generator
+            # we ignore it here
+            return self.num_control_tokens + self._parser.num_rules - 1
         else:
             return len(self.tokens)
 
@@ -62,6 +65,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 if i >= max_length-1:
                     raise ValueError("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
                 vector[i] = self.num_control_tokens + param
+                assert vector[i] < self.num_control_tokens + self._parser.num_rules-1
                 i += 1
             vector[i] = self.end # eos
             i += 1

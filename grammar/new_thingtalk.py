@@ -35,7 +35,7 @@ SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed']
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
-    'Boolean':  (['=='], ['true', 'false']),
+    'Boolean':  ([], []), # booleans are handled per-parameter, like enums
     'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['QUOTED_STRING']),
     'Date': (['==', '>', '<', '>=', '<='], ['DATE', 'now',
         ('start_of', 'unit:hour'), ('start_of', 'unit:day'), ('start_of', 'unit:week'), ('start_of', 'unit:mon'), ('start_of', 'unit:year'),
@@ -69,7 +69,8 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
-MAX_ARG_VALUES = 5
+MAX_ARG_VALUES = 2
+MAX_STRING_ARG_VALUES = 5
 
 def clean(name):
     if name.startswith('v_'):
@@ -128,7 +129,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
         for entity in entities:
             if entity['is_well_known'] == 1:
                     continue
-            self.entities.append(entity['type'])
+            self.entities.append((entity['type'], entity['has_ner_support']))
     
     def init_from_file(self, filename):
         self.reset()
@@ -156,47 +157,46 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
         self.num_functions = len(self.functions['queries']) + len(self.functions['actions'])
         
         GRAMMAR = OrderedDict({
-            '$input': [('$program',),
-                       ('bookkeeping', '$bookkeeping')],
-            '$bookkeeping': [('special', '$special'),
-                             ('command', '$command')],
-            '$special': [(x,) for x in SPECIAL_TOKENS],
-            '$command': [('help', 'generic'),
-                         ('help', '$constant_Entity(tt:device)')],
-            '$program': [('$rule',),
-                         ('$constant_Entity(tt:username)', ':', '$rule')],
-            '$rule': [('$stream', '=>', '$thingpedia_actions'),
-                      ('$stream', '=>', 'notify'),
-                      ('now', '=>', '$table', '=>', '$thingpedia_actions'),
-                      ('now', '=>', '$table', '=>', 'notify'),
-                      ('now', '=>', '$thingpedia_actions'),
-                      ('$rule', 'on', '$param_passing')],
+            #'$input': [('$program',),
+            #           ('bookkeeping', '$bookkeeping')],
+            #'$bookkeeping': [('special', '$special'),
+            #                 ('command', '$command'),
+            #                 ('answer', '$constant_Any')],
+            #'$special': [(x,) for x in SPECIAL_TOKENS],
+            #'$command': [('help', 'generic'),
+            #             ('help', '$constant_Entity(tt:device)')],
+            #'$program': [('$rule',),
+            #             ('$constant_Entity(tt:username)', ':', '$rule')],
+            '$input': [('$stream', '=>', '$thingpedia_actions'),
+                       ('$stream', '=>', 'notify'),
+                       ('now', '=>', '$table', '=>', '$thingpedia_actions'),
+                       ('now', '=>', '$table', '=>', 'notify'),
+                       ('now', '=>', '$thingpedia_actions'),
+                       ('$input', 'on', '$param_passing')],
             '$table': [('$thingpedia_queries',),
                        ('(', '$table', ')', 'filter', '$filter'),
-                       ('$out_param', 'of', '(', '$table', ')'),
-                       ('[', '$out_param_list', ']', 'of', '(', '$table', ')'),
-                       ('aggregate', 'min', '$out_param', 'of', '(', '$table', ')'),
-                       ('aggregate', 'max', '$out_param', 'of', '(', '$table', ')'),
-                       ('aggregate', 'sum', '$out_param', 'of', '(', '$table', ')'),
-                       ('aggregate', 'avg', '$out_param', 'of', '(', '$table', ')'),
-                       ('aggregate', 'count', 'of', '(', '$table', ')'),
-                       ('aggregate', 'argmin', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       ('aggregate', 'argmax', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       #('aggregate', 'min', '$out_param', 'of', '(', '$table', ')'),
+                       #('aggregate', 'max', '$out_param', 'of', '(', '$table', ')'),
+                       #('aggregate', 'sum', '$out_param', 'of', '(', '$table', ')'),
+                       #('aggregate', 'avg', '$out_param', 'of', '(', '$table', ')'),
+                       #('aggregate', 'count', 'of', '(', '$table', ')'),
+                       #('aggregate', 'argmin', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       #('aggregate', 'argmax', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
                        ('$table_join',),
-                       ('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
-                       ('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
-                       ('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       ('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')],
+                       #('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
+                       #('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
+                       #('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       #('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')
+                       ],
             '$table_join': [('(', '$table', ')', 'join', '(', '$table', ')'),
                             ('$table_join', 'on', '$param_passing')],
             '$stream': [('timer', 'base', '=', '$constant_Date', ',', 'interval', '=', '$constant_Measure(ms)'),
                         ('attimer', 'time', '=', '$constant_Time',),
                         ('monitor', '(', '$table', ')'),
-                        ('edge', '(', '$stream', ')', 'on', 'new'),
-                        ('edge', '(', '$stream', ')', 'on', '$filter'),
-                        ('edge', '(', '$stream', ')', 'on', 'true'),
-                        ('(', '$stream', ')', 'filter', '$filter'),
-                        ('$out_param', 'of', '(', '$stream', ')'),
+                        ('monitor', '(', '$table', ')', 'on', 'new', '$out_param'),
+                        ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
+                        #('edge', '(', '$stream', ')', 'on', '$filter'),
+                        #('edge', '(', '$stream', ')', 'on', 'true'),
                         ('$stream_join',)],
             '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
@@ -216,27 +216,30 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             '$atom_filter': OrderedSet([('$out_param', 'in_array', '$constant_Array')]),
             
             '$constant_Array': [('[', '$constant_array_values', ']',)],
-            '$constant_array_values': OrderedSet(),
+            '$constant_array_values': [('$constant_Any',),
+                                       ('$constant_array_values', ',', '$constant_Any')],
+            '$constant_Any': OrderedSet(),
         })
         
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
             GRAMMAR['$constant_' + type] = value_rules
-            GRAMMAR['$constant_array_values'].add(('$constant_' + type,))
-            GRAMMAR['$constant_array_values'].add(('$constant_Array', ',', '$constant_' + type,))
-            GRAMMAR['$bookkeeping'].append(('answer', '$constant_' + type))
+            GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
                 GRAMMAR['$atom_filter'].add(('$out_param', op, '$constant_' + type))
-                GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
+                # FIXME reenable some day
+                #GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
             GRAMMAR['$atom_filter'].add(('$out_param', 'contains', '$constant_' + type))
-            GRAMMAR['$atom_filter'].add(('$out_param', 'in_array', '$constant_Array'))
-        
+
         # base types
         for type, (operators, values) in TYPES.items():
             value_rules = []
             for v in values:
                 if isinstance(v, tuple):
                     value_rules.append(v) 
+                elif v == 'QUOTED_STRING':
+                    for i in range(MAX_STRING_ARG_VALUES):
+                        value_rules.append((v + '_' + str(i), ))
                 elif v[0].isupper():
                     for i in range(MAX_ARG_VALUES):
                         value_rules.append((v + '_' + str(i), ))
@@ -245,18 +248,23 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             add_type(type, value_rules, operators)
         for base_unit, units in UNITS.items():
             value_rules = [('$constant_Number', 'unit:' + unit) for unit in units]
-            value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
+            # FIXME reenable someday when we want to handle 6ft 3in
+            #value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
             operators, _ = TYPES['Number']
             add_type('Measure(' + base_unit + ')', value_rules, operators)
         for i in range(MAX_ARG_VALUES):
             GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
 
         # well known entities
-        add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
-            
+        #add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
+        add_type('Entity(tt:device)', [], ['='])
+
         # other entities
-        for generic_entity in self.entities:
-            value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
+        for generic_entity, has_ner in self.entities:
+            if has_ner:
+                value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
+            else:
+                value_rules = []
             add_type('Entity(' + generic_entity + ')', value_rules, ['=='])
             
         # maps a parameter to the list of types it can possibly have
@@ -279,25 +287,36 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
 
         for param_name, options in param_types.items():
             for (param_type, param_direction) in options:
-                if param_type == 'Any':
-                    continue
-
                 if param_type.startswith('Enum('):
                     enum_type = self._enum_types[param_type]
                     for enum in enum_type:
-                        GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
+                        #GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
                         if param_direction == 'in':
                             GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'enum:' + enum))
+                        else:
+                            # NOTE: enum filters don't follow the usual convention for filters
+                            # this is because, linguistically, it does not make much sense to go
+                            # through $out_param: enum parameters are often implicit
+                            # one does not say "if the mode of my hvac is off", one says "if my hvac is off"
+                            # (same, and worse, with booleans)
+                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'enum:' + enum))
                 else:
                     if param_direction == 'out':
-                        GRAMMAR['$out_param'].add(('param:' + param_name,))
+                        if param_type != 'Boolean':
+                            GRAMMAR['$out_param'].add(('param:' + param_name,))
+                        else:
+                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'true'))
+                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'false'))
                     if param_direction == 'in':
                         GRAMMAR['$param_passing'].add(('param:' + param_name, '=', '$out_param'))
                         if param_type == 'String':
                             GRAMMAR['$param_passing'].add(('param:' + param_name, '=', 'event'))
-                        GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'undefined'))
-                    if param_direction == 'in':
-                        GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_' + param_type))
+                    if param_direction == 'in' and param_type != 'Any':
+                        if param_type != 'Boolean':
+                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_' + param_type))
+                        else:
+                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'true'))
+                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'false'))
                         if param_type.startswith('Entity('):
                             GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_String'))
                         if param_type in ('Entity(tt:phone_number)', 'Entity(tt:email_address)'):
