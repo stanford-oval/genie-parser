@@ -37,10 +37,22 @@ TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
     'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['QUOTED_STRING']),
-    'Date': (['==', '>', '<', '>=', '<='], ['DATE', 'now',
-        ('start_of', 'unit:hour'), ('start_of', 'unit:day'), ('start_of', 'unit:week'), ('start_of', 'unit:mon'), ('start_of', 'unit:year'),
-        ('end_of', 'unit:hour'), ('end_of', 'unit:day'), ('end_of', 'unit:week'), ('end_of', 'unit:mon'), ('end_of', 'unit:year'),
-        ('$constant_Date', '+', '$constant_Measure(ms)')]),
+    'Date': (['==', '>', '<', '>=', '<='], [
+        'DATE',
+        'now',
+        ('start_of', 'unit:hour'),
+        ('start_of', 'unit:day'),
+        ('start_of', 'unit:week'),
+        ('start_of', 'unit:mon'),
+        ('start_of', 'unit:year'),
+        ('end_of', 'unit:hour'),
+        ('end_of', 'unit:day'),
+        ('end_of', 'unit:week'),
+        ('end_of', 'unit:mon'),
+        ('end_of', 'unit:year'),
+        ('$constant_Date', '+', '$constant_Measure(ms)'),
+        ('$constant_Date', '-', '$constant_Measure(ms)')
+        ]),
     'Time': (['=='], ['TIME']),
     'Number': (['==', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
     'Entity(tt:username)': (['=='], ['USERNAME']),
@@ -69,7 +81,7 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
-MAX_ARG_VALUES = 2
+MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
 
 def clean(name):
@@ -338,7 +350,11 @@ if __name__ == '__main__':
     #grammar.normalize_all(sys.stdin)
     vectors = []
     for line in sys.stdin:
-        vectors.append(grammar.vectorize_program(line.strip())[0])
+        try:
+            vectors.append(grammar.vectorize_program(line.strip())[0])
+        except:
+            print(line.strip())
+            raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name
