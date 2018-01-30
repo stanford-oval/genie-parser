@@ -39,7 +39,7 @@ def clean(name):
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
 def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
 
 def add_words(input_words, canonical):
     if isinstance(canonical, str):
@@ -108,7 +108,7 @@ def create_dictionary(input_words, dataset):
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
-        
+
         with open(os.path.join(dataset, filename), 'r') as fp:
             for line in fp:
                 sentence = line.strip().split('\t')[1]
@@ -116,7 +116,7 @@ def create_dictionary(input_words, dataset):
 
 def save_dictionary(input_words, workdir):
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
-        for word in input_words:
+        for word in sorted(input_words):
             print(word, file=fp)
 
 def trim_embeddings(input_words, workdir, embed_size, glove):

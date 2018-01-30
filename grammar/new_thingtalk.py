@@ -36,16 +36,16 @@ SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
-    'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['QUOTED_STRING']),
+    'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['""', 'QUOTED_STRING']),
     'Date': (['==', '>', '<', '>=', '<='], [
         'DATE',
         'now',
-        ('start_of', 'unit:hour'),
+        ('start_of', 'unit:h'),
         ('start_of', 'unit:day'),
         ('start_of', 'unit:week'),
         ('start_of', 'unit:mon'),
         ('start_of', 'unit:year'),
-        ('end_of', 'unit:hour'),
+        ('end_of', 'unit:h'),
         ('end_of', 'unit:day'),
         ('end_of', 'unit:week'),
         ('end_of', 'unit:mon'),
@@ -73,7 +73,7 @@ TYPE_RENAMES = {
 }
 
 UNITS = dict(C=["C", "F"],
-             ms=["ms", "s", "min", "h", "day", "week", "month", "year"],
+             ms=["ms", "s", "min", "h", "day", "week", "mon", "year"],
              m=["m", "km", "mm", "cm", "mi", "in", "ft"],
              mps=["mps", "kmph", "mph"],
              kg=["kg", "g", "lb", "oz"],
@@ -207,7 +207,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                         ('monitor', '(', '$table', ')'),
                         ('monitor', '(', '$table', ')', 'on', 'new', '$out_param'),
                         ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
-                        #('edge', '(', '$stream', ')', 'on', '$filter'),
+                        ('edge', '(', '$stream', ')', 'on', '$filter'),
                         #('edge', '(', '$stream', ')', 'on', 'true'),
                         ('$stream_join',)],
             '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
