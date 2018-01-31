@@ -1,4 +1,6 @@
-# Copyright 2017 Giovanni Campagna <gcampagn@cs.stanford.edu
+# Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
+#
+# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
