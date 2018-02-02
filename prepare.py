@@ -41,7 +41,7 @@ def clean(name):
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
 def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
+    return re.split(r'\s+|[,\.\"\'!\?\_]', re.sub('[()]', '', name.lower()))
 
 def add_words(input_words, canonical):
     if isinstance(canonical, str):
@@ -192,7 +192,8 @@ def main():
     
     input_words = set()
     # add the canonical words for the builtin functions
-    add_words(input_words, 'now nothing notify return the event')
+    # and a few canonical words that are useful
+    add_words(input_words, 'now nothing notify return the event 0 1 2 3 4 5 6 7 8 9 10')
     
     create_dictionary(input_words, dataset)
     get_thingpedia(input_words, workdir, snapshot)

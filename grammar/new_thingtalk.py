@@ -31,13 +31,12 @@ import numpy as np
 from .shift_reduce_grammar import ShiftReduceGrammar
 
 from collections import OrderedDict
-from orderedset import OrderedSet
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed']
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
-    'Boolean':  ([], []), # booleans are handled per-parameter, like enums
+    'Boolean':  (['=='], ['true', 'false']),
     'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['""', 'QUOTED_STRING']),
     'Date': (['==', '>', '<', '>=', '<='], [
         'DATE',
@@ -83,280 +82,309 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
+GRAMMAR = OrderedDict({
+    #'$input': [('$program',),
+    #           ('bookkeeping', '$bookkeeping')],
+    #'$bookkeeping': [('special', '$special'),
+    #                 ('command', '$command'),
+    #                 ('answer', '$constant_Any')],
+    #'$special': [(x,) for x in SPECIAL_TOKENS],
+    #'$command': [('help', 'generic'),
+    #             ('help', '$constant_Entity(tt:device)')],
+    #'$program': [('$rule',),
+    #             ('$constant_Entity(tt:username)', ':', '$rule')],
+    '$input': [('$stream', '=>', '$thingpedia_actions'),
+               ('$stream', '=>', 'notify'),
+               ('now', '=>', '$table', '=>', '$thingpedia_actions'),
+               ('now', '=>', '$table', '=>', 'notify'),
+               ('now', '=>', '$thingpedia_actions'),
+               ('$input', 'on', '$param_passing')],
+    '$table': [('$thingpedia_queries',),
+               ('(', '$table', ')', 'filter', '$filter'),
+               #('aggregate', 'min', 'PARAM', 'of', '(', '$table', ')'),
+               #('aggregate', 'max', 'PARAM', 'of', '(', '$table', ')'),
+               #('aggregate', 'sum', 'PARAM', 'of', '(', '$table', ')'),
+               #('aggregate', 'avg', 'PARAM', 'of', '(', '$table', ')'),
+               #('aggregate', 'count', 'of', '(', '$table', ')'),
+               #('aggregate', 'argmin', 'PARAM', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+               #('aggregate', 'argmax', 'PARAM', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+               ('$table_join',),
+               #('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
+               #('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
+               #('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+               #('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')
+               ],
+    '$table_join': [('(', '$table', ')', 'join', '(', '$table', ')'),
+                    ('$table_join', 'on', '$param_passing')],
+    '$stream': [('timer', 'base', '=', '$constant_Date', ',', 'interval', '=', '$constant_Measure(ms)'),
+                ('attimer', 'time', '=', '$constant_Time',),
+                ('monitor', '(', '$table', ')'),
+                ('monitor', '(', '$table', ')', 'on', 'new', 'PARAM'),
+                ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
+                ('edge', '(', '$stream', ')', 'on', '$filter'),
+                #('edge', '(', '$stream', ')', 'on', 'true'),
+                ('$stream_join',)],
+    '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
+                     ('$stream_join', 'on', '$param_passing')],
+    '$thingpedia_queries': [('$thingpedia_queries', '$const_param'),
+                            ('THINGPEDIA_QUERIES',)],
+    '$thingpedia_actions': [('$thingpedia_actions', '$const_param'),
+                            ('THINGPEDIA_ACTIONS',)],
+    '$param_passing': [('PARAM', '=', 'PARAM'),
+                       ('PARAM', '=', 'event')],
+    '$const_param': [],
+    '$out_param_list': [('PARAM',),
+                        ('$out_param_list', ',', 'PARAM')],
+
+    '$filter': [('$or_filter',),
+                ('$filter', 'and', '$or_filter',)],
+    '$or_filter': [('$atom_filter',),
+                   ('not', '$atom_filter',),
+                   ('$or_filter', 'or', '$atom_filter')],
+    '$atom_filter': [('PARAM', 'in_array', '$constant_Array')],
+    
+    '$constant_Array': [('[', '$constant_array_values', ']',)],
+    '$constant_array_values': [('$constant_Any',),
+                               ('$constant_array_values', ',', '$constant_Any')],
+    '$constant_Any': [],
+})
+
 MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
+
+def load_grammar():
+    def add_type(type, value_rules, operators):
+            assert all(isinstance(x, tuple) for x in value_rules)
+            GRAMMAR['$const_param'].append(('PARAM', '=', '$constant_' + type))
+            GRAMMAR['$constant_' + type] = value_rules
+            GRAMMAR['$constant_Any'].append(('$constant_' + type,))
+            for op in operators:
+                GRAMMAR['$atom_filter'].append(('PARAM', op, '$constant_' + type))
+                # FIXME reenable some day
+                #GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
+            GRAMMAR['$atom_filter'].append(('PARAM', 'contains', '$constant_' + type))
+            
+    # base types
+    for type, (operators, values) in TYPES.items():
+        value_rules = []
+        for v in values:
+            if isinstance(v, tuple):
+                value_rules.append(v) 
+            elif v == 'QUOTED_STRING':
+                for i in range(MAX_STRING_ARG_VALUES):
+                    value_rules.append((v + '_' + str(i), ))
+            elif v[0].isupper():
+                for i in range(MAX_ARG_VALUES):
+                    value_rules.append((v + '_' + str(i), ))
+            else:
+                value_rules.append((v,))
+        add_type(type, value_rules, operators)
+    for base_unit, units in UNITS.items():
+        value_rules = [('$constant_Number', 'unit:' + unit) for unit in units]
+        # FIXME reenable someday when we want to handle 6ft 3in
+        #value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
+        operators, _ = TYPES['Number']
+        add_type('Measure(' + base_unit + ')', value_rules, operators)
+    for i in range(MAX_ARG_VALUES):
+        GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
+
+    # well known entities
+    add_type('Entity(tt:device)', [('DEVICE',)], ['=='])
+    
+    # other entities
+    add_type('Entity(*)', [('GENERIC_ENTITY',)], ['=='])
+    
+    # enums
+    add_type('Enum', [('ENUM',)], ['=='])
+load_grammar()
+
 
 def clean(name):
     if name.startswith('v_'):
         name = name[len('v_'):]
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
+
 def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+    return re.split(r'\s+|[,\.\"\'!\?\_]', re.sub('[()]', '', name.lower()))
+
 
 class NewThingTalkGrammar(ShiftReduceGrammar):
     '''
     The grammar of New thingtalk
     '''
     
-    def __init__(self, filename=None):
-        super().__init__()
+    def __init__(self, filename=None, flatten=True):
+        super().__init__(flatten=flatten)
         if filename is not None:
             self.init_from_file(filename)
         
     def reset(self):
-        queries = OrderedDict()
-        actions = OrderedDict()
-        functions = dict(queries=queries, actions=actions)
-        self.functions = functions
         self.entities = []
-        self._enum_types = OrderedDict()
         self.devices = []
+        self._token_canonicals = dict()
     
-    def _process_devices(self, devices):
+    def _process_devices(self, devices, extensible_terminals):
+        params = set()
+        enums = set()
+
         for device in devices:
-            if device['kind_type'] == 'global':
+            if device['kind_type'] in ('global', 'category', 'discovery'):
                 continue
-            self.devices.append('device:' + device['kind'])
+            kind = device['kind']
+            self.devices.append('device:' + kind)
+            self._token_canonicals['device:' + kind] = device.get('kind_canonical', None)
             
             for function_type in ('queries', 'actions'):
                 for name, function in device[function_type].items():
                     function_name = '@' + device['kind'] + '.' + name
-                    paramlist = []
-                    self.functions[function_type][function_name] = paramlist
-                    for argname, argtype, is_input in zip(function['args'],
-                                                          function['schema'],
-                                                          function['is_input']):
-                        direction = 'in' if is_input else 'out'                    
-                        paramlist.append((argname, argtype, direction))
-                    
+                    extensible_terminals['THINGPEDIA_' + function_type.upper()].append(function_name)
+                    self._token_canonicals[function_name] = function['canonical']
+
+                    for argname, argtype, argcanonical in zip(function['args'], function['schema'], function['argcanonicals']):
+                        if argtype in TYPE_RENAMES:
+                            argtype = TYPE_RENAMES[argtype]
+                        params.add('param:' + argname)
+                        self._token_canonicals['param:' + argname] = argcanonical
+                                    
                         if argtype.startswith('Array('):
                             elementtype = argtype[len('Array('):-1]
+                            if elementtype in TYPE_RENAMES:
+                                argtype = 'Array(' + TYPE_RENAMES[elementtype] + ')'
                         else:
                             elementtype = argtype
                         if elementtype.startswith('Enum('):
-                            enums = elementtype[len('Enum('):-1].split(',')
-                            if not elementtype in self._enum_types:
-                                self._enum_types[elementtype] = enums
-    
-    def _process_entities(self, entities):
+                            enum_variants = elementtype[len('Enum('):-1].split(',')
+                            for enum in enum_variants:
+                                enums.add('enum:' + enum)
+                                self._token_canonicals['enum:' + enum] = clean(enum)
+
+        extensible_terminals['ENUM'] = list(enums)
+        extensible_terminals['ENUM'].sort()
+        extensible_terminals['PARAM'] = list(params)
+        extensible_terminals['PARAM'].sort()
+
+    def _process_entities(self, entities, extensible_terminals):
         for entity in entities:
             if entity['is_well_known'] == 1:
-                    continue
-            self.entities.append((entity['type'], entity['has_ner_support']))
+                continue
+            if entity['has_ner_support']:
+                for i in range(MAX_ARG_VALUES):
+                    token = 'GENERIC_ENTITY_' + entity['type'] + "_" + str(i)
+                    extensible_terminals['GENERIC_ENTITY'].append(token)
+                    self._token_canonicals[token] = ' '.join(tokenize(entity['name'])).strip() + ' ' + str(i)
+                self.entities.append(entity['type'])
     
     def init_from_file(self, filename):
         self.reset()
+        extensible_terminals = {
+            'DEVICE': self.devices,
+            'THINGPEDIA_QUERIES': [],
+            'THINGPEDIA_ACTIONS': [],
+            'PARAM': [],
+            'ENUM': [],
+            'GENERIC_ENTITY': []
+        }
 
         with open(filename, 'r') as fp:
             thingpedia = json.load(fp)
-        
-        self._process_devices(thingpedia['devices'])
-        self._process_entities(thingpedia['entities'])
+            
+        self._process_devices(thingpedia['devices'], extensible_terminals)
+        self._process_entities(thingpedia['entities'], extensible_terminals)
 
-        self.complete()
+        self.complete(extensible_terminals)
 
     def init_from_url(self, snapshot=-1, thingpedia_url=None):
         if thingpedia_url is None:
             thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
         ssl_context = ssl.create_default_context()
+        extensible_terminals = {
+            'DEVICE': self.devices,
+            'THINGPEDIA_QUERIES': list(self.functions['queries'].keys()),
+            'THINGPEDIA_ACTIONS': list(self.functions['actions'].keys()),
+            'PARAM': [],
+            'ENUM': [],
+            'GENERIC_ENTITY': []
+        }
 
         with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
-            self._process_devices(json.load(res)['data'])
+            self._process_devices(json.load(res)['data'], extensible_terminals)
 
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
-            self._process_entities(json.load(res)['data'])
+            self._process_entities(json.load(res)['data'], extensible_terminals)
+            
+        self.complete(extensible_terminals)
     
-    def complete(self):
-        self.num_functions = len(self.functions['queries']) + len(self.functions['actions'])
+    def complete(self, extensible_terminals):
+        num_queries = len(extensible_terminals['THINGPEDIA_QUERIES'])
+        num_actions = len(extensible_terminals['THINGPEDIA_ACTIONS'])
+        self.num_functions = num_queries + num_actions
         
-        GRAMMAR = OrderedDict({
-            #'$input': [('$program',),
-            #           ('bookkeeping', '$bookkeeping')],
-            #'$bookkeeping': [('special', '$special'),
-            #                 ('command', '$command'),
-            #                 ('answer', '$constant_Any')],
-            #'$special': [(x,) for x in SPECIAL_TOKENS],
-            #'$command': [('help', 'generic'),
-            #             ('help', '$constant_Entity(tt:device)')],
-            #'$program': [('$rule',),
-            #             ('$constant_Entity(tt:username)', ':', '$rule')],
-            '$input': [('$stream', '=>', '$thingpedia_actions'),
-                       ('$stream', '=>', 'notify'),
-                       ('now', '=>', '$table', '=>', '$thingpedia_actions'),
-                       ('now', '=>', '$table', '=>', 'notify'),
-                       ('now', '=>', '$thingpedia_actions'),
-                       ('$input', 'on', '$param_passing')],
-            '$table': [('$thingpedia_queries',),
-                       ('(', '$table', ')', 'filter', '$filter'),
-                       #('aggregate', 'min', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'max', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'sum', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'avg', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'count', 'of', '(', '$table', ')'),
-                       #('aggregate', 'argmin', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       #('aggregate', 'argmax', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       ('$table_join',),
-                       #('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
-                       #('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
-                       #('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       #('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')
-                       ],
-            '$table_join': [('(', '$table', ')', 'join', '(', '$table', ')'),
-                            ('$table_join', 'on', '$param_passing')],
-            '$stream': [('timer', 'base', '=', '$constant_Date', ',', 'interval', '=', '$constant_Measure(ms)'),
-                        ('attimer', 'time', '=', '$constant_Time',),
-                        ('monitor', '(', '$table', ')'),
-                        ('monitor', '(', '$table', ')', 'on', 'new', '$out_param'),
-                        ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
-                        ('edge', '(', '$stream', ')', 'on', '$filter'),
-                        #('edge', '(', '$stream', ')', 'on', 'true'),
-                        ('$stream_join',)],
-            '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
-                             ('$stream_join', 'on', '$param_passing')],
-            '$thingpedia_queries': [('$thingpedia_queries', '$const_param')],
-            '$thingpedia_actions': [('$thingpedia_actions', '$const_param')],
-            '$param_passing': OrderedSet(),
-            '$const_param': OrderedSet(),
-            '$out_param': OrderedSet(),
-            '$out_param_list': [('$out_param',),
-                                ('$out_param_list', ',', '$out_param')],
-
-            '$filter': [('$or_filter',),
-                        ('$filter', 'and', '$or_filter',)],
-            '$or_filter': [('$atom_filter',),
-                           ('not', '$atom_filter',),
-                           ('$or_filter', 'or', '$atom_filter')],
-            '$atom_filter': OrderedSet([('$out_param', 'in_array', '$constant_Array')]),
-            
-            '$constant_Array': [('[', '$constant_array_values', ']',)],
-            '$constant_array_values': [('$constant_Any',),
-                                       ('$constant_array_values', ',', '$constant_Any')],
-            '$constant_Any': OrderedSet(),
-        })
-        
-        def add_type(type, value_rules, operators):
-            assert all(isinstance(x, tuple) for x in value_rules)
-            GRAMMAR['$constant_' + type] = value_rules
-            GRAMMAR['$constant_Any'].add(('$constant_' + type,))
-            for op in operators:
-                GRAMMAR['$atom_filter'].add(('$out_param', op, '$constant_' + type))
-                # FIXME reenable some day
-                #GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
-            GRAMMAR['$atom_filter'].add(('$out_param', 'contains', '$constant_' + type))
-
-        # base types
-        for type, (operators, values) in TYPES.items():
-            value_rules = []
-            for v in values:
-                if isinstance(v, tuple):
-                    value_rules.append(v) 
-                elif v == 'QUOTED_STRING':
-                    for i in range(MAX_STRING_ARG_VALUES):
-                        value_rules.append((v + '_' + str(i), ))
-                elif v[0].isupper():
-                    for i in range(MAX_ARG_VALUES):
-                        value_rules.append((v + '_' + str(i), ))
-                else:
-                    value_rules.append((v,))
-            add_type(type, value_rules, operators)
-        for base_unit, units in UNITS.items():
-            value_rules = [('$constant_Number', 'unit:' + unit) for unit in units]
-            # FIXME reenable someday when we want to handle 6ft 3in
-            #value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
-            operators, _ = TYPES['Number']
-            add_type('Measure(' + base_unit + ')', value_rules, operators)
-        for i in range(MAX_ARG_VALUES):
-            GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
-
-        # well known entities
-        #add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
-        add_type('Entity(tt:device)', [], ['='])
-
-        # other entities
-        for generic_entity, has_ner in self.entities:
-            if has_ner:
-                value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
-            else:
-                value_rules = []
-            add_type('Entity(' + generic_entity + ')', value_rules, ['=='])
-            
-        # maps a parameter to the list of types it can possibly have
-        # over the whole Thingpedia
-        param_types = OrderedDict()
-        
-        for function_type in ('queries', 'actions'):
-            for function_name, params in self.functions[function_type].items():
-                for param_name, param_type, param_direction in params:
-                    if param_type in TYPE_RENAMES:
-                        param_type = TYPE_RENAMES[param_type]
-                    if param_type.startswith('Array('):
-                        element_type = param_type[len('Array('):-1]
-                        if element_type in TYPE_RENAMES:
-                            param_type = 'Array(' + TYPE_RENAMES[element_type] + ')'
-                    if param_name not in param_types:
-                        param_types[param_name] = OrderedSet()
-                    param_types[param_name].add((param_type, param_direction))
-                GRAMMAR['$thingpedia_' + function_type].append((function_name,))
-
-        for param_name, options in param_types.items():
-            for (param_type, param_direction) in options:
-                if param_type.startswith('Enum('):
-                    enum_type = self._enum_types[param_type]
-                    for enum in enum_type:
-                        #GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
-                        if param_direction == 'in':
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'enum:' + enum))
-                        else:
-                            # NOTE: enum filters don't follow the usual convention for filters
-                            # this is because, linguistically, it does not make much sense to go
-                            # through $out_param: enum parameters are often implicit
-                            # one does not say "if the mode of my hvac is off", one says "if my hvac is off"
-                            # (same, and worse, with booleans)
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'enum:' + enum))
-                else:
-                    if param_direction == 'out':
-                        if param_type != 'Boolean':
-                            GRAMMAR['$out_param'].add(('param:' + param_name,))
-                        else:
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'true'))
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'false'))
-                    if param_direction == 'in':
-                        GRAMMAR['$param_passing'].add(('param:' + param_name, '=', '$out_param'))
-                        if param_type == 'String':
-                            GRAMMAR['$param_passing'].add(('param:' + param_name, '=', 'event'))
-                    if param_direction == 'in' and param_type != 'Any':
-                        if param_type != 'Boolean':
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_' + param_type))
-                        else:
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'true'))
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'false'))
-                        if param_type.startswith('Entity('):
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_String'))
-                        if param_type in ('Entity(tt:phone_number)', 'Entity(tt:email_address)'):
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_Entity(tt:username)'))
-
-        self.tokens += self.construct_parser(GRAMMAR)
         print('num functions', self.num_functions)
-        print('num queries', len(self.functions['queries']))
-        print('num actions', len(self.functions['actions']))
-        print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
+        print('num queries', num_queries)
+        print('num actions', num_actions)
+        self.tokens += self.construct_parser(GRAMMAR, extensible_terminals)
         
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
+            
+    def _embed_token(self, token, input_words, input_embeddings):
+        input_embed_size = input_embeddings.shape[-1]
+        token_embedding = np.zeros((input_embed_size,), dtype=np.float32)
+        canonical = self._token_canonicals[token]
+        if not canonical:
+            print("WARNING: token %s has no canonical" % (token,))
+            return token_embedding
+        for canonical_token in canonical.split(' '):
+            if canonical_token in ('in', 'on', 'of'):
+                continue
+            if canonical_token in input_words:
+                token_embedding += input_embeddings[input_words[canonical_token]]
+            else:
+                print("WARNING: missing word %s in canonical for output token %s" % (canonical_token, token))
+                token_embedding += input_embeddings[input_words['<unk>']]
+        if np.any(np.isnan(token_embedding)):
+            raise ValueError('Embedding for ' + token + ' is NaN')
+        return token_embedding
+
+    def get_embeddings(self, input_words, input_embeddings):
+        all_embeddings = {
+            'actions': np.identity(self.output_size['actions'], dtype=np.float32)
+        }
+        
+        depth = input_embeddings.shape[-1]
+        for key in self.extensible_terminal_list:
+            size = self.output_size[key]
+            embedding_matrix = np.zeros((size, depth), dtype=np.float32)
+            for i, token in enumerate(self.extensible_terminals[key]):
+                embedding_matrix[i] = self._embed_token(token, input_words, input_embeddings)
+            assert not np.any(np.isnan(embedding_matrix))
+            all_embeddings[key] = embedding_matrix
+        
+        return all_embeddings
+
 
 if __name__ == '__main__':
-    grammar = NewThingTalkGrammar(sys.argv[1])
+    grammar = NewThingTalkGrammar(sys.argv[1], flatten=False)
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    vectors = []
+    vectors = dict()
+    for key in grammar.output_size:
+        vectors[key] = []
     for line in sys.stdin:
+        line = line.strip()
         try:
-            vectors.append(grammar.vectorize_program(line.strip())[0])
+            vector, length = grammar.vectorize_program(line)
+            assert ' '.join(grammar.reconstruct_program(vector, ignore_errors=False)) == line
+            for key, vec in vector.items():
+                vectors[key].append(vec)
         except:
-            print(line.strip())
+            print(line)
             raise
-    np.save('programs.npy', np.array(vectors), allow_pickle=False)
+        
+    for key in grammar.output_size:
+        vectors[key] = np.array(vectors[key])
+    np.savez('programs.npz', **vectors)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name

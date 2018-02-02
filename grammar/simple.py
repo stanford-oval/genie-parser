@@ -20,7 +20,11 @@ Created on Jul 20, 2017
 @author: gcampagn
 '''
 
+import tensorflow as tf
+
 from .abstract import AbstractGrammar
+
+from util.loader import vectorize
 
 class SimpleGrammar(AbstractGrammar):
     '''
@@ -34,8 +38,11 @@ class SimpleGrammar(AbstractGrammar):
     where $Token is any grammar token
     '''
     
-    def __init__(self, filename):
+    def __init__(self, filename, flatten=True):
         super().__init__()
+        
+        if not flatten:
+            raise ValueError('Cannot use a the extensible model with a simple grammar; use seq2seq model instead')
         
         self.tokens = ['</s>', '<s>']
         with open(filename, 'r') as fp:
@@ -45,3 +52,28 @@ class SimpleGrammar(AbstractGrammar):
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
+
+    @property
+    def primary_output(self):
+        return 'tokens'
+
+    @property
+    def output_size(self):
+        return {
+            'tokens': len(self.tokens)
+        }
+        
+    def vectorize_program(self, program, max_length):
+        return {
+            'tokens': vectorize(program, self.dictionary, max_length, add_eos=True)
+        }
+        
+    def reconstruct_program(self, sequence, ignore_errors=False):
+        if isinstance(sequence, dict):
+            sequence = sequence['tokens']
+        ret = []
+        for x in sequence:
+            if x == self.end:
+                break
+            ret.append(self.tokens[x])
+        return ret

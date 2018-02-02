@@ -64,7 +64,7 @@ class BaseModel(object):
             predictions: np.ndarray of shape (n_samples, n_classes)
         """
         feed = self.create_feed_dict(*data, **kw)
-        predictions = sess.run(self.pred, feed_dict=feed)
+        predictions = sess.run(self.preds, feed_dict=feed)
         return predictions
     
     def eval_on_batch(self, sess, *data, **kw):
@@ -77,7 +77,7 @@ class BaseModel(object):
             predictions: np.ndarray of shape (n_samples, n_classes)
         """
         feed = self.create_feed_dict(*data, **kw)
-        return sess.run([self.pred, self.eval_loss], feed_dict=feed)
+        return sess.run([self.preds, self.eval_loss], feed_dict=feed)
 
     def build(self):
         raise NotImplementedError("Each Model must implement this method")

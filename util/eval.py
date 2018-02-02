@@ -67,13 +67,13 @@ class Seq2SeqEvaluator(object):
     def eval(self, session, save_to_file=False):
         sequences = []
         sum_eval_loss = 0
+        _, _, _, label_sequences, _, _ = self.data
+        
         if save_to_file:
-            _, _, _, labels, _, _ = self.data
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
-            for gold in labels:
-                gold = self.grammar.reconstruct_program(gold, ignore_errors=False)
-                gold_programs.add(tuple(gold))
+            for label in label_sequences:
+                gold_programs.add(tuple(label))
         else:
             gold_programs = set()
             correct_programs = None
@@ -89,7 +89,7 @@ class Seq2SeqEvaluator(object):
         def get_functions(seq):
             return [x for x in seq if (x.startswith('tt:') or x.startswith('@'))]
 
-        output_size = self.grammar.output_size
+        output_size = self.grammar.output_size[self.grammar.primary_output]
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
         action_count_tp = np.zeros((output_size,), dtype=np.int32)
         action_count_fp = np.zeros((output_size,), dtype=np.int32)
@@ -101,15 +101,15 @@ class Seq2SeqEvaluator(object):
         progbar = Progbar(total_n_minibatches)
         try:
             for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-                input_batch, input_length_batch, _, label_batch, label_length_batch, _ = data_batch
+                input_batch, input_length_batch, _, _, label_batch, label_length_batch = data_batch
                 
                 if self.model.action_counts is not None:
                     feed = self.model.create_feed_dict(*data_batch, batch_number=n_minibatches)
                     sequences, action_counts, eval_loss = session.run([self.model.pred, self.model.action_counts, self.model.eval_loss], feed_dict=feed)
                     
                     label_action_counts = np.zeros((len(label_batch), output_size), dtype=np.int32)
-                    for i in range(len(label_batch)):
-                        label_action_counts[i] = np.bincount(label_batch[i][:label_length_batch[i]],
+                    for i in range(len(label_batch[self.grammar.primary_output])):
+                        label_action_counts[i] = np.bincount(label_batch[self.grammar.primary_output][i, :label_length_batch[i]],
                                                              minlength=output_size)
                 else:
                     sequences, eval_loss = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
@@ -129,9 +129,11 @@ class Seq2SeqEvaluator(object):
                     action_count_tn += true_negatives
                     action_count_fn += false_negatives
 
-                for i, seq in enumerate(sequences):
-                    gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
-                    #print "GOLD:", ' '.join(gold)
+                primary_sequences = sequences[self.grammar.primary_output]
+                primary_label_batch = label_batch[self.grammar.primary_output]
+
+                for i, seq in enumerate(primary_sequences):
+                    gold = label_sequences[n_minibatches * self._batch_size + i]
                     gold_functions = get_functions(gold)
 
                     is_ok_grammar = False
@@ -140,7 +142,11 @@ class Seq2SeqEvaluator(object):
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        decoded = self.grammar.reconstruct_program(beam, ignore_errors=True)
+                        
+                        decoded_vectors = dict()
+                        for key in self.grammar.output_size:
+                            decoded_vectors[key] = sequences[key][i,beam_pos]
+                        decoded = self.grammar.reconstruct_program(decoded_vectors, ignore_errors=True)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)
@@ -163,18 +169,21 @@ class Seq2SeqEvaluator(object):
                             is_ok_full = True
                         
                         if beam_pos == 0:
-                            length_diff = len(label_batch[i]) - len(beam)
+                            length_diff = len(primary_label_batch[i]) - len(beam)
                             if length_diff > 0:
                                 padded_pred = np.concatenate((beam, np.zeros((length_diff,), np.int32)), axis=0)
                             else:
                                 padded_pred = beam
-                            confusion_matrix[padded_pred,label_batch[i]] += 1
+                            confusion_matrix[padded_pred,primary_label_batch[i]] += 1
 
                         if beam_pos == 0 and save_to_file:
                             sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
                             gold_str = ' '.join(gold)
                             decoded_str = ' '.join(decoded)
-                            print(sentence, gold_str, decoded_str, is_ok_full, sep='\t', file=fp)
+                            print(sentence, gold_str, decoded_str, is_ok_full,
+                                  'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
+                                  'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
+                                  sep='\t', file=fp)
                 
                 n_minibatches += 1
                 example_counter = n_minibatches * self._batch_size

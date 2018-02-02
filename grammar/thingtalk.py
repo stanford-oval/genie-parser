@@ -96,8 +96,10 @@ def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
 
 class ThingtalkGrammar(ShiftReduceGrammar):
-    def __init__(self, filename=None):
-        super().__init__()
+    def __init__(self, filename=None, flatten=True):
+        super().__init__(flatten=flatten)
+        if not flatten:
+            raise NotImplementedError('Extensible Grammar is not supported for Old ThingTalk')
         if filename is not None:
             self.init_from_file(filename)
         
@@ -572,6 +574,11 @@ if __name__ == '__main__':
     grammar = ThingtalkGrammar(sys.argv[1])
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    grammar.parse_all(sys.stdin)
-    #for i, name in enumerate(grammar.state_names):
-    #    print i, name
+    vectors = []
+    for line in sys.stdin:
+        try:
+            vectors.append(grammar.vectorize_program(line.strip())[0])
+        except:
+            print(line.strip())
+            raise
+    np.save('programs.npy', np.array(vectors), allow_pickle=False)

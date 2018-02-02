@@ -21,7 +21,26 @@ Created on Jul 20, 2017
 '''
 
 import configparser
-import grammar
+import importlib
+
+def create_grammar(grammar_type, *args, **kw):
+    pkg = None
+    class_name = None
+    
+    # for compat with existing configuration files
+    if grammar_type == "tt":
+        pkg = 'thingtalk'
+        class_name = 'ThingTalkGrammar'
+    elif grammar_type == 'new-tt':
+        pkg = 'new_thingtalk'
+        class_name = 'NewThingTalkGrammar'
+    elif grammar_type == "simple":
+        pkg = 'simple'
+        class_name = 'SimpleGrammar'
+    else:
+        pkg, class_name = grammar_type.rsplit('.', limit=1)
+    module = importlib.import_module('grammar.' + pkg)
+    return getattr(module, class_name)(*args, **kw)
 
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
@@ -67,7 +86,7 @@ class Config(object):
             grammar='tt',
             grammar_input_file='./thingpedia.json',
             train_output_embeddings='true',
-            output_embed_size=15,
+            output_embed_size=50,
             beam_width=10,
             training_beam_width=10,
             use_dot_product_output='false',
@@ -109,6 +128,11 @@ class Config(object):
     def output_embed_size(self):
         if self.train_output_embeddings:
             return int(self._config['output']['output_embed_size'])
+        elif isinstance(self._output_embeddings_matrix, dict):
+            sizes = dict()
+            for key, matrix in self._output_embeddings_matrix.items():
+                sizes[key] = matrix.shape[1]
+            return sizes
         else:
             return self._output_embeddings_matrix.shape[1]
         
@@ -261,7 +285,11 @@ class Config(object):
         self._config.read(filenames)
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
-        self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
+        flatten_grammar = self.model_type != 'extensible'
+        
+        self._grammar = create_grammar(self._config['output']['grammar'],
+                                       self._config['output']['grammar_input_file'],
+                                       flatten=flatten_grammar)
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
@@ -269,7 +297,8 @@ class Config(object):
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
-        print("%d output tokens" % (self.output_size,))
+        for key, size in self.output_size.items():
+            print("%d %s output tokens" % (size, key))
 
         if self._config['input']['input_embeddings'] == 'xavier':
             assert self.train_input_embeddings

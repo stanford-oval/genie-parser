@@ -193,7 +193,7 @@ class RPAGAligner(BaseAligner):
         if self.config.use_dot_product_output:
             # use a distance loss against the embedding of the real solution
             with tf.name_scope('label_encoding'):
-                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
+                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.primary_output_placeholder)
                 
             difference = preds - label_encoded
             print('difference', difference)
@@ -205,7 +205,7 @@ class RPAGAligner(BaseAligner):
         else:
             # add epsilon to avoid division by 0
             preds = preds + 1e-5
-            loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
+            loss = tf.contrib.seq2seq.sequence_loss(preds, self.primary_output_placeholder, mask)
 
             with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
                 return tf.identity(loss)

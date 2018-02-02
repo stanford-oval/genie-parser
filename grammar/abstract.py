@@ -23,8 +23,6 @@ Created on Jul 20, 2017
 import tensorflow as tf
 import numpy as np
 
-from util.loader import vectorize
-
 class AbstractGrammar(object):
     '''
     Base class for a Grammar that defines the output of a Sequence to Sequence
@@ -43,10 +41,6 @@ class AbstractGrammar(object):
         self.num_control_tokens = 2
 
     @property
-    def output_size(self):
-        return len(self.tokens)
-
-    @property
     def start(self):
         ''' The ID of the start token when decoding '''
         return self.dictionary['<s>']
@@ -56,13 +50,12 @@ class AbstractGrammar(object):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['</s>']
     
+    @property
+    def output_size(self):
+        raise NotImplementedError()
+    
     def reconstruct_program(self, sequence, ignore_errors=False):
-        ret = []
-        for x in sequence:
-            if x == self.end:
-                break
-            ret.append(self.tokens[x])
-        return ret
+        raise NotImplementedError()
     
     def print_prediction(self, sequence):
         print(' '.join(self.tokens[x] for x in sequence))
@@ -71,10 +64,13 @@ class AbstractGrammar(object):
         return [self.tokens[x] for x in sequence]
     
     def vectorize_program(self, program, max_length):
-        return vectorize(program, self.dictionary, max_length, add_eos=True)
+        raise NotImplementedError()
     
-    def get_embeddings(self, *args):
-        return np.identity(self.output_size, np.float32)
+    def get_embeddings(self, input_words, input_embeddings):
+        embeddings = dict()
+        for key, size in self.output_size.items():
+            embeddings[key] = np.identity(size, dtype=np.float32)
+        return embeddings
 
     def compare(self, seq1, seq2):
         '''
