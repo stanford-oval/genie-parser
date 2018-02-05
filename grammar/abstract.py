@@ -54,10 +54,13 @@ class AbstractGrammar(object):
     def output_size(self):
         raise NotImplementedError()
     
-    def reconstruct_program(self, sequence, ignore_errors=False):
+    def is_copy_type(self, output):
+        return False
+    
+    def reconstruct_program(self, input_sentence, sequence, ignore_errors=False):
         raise NotImplementedError()
     
-    def print_prediction(self, sequence):
+    def print_prediction(self, input_sentence, sequence):
         print(' '.join(self.tokens[x] for x in sequence))
     
     def prediction_to_string(self, sequence):

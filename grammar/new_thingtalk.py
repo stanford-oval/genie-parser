@@ -152,6 +152,10 @@ GRAMMAR = OrderedDict({
 MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
 
+CONSTANTS = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
+             'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
+             'TIME', 'URL', 'USERNAME']
+
 def load_grammar():
     def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
@@ -169,13 +173,7 @@ def load_grammar():
         value_rules = []
         for v in values:
             if isinstance(v, tuple):
-                value_rules.append(v) 
-            elif v == 'QUOTED_STRING':
-                for i in range(MAX_STRING_ARG_VALUES):
-                    value_rules.append((v + '_' + str(i), ))
-            elif v[0].isupper():
-                for i in range(MAX_ARG_VALUES):
-                    value_rules.append((v + '_' + str(i), ))
+                value_rules.append(v)
             else:
                 value_rules.append((v,))
         add_type(type, value_rules, operators)
@@ -185,8 +183,7 @@ def load_grammar():
         #value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
         operators, _ = TYPES['Number']
         add_type('Measure(' + base_unit + ')', value_rules, operators)
-    for i in range(MAX_ARG_VALUES):
-        GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
+    GRAMMAR['$constant_Measure(ms)'].append(('DURATION',))
 
     # well known entities
     add_type('Entity(tt:device)', [('DEVICE',)], ['=='])
@@ -269,10 +266,6 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             if entity['is_well_known'] == 1:
                 continue
             if entity['has_ner_support']:
-                for i in range(MAX_ARG_VALUES):
-                    token = 'GENERIC_ENTITY_' + entity['type'] + "_" + str(i)
-                    extensible_terminals['GENERIC_ENTITY'].append(token)
-                    self._token_canonicals[token] = ' '.join(tokenize(entity['name'])).strip() + ' ' + str(i)
                 self.entities.append(entity['type'])
     
     def init_from_file(self, filename):
@@ -283,7 +276,6 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             'THINGPEDIA_ACTIONS': [],
             'PARAM': [],
             'ENUM': [],
-            'GENERIC_ENTITY': []
         }
 
         with open(filename, 'r') as fp:
@@ -304,7 +296,6 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             'THINGPEDIA_ACTIONS': list(self.functions['actions'].keys()),
             'PARAM': [],
             'ENUM': [],
-            'GENERIC_ENTITY': []
         }
 
         with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
@@ -316,6 +307,23 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
         self.complete(extensible_terminals)
     
     def complete(self, extensible_terminals):
+        copy_terminals = dict()
+        for constant in CONSTANTS:
+            token_list = []
+            if constant == 'QUOTED_STRING':
+                for i in range(MAX_STRING_ARG_VALUES):
+                    token_list.append(constant + '_' + str(i))
+            else:
+                for i in range(MAX_ARG_VALUES):
+                    token_list.append(constant + '_' + str(i))
+            copy_terminals[constant] = token_list
+            
+        copy_terminals['GENERIC_ENTITY'] = []
+        for entity in self.entities:
+            for i in range(MAX_ARG_VALUES):
+                token = 'GENERIC_ENTITY_' + entity + "_" + str(i)
+                copy_terminals['GENERIC_ENTITY'].append(token)
+        
         num_queries = len(extensible_terminals['THINGPEDIA_QUERIES'])
         num_actions = len(extensible_terminals['THINGPEDIA_ACTIONS'])
         self.num_functions = num_queries + num_actions
@@ -323,7 +331,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
         print('num functions', self.num_functions)
         print('num queries', num_queries)
         print('num actions', num_actions)
-        self.tokens += self.construct_parser(GRAMMAR, extensible_terminals)
+        self.tokens += self.construct_parser(GRAMMAR, extensible_terminals, copy_terminals)
         
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
@@ -361,6 +369,12 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                 embedding_matrix[i] = self._embed_token(token, input_words, input_embeddings)
             assert not np.any(np.isnan(embedding_matrix))
             all_embeddings[key] = embedding_matrix
+            
+        for token in self.copy_tokens:
+            self.input_to_copy_token_map[input_words[token]] = token
+        for term in self._copy_terminals:
+            for tokenidx, token in enumerate(self.extensible_terminals[term]):
+                self.copy_token_to_input_maps['COPY_' + term][1 + tokenidx] = input_words[token]
         
         return all_embeddings
 
@@ -375,8 +389,9 @@ if __name__ == '__main__':
     for line in sys.stdin:
         line = line.strip()
         try:
-            vector, length = grammar.vectorize_program(line)
-            assert ' '.join(grammar.reconstruct_program(vector, ignore_errors=False)) == line
+            id, sentence, program = line.split('\t')
+            vector, length = grammar.vectorize_program(program)
+            assert ' '.join(grammar.reconstruct_program(sentence.split(' '), vector, ignore_errors=False)) == line
             for key, vec in vector.items():
                 vectors[key].append(vec)
         except:

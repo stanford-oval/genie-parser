@@ -68,7 +68,7 @@ class SimpleGrammar(AbstractGrammar):
             'tokens': vectorize(program, self.dictionary, max_length, add_eos=True)
         }
         
-    def reconstruct_program(self, sequence, ignore_errors=False):
+    def reconstruct_program(self, input_sentence, sequence, ignore_errors=False):
         if isinstance(sequence, dict):
             sequence = sequence['tokens']
         ret = []

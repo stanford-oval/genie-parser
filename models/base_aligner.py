@@ -56,8 +56,8 @@ class BaseAligner(BaseModel):
             self.action_counts = None
 
         # the training decoder
-        with tf.variable_scope('decoder', initializer=xavier):
-            with tf.name_scope('train_decoder'):
+        with tf.name_scope('train_decoder'):
+            with tf.variable_scope('decoder', initializer=xavier):
                 train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
 
         if self.config.decoder_action_count_loss > 0:
@@ -86,8 +86,8 @@ class BaseAligner(BaseModel):
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
-        with tf.variable_scope('decoder', initializer=xavier, reuse=True):
-            with tf.name_scope('inference_decoder'):
+        with tf.name_scope('inference_decoder'):
+            with tf.variable_scope('decoder', initializer=xavier, reuse=True):
                 eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
         self.preds = self.finalize_predictions(eval_preds)
         if not isinstance(self.preds, dict):
@@ -224,6 +224,8 @@ class BaseAligner(BaseModel):
                 
                 pretrained_output_embed_matrices = self.config.output_embedding_matrix
                 for key, size in self.config.grammar.output_size.items():
+                    if self.config.grammar.is_copy_type(key):
+                        continue
                     if key == self.config.grammar.primary_output and self.config.train_output_embeddings:
                         self.output_embed_matrices[key] = tf.get_variable('embedding_' + key,
                                                                           shape=(size, self.config.output_embed_size))

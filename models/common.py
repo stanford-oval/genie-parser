@@ -168,7 +168,11 @@ class DotProductLayer(tf.layers.Layer):
         return input_shape[:-1].concatenate(self._output_size)
 
 
-class PointerLayer(tf.layers.Layer):
+class EmbeddingPointerLayer(tf.layers.Layer):
+    """
+    A pointer layer that chooses from an embedding matrix (of size O x D, where
+    D is the depth of the embedding and O the space of choices), using an MLP
+    """
     def __init__(self, hidden_size, embeddings, activation=tf.tanh, dropout=1):
         super().__init__()
         
@@ -188,10 +192,7 @@ class PointerLayer(tf.layers.Layer):
         self.built = True
         
     def call(self, inputs):
-        with tf.name_scope('PointerLayer', (inputs,)):
-            output_size = tf.shape(self._embeddings)[0]
-            batch_size = tf.shape(inputs)[0]
-        
+        with tf.name_scope('EmbeddingPointerLayer', (inputs,)):
             matmul1 = tf.tensordot(self._embeddings, self.kernel1, [[1], [0]])
             
             input_shape = inputs.shape
@@ -213,6 +214,34 @@ class PointerLayer(tf.layers.Layer):
     @property
     def output_size(self):
         return tf.shape(self._embeddings)[0]
+
+
+class AttentivePointerLayer(tf.layers.Layer):
+    """
+    A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
+    """
+    def __init__(self, enc_hidden_states):
+        super().__init__()
+        
+        self._enc_hidden_states = enc_hidden_states
+        self._num_units = enc_hidden_states.shape[-1]
+        
+    def build(self, input_shape):
+        self.kernel = self.add_variable('kernel', (self._num_units, self._num_units), dtype=self.dtype)
+        self.built = True
+        
+    def call(self, inputs):
+        with tf.name_scope('AttentivePointerLayer', (inputs,)):
+            is_2d = False
+            if inputs.shape.ndims < 3:
+                is_2d = True
+                inputs = tf.expand_dims(inputs, axis=1)
+            
+            score = tf.matmul(inputs, self._enc_hidden_states, transpose_b=True)
+            if is_2d:
+                score = tf.squeeze(score, axis=1)
+            print('score', score)
+            return score
 
 
 def pad_up_to(vector, size):
@@ -276,9 +305,8 @@ def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
         with tf.variable_scope('hidden_projection'):
             kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
         
-            # apply a relu to the projection for good measure
-            enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
-            enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
+            enc_final_state = nest.map_structure(lambda x: tf.matmul(x, kernel), enc_final_state)
+            enc_hidden_states = tf.tensordot(enc_hidden_states, kernel, [[2], [1]])
     else:
         # flatten and repack the state
         enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))

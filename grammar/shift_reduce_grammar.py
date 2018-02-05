@@ -35,7 +35,18 @@ class ShiftReduceGrammar(AbstractGrammar):
         self._parser = None
         self._extensible_terminals = []
         self._extensible_terminal_indices = dict()
+        self._copy_terminals = []
+        self._copy_terminal_indices = dict()
+        self._copy_tokens = []
         self._flatten = flatten
+
+    @property
+    def copy_tokens(self):
+        return self._copy_tokens
+    
+    @property
+    def copy_terminal_list(self):
+        return ['COPY_' + x for x in self._copy_terminals]
 
     @property
     def extensible_terminal_list(self):
@@ -45,44 +56,67 @@ class ShiftReduceGrammar(AbstractGrammar):
     def extensible_terminals(self):
         return self._parser.extensible_terminals
 
-    def construct_parser(self, grammar, extensible_terminals=dict()):
+    def construct_parser(self, grammar, extensible_terminals=dict(), copy_terminals=dict()):
         if self._flatten:
             # turn each extensible terminal into a new grammar rule
 
             for nonterm in grammar:
                 grammar[nonterm] = [
-                    tuple(map(lambda x: ('$terminal_' + x if x in extensible_terminals else x), rule))
+                    tuple(map(lambda x: ('$terminal_' + x if (x in extensible_terminals or x in copy_terminals) else x), rule))
                     for rule in grammar[nonterm]]
             
             for ext_term, values in extensible_terminals.items():
                 grammar['$terminal_' + ext_term] = [(v,) for v in values]
+            for copy_term, values in copy_terminals.items():
+                grammar['$terminal_' + copy_term] = [(v,) for v in values]
                 
             extensible_terminals = dict()
-            self._extensible_terminals = []
+            copy_terminals = dict()
         else:
             self._extensible_terminals = list(extensible_terminals.keys())
             self._extensible_terminals.sort()
-        
-        generator = SLRParserGenerator(grammar, extensible_terminals, '$input')
+            self._copy_terminals = list(copy_terminals.keys())
+            self._copy_terminals.sort()
+            for copy_term, values in copy_terminals.items():
+                for v in values:
+                    self._copy_tokens.append(v)
+            self._copy_tokens.sort()
+
+        all_extensible_terminals = dict()
+        all_extensible_terminals.update(extensible_terminals)
+        all_extensible_terminals.update(copy_terminals)        
+        generator = SLRParserGenerator(grammar, all_extensible_terminals, '$input')
         self._parser = generator.build()
 
         for i, term in enumerate(self._extensible_terminals):
             self._extensible_terminal_indices[term] = i
+        for i, term in enumerate(self._copy_terminals):
+            self._copy_terminal_indices[term] = i
         
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
-        print('num shifts', len(self._extensible_terminals))
+        print('num shifts', len(self._extensible_terminals) + 1)
 
         self._output_size = dict()
-        self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._extensible_terminals)
+        self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
         for term in self._extensible_terminals:
             self._output_size[term] = len(self._parser.extensible_terminals[term])
-            
+        for term in self._copy_terminals:
+            self._output_size['COPY_' + term] = len(self._parser.extensible_terminals[term])
+        
+        self.input_to_copy_token_map = dict()
+        self.copy_token_to_input_maps = dict()
+        for term in self._copy_terminals:
+            self.copy_token_to_input_maps['COPY_' + term] = np.zeros((1 + len(self._parser.extensible_terminals[term]),), dtype=np.int32)
+        
         return generator.terminals
     
     @property
     def primary_output(self):
         return 'actions'
+    
+    def is_copy_type(self, output):
+        return output.startswith('COPY_')
     
     @property
     def output_size(self):
@@ -97,19 +131,26 @@ class ShiftReduceGrammar(AbstractGrammar):
         vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
         for term in self._extensible_terminals:
             vectors[term] = np.ones((max_length,), dtype=np.int32) * -1
+        for term in self._copy_terminals:
+            vectors['COPY_' + term] = np.ones((max_length,), dtype=np.int32) * -1
         action_vector = vectors['actions']
         i = 0
         for action, param in parsed:
             if action == 'shift':
                 term, tokenidx = param
-                if not term in self._parser.extensible_terminals:
+                if term in self._copy_terminal_indices:
+                    assert tokenidx < self._output_size['COPY_' + term]
+                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + self._copy_terminal_indices[term]
+                    vectors['COPY_' + term][i] = 1 + tokenidx
+                elif term in self._parser.extensible_terminals:
+                    assert tokenidx < self._output_size[term]
+                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
+                    vectors[term][i] = tokenidx
+                else:
                     continue
-                assert tokenidx < self._output_size[term]
-                action_vector[i] = self.num_control_tokens + self._parser.num_rules + self._extensible_terminal_indices[term]
-                vectors[term][i] = tokenidx
             else:
                 action_vector[i] = self.num_control_tokens + param
-            assert action_vector[i] < self.num_control_tokens + self._parser.num_rules + len(self._extensible_terminals)
+            assert action_vector[i] < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
             i += 1
             if i >= max_length-1:
                 raise ValueError("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
@@ -118,7 +159,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         
         return vectors, i
 
-    def reconstruct_program(self, sequences, ignore_errors=False):
+    def reconstruct_program(self, input_sentence, sequences, ignore_errors=False):
         actions = sequences['actions']
         try:
             def gen_action(i):
@@ -127,8 +168,13 @@ class ShiftReduceGrammar(AbstractGrammar):
                     return ('accept', None)
                 elif x < self.num_control_tokens + self._parser.num_rules:
                     return ('reduce', x - self.num_control_tokens)
+                elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
+                    term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
+                    input_token = input_sentence[sequences['COPY_' + term][i]]
+                    copy_token = self.input_to_copy_token_map[input_token]
+                    return ('shift', (term, copy_token))
                 else:
-                    term = self._extensible_terminals[x - self.num_control_tokens - self._parser.num_rules]
+                    term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))
             return self._parser.reconstruct((gen_action(i) for i in range(len(actions))))
         except (KeyError, TypeError, IndexError, ValueError):
@@ -144,10 +190,12 @@ class ShiftReduceGrammar(AbstractGrammar):
         print(1, 'start')
         for i, (lhs, rhs) in enumerate(self._parser.rules):
             print(i+self.num_control_tokens, 'reduce', lhs, '->', ' '.join(rhs))
+        for i, term in enumerate(self._copy_terminals):
+            print(i+self.num_control_tokens+self._parser.num_rules, 'shift', term)
         for i, term in enumerate(self._extensible_terminals):
-            print(i+self.num_control_tokens+len(self._parser.rules), 'shift', term)
+            print(i+self.num_control_tokens+len(self._copy_terminals)+self._parser.num_rules, 'shift', term)
 
-    def print_prediction(self, sequences):
+    def print_prediction(self, input_sentence, sequences):
         actions = sequences['actions']
         for action in actions:
             if action == 0:
@@ -157,8 +205,13 @@ class ShiftReduceGrammar(AbstractGrammar):
             elif action - self.num_control_tokens < self._parser.num_rules:
                 lhs, rhs = self._parser.rules[action - self.num_control_tokens]
                 print('reduce', action - self.num_control_tokens, ':', lhs, '->', ' '.join(rhs))
+            elif action - self.num_control_tokens + self._parser.num_rules < len(self._copy_terminals):
+                term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
+                input_token = input_sentence[sequences[term]]
+                copy_token = self.input_to_copy_token_map[input_token]
+                print('shift', term, copy_token)
             else:
-                term = self._extensible_terminals[action - self.num_control_tokens - self._parser.num_rules]
+                term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                 print('shift', term, self._parser.extensible_terminals[term][sequences[term]])
 
     def prediction_to_string(self, sequences):

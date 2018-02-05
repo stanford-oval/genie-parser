@@ -40,30 +40,6 @@ class Seq2SeqEvaluator(object):
         self._beam_size = beam_size
         self._batch_size = batch_size
         
-    def compute_confusion_matrix(self, session):
-        output_size = self.grammar.output_size
-        print('output_size', output_size)
-        confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
-
-        n_minibatches = 0
-        total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
-        progbar = Progbar(total_n_minibatches)
-        
-        for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-            input_batch, input_length_batch, _, label_batch, _ = data_batch
-            sequences, _ = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
-            n_minibatches += 1
-    
-            for i, beam in enumerate(sequences):
-                gold = label_batch[i]
-                prediction = beam[0] # top of the beam
-                
-                for j in range(len(gold)):
-                    pred_action = prediction[j] if j < len(prediction) else 0 # pad
-                    confusion_matrix[pred_action,gold[j]] += 1
-            progbar.update(n_minibatches)
-        return confusion_matrix
-        
     def eval(self, session, save_to_file=False):
         sequences = []
         sum_eval_loss = 0
@@ -146,7 +122,7 @@ class Seq2SeqEvaluator(object):
                         decoded_vectors = dict()
                         for key in self.grammar.output_size:
                             decoded_vectors[key] = sequences[key][i,beam_pos]
-                        decoded = self.grammar.reconstruct_program(decoded_vectors, ignore_errors=True)
+                        decoded = self.grammar.reconstruct_program(input_batch[i], decoded_vectors, ignore_errors=True)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)

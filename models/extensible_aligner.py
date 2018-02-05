@@ -43,12 +43,13 @@ class GreedyExtensibleDecoder(Decoder):
     """Sampling decoder that produces multiple output sequences."""
 
     def __init__(self, cell, embeddings, sequence_keys, output_layers, start_tokens, end_token,
-                 initial_state):
+                 initial_state, input_max_length):
         self._cell = cell
         self._initial_state = initial_state
         
         self._embeddings = embeddings
         self._output_layers = output_layers
+        self._input_max_length = input_max_length
         self._primary_sequence = sequence_keys[0]
         self._sequence_keys = sequence_keys
         # tensorflow does not cope well with dictionaries, it needs tuples or namedtuple
@@ -87,8 +88,10 @@ class GreedyExtensibleDecoder(Decoder):
         layer_output_shapes = dict()
         sample_id_shapes = dict()
         for key in self._sequence_keys:
-            if isinstance(self._output_layers[key], common.PointerLayer):
+            if isinstance(self._output_layers[key], common.EmbeddingPointerLayer):
                 layer_output_shapes[key] = tf.expand_dims(self._output_layers[key].output_size, axis=0)
+            elif isinstance(self._output_layers[key], common.AttentivePointerLayer):
+                layer_output_shapes[key] = tf.TensorShape([self._input_max_length])
             else: 
                 layer_output_shape = self._output_layers[key]._compute_output_shape(output_shape_with_unknown_batch)
                 # now remove the first dimension (batch size)
@@ -176,9 +179,11 @@ class ExtensibleGrammarAligner(BaseAligner):
             with tf.variable_scope('output_' + key):
                 if key == self.config.grammar.primary_output:
                     output_layers[key] = tf.layers.Dense(size, use_bias=False)
+                elif self.config.grammar.is_copy_type(key):
+                    output_layers[key] = common.AttentivePointerLayer(enc_hidden_states)
                 else:
-                    output_layers[key] = common.PointerLayer(self.config.decoder_hidden_size/2, self.output_embed_matrices[key],
-                                                             dropout=self.dropout_placeholder)
+                    output_layers[key] = common.EmbeddingPointerLayer(self.config.decoder_hidden_size/2, self.output_embed_matrices[key],
+                                                                      dropout=self.dropout_placeholder)
                 output_layers[key].build(tf.TensorShape((None, self.config.decoder_hidden_size)))
         
         final_output = BasicDecoderOutput(sample_id=dict(), rnn_output=dict())
@@ -205,9 +210,10 @@ class ExtensibleGrammarAligner(BaseAligner):
                 final_output.rnn_output[key] = output
             
         else:
-            sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.extensible_terminal_list
+            sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
             decoder = GreedyExtensibleDecoder(cell_dec, self.output_embed_matrices, sequence_keys,
-                                              output_layers, go_vector, self.config.grammar.end, enc_final_state)
+                                              output_layers, go_vector, self.config.grammar.end, enc_final_state,
+                                              input_max_length=self.config.max_length)
             decoder_output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
                                                                                impute_finished=True,
                                                                                maximum_iterations=self.config.max_length,
@@ -258,11 +264,34 @@ class ExtensibleGrammarAligner(BaseAligner):
         margin = tf.reshape(margin, (self.batch_size, self.config.max_length))
         return tf.reduce_sum(margin, axis=1) / tf.cast(self.output_length_placeholder, dtype=tf.float32)
     
-    def _softmax_loss(self, logits, gold, mask):
+    def _sequence_softmax_loss(self, logits, gold, mask):
         return tf.contrib.seq2seq.sequence_loss(logits, gold, tf.cast(mask, tf.float32), average_across_batch=False)
     
+    def _copy_softmax_loss(self, key, logits, gold, mask):
+        flat_gold = tf.reshape(gold, (self.batch_size * self.config.max_length,))
+        flat_input_token_gold = tf.gather(self.config.grammar.copy_token_to_input_maps[key], flat_gold)
+        print('flat_input_token_gold', flat_input_token_gold)
+        input_token_gold = tf.reshape(flat_input_token_gold, (self.batch_size, self.config.max_length, 1))
+        print('input_token_gold', input_token_gold)
+        input_token_equal = tf.equal(tf.expand_dims(self.input_placeholder, axis=1), input_token_gold)
+        print('input_token_equal', input_token_equal)
+        input_token_equal = tf.cast(input_token_equal, dtype=tf.float32)
+        with tf.control_dependencies([tf.assert_positive(tf.reduce_sum(input_token_equal, axis=2), data=(self.input_placeholder, input_token_gold, input_token_equal),
+                                                         summarize=1000)]):
+            input_token_prob = input_token_equal / tf.reduce_sum(input_token_equal, axis=2, keep_dims=True)
+        print('input_token_prob', input_token_prob)
+        
+        loss = tf.nn.softmax_cross_entropy_with_logits(labels=input_token_prob, logits=logits)
+        print('loss', loss)
+        
+        mask = tf.cast(mask, dtype=tf.float32)
+        mask_sum = tf.reduce_sum(mask, axis=1) + 1e-6
+        element_average_loss = tf.reduce_sum(loss * mask, axis=1) / mask_sum
+        print('average_loss', element_average_loss)
+        return element_average_loss
+    
     def add_loss_op(self, result):
-        sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.extensible_terminal_list
+        sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
 
         all_logits = result.rnn_output
         primary_logits = all_logits[self.config.grammar.primary_output]
@@ -287,8 +316,10 @@ class ExtensibleGrammarAligner(BaseAligner):
         
                 if key == self.config.grammar.primary_output:
                     loss = self._max_margin_loss(preds, masked_gold, mask, size)
+                elif self.config.grammar.is_copy_type(key):
+                    loss = self._copy_softmax_loss(key, preds, masked_gold, mask)
                 else:
-                    loss = self._softmax_loss(preds, masked_gold, mask)
+                    loss = self._sequence_softmax_loss(preds, masked_gold, mask)
                 total_loss += tf.reduce_mean(loss, axis=0)
 
         return total_loss

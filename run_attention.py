@@ -118,9 +118,9 @@ def run():
                         index, = np.where(prediction == config.grammar.end)
                         if len(index):
                             prediction = prediction[:index[0]+1]
-                        config.grammar.print_prediction(prediction)
+                        config.grammar.print_prediction(sentence, prediction)
                         try:
-                            print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
+                            print('predicted', ' '.join(config.grammar.reconstruct_program(sentence, prediction)))
                         except (KeyError, TypeError, IndexError, ValueError):
                             print('failed to predict')
                         
