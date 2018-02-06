@@ -186,6 +186,8 @@ class EmbeddingPointerLayer(tf.layers.Layer):
         input_shape = tf.TensorShape(input_shape)
         
         self.kernel1 = self.add_variable('kernel1', shape=(self._embedding_size, self._hidden_size), dtype=self.dtype)
+        self._matmul1 = tf.tensordot(self._embeddings, self.kernel1, [[1], [0]])
+
         self.kernel2 = self.add_variable('kernel2', shape=(input_shape[-1], self._hidden_size), dtype=self.dtype)
         self.bias = self.add_variable('bias', shape=(self._hidden_size,), dtype=self.dtype)
         self.output_projection = self.add_variable('output_projection', shape=(self._hidden_size,), dtype=self.dtype)
@@ -193,11 +195,10 @@ class EmbeddingPointerLayer(tf.layers.Layer):
         
     def call(self, inputs):
         with tf.name_scope('EmbeddingPointerLayer', (inputs,)):
-            matmul1 = tf.tensordot(self._embeddings, self.kernel1, [[1], [0]])
-            
             input_shape = inputs.shape
             matmul2 = tf.tensordot(inputs, self.kernel2, [[input_shape.ndims-1], [0]])
             
+            matmul1 = self._matmul1
             for _ in range(input_shape.ndims-1):
                 matmul1 = tf.expand_dims(matmul1, axis=0)
             
@@ -213,7 +214,8 @@ class EmbeddingPointerLayer(tf.layers.Layer):
     
     @property
     def output_size(self):
-        return tf.shape(self._embeddings)[0]
+        #return tf.shape(self._embeddings)[0]
+        return self._embeddings.shape[0]
 
 
 class AttentivePointerLayer(tf.layers.Layer):
@@ -240,7 +242,6 @@ class AttentivePointerLayer(tf.layers.Layer):
             score = tf.matmul(inputs, self._enc_hidden_states, transpose_b=True)
             if is_2d:
                 score = tf.squeeze(score, axis=1)
-            print('score', score)
             return score
 
 

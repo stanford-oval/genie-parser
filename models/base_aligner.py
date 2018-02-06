@@ -89,6 +89,7 @@ class BaseAligner(BaseModel):
         with tf.name_scope('inference_decoder'):
             with tf.variable_scope('decoder', initializer=xavier, reuse=True):
                 eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
+        self.raw_preds = eval_preds
         self.preds = self.finalize_predictions(eval_preds)
         if not isinstance(self.preds, dict):
             self.preds = {

@@ -30,6 +30,8 @@ import itertools
 import numpy as np
 from .shift_reduce_grammar import ShiftReduceGrammar
 
+from util.loader import load_dictionary, vectorize
+
 from collections import OrderedDict
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
@@ -186,7 +188,7 @@ def load_grammar():
     GRAMMAR['$constant_Measure(ms)'].append(('DURATION',))
 
     # well known entities
-    add_type('Entity(tt:device)', [('DEVICE',)], ['=='])
+    #add_type('Entity(tt:device)', [('DEVICE',)], ['=='])
     
     # other entities
     add_type('Entity(*)', [('GENERIC_ENTITY',)], ['=='])
@@ -238,7 +240,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                     extensible_terminals['THINGPEDIA_' + function_type.upper()].append(function_name)
                     self._token_canonicals[function_name] = function['canonical']
 
-                    for argname, argtype, argcanonical in zip(function['args'], function['schema'], function['argcanonicals']):
+                    for argname, argtype, argcanonical in itertools.zip_longest(function['args'], function['schema'], function['argcanonicals']):
                         if argtype in TYPE_RENAMES:
                             argtype = TYPE_RENAMES[argtype]
                         params.add('param:' + argname)
@@ -271,7 +273,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
     def init_from_file(self, filename):
         self.reset()
         extensible_terminals = {
-            'DEVICE': self.devices,
+            #'DEVICE': self.devices,
             'THINGPEDIA_QUERIES': [],
             'THINGPEDIA_ACTIONS': [],
             'PARAM': [],
@@ -291,7 +293,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
         ssl_context = ssl.create_default_context()
         extensible_terminals = {
-            'DEVICE': self.devices,
+            #'DEVICE': self.devices,
             'THINGPEDIA_QUERIES': list(self.functions['queries'].keys()),
             'THINGPEDIA_ACTIONS': list(self.functions['actions'].keys()),
             'PARAM': [],
@@ -356,7 +358,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             raise ValueError('Embedding for ' + token + ' is NaN')
         return token_embedding
 
-    def get_embeddings(self, input_words, input_embeddings):
+    def get_embeddings(self, input_words, input_embeddings, reverse_input):
         all_embeddings = {
             'actions': np.identity(self.output_size['actions'], dtype=np.float32)
         }
@@ -370,10 +372,10 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             assert not np.any(np.isnan(embedding_matrix))
             all_embeddings[key] = embedding_matrix
             
-        for token in self.copy_tokens:
-            self.input_to_copy_token_map[input_words[token]] = token
+        self.input_to_copy_token_map = np.zeros((len(input_words),), dtype=np.int32)
         for term in self._copy_terminals:
             for tokenidx, token in enumerate(self.extensible_terminals[term]):
+                self.input_to_copy_token_map[input_words[token]] = 1 + tokenidx
                 self.copy_token_to_input_maps['COPY_' + term][1 + tokenidx] = input_words[token]
         
         return all_embeddings
@@ -381,6 +383,11 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
 
 if __name__ == '__main__':
     grammar = NewThingTalkGrammar(sys.argv[1], flatten=False)
+    dictionary, reverse = load_dictionary(sys.argv[2], use_types=True, grammar=grammar)
+    embeddings = np.zeros((len(dictionary), 1))
+
+    # construct secondary data structures
+    grammar.get_embeddings(dictionary, embeddings, reverse)
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = dict()
@@ -388,14 +395,19 @@ if __name__ == '__main__':
         vectors[key] = []
     for line in sys.stdin:
         line = line.strip()
+        reconstructed = None
         try:
             id, sentence, program = line.split('\t')
+            sentence, _ = vectorize(sentence, dictionary, max_length=60, add_eos=True, add_start=True)
             vector, length = grammar.vectorize_program(program)
-            assert ' '.join(grammar.reconstruct_program(sentence.split(' '), vector, ignore_errors=False)) == line
+            reconstructed = ' '.join(grammar.reconstruct_program(sentence, vector, ignore_errors=False))
+            assert reconstructed == program
             for key, vec in vector.items():
                 vectors[key].append(vec)
         except:
             print(line)
+            print(reconstructed)
+            print(grammar.print_prediction(sentence, vector))
             raise
         
     for key in grammar.output_size:

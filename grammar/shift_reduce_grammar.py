@@ -104,7 +104,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._copy_terminals:
             self._output_size['COPY_' + term] = len(self._parser.extensible_terminals[term])
         
-        self.input_to_copy_token_map = dict()
+        self.input_to_copy_token_map = None
         self.copy_token_to_input_maps = dict()
         for term in self._copy_terminals:
             self.copy_token_to_input_maps['COPY_' + term] = np.zeros((1 + len(self._parser.extensible_terminals[term]),), dtype=np.int32)
@@ -170,9 +170,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                     return ('reduce', x - self.num_control_tokens)
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
-                    input_token = input_sentence[sequences['COPY_' + term][i]]
-                    copy_token = self.input_to_copy_token_map[input_token]
-                    return ('shift', (term, copy_token))
+                    return ('shift', (term, sequences['COPY_' + term][i]-1))
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))
@@ -197,22 +195,21 @@ class ShiftReduceGrammar(AbstractGrammar):
 
     def print_prediction(self, input_sentence, sequences):
         actions = sequences['actions']
-        for action in actions:
+        for i, action in enumerate(actions):
             if action == 0:
-                print('accept')
+                print(action, 'accept')
+                break
             elif action == 1:
-                print('start')
+                print(action, 'start')
             elif action - self.num_control_tokens < self._parser.num_rules:
                 lhs, rhs = self._parser.rules[action - self.num_control_tokens]
-                print('reduce', action - self.num_control_tokens, ':', lhs, '->', ' '.join(rhs))
-            elif action - self.num_control_tokens + self._parser.num_rules < len(self._copy_terminals):
+                print(action, 'reduce', ':', lhs, '->', ' '.join(rhs))
+            elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
-                input_token = input_sentence[sequences[term]]
-                copy_token = self.input_to_copy_token_map[input_token]
-                print('shift', term, copy_token)
+                print(action, 'shift', term, sequences['COPY_' + term][i]-1, self._parser.extensible_terminals[term][sequences['COPY_' + term][i]-1])
             else:
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
-                print('shift', term, self._parser.extensible_terminals[term][sequences[term]])
+                print(action, 'shift', term, sequences[term][i], self._parser.extensible_terminals[term][sequences[term][i]])
 
     def prediction_to_string(self, sequences):
         def action_to_string(action):

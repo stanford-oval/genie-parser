@@ -126,20 +126,26 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
         'xkcd': None,
         'uber': None,
         'weather': None,
-        'skydrive': None,
-        'imgur': None,
-        '____': None
+        '____': None,
     }
     HACK_REPLACEMENT = {
         # onedrive is the new name of skydrive
         'onedrive': 'skydrive',
-    
+
+        'phdcomic': 'phdcomics',
+        'yahoofinance': 'yahoo!finance',
+
         # imgflip is kind of the same as imgur (or 9gag)
         # until we have either in thingpedia, it's fine to reuse the word vector
-        'imgflip': 'imgur'
+        'imgflip': 'imgur',
+
+        'thecatapi': 'cat',
+        'thedogapi': 'dog'
     }
+    for v in HACK_REPLACEMENT.values():
+        HACK[v] = None
     blank = re.compile('^_+$')
-    
+
     output_embedding_file = os.path.join(workdir, 'embeddings-' + str(embed_size) + '.txt')
     with open(output_embedding_file, 'w') as outfp:
         with open(glove, 'r') as fp:

@@ -318,7 +318,7 @@ class Config(object):
                                                                 use_types=False, grammar=None,
                                                                 embed_size=int(self._config['output']['output_embed_size']))
         else:
-            self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
+            self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix, reverse)
         print("Output embed size", self.output_embed_size)
         
         return self

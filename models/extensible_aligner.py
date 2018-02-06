@@ -39,11 +39,20 @@ from collections import namedtuple
 #
 # The original code was licensed under the Apache 2.0 license.
 
+class PrimarySequenceTrainingHelper(TrainingHelper):
+    def __init__(self, inputs, sequence_length, time_major=False, name=None, primary_sequence=None):
+        super().__init__(inputs, sequence_length, time_major, name)
+
+        self._primary_sequence = primary_sequence
+
+    def sample(self, time, outputs, name=None, **unused_kwargs):
+        return tf.argmax(getattr(outputs, self._primary_sequence), axis=-1, output_type=tf.int32)
+
 class GreedyExtensibleDecoder(Decoder):
     """Sampling decoder that produces multiple output sequences."""
 
     def __init__(self, cell, embeddings, sequence_keys, output_layers, start_tokens, end_token,
-                 initial_state, input_max_length):
+                 initial_state, input_max_length, sequence_tuple_type):
         self._cell = cell
         self._initial_state = initial_state
         
@@ -54,7 +63,7 @@ class GreedyExtensibleDecoder(Decoder):
         self._sequence_keys = sequence_keys
         # tensorflow does not cope well with dictionaries, it needs tuples or namedtuple
         # so we create a namedtuple here one the fly
-        self._sequence_tuple_type = namedtuple('GreedyExtensibleDecoderInnerTuple', sequence_keys)
+        self._sequence_tuple_type = sequence_tuple_type
 
         self._start_tokens = tf.convert_to_tensor(start_tokens, dtype=tf.int32, name="start_tokens")
         self._end_token = tf.convert_to_tensor(end_token, dtype=tf.int32, name="end_token")
@@ -140,6 +149,35 @@ class GreedyExtensibleDecoder(Decoder):
             return (outputs, cell_state, next_inputs, finished)
 
 
+class TupleOutputLayer(tf.layers.Layer):
+    def __init__(self, layers, sequence_keys, tuple_type, input_max_length):
+        super().__init__()
+
+        self._layers = layers
+        self._sequence_keys = sequence_keys
+        self._tuple_type = tuple_type
+        self._input_max_length = input_max_length
+
+    def call(self, inputs):
+        outputs = dict()
+
+        for key in self._sequence_keys:
+            outputs[key] = self._layers[key](inputs)
+
+        return self._tuple_type(**outputs)
+
+    def _compute_output_shape(self, input_shape):
+        layer_output_shapes = dict()
+        for key in self._sequence_keys:
+            if isinstance(self._layers[key], common.EmbeddingPointerLayer):
+                layer_output_shapes[key] = tf.TensorShape([None, self._layers[key].output_size])
+            elif isinstance(self._layers[key], common.AttentivePointerLayer):
+                layer_output_shapes[key] = tf.TensorShape([None, self._input_max_length])
+            else: 
+                layer_output_shapes[key] = self._layers[key]._compute_output_shape(input_shape)
+        return self._tuple_type(**layer_output_shapes)
+
+
 class ExtensibleGrammarAligner(BaseAligner):
     '''
     A model that implements Seq2Seq with an extensible (pointer-based) grammar:
@@ -148,6 +186,12 @@ class ExtensibleGrammarAligner(BaseAligner):
     Maybe. Maybe It will use RL-loss during training, and something else during
     inference. It's hard to say
     '''
+
+    def __init__(self, config):
+        super().__init__(config)
+
+        sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
+        self._sequence_tuple_type = namedtuple('GreedyExtensibleDecoderInnerTuple', sequence_keys)
     
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
@@ -186,34 +230,36 @@ class ExtensibleGrammarAligner(BaseAligner):
                                                                       dropout=self.dropout_placeholder)
                 output_layers[key].build(tf.TensorShape((None, self.config.decoder_hidden_size)))
         
+        sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
+
         final_output = BasicDecoderOutput(sample_id=dict(), rnn_output=dict())
         if training:
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.primary_output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([primary_embedding_matrix], output_ids_with_go)
+            tuple_layer = TupleOutputLayer(output_layers, sequence_keys, self._sequence_tuple_type,
+                                           self.config.max_length)
             
             if self.config.scheduled_sampling > 0:
                 raise NotImplementedError("Scheduled sampling cannot work with the extensible grammar")
             
-            helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+            helper = PrimarySequenceTrainingHelper(outputs, self.output_length_placeholder+1,
+                                                   primary_sequence=self.config.grammar.primary_output)
             
-            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=None)
+            decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=tuple_layer)
             decoder_output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
                                                                                impute_finished=True,
                                                                                maximum_iterations=self.config.max_length,
                                                                                swap_memory=True)
-            
-            for key, layer in output_layers.items():
-                # rnn output is batch x time x hiddensize
-                # output is batch x time x outputsize
-                output = layer(decoder_output.rnn_output)
+
+            for key in sequence_keys:
                 final_output.sample_id[key] = None
-                final_output.rnn_output[key] = output
+                final_output.rnn_output[key] = getattr(decoder_output.rnn_output, key)
             
         else:
-            sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
             decoder = GreedyExtensibleDecoder(cell_dec, self.output_embed_matrices, sequence_keys,
                                               output_layers, go_vector, self.config.grammar.end, enc_final_state,
-                                              input_max_length=self.config.max_length)
+                                              input_max_length=self.config.max_length,
+                                              sequence_tuple_type=self._sequence_tuple_type)
             decoder_output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
                                                                                impute_finished=True,
                                                                                maximum_iterations=self.config.max_length,
@@ -233,8 +279,34 @@ class ExtensibleGrammarAligner(BaseAligner):
     def finalize_predictions(self, result):
         finalized = dict()
         for key in self.config.output_size:
-            # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
-            finalized[key] = tf.expand_dims(result.sample_id[key], axis=1)
+            with tf.name_scope('finalize_' + key):
+                if self.config.grammar.is_copy_type(key):
+                    # result.sample_id[key] is an index into the input sequence
+                    # it has shape batch size x decode time x encode time
+                    # we want to first obtain the corresponding input sequence token id
+
+                    flat_sample_id = tf.reshape(result.sample_id[key], (-1,))
+                    sample_id_size = tf.shape(result.sample_id[key])[1]
+                    batch_indices = tf.range(self.batch_size, dtype=tf.int32)
+
+                    batch_indices = tf.tile(batch_indices, multiples=[sample_id_size])
+                    gather_indices = tf.stack((batch_indices, flat_sample_id), axis=1)
+                    #print('gather_indices', gather_indices)
+                    flat_input_token_idx = tf.gather_nd(self.input_placeholder, gather_indices)
+                    #print('flat_input_token_idx', flat_input_token_idx)
+
+                    flat_copy_token_idx = tf.gather(self.config.grammar.input_to_copy_token_map, flat_input_token_idx)
+                    #print('flat_copy_token_idx', flat_copy_token_idx)
+                    
+                    # reshape back into square
+                    copy_token_idx = tf.reshape(flat_copy_token_idx, (self.batch_size, sample_id_size))
+
+                    finalized[key] = copy_token_idx
+                else:
+                    finalized[key] = result.sample_id[key]
+
+                # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
+                finalized[key] = tf.expand_dims(finalized[key], axis=1)
         return finalized
     
     def _max_margin_loss(self, logits, gold, mask, size):
@@ -270,24 +342,18 @@ class ExtensibleGrammarAligner(BaseAligner):
     def _copy_softmax_loss(self, key, logits, gold, mask):
         flat_gold = tf.reshape(gold, (self.batch_size * self.config.max_length,))
         flat_input_token_gold = tf.gather(self.config.grammar.copy_token_to_input_maps[key], flat_gold)
-        print('flat_input_token_gold', flat_input_token_gold)
         input_token_gold = tf.reshape(flat_input_token_gold, (self.batch_size, self.config.max_length, 1))
-        print('input_token_gold', input_token_gold)
         input_token_equal = tf.equal(tf.expand_dims(self.input_placeholder, axis=1), input_token_gold)
-        print('input_token_equal', input_token_equal)
         input_token_equal = tf.cast(input_token_equal, dtype=tf.float32)
         with tf.control_dependencies([tf.assert_positive(tf.reduce_sum(input_token_equal, axis=2), data=(self.input_placeholder, input_token_gold, input_token_equal),
                                                          summarize=1000)]):
             input_token_prob = input_token_equal / tf.reduce_sum(input_token_equal, axis=2, keep_dims=True)
-        print('input_token_prob', input_token_prob)
         
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=input_token_prob, logits=logits)
-        print('loss', loss)
         
         mask = tf.cast(mask, dtype=tf.float32)
         mask_sum = tf.reduce_sum(mask, axis=1) + 1e-6
         element_average_loss = tf.reduce_sum(loss * mask, axis=1) / mask_sum
-        print('average_loss', element_average_loss)
         return element_average_loss
     
     def add_loss_op(self, result):
@@ -315,7 +381,7 @@ class ExtensibleGrammarAligner(BaseAligner):
                 size = self.config.grammar.output_size[key]
         
                 if key == self.config.grammar.primary_output:
-                    loss = self._max_margin_loss(preds, masked_gold, mask, size)
+                    loss = 30 * self._max_margin_loss(preds, masked_gold, mask, size)
                 elif self.config.grammar.is_copy_type(key):
                     loss = self._copy_softmax_loss(key, preds, masked_gold, mask)
                 else:
