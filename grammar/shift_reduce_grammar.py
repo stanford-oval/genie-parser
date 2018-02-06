@@ -102,7 +102,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._extensible_terminals:
             self._output_size[term] = len(self._parser.extensible_terminals[term])
         for term in self._copy_terminals:
-            self._output_size['COPY_' + term] = len(self._parser.extensible_terminals[term])
+            self._output_size['COPY_' + term] = 1+len(self._parser.extensible_terminals[term])
         
         self.input_to_copy_token_map = None
         self.copy_token_to_input_maps = dict()
@@ -192,6 +192,35 @@ class ShiftReduceGrammar(AbstractGrammar):
             print(i+self.num_control_tokens+self._parser.num_rules, 'shift', term)
         for i, term in enumerate(self._extensible_terminals):
             print(i+self.num_control_tokens+len(self._copy_terminals)+self._parser.num_rules, 'shift', term)
+
+    def _action_to_print_full(self, action):
+        if action == 0:
+            return ('accept',)
+        elif action == 1:
+            return ('start',)
+        elif action - self.num_control_tokens < self._parser.num_rules:
+            lhs, rhs = self._parser.rules[action - self.num_control_tokens]
+            return ('reduce', ':', lhs, '->', ' '.join(rhs))
+        elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
+            term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
+            return ('shift', term)
+        else:
+            term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
+            return ('shift', term)
+
+    def output_to_print_full(self, key, output):
+        if key == 'actions':
+            return self._action_to_print_full(output)
+        elif key.startswith('COPY_'):
+            if output <= 0:
+                return ('null',)
+            else:
+                return (self._parser.extensible_terminals[key[5:]][output-1],)
+        else:
+            if output == -1:
+                return ('null',)
+            else:
+                return (self._parser.extensible_terminals[key][output],)
 
     def print_prediction(self, input_sentence, sequences):
         actions = sequences['actions']

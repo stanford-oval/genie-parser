@@ -29,10 +29,6 @@ import numpy as np
 from models import Config
 from util.loader import load_data, unknown_tokens
 
-import matplotlib
-matplotlib.use('GTK3Cairo')
-import matplotlib.pyplot as plt
-
 def run():
     if len(sys.argv) < 3:
         print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Data>>")
@@ -46,19 +42,16 @@ def run():
     # load programs
     all_programs = np.load(sys.argv[2], allow_pickle=False)
 
-    # concatenate all programs into one vector
-    all_programs = np.reshape(all_programs, (-1,))
+    counts = dict()
+    for key, size in config.output_size.items():
+        # concatenate all programs into one vector
+        flat_all_programs = np.reshape(all_programs[key], (-1,))
     
-    counts = np.bincount(all_programs, minlength=config.output_size)
-    #config.grammar.print_all_actions()
+        counts[key] = np.bincount(flat_all_programs+1, minlength=size+1)
     
-    # ignore the control tokens
-    begin = int(sys.argv[3])
-    end = int(sys.argv[4])
-
-    for i in range(begin, end):
-        lhs, rhs = config.grammar._parser.rules[i - config.grammar.num_control_tokens]
-        print(i, counts[i], (lhs + ' -> ' + (' '.join(rhs))), sep='\t')
+    for key, size in config.output_size.items():
+        for i in range(size):
+            print(key + ' '*(18-len(key)), i, counts[key][i+1], ' '.join(config.grammar.output_to_print_full(key, i)), sep='\t')
 
 if __name__ == '__main__':
     run()
