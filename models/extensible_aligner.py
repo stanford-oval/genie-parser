@@ -339,23 +339,6 @@ class ExtensibleGrammarAligner(BaseAligner):
     def _sequence_softmax_loss(self, logits, gold, mask):
         return tf.contrib.seq2seq.sequence_loss(logits, gold, tf.cast(mask, tf.float32), average_across_batch=False)
     
-    def _copy_softmax_loss(self, key, logits, gold, mask):
-        flat_gold = tf.reshape(gold, (self.batch_size * self.config.max_length,))
-        flat_input_token_gold = tf.gather(self.config.grammar.copy_token_to_input_maps[key], flat_gold)
-        input_token_gold = tf.reshape(flat_input_token_gold, (self.batch_size, self.config.max_length, 1))
-        input_token_equal = tf.equal(tf.expand_dims(self.input_placeholder, axis=1), input_token_gold)
-        input_token_equal = tf.cast(input_token_equal, dtype=tf.float32)
-        with tf.control_dependencies([tf.assert_positive(tf.reduce_sum(input_token_equal, axis=2), data=(self.input_placeholder, input_token_gold, input_token_equal),
-                                                         summarize=1000)]):
-            input_token_prob = input_token_equal / tf.reduce_sum(input_token_equal, axis=2, keep_dims=True)
-        
-        loss = tf.nn.softmax_cross_entropy_with_logits(labels=input_token_prob, logits=logits)
-        
-        mask = tf.cast(mask, dtype=tf.float32)
-        mask_sum = tf.reduce_sum(mask, axis=1) + 1e-6
-        element_average_loss = tf.reduce_sum(loss * mask, axis=1) / mask_sum
-        return element_average_loss
-    
     def add_loss_op(self, result):
         sequence_keys = [self.config.grammar.primary_output] + self.config.grammar.copy_terminal_list + self.config.grammar.extensible_terminal_list
 
@@ -365,25 +348,26 @@ class ExtensibleGrammarAligner(BaseAligner):
             length_diff = self.config.max_length - tf.shape(primary_logits)[1]
 
         total_loss = 0
+        sequence_mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.bool)
+        padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], dtype=tf.int32, name='padding')
         for key in sequence_keys:
             with tf.name_scope('loss_' + key):
                 logits = all_logits[key]
-                preds = tf.pad(logits, [[0, 0], [0, length_diff], [0, 0]], mode='constant')
+                preds = tf.pad(logits, padding, mode='constant')
                 preds.set_shape((None, self.config.max_length, logits.shape[2]))
         
-                if key == self.config.grammar.primary_output:
-                    mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.bool)
+                if key == self.config.grammar.primary_output or self.config.grammar.is_copy_type(key):
+                    mask = sequence_mask
+                    masked_gold = self.output_placeholders[key]
                 else:
                     mask = tf.greater_equal(self.output_placeholders[key], 0)
-                # put an arbitrary token in the masked position of the gold, so that we don't exceed the output size
-                # and crash the sequence loss computation
-                masked_gold = tf.where(mask, self.output_placeholders[key], tf.zeros_like(self.output_placeholders[key]))
+                    # put an arbitrary token in the masked position of the gold, so that we don't exceed the output size
+                    # and crash the sequence loss computation
+                    masked_gold = tf.where(mask, self.output_placeholders[key], tf.zeros_like(self.output_placeholders[key]))
                 size = self.config.grammar.output_size[key]
         
                 if key == self.config.grammar.primary_output:
                     loss = 30 * self._max_margin_loss(preds, masked_gold, mask, size)
-                elif self.config.grammar.is_copy_type(key):
-                    loss = self._copy_softmax_loss(key, preds, masked_gold, mask)
                 else:
                     loss = self._sequence_softmax_loss(preds, masked_gold, mask)
                 total_loss += tf.reduce_mean(loss, axis=0)

@@ -213,8 +213,8 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
     The grammar of New thingtalk
     '''
     
-    def __init__(self, filename=None, flatten=True):
-        super().__init__(flatten=flatten)
+    def __init__(self, filename=None, **kw):
+        super().__init__(**kw)
         if filename is not None:
             self.init_from_file(filename)
         
@@ -375,14 +375,16 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
         self.input_to_copy_token_map = np.zeros((len(input_words),), dtype=np.int32)
         for term in self._copy_terminals:
             for tokenidx, token in enumerate(self.extensible_terminals[term]):
-                self.input_to_copy_token_map[input_words[token]] = 1 + tokenidx
-                self.copy_token_to_input_maps['COPY_' + term][1 + tokenidx] = input_words[token]
+                if self.input_to_copy_token_map[input_words[token]] != 0:
+                    raise AssertionError("??? " + token + " " + str(input_words[token]))
+                self.input_to_copy_token_map[input_words[token]] = tokenidx
+                self.copy_token_to_input_maps['COPY_' + term][tokenidx] = input_words[token]
         
         return all_embeddings
 
 
 if __name__ == '__main__':
-    grammar = NewThingTalkGrammar(sys.argv[1], flatten=False)
+    grammar = NewThingTalkGrammar(sys.argv[1], flatten=False, max_input_length=60)
     dictionary, reverse = load_dictionary(sys.argv[2], use_types=True, grammar=grammar)
     embeddings = np.zeros((len(dictionary), 1))
 
@@ -398,16 +400,19 @@ if __name__ == '__main__':
         reconstructed = None
         try:
             id, sentence, program = line.split('\t')
-            sentence, _ = vectorize(sentence, dictionary, max_length=60, add_eos=True, add_start=True)
-            vector, length = grammar.vectorize_program(program)
-            reconstructed = ' '.join(grammar.reconstruct_program(sentence, vector, ignore_errors=False))
+            sentence = sentence.split(' ')
+            sentence_vector, _ = vectorize(sentence, dictionary, max_length=60, add_eos=True, add_start=True)
+            vector, length = grammar.vectorize_program(sentence, program)
+            reconstructed = ' '.join(grammar.reconstruct_program(sentence_vector, vector, ignore_errors=False))
             assert reconstructed == program
             for key, vec in vector.items():
                 vectors[key].append(vec)
         except:
-            print(line)
+            print(sentence)
+            print(sentence_vector)
+            print(program)
             print(reconstructed)
-            print(grammar.print_prediction(sentence, vector))
+            print(grammar.print_prediction(sentence_vector, vector))
             raise
         
     for key in grammar.output_size:

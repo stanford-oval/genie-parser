@@ -38,8 +38,8 @@ class SimpleGrammar(AbstractGrammar):
     where $Token is any grammar token
     '''
     
-    def __init__(self, filename, flatten=True):
-        super().__init__()
+    def __init__(self, filename, flatten=True, **kw):
+        super().__init__(**kw)
         
         if not flatten:
             raise ValueError('Cannot use a the extensible model with a simple grammar; use seq2seq model instead')
@@ -63,7 +63,8 @@ class SimpleGrammar(AbstractGrammar):
             'tokens': len(self.tokens)
         }
         
-    def vectorize_program(self, program, max_length):
+    def vectorize_program(self, input_sentence, program, max_length):
+        del input_sentence
         return {
             'tokens': vectorize(program, self.dictionary, max_length, add_eos=True)
         }

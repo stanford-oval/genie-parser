@@ -196,12 +196,13 @@ def load_data(from_file, input_words, grammar, max_length):
             else:
                 _, sentence, canonical = split
                 parse = None
+            sentence = sentence.split(' ')
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
             inputs.append(input)
             input_lengths.append(in_len)
             label_sequence = canonical.split(' ')
             label_sequences.append(label_sequence)
-            label, label_len = grammar.vectorize_program(label_sequence, max_length)
+            label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
             for key in grammar.output_size:
                 labels[key].append(label[key])
             label_lengths.append(label_len)

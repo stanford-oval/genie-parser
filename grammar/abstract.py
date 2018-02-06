@@ -35,7 +35,7 @@ class AbstractGrammar(object):
     All Grammars must include a mapping for <s> and </s>
     '''
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.tokens = []
         self.dictionary = dict()
         self.num_control_tokens = 2
@@ -66,7 +66,7 @@ class AbstractGrammar(object):
     def prediction_to_string(self, sequence):
         return [self.tokens[x] for x in sequence]
     
-    def vectorize_program(self, program, max_length):
+    def vectorize_program(self, input_sentence, program, max_length):
         raise NotImplementedError()
     
     def get_embeddings(self, input_words, input_embeddings):

@@ -289,7 +289,8 @@ class Config(object):
         
         self._grammar = create_grammar(self._config['output']['grammar'],
                                        self._config['output']['grammar_input_file'],
-                                       flatten=flatten_grammar)
+                                       flatten=flatten_grammar,
+                                       max_input_length=self.max_length)
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
