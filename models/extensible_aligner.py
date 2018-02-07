@@ -367,7 +367,7 @@ class ExtensibleGrammarAligner(BaseAligner):
                 size = self.config.grammar.output_size[key]
         
                 if key == self.config.grammar.primary_output:
-                    loss = 30 * self._max_margin_loss(preds, masked_gold, mask, size)
+                    loss = 20 * self._max_margin_loss(preds, masked_gold, mask, size)
                 else:
                     loss = self._sequence_softmax_loss(preds, masked_gold, mask)
                 total_loss += tf.reduce_mean(loss, axis=0)
