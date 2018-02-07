@@ -6,7 +6,7 @@ import itertools
 import os
 
 def get_functions(prog):
-    return [x for x in prog.split(' ') if x.startswith('tt:') and not x.startswith('tt:$builtin.')]
+    return [x for x in prog.split(' ') if x.startswith('@') and x != '@org.thingpedia.builtin.thingengine.builtin.say']
 
 def is_compound(prog):
     return len(get_functions(prog)) >= 2

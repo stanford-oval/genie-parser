@@ -54,7 +54,7 @@ with os.scandir(sys.argv[1]) as iter:
         if entry.name.endswith('-train+dev.tsv'):
             print('Found train+dev set ' + entry.name[:-len('-train+dev.tsv')])
             traindevfiles.add(entry.path)
-        elif entry.name.endswith('-train.tsv') or entry.name.endswith('-dev.tsv') or entry.name in ('train.tsv', 'train-nosynthetic.tsv', 'dev.tsv', 'base-author.tsv'):
+        elif entry.name.endswith('-train.tsv') or entry.name.endswith('-dev.tsv') or entry.name in ('train.tsv', 'train-nosynthetic.tsv', 'dev.tsv'):
             continue
         elif entry.name.startswith('generated'):
             generatedfiles.add(entry.path)
@@ -97,11 +97,6 @@ for prefix,dataset in traindevsets.items():
     print('%d %s dev sentences' % (len(dev), prefix))
     devsets[prefix] = dev
 
-base_author = readfile(os.path.join(sys.argv[1], 'base-author.tsv'))
-print('%d base-author sentences' % len(base_author))
-base_author = [x for x in base_author if x[2] not in dev_progs and not is_remote(x[2])]
-print('= %d after filtering' % len(base_author))
-
 generated = []
 for filename in generatedfiles:
     prefix = os.path.basename(filename)[:-4]
@@ -116,10 +111,9 @@ for prefix,dataset in trainsets.items():
     writefile(os.path.join(sys.argv[1], prefix + '-train.tsv'), dataset)
 for prefix,dataset in devsets.items():
     writefile(os.path.join(sys.argv[1], prefix + '-dev.tsv'), dataset)
-writefile(os.path.join(sys.argv[1], 'filtered-base-author.tsv'), base_author)
 if len(generated) > 0:
     writefile(os.path.join(sys.argv[1], 'filtered-generated.tsv'), generated)
-    writefile(os.path.join(sys.argv[1], 'train-nosynthetic.tsv'), itertools.chain(base_author, trainall))
-    writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall, generated))
+    writefile(os.path.join(sys.argv[1], 'train-nosynthetic.tsv'), trainall)
+    writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(trainall, generated))
 else:
-    writefile(os.path.join(sys.argv[1], 'train.tsv'), itertools.chain(base_author, trainall))
+    writefile(os.path.join(sys.argv[1], 'train.tsv'), trainall)
