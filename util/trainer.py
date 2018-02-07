@@ -34,7 +34,13 @@ class Trainer(object):
     Train a model on data
     '''
 
-    def __init__(self, model, train_data, train_eval, dev_eval, saver, model_dir='./model', max_length=40, batch_size=256, n_epochs=40, **kw):
+    def __init__(self, model, train_data, train_eval, dev_eval, saver,
+                 opt_eval_metric='accuracy',
+                 model_dir='./model',
+                 max_length=40,
+                 batch_size=256,
+                 n_epochs=40,
+                 **kw):
         '''
         Constructor
         '''
@@ -45,67 +51,61 @@ class Trainer(object):
         self.dev_eval = dev_eval
         self.saver = saver
 
+        self._opt_eval_metric = opt_eval_metric
         self._model_dir = model_dir
         self._max_length = max_length
         self._batch_size = batch_size
         self._n_epochs = n_epochs
         self._extra_kw = kw
 
-    def run_epoch(self, sess, losses, grad_norms, batch_number):
+    def run_epoch(self, sess, losses, grad_norms, epoch):
         n_minibatches, total_loss = 0, 0
         total_n_minibatches = (len(self.train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches(self.train_data, self._batch_size):
-            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=batch_number, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))
             grad_norms.append(float(grad_norm))
             n_minibatches += 1
-            progbar.update(n_minibatches)
+            progbar.update(n_minibatches, values=[('loss', loss)])
         return total_loss / n_minibatches
 
     def fit(self, sess):
         best = None
         best_train = None
-        accuracy_stats = []
-        function_accuracy_stats = []
-        eval_losses = []
-        recall = []
         losses = []
         grad_norms = []
+        eval_metrics = dict()
         # flush stdout so we show the output before the first progress bar
         sys.stdout.flush()
         try:
             for epoch in range(self._n_epochs):
-                start_time = time.time()
+                average_loss = self.run_epoch(sess, losses, grad_norms, epoch)
+                print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
 
-                average_loss = self.run_epoch(sess, losses, grad_norms, batch_number=epoch)
-                duration = time.time() - start_time
-                print('Epoch {:}: loss = {:.4f} ({:.3f} sec)'.format(epoch, average_loss, duration))
-                #self.saver.save(sess, os.path.join(self._model_dir, 'epoch'), global_step=epoch)
-
-                train_acc, train_eval_loss, train_acc_fn, train_recall = self.train_eval.eval(sess, save_to_file=False)
-                if self.dev_eval is not None:
-                    dev_acc, dev_eval_loss, dev_acc_fn, dev_recall = self.dev_eval.eval(sess, save_to_file=False)
-                    if best is None or dev_acc > best:
-                        print('Found new best model')
-                        self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                        if dev_acc > 0:
-                            best = dev_acc
-                            best_train = train_acc
-                    accuracy_stats.append((float(train_acc), float(dev_acc)))
-                    function_accuracy_stats.append((float(train_acc_fn), float(dev_acc_fn)))
-                    eval_losses.append((float(train_eval_loss), float(dev_eval_loss)))
-                    recall.append((float(train_recall), float(dev_recall)))
-                else:
-                    accuracy_stats.append((float(train_acc),))
-                    function_accuracy_stats.append((float(train_acc_fn),))
-                    eval_losses.append((float(train_eval_loss),))
-                    recall.append((float(train_recall),))
+                train_metrics = self.train_eval.eval(sess, save_to_file=False)
+                dev_metrics = self.dev_eval.eval(sess, save_to_file=False)
+                for metric, dev_value in dev_metrics.items():
+                    if metric not in eval_metrics:
+                        eval_metrics[metric] = []
+                    eval_metrics[metric].append((float(train_metrics[metric]), float(dev_value)))
+                comparison_metric = dev_metrics[self._opt_eval_metric]
+                
+                if best is None or comparison_metric >= best:
+                    print('Found new model with best ' + self._opt_eval_metric)
+                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                    best = comparison_metric
+                    best_train = train_metrics[self._opt_eval_metric]
                 print()
                 sys.stdout.flush()
+                with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
+                    output = dict(loss=losses, grad=grad_norms)
+                    output.update(eval_metrics)
+                    json.dump(output, fp)
         finally:
             with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-                json.dump(dict(accuracy=accuracy_stats, eval_loss=eval_losses, function_accuracy=function_accuracy_stats, recall=recall,
-                               loss=losses, grad=grad_norms), fp)
+                output = dict(loss=losses, grad=grad_norms)
+                output.update(eval_metrics)
+                json.dump(output, fp)
         return best, best_train

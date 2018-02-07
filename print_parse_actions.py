@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+#
 # Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
 #
 # Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
@@ -13,19 +15,29 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
+Created on Dec 22, 2017
 
-from .abstract import AbstractGrammar
-from .simple import SimpleGrammar
-from .thingtalk import ThingtalkGrammar
-from .new_thingtalk import NewThingTalkGrammar
+@author: gcampagn
+'''
 
-def create_grammar(grammar_type, input_file):
-    if grammar_type == "tt":
-        return ThingtalkGrammar(input_file)
-    elif grammar_type == 'new-tt':
-        return NewThingTalkGrammar(input_file)
-    elif grammar_type == "simple":
-        return SimpleGrammar(input_file)
-    else:
-        raise ValueError("Invalid grammar %s" % (grammar_type,))
+import os
+import sys
+import numpy as np
+
+from models import Config
+
+def run():
+    if len(sys.argv) < 2:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>>")
+        sys.exit(1)
+
+    np.random.seed(42)
+    
+    model_dir = sys.argv[1]
+    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    config.grammar.print_all_actions()
+
+if __name__ == '__main__':
+    run()

@@ -37,7 +37,7 @@ class SimpleGrammar(AbstractGrammar):
     def __init__(self, filename):
         super().__init__()
         
-        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
+        self.tokens = ['</s>', '<s>']
         with open(filename, 'r') as fp:
             for line in fp.readlines():
                 self.tokens.append(line.strip())

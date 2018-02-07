@@ -41,7 +41,7 @@ def clean(name):
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
 def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
 
 def add_words(input_words, canonical):
     if isinstance(canonical, str):
@@ -60,16 +60,16 @@ def get_thingpedia(input_words, workdir, snapshot):
     with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
         output['devices'] = json.load(res)['data']
         for device in output['devices']:
-            if device['kind_type'] == 'global':
+            if device['kind_type'] in ('global', 'category', 'discovery'):
                 continue
-            if device['kind_canonical']:
+            if device.get('kind_canonical', None):
                 add_words(input_words, device['kind_canonical'])
             else:
-                print('WARNING: missing canonical for tt-device:%s' % (device['kind'],))
+                print('WARNING: missing canonical for device:%s' % (device['kind'],))
             for function_type in ('triggers', 'queries', 'actions'):
                 for function_name, function in device[function_type].items():
                     if not function['canonical']:
-                        print('WARNING: missing canonical for tt:%s.%s' % (device['kind'], function_name))
+                        print('WARNING: missing canonical for @%s.%s' % (device['kind'], function_name))
                     else:
                         add_words(input_words, function['canonical'])
                     for argname, argcanonical in zip(function['args'], function['argcanonicals']):
@@ -110,15 +110,15 @@ def create_dictionary(input_words, dataset):
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
-        
+
         with open(os.path.join(dataset, filename), 'r') as fp:
             for line in fp:
-                _, sentence, _, _ = line.strip().split('\t')
+                sentence = line.strip().split('\t')[1]
                 add_words(input_words, sentence)
 
 def save_dictionary(input_words, workdir):
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
-        for word in input_words:
+        for word in sorted(input_words):
             print(word, file=fp)
 
 def trim_embeddings(input_words, workdir, embed_size, glove):

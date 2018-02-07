@@ -24,6 +24,7 @@ import tensorflow as tf
 from tensorflow.contrib.rnn import LSTMStateTuple
 
 from .base_encoder import BaseEncoder
+from . import common
 from collections import namedtuple
 
 
@@ -31,17 +32,16 @@ class TreeDropoutWrapper(object):
     '''
     A dropout wrapper for TreeRNN cells
     '''
-    def __init__(self, cell, output_keep_prob, seed):
+    def __init__(self, cell, output_keep_prob):
         self._cell = cell
         self._output_keep_prob = output_keep_prob
-        self._seed = seed
         
     def zero_state(self, batch_size, dtype=tf.float32):
         return self._cell.zero_state(batch_size, dtype)
     
     def __call__(self, left_state, right_state, extra_input=None):
         outputs, new_state = self._cell(left_state, right_state, extra_input=extra_input)
-        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob, seed=self._seed), new_state
+        return tf.nn.dropout(outputs, keep_prob=self._output_keep_prob), new_state
 
 
 class TreeLSTM(object):
@@ -106,18 +106,6 @@ class TreeEncoder(BaseEncoder):
             raise NotImplementedError("multi-layer TreeRNN is not implemented yet (and i'm not sure how it'd work)")
         self._cell_type = cell_type
 
-    def _make_rnn_cell(self, i):
-        if self._cell_type == "lstm":
-            cell = tf.contrib.rnn.LSTMCell(self.output_size)
-        elif self._cell_type == "gru":
-            cell = tf.contrib.rnn.GRUCell(self.output_size)
-        elif self._cell_type == "basic-tanh":
-            cell = tf.contrib.rnn.BasicRNNCell(self.output_size)
-        else:
-            raise ValueError("Invalid RNN Cell type")
-        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
-        return cell
-    
     def _make_tree_cell(self, i):
         if self._cell_type == "lstm":
             cell = TreeLSTM(self.output_size)
@@ -125,13 +113,16 @@ class TreeEncoder(BaseEncoder):
             raise NotImplementedError("GRU/basic-tanh tree cells not implemented yet")
         else:
             raise ValueError("Invalid RNN Cell type")
-        cell = TreeDropoutWrapper(cell, output_keep_prob=self._dropout, seed=8 + 33 * i)
+        cell = TreeDropoutWrapper(cell, output_keep_prob=self._dropout)
         return cell
 
     def encode(self, inputs: tf.Tensor, input_length: tf.Tensor, parses : tf.Tensor):
         with tf.variable_scope('treeenc'):
             tree_cell = self._make_tree_cell(0)
-            rnn_cell = self._make_rnn_cell(0)
+            rnn_cell = common.make_rnn_cell(self.config.rnn_cell_type,
+                                            self.config.output_embed_size,
+                                            self.config.decoder_hidden_size,
+                                            self.dropout_placeholder)
         
             # make the inputs time major first
             batch_size = tf.shape(inputs)[0]

@@ -23,61 +23,26 @@ Created on Jul 25, 2017
 import tensorflow as tf
 
 from .base_aligner import BaseAligner
-from .seq2seq_helpers import Seq2SeqDecoder
+from . import common
 
-from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
-from tensorflow.python.util import nest
+from tensorflow.contrib.seq2seq import BasicDecoder, \
+    TrainingHelper, GreedyEmbeddingHelper, ScheduledEmbeddingTrainingHelper
 
-def pad_up_to(vector, size):
-    rank = vector.get_shape().ndims - 1
+class MinDistanceGreedyEmbeddingHelper(GreedyEmbeddingHelper):
+    def __init__(self, embedding, start_tokens, end_token):
+        super().__init__(embedding, start_tokens, end_token)
+        self._embedding = embedding
     
-    length_diff = tf.reshape(size - tf.shape(vector)[1], shape=(1,))
-    with tf.control_dependencies([tf.assert_non_negative(length_diff, data=(vector, size, tf.shape(vector)))]):
-        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0,0]*(rank-1)], axis=0), shape=((rank+1), 2))
-        return tf.pad(vector, padding, mode='constant')
-
-class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
-    '''
-    A cell wrapper that concatenates a fixed Tensor to the input
-    before calling the wrapped cell
-    '''
-    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, parent_state):
-        super().__init__()
-        self._wrapped = wrapped
-        self._flat_parent_state = tf.concat(nest.flatten(parent_state), axis=1)
+    def sample(self, time, outputs, state, name=None):
+        """sample for MinDistanceGreedyEmbeddingHelper."""
         
-    def call(self, input, state):
-        concat_input = tf.concat((self._flat_parent_state, input), axis=1)
-        return self._wrapped.call(concat_input, state)
-    
-    @property
-    def output_size(self):
-        return self._wrapped.output_size
-    
-    @property
-    def state_size(self):
-        return self._wrapped.state_size
-
-class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
-    '''
-    A cell wrapper that replaces the cell input with a fixed Tensor
-    and ignores whatever input is passed in
-    '''
-    def __init__(self, wrapped : tf.contrib.rnn.RNNCell, constant_input):
-        super().__init__()
-        self._wrapped = wrapped
-        self._flat_constant_input = tf.concat(nest.flatten(constant_input), axis=1)
+        difference = tf.expand_dims(outputs, axis=1) - \
+            tf.expand_dims(self._embedding, axis=0)
+        print('difference', difference)
         
-    def call(self, input, state):
-        return self._wrapped.call(self._flat_constant_input, state)
-    
-    @property
-    def output_size(self):
-        return self._wrapped.output_size
-    
-    @property
-    def state_size(self):
-        return self._wrapped.state_size
+        l2_distance = tf.norm(difference, ord=2, axis=2)
+        sample_ids = tf.cast(tf.argmax(l2_distance, axis=1), tf.int32)
+        return sample_ids
 
 class Seq2SeqAligner(BaseAligner):
     '''
@@ -85,41 +50,59 @@ class Seq2SeqAligner(BaseAligner):
     during training, and a greedy decoder during inference 
     '''
     
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, True) for i in range(self.config.rnn_layers)])
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
+        cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
+                                              self.config.output_embed_size,
+#                                              + self.config.encoder_hidden_size,
+                                              self.config.decoder_hidden_size,
+                                              self.dropout_placeholder)
+        enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
+                                                                          enc_hidden_states,
+                                                                          enc_final_state)
         
-        encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
-        decoder_hidden_size = int(cell_dec.output_size)
-        
-        # if encoder and decoder have different sizes, add a projection layer
-        if encoder_hidden_size != decoder_hidden_size:
-            assert False, (encoder_hidden_size, decoder_hidden_size)
-            with tf.variable_scope('hidden_projection'):
-                kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
-            
-                # apply a relu to the projection for good measure
-                enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
-                enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
-        else:
-            # flatten and repack the state
-            enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
-        
-        if self.config.connect_output_decoder:
-            cell_dec = ParentFeedingCellWrapper(cell_dec, enc_final_state)
-        else:
-            cell_dec = InputIgnoringCellWrapper(cell_dec, enc_final_state)
+        #if self.config.connect_output_decoder:
+        #    cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
+        #else:
+        #    cell_dec = common.InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
-            attention = LuongAttention(self.config.decoder_hidden_size, enc_hidden_states, self.input_length_placeholder,
-                                       probability_fn=tf.nn.softmax)
-            cell_dec = AttentionWrapper(cell_dec, attention,
-                                        cell_input_fn=lambda inputs, _: inputs,
-                                        attention_layer_size=self.config.decoder_hidden_size,
-                                        initial_cell_state=enc_final_state)
-            enc_final_state = cell_dec.zero_state(self.batch_size, dtype=tf.float32)
-        decoder = Seq2SeqDecoder(self.config, self.input_placeholder, self.input_length_placeholder,
-                                 self.output_placeholder, self.output_length_placeholder, self.batch_number_placeholder)
-        return decoder.decode(cell_dec, enc_final_state, self.config.grammar.output_size, output_embed_matrix, training)
-    
+            cell_dec, enc_final_state = common.apply_attention(cell_dec,
+                                                               enc_hidden_states,
+                                                               enc_final_state,
+                                                               self.input_length_placeholder,
+                                                               self.batch_size,
+                                                               self.config.attention_probability_fn)
+        
+        go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
+        if training:
+            output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
+            outputs = tf.nn.embedding_lookup([self.output_embed_matrix], output_ids_with_go)
+            if self.config.scheduled_sampling > 0:
+                sampling_probability = tf.minimum(self.config.scheduled_sampling*tf.cast(self.epoch_placeholder, tf.float32), 1)
+                helper = ScheduledEmbeddingTrainingHelper(inputs=outputs, sequence_length=self.output_length_placeholder+1,
+                                                          embedding=self.output_embed_matrix,
+                                                          sampling_probability=sampling_probability)
+            else:
+                helper = TrainingHelper(outputs, self.output_length_placeholder+1)
+        elif self.config.use_dot_product_output:
+            helper = MinDistanceGreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
+        else:
+            helper = GreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
+        
+        if self.config.use_dot_product_output:
+            output_layer = tf.layers.Dense(self.config.output_embed_size, use_bias=True)
+        else:
+            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        
+        decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
+        final_outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
+                                                                          impute_finished=True,
+                                                                          maximum_iterations=self.config.max_length,
+                                                                          swap_memory=True)
+        if self.config.apply_attention:
+            # convert alignment history from time-major to batch major
+            self.attention_scores = tf.transpose(final_state.alignment_history.stack(), [1, 0, 2])
+        return final_outputs
+        
     def finalize_predictions(self, preds):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sample_id, axis=1)
@@ -130,12 +113,49 @@ class Seq2SeqAligner(BaseAligner):
             length_diff = tf.reshape(self.config.max_length - tf.shape(logits)[1], shape=(1,))
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
         preds = tf.pad(logits, padding, mode='constant')
+        preds.set_shape((None, self.config.max_length, result.rnn_output.shape[2]))
         
-        # add epsilon to avoid division by 0
-        preds = preds + 1e-5
-
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
-        loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
+        
+        if self.config.use_dot_product_output:
+            # use a distance loss against the embedding of the real solution
+            with tf.name_scope('label_encoding'):
+                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
+                
+            difference = preds - label_encoded
+            print('difference', difference)
+            l2_distance = tf.norm(difference, ord=2, axis=2)
+            print('l2_distance', l2_distance)
+            l2_distance = l2_distance * tf.cast(mask, tf.float32)
+            
+            return tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
+        else:
+            # add epsilon to avoid division by 0
+            preds = preds + 1e-5
 
-        with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask], summarize=256*60*300)]):
-            return tf.identity(loss)
+            # as in Crammer and Singer, "On the Algorithmic Implementation of Multiclass Kernel-based Vector Machines"
+
+            flat_mask = tf.reshape(mask, (self.batch_size * self.config.max_length,))
+            flat_preds = tf.reshape(preds, (self.batch_size * self.config.max_length, self.config.output_size))
+            flat_gold = tf.reshape(self.output_placeholder, (self.batch_size * self.config.max_length,))
+
+            flat_indices = tf.range(self.batch_size * self.config.max_length, dtype=tf.int32)
+            flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
+
+            one_hot_gold = tf.one_hot(self.output_placeholder, depth=self.config.output_size, dtype=tf.float32)
+            marginal_scores = preds - one_hot_gold + 1
+
+            marginal_scores = tf.reshape(marginal_scores, (self.batch_size * self.config.max_length, self.config.output_size))
+            max_margin = tf.reduce_max(marginal_scores, axis=1)
+
+            gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
+            margin = max_margin - gold_score
+
+            margin = margin * flat_mask
+
+            margin = tf.reshape(margin, (self.batch_size, self.config.max_length))
+
+            return tf.reduce_mean(tf.reduce_sum(margin, axis=1) / tf.cast(self.output_length_placeholder, dtype=tf.float32), axis=0)
+
+            #return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
+            #                                        tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)

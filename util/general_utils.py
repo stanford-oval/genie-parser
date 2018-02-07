@@ -58,7 +58,7 @@ def test_all_close(name, actual, expected):
 def logged_loop(iterable, n=None):
     if n is None:
         n = len(iterable)
-    step = max(1, n / 1000)
+    step = max(1, n // 1000)
     prog = Progbar(n)
     for i, elem in enumerate(iterable):
         if i % step == 0 or i == n - 1:

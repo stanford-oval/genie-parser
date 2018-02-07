@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
-import tensorflow as tf
 import numpy as np
 import json
 import os
@@ -28,7 +27,7 @@ import itertools
 from orderedset import OrderedSet
 from collections import OrderedDict
 
-from .abstract import AbstractGrammar
+from .shift_reduce_grammar import ShiftReduceGrammar
 
 ENTITIES = ['USERNAME', 'HASHTAG',
             'QUOTED_STRING', 'NUMBER',
@@ -46,17 +45,15 @@ VALUES = ['true', 'false', 'absolute', 'rel_home', 'rel_work', 'rel_current_loca
 TYPES = {
     'Location': (['='], ['LOCATION', 'rel_current_location', 'rel_work', 'rel_home']),
     'Boolean':  (['='], ['true', 'false']),
-    'Bool': (['='], ['true', 'false']),
     'String': (['=', 'contains', 'starts_with', 'ends_with'], ['QUOTED_STRING']),
     'Date': (['=', '>', '<'], ['DATE']),
     'Time': (['='], ['TIME']),
     'Number': (['=', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
-    'Entity(tt:contact)': (['='], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:username)': (['='], ['USERNAME', 'QUOTED_STRING']),
-    'Entity(tt:hashtag)': (['='], ['HASHTAG', 'QUOTED_STRING']),
-    'Entity(tt:phone_number)': (['='], ['USERNAME', 'PHONE_NUMBER', 'QUOTED_STRING']),
-    'Entity(tt:email_address)': (['='], ['USERNAME', 'EMAIL_ADDRESS', 'QUOTED_STRING']),
-    'Entity(tt:url)': (['='], ['URL', 'QUOTED_STRING']),
+    'Entity(tt:username)': (['='], ['USERNAME']),
+    'Entity(tt:hashtag)': (['='], ['HASHTAG']),
+    'Entity(tt:phone_number)': (['='], ['PHONE_NUMBER']),
+    'Entity(tt:email_address)': (['='], ['EMAIL_ADDRESS']),
+    'Entity(tt:url)': (['='], ['URL']),
     'Entity(tt:picture)': (['='], [])
 }
 TYPE_RENAMES = {
@@ -65,7 +62,8 @@ TYPE_RENAMES = {
     'PhoneNumber': 'Entity(tt:phone_number)',
     'EmailAddress': 'Entity(tt:email_address)',
     'URL': 'Entity(tt:url)',
-    'Picture': 'Entity(tt:picture)'
+    'Picture': 'Entity(tt:picture)',
+    'Bool': 'Boolean'
 }
 
 UNITS = dict(C=["C", "F"],
@@ -77,7 +75,7 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
 
-MAX_ARG_VALUES = 8
+MAX_ARG_VALUES = 5
 
 # first token is "special", "command" or "answer"
 # "specials": yes, no, makerule...
@@ -97,7 +95,7 @@ def clean(name):
 def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
 
-class ThingtalkGrammar(AbstractGrammar):
+class ThingtalkGrammar(ShiftReduceGrammar):
     def __init__(self, filename=None):
         super().__init__()
         if filename is not None:
@@ -116,7 +114,7 @@ class ThingtalkGrammar(AbstractGrammar):
         self._enum_types = OrderedDict()
 
         # Token order:
-        # first the padding, go and end of sentence
+        # first the control tokens (padding, go, eos)
         # then the begin tokens
         # then triggers - queries - actions
         # in this order
@@ -128,8 +126,6 @@ class ThingtalkGrammar(AbstractGrammar):
         # This order is important as it affects the 3-part aligner
         # algorithm
 
-        self.tokens = ['<<PAD>>', '<<EOS>>', '<<GO>>']
-        self.num_control_tokens = 3
         self.tokens += BEGIN_TOKENS
         self.num_begin_tokens = len(BEGIN_TOKENS)
         
@@ -256,303 +252,138 @@ class ThingtalkGrammar(AbstractGrammar):
         print('num params', self.num_params)
         first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
         print('num value tokens', len(self.tokens) - first_value_token)
+        print('num tokens', len(self.tokens))
         
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
         
-        # build a DFA that will parse the thingtalk-ish code
-
-        states = []
-        transitions = []
-        state_names = []
+        GRAMMAR = OrderedDict({
+            '$input': [('rule', '$program'),
+                       ('setup', '$constant_Entity(tt:username)', '$program'),
+                       ('policy', '$policy'),
+                       ('bookkeeping', '$bookkeeping')],
+            '$policy': [('$constant_Entity(tt:username)', '$policy_program'),
+                        ('$policy_program',)],
+            '$bookkeeping': [('special', '$special'),
+                             ('command', '$command')],
+            '$special': [(x,) for x in SPECIAL_TOKENS],
+            '$command': [('help', 'generic'),
+                         ('help', '$constant_Entity(tt:device)')],
+            '$program': [('$trigger', '$query', '$action')],
+            '$policy_program': [('$trigger', '$query', '$policy_action')],
+            '$trigger': [('$trigger_function',),
+                         ('$trigger_function', 'if', '$filter'),
+                         ('tt:$builtin.now',)],
+            '$trigger_function': [('$triggers_function_name',),
+                                  ('$triggers_function_name', '$constant_Entity(tt:username)'),
+                                  ('$trigger_function', '$in_param')],
+            '$triggers_function_name': [],
+            '$query': [('$query_function',),
+                       ('$query_function', 'if', '$filter'),
+                       ('tt:$builtin.noop',)],
+            '$query_function': [('$queries_function_name',),
+                                ('$queries_function_name', '$constant_Entity(tt:username)'),
+                                ('$query_function', '$in_param')],
+            '$queries_function_name': [],
+            '$action': [('$action_function',),
+                        ('tt:$builtin.notify',),
+                        ('tt:$builtin.return',)],
+            '$policy_action': [('$action_function',),
+                               ('$action_function', 'if', '$filter'),
+                               ('tt:$builtin.notify',)],
+            '$action_function': [('$actions_function_name',),
+                                 ('$actions_function_name', '$constant_Entity(tt:username)'),
+                                 ('$action_function', '$in_param')],
+            '$actions_function_name': [],
+            '$filter': [('$atom_filter', 'and', '$filter'),
+                        ('$atom_filter', 'or', '$filter'),
+                        ('$atom_filter',)],
+            '$value_filter': OrderedSet(), 
+            '$atom_filter': OrderedSet(),
+            '$in_param': OrderedSet(),
+            '$out_param': OrderedSet([('tt-param:$event',)])
+        })
         
-        def to_ids(tokens, words):
-            return list([words[x] for x in tokens])
-
-        def add_allowed_tokens(state, tokens):
-            state[to_ids(tokens, self.dictionary)] = 1
+        def add_type(type, value_rules, operators):
+            operator_rules = []
+            assert all(isinstance(x, tuple) for x in value_rules)
+            GRAMMAR['$constant_' + type] = value_rules
+            GRAMMAR['$bookkeeping'].append(('answer', '$constant_' + type))
+            for op in operators:
+                GRAMMAR['$value_filter'].add((op, '$constant_' + type))
+                GRAMMAR['$value_filter'].add((op, '$out_param'))
+            GRAMMAR['$value_filter'].add(('has', '$constant_' + type))
         
-        def new_state(name):
-            state = np.zeros((self.output_size,))
-            states.append(state)
-            state_names.append(name)
-            return len(states)-1
-        
-        # start with one of the begin tokens
-        self.start_state = new_state('start')
-        
-        # in the before end state we just wait for EOS
-        self.before_end_state = new_state('before_end')
-        
-        # in the end state we are done
-        self.end_state = new_state('end')
-        transitions.append((self.before_end_state, self.end_state, '<<EOS>>'))
-        transitions.append((self.end_state, self.end_state, '<<PAD>>'))
-        
-        # bookkeeping
-        bookkeeping_id = new_state('bookkeeping')
-        transitions.append((self.start_state, bookkeeping_id, 'bookkeeping'))
-        transitions.append((bookkeeping_id, self.end_state, '<<EOS>>'))
-        self.bookeeping_state_id = bookkeeping_id
-        
-        # special
-        special_id = new_state('special')
-        transitions.append((bookkeeping_id, special_id, 'special'))
-        for t in SPECIAL_TOKENS:
-            transitions.append((special_id, self.before_end_state, t))
-            
-        # command
-        command_id = new_state('command')
-        transitions.append((bookkeeping_id, command_id, 'command'))
-        # help/configure/discover command
-        help_id = new_state('device_or_generic')
-        transitions.append((command_id, help_id, 'help'))
-        transitions.append((help_id, self.before_end_state, 'generic'))
-        for d in self.devices:
-            transitions.append((help_id, self.before_end_state, d))
-        
-        # answers
-        answer_id = new_state('answer')
-        transitions.append((bookkeeping_id, answer_id, 'answer'))
-        for v in VALUES:
-            if v != '0' and v != '1':
-                transitions.append((answer_id, self.before_end_state, v))
-        for v in ENTITIES:
-            if v != 'NUMBER':
-                for i in range(MAX_ARG_VALUES):
-                    transitions.append((answer_id, self.before_end_state, v + '_' + str(i)))
-        before_unit = new_state('answer_before_unit')
+        # base types
+        for type, (operators, values) in TYPES.items():
+            value_rules = []
+            for v in values:
+                if v[0].isupper():
+                    for i in range(MAX_ARG_VALUES):
+                        value_rules.append((v + '_' + str(i), ))
+                else:
+                    value_rules.append((v,))
+            add_type(type, value_rules, operators)
+        for base_unit, units in UNITS.items():
+            value_rules = [('$constant_Number', unit) for unit in units]
+            operators, _ = TYPES['Number']
+            add_type('Measure(' + base_unit + ')', value_rules, operators)
         for i in range(MAX_ARG_VALUES):
-            transitions.append((answer_id, before_unit, 'NUMBER_' + str(i)))
-        transitions.append((answer_id, before_unit, '0'))
-        transitions.append((answer_id, before_unit, '1'))
-        transitions.append((before_unit, self.end_state, '<<EOS>>'))
-        for base_unit in UNITS:
-            for unit in UNITS[base_unit]:
-                transitions.append((before_unit, self.before_end_state, unit))
+            GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
+
+        # well known entities
+        add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
+            
+        # other entities
+        for generic_entity in self.entities:
+            value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
+            add_type('Entity(' + generic_entity + ')', value_rules, ['='])
+            
+        # maps a parameter to the list of types it can possibly have
+        # over the whole Thingpedia
+        param_types = OrderedDict()
         
-        def do_invocation(invocation_name, params, for_prim):
-            state_id = new_state(invocation_name)
-            
-            # allow one USERNAME_ parameter to follow the invocation immediately
-            #for i in range(MAX_ARG_VALUES):
-            #    transitions.append((state_id, state_id, 'USERNAME_' + str(i)))
-            
-            # go to each "in" parameter
-            for param_name, param_type, param_direction in params:
+        for function_type in ('triggers', 'queries', 'actions'):
+            for function_name, params in self.functions[function_type].items():
+                if function_name.startswith('tt:$'):
+                    continue
+                for param_name, param_type, param_direction in params:
+                    if param_type in TYPE_RENAMES:
+                        param_type = TYPE_RENAMES[param_type]
+                    if param_type.startswith('Array('):
+                        element_type = param_type[len('Array('):-1]
+                        if element_type in TYPE_RENAMES:
+                            param_type = 'Array(' + TYPE_RENAMES[element_type] + ')'
+                    if param_name not in param_types:
+                        param_types[param_name] = OrderedSet()
+                    param_types[param_name].add((param_type, param_direction))
+                GRAMMAR['$' + function_type + '_function_name'].append((function_name,))
+
+        for param_name, options in param_types.items():
+            for (param_type, param_direction) in options:
+                if param_type == 'Any':
+                    continue
                 if param_direction == 'out':
-                    continue
-                if param_type in ('Any',) or param_type.startswith('Array('):
-                    continue
-                elementtype = param_type
-                is_measure = False
-                if elementtype in TYPE_RENAMES:
-                    elementtype = TYPE_RENAMES[elementtype]
-                if elementtype.startswith('Measure('):
-                    is_measure = True
-                    base_unit = elementtype[len('Measure('):-1]
-                    values = UNITS[base_unit]
-                elif elementtype.startswith('Enum('):
-                    values = self._enum_types[elementtype]
-                elif elementtype == 'Entity(tt:device)':
-                    values = self.devices
-                elif elementtype in TYPES:
-                    operators, values = TYPES[elementtype]
-                elif elementtype.startswith('Entity('):
-                    values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
-                else:
-                    _, values = TYPES[elementtype]
-                if len(values) == 0 and for_prim == 'trigger':
-                    continue
+                    GRAMMAR['$out_param'].add(('tt-param:' + param_name,))
+                GRAMMAR['$atom_filter'].add(('tt-param:' + param_name, '$value_filter'))
                 
-                before_value = new_state(invocation_name + '_tt-param:' + param_name)
-                transitions.append((state_id, before_value, 'tt-param:' + param_name))
-
-                if is_measure:
-                    before_unit = new_state(invocation_name + '_tt-param:' + param_name + ':unit')
-                    for i in range(MAX_ARG_VALUES):
-                        transitions.append((before_value, before_unit, '0'))
-                        transitions.append((before_value, before_unit, '1'))
-                        transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
-                    for unit in values:
-                        transitions.append((before_unit, state_id, unit))
+                if param_type.startswith('Enum('):
+                    enum_type = self._enum_types[param_type]
+                    for enum in enum_type:
+                        GRAMMAR['$atom_filter'].add(('tt-param:' + param_name, '=', enum))
+                        if param_direction == 'in':
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, enum))
                 else:
-                    for v in values:
-                        if v[0].isupper():
-                            for i in range(MAX_ARG_VALUES):
-                                transitions.append((before_value, state_id, v + '_' + str(i)))
-                        else:
-                            transitions.append((before_value, state_id, v))
-                if is_measure and base_unit == 'ms':
-                    for i in range(MAX_ARG_VALUES):
-                        transitions.append((before_value, state_id, 'DURATION_' + str(i)))
-                if for_prim != 'triggers':
-                    for v in self._trigger_or_query_params:
-                        transitions.append((before_value, state_id, v))
-            
-            #if for_prim == 'action':
-            #    return (state_id, -1)
-            predicate_state = new_state(invocation_name + '_predicate')
-            before_and_or = new_state(invocation_name + '_and_or')
-            transitions.append((before_and_or, predicate_state, 'and'))
-            transitions.append((before_and_or, predicate_state, 'or'))
-            
-            any_predicate = False
-            for param_name, param_type, _ in params:
-                if param_type in ('Any',):
-                    continue
-                
-                elementtype = param_type
-                is_array = False
-                is_measure = False
-                if param_type.startswith('Array('):
-                    is_array = True
-                    elementtype = param_type[len('Array('):-1]
-                if elementtype in TYPE_RENAMES:
-                    elementtype = TYPE_RENAMES[elementtype]
-                if elementtype.startswith('Measure('):
-                    is_measure = True
-                    operators = ['=', '<', '>', '>=', '<=']
-                    base_unit = elementtype[len('Measure('):-1]
-                    values = UNITS[base_unit]
-                elif elementtype.startswith('Enum('):
-                    operators = ['=']
-                    values = self._enum_types[elementtype]
-                elif elementtype == 'Entity(tt:device)':
-                    operators = ['=']
-                    values = self.devices
-                elif elementtype in TYPES:
-                    operators, values = TYPES[elementtype]
-                elif elementtype.startswith('Entity('):
-                    operators = ['=']
-                    values = ['GENERIC_ENTITY_' + elementtype[len('Entity('):-1], 'QUOTED_STRING']
-                else:
-                    operators, values = TYPES[elementtype]
-                if is_array:
-                    operators = ['has']
-                if len(values) == 0 and for_prim == 'trigger':
-                    continue
-                
-                before_op = new_state(invocation_name + '_pred_tt-param:' + param_name)
-                transitions.append((predicate_state, before_op, 'tt-param:' + param_name))
-                before_value = new_state(invocation_name + '_pred_tt-param:' + param_name + ':value')
-                any_predicate = True
+                    if param_direction == 'in':
+                        GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$out_param'))
+                        GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_' + param_type))
+                        if param_type.startswith('Entity('):
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_String'))
+                        if param_type in ('Entity(tt:phone_number)', 'Entity(tt:email_address)'):
+                            GRAMMAR['$in_param'].add(('tt-param:' + param_name, '$constant_Entity(tt:username)'))
 
-                for op in operators:
-                    transitions.append((before_op, before_value, op))
-                if is_measure:
-                    before_unit = new_state(invocation_name + '_pred_tt-param:' + param_name + ':unit')
-                    for i in range(MAX_ARG_VALUES):
-                        transitions.append((before_value, before_unit, '0'))
-                        transitions.append((before_value, before_unit, '1'))
-                        transitions.append((before_value, before_unit, 'NUMBER_' + str(i)))
-                    for unit in values:
-                        transitions.append((before_unit, before_and_or, unit))
-                else:
-                    for v in values:
-                        if v[0].isupper():
-                            for i in range(MAX_ARG_VALUES):
-                                transitions.append((before_value, before_and_or, v + '_' + str(i)))
-                        else:
-                            transitions.append((before_value, before_and_or, v))
-                if is_measure and base_unit == 'ms':
-                    for i in range(MAX_ARG_VALUES):
-                        transitions.append((before_value, before_and_or, 'DURATION_' + str(i)))
-                if for_prim != 'trigger':
-                    for v in self._trigger_or_query_params:
-                        transitions.append((before_value, before_and_or, v))
-                    
-            if any_predicate:
-                transitions.append((state_id, predicate_state, 'if'))
-                return (state_id, before_and_or)
-            else:
-                return (state_id, -1)
-        
-        # rules
-        rule_id = new_state('rule')
-        transitions.append((self.start_state, rule_id, 'rule'))
-        policy_id = new_state('policy')
-        transitions.append((self.start_state, policy_id, 'policy'))
-        for i in range(MAX_ARG_VALUES):
-            transitions.append((policy_id, rule_id, 'USERNAME_' + str(i)))
-        setup_id = new_state('setup')
-        transitions.append((self.start_state, setup_id, 'setup'))
-        for i in range(MAX_ARG_VALUES):
-            transitions.append((setup_id, rule_id, 'USERNAME_' + str(i)))
-        
-        trigger_ids = []
-        query_ids = []
-        
-        for trigger_name, params in self.functions['triggers'].items():
-            begin_state, end_state = do_invocation(trigger_name, params, 'triggers')
-            transitions.append((rule_id, begin_state, trigger_name))
-            transitions.append((policy_id, begin_state, trigger_name))
-            trigger_ids.append(begin_state)
-            if end_state >= 0:
-                trigger_ids.append(end_state)
-        for query_name, params in self.functions['queries'].items():
-            begin_state, end_state = do_invocation(query_name, params, 'queries')
-            for trigger_id in trigger_ids:
-                transitions.append((trigger_id, begin_state, query_name))
-            query_ids.append(begin_state)
-            if end_state >= 0:
-                query_ids.append(end_state)
-        for action_name, params in self.functions['actions'].items():
-            begin_state, end_state = do_invocation(action_name, params, 'actions')
-            for query_id in query_ids:
-                transitions.append((query_id, begin_state, action_name))
-            transitions.append((begin_state, self.end_state, '<<EOS>>'))
-            if end_state >= 0:
-                transitions.append((end_state, self.end_state, '<<EOS>>'))
-            
-        # do a second copy of the transition matrix for split sequences
-        self.function_states = np.zeros((self.num_functions,), dtype=np.int32)
-        self.function_states.fill(-1)
-        for part in ('triggers', 'queries', 'actions'):
-            for function_name, params in self.functions[part].items():
-                token = self.dictionary[function_name] - self.num_control_tokens - self.num_begin_tokens
-                begin_state, end_state = do_invocation(function_name, params, part)
-                transitions.append((begin_state, self.end_state, '<<EOS>>'))
-                if end_state >= 0:
-                    transitions.append((end_state, self.end_state, '<<EOS>>'))
-                self.function_states[token] = begin_state
-                
-
-        # now build the actual DFA
-        num_states = len(states)
-        self.num_states = num_states
-        print("num states", num_states)
-        print("num tokens", self.output_size)
-        self.transition_matrix = np.zeros((num_states, self.output_size), dtype=np.int32)
-        self.transition_matrix.fill(-1)
-        self.allowed_token_matrix = np.zeros((num_states, self.output_size), dtype=np.bool8)
-
-        for from_state, to_state, token in transitions:
-            token_id = self.dictionary[token]
-            if self.transition_matrix[from_state, token_id] != -1 and \
-                self.transition_matrix[from_state, token_id] != to_state:
-                raise ValueError("Ambiguous transition around token " + token + " in state " + state_names[from_state])
-            self.transition_matrix[from_state, token_id] = to_state
-            self.allowed_token_matrix[from_state, token_id] = True
-
-        if True:
-            visited = set()
-            def dfs(state):
-                visited.add(state)
-                any_out = False
-                for next_state in self.transition_matrix[state]:
-                    if next_state == -1:
-                        continue
-                    any_out = True
-                    if next_state in visited:
-                        continue
-                    dfs(next_state)
-                if not any_out:
-                    raise ValueError('Reachable state %d (%s) has no outgoing states' % (state, state_names[state]))
-            dfs(self.start_state)
-
-        self.state_names = state_names
+        self.construct_parser(GRAMMAR)
 
     def get_embeddings(self, input_words, input_embeddings):
         '''
@@ -600,7 +431,7 @@ class ThingtalkGrammar(AbstractGrammar):
                     token_embedding += input_embeddings[input_words[canonical_token]]
                 else:
                     print("WARNING: missing word %s in canonical for output token %s" % (canonical_token, token))
-                    token_embedding += input_embeddings[input_words['<<UNK>>']]
+                    token_embedding += input_embeddings[input_words['<unk>']]
                 return token_embedding
         
         off = token_classes
@@ -688,146 +519,6 @@ class ThingtalkGrammar(AbstractGrammar):
     def dump_tokens(self):
         for token in self.tokens:
             print(token)
-
-    def split_batch_in_parts(self, labels_batch):
-        batch_size = len(labels_batch)
-        top_batch = np.empty((batch_size,), dtype=np.int32)
-        special_label_batch = np.zeros((batch_size, MAX_SPECIAL_LENGTH), dtype=np.int32)
-        part_function_batches = dict()
-        part_sequence_batches = dict()
-        part_sequence_length_batches = dict()
-        for part in ('trigger', 'query', 'action'):
-            part_function_batches[part] = np.zeros((batch_size,), dtype=np.int32)
-            part_sequence_batches[part] = np.zeros((batch_size, MAX_PRIMITIVE_LENGTH), dtype=np.int32)
-            part_sequence_length_batches[part] = np.zeros((batch_size,), dtype=np.int32)
-            
-        rule_token = self.dictionary['rule']
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        for i, label in enumerate(labels_batch):
-            top_batch[i] = label[0]
-            if top_batch[i] != rule_token:
-                special_label_batch[i] = label[1:1+MAX_SPECIAL_LENGTH]
-                for part in ('trigger', 'query', 'action'):
-                    if part == 'trigger':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens
-                    elif part == 'query':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
-                    else:
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
-                    # add dummy values to the sequences to preserve the ability to compute
-                    # losses and grammar constraints
-                    part_function_batches[part][i] = function_offset
-                    part_sequence_batches[part][i,0] = self.end
-            else:
-                special_label_batch[i,0] = self.end
-                j = 1
-                for part in ('trigger', 'query', 'action'):
-                    if part == 'trigger':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens
-                    elif part == 'query':
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger'])
-                    else:
-                        function_offset = self.num_begin_tokens + self.num_control_tokens + len(self.functions['trigger']) + len(self.functions['query'])
-                    function_max = len(self.functions[part])
-                    assert function_offset <= label[j] < function_offset+function_max, (function_offset, function_max, label[j], self.tokens[label[j]])
-                    
-                    part_function_batches[part][i] = label[j]
-                    j += 1
-                    start = j
-                    while label[j] >= first_value_token:
-                        j+= 1
-                    end = j
-                    assert end-start+1 < MAX_PRIMITIVE_LENGTH
-                    part_sequence_batches[part][i,0:end-start] = label[start:end]
-                    part_sequence_batches[part][i,end-start] = self.end
-                    part_sequence_length_batches[part][i] = end-start+1
-        return top_batch, special_label_batch, part_function_batches, part_sequence_batches, part_sequence_length_batches
-
-    def vectorize_program(self, program, max_length=60):
-        vector, length = super().vectorize_program(program, max_length)
-        self.normalize_sequence(vector)
-        return vector, length
-
-    def parse(self, program):
-        curr_state = self.start_state
-        for token_id in program:
-            next = self.transition_matrix[curr_state, token_id]
-            if next == -1:
-                raise ValueError("Unexpected token " + self.tokens[token_id] + " in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
-            #print("transition", self.state_names[curr_state], "->", self.state_names[next])
-            curr_state = next
-
-        if curr_state != self.end_state:
-            raise ValueError("Premature end of program in " + (' '.join(self.tokens[x] for x in program)) + " (in state " + self.state_names[curr_state] + ")")
-        #print(*(self.tokens[x] for x in program))
-
-    def parse_all(self, fp):
-        vectors = []
-        for line in fp.readlines():
-            try:
-                program = line.strip().split()
-                vector = self.vectorize_program(program)[0]
-                self.parse(vector)
-                vectors.append(vector)
-            except ValueError as e:
-                print(e)
-        return np.array(vectors, dtype=np.int32)
-
-    def get_function_init_state(self, function_tokens):
-        next_state = tf.gather(self.function_states, function_tokens - (self.num_begin_tokens + self.num_control_tokens))
-        assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [function_tokens])
-        with tf.control_dependencies([assert2]):
-            return tf.identity(next_state)
-
-    def get_init_state(self, batch_size):
-        return tf.ones((batch_size,), dtype=tf.int32) * self.start_state
-
-    def constrain_value_logits(self, logits, curr_state):
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        num_value_tokens = self.output_size - first_value_token
-        value_allowed_token_matrix = np.concatenate((self.allowed_token_matrix[:,:self.num_control_tokens], self.allowed_token_matrix[:,first_value_token:]), axis=1)
-        
-        with tf.name_scope('constrain_logits'):
-            allowed_tokens = tf.gather(tf.constant(value_allowed_token_matrix), curr_state)
-            assert allowed_tokens.get_shape()[1:] == (self.num_control_tokens + num_value_tokens,)
-
-            constrained_logits = logits - tf.to_float(tf.logical_not(allowed_tokens)) * 1e+10
-        return constrained_logits
-
-    def constrain_logits(self, logits, curr_state):
-        with tf.name_scope('constrain_logits'):
-            allowed_tokens = tf.gather(tf.constant(self.allowed_token_matrix), curr_state)
-            assert allowed_tokens.get_shape()[1:] == (self.output_size,)
-
-            constrained_logits = tf.where(allowed_tokens, logits, tf.fill(tf.shape(allowed_tokens), -1e+10))
-        return constrained_logits
-
-    def value_transition(self, curr_state, next_symbols, batch_size):
-        first_value_token = self.num_functions + self.num_begin_tokens + self.num_control_tokens
-        num_value_tokens = self.output_size - first_value_token
-        with tf.name_scope('grammar_transition'):
-            adjusted_next_symbols = tf.where(next_symbols >= self.num_control_tokens, next_symbols + (first_value_token - self.num_control_tokens), next_symbols)
-            
-            assert1 = tf.Assert(tf.reduce_all(tf.logical_and(next_symbols < num_value_tokens, next_symbols >= 0)), [curr_state, next_symbols])
-            with tf.control_dependencies([assert1]):
-                transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
-            assert transitions.get_shape()[1:] == (self.output_size,)
-            
-            indices = tf.stack((tf.range(0, batch_size), adjusted_next_symbols), axis=1)
-            next_state = tf.gather_nd(transitions, indices)
-            
-            assert2 = tf.Assert(tf.reduce_all(next_state >= 0), [curr_state, adjusted_next_symbols, next_state])
-            with tf.control_dependencies([assert2]):
-                return tf.identity(next_state)
-
-    def transition(self, curr_state, next_symbols, batch_size):
-        with tf.name_scope('grammar_transition'):
-            transitions = tf.gather(tf.constant(self.transition_matrix), curr_state)
-            assert transitions.get_shape()[1:] == (self.output_size,)
-
-            indices = tf.stack((tf.range(0, batch_size), next_symbols), axis=1)
-            next_state = tf.gather_nd(transitions, indices)
-            return next_state
     
     def _normalize_invocation(self, seq, start):
         assert self.tokens[seq[start]].startswith('tt:')
@@ -881,8 +572,6 @@ if __name__ == '__main__':
     grammar = ThingtalkGrammar(sys.argv[1])
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    matrix = grammar.parse_all(sys.stdin)
-    print('Parsed', matrix.shape)
-    np.save('programs.npy', matrix)
+    grammar.parse_all(sys.stdin)
     #for i, name in enumerate(grammar.state_names):
     #    print i, name

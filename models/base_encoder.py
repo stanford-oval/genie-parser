@@ -29,18 +29,13 @@ class BaseEncoder(object):
     produces a dense representation of it
     '''
     
-    def __init__(self, embed_size, output_size, dropout):
-        self._embed_size = embed_size
+    def __init__(self, output_size, dropout):
         self._output_size = output_size
         self._dropout = dropout
     
     @property
     def output_size(self):
         return self._output_size
-    
-    @property
-    def embed_size(self):
-        return self._embed_size
     
     def encode(self, inputs : tf.Tensor, input_length : tf.Tensor):
         '''

@@ -50,6 +50,8 @@ def load_language(app, tokenizer_service, tag, model_dir):
     graph = tf.Graph()
     session = tf.Session(graph=graph)
     with graph.as_default():
+        tf.set_random_seed(1234)
+        
         # Force everything to run on CPU, we run on single inputs so there is not much point
         # on going through the GPU
         with tf.device('/cpu:0'):

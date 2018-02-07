@@ -29,7 +29,7 @@ import tensorflow as tf
 
 from tensorflow.python import debug as tf_debug
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data
 
@@ -39,6 +39,7 @@ def run():
         sys.exit(1)
 
     np.random.seed(42)
+    
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     model = create_model(config)

@@ -22,7 +22,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from util.trainer import Trainer
 
 from models import Config, create_model
@@ -31,8 +31,8 @@ from util.loader import unknown_tokens, load_data
 from tensorflow.python import debug as tf_debug
 
 def run():
-    if len(sys.argv) < 3:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Set>> [<<Dev Set>>]")
+    if len(sys.argv) < 4:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Set>> <<Dev Set>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -42,10 +42,7 @@ def run():
     config = Config.load(['./default.conf', model_conf])
     model = create_model(config)
     train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
-    if len(sys.argv) > 3:
-        dev_data = load_data(sys.argv[3], config.dictionary, config.grammar, config.max_length)
-    else:
-        dev_data = None
+    dev_data = load_data(sys.argv[3], config.dictionary, config.grammar, config.max_length)
     print("unknown", unknown_tokens)
     try:
         os.mkdir(model_dir)
@@ -53,6 +50,8 @@ def run():
         pass
     if not os.path.exists(model_conf):
         config.save(model_conf)
+
+    np.save('train-weights.npy', train_data[-1])
 
     with tf.Graph().as_default():
         tf.set_random_seed(1234)
@@ -64,6 +63,7 @@ def run():
         train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
         dev_eval = Seq2SeqEvaluator(model, config.grammar, dev_data, 'dev', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
         trainer = Trainer(model, train_data, train_eval, dev_eval, saver,
+                          opt_eval_metric='parse_action_f1',
                           model_dir=model_dir,
                           max_length=config.max_length,
                           batch_size=config.batch_size,

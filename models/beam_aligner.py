@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.   
-from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 '''
 Created on Jul 25, 2017
 
@@ -23,14 +22,13 @@ Created on Jul 25, 2017
 
 import tensorflow as tf
 
-from tensorflow.python.layers import core as tf_core_layers
 from tensorflow.python.util import nest
-from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper, BeamSearchDecoder
+from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
 from collections import namedtuple
 
 from .base_aligner import BaseAligner
-from .seq2seq_aligner import ParentFeedingCellWrapper
+from . import common
 
 BeamSearchOptimizationDecoderOutput = namedtuple('BeamSearchOptimizationDecoderOutput',
                                                  ('scores', 'gold_score', 'predicted_ids', 'parent_ids', 'loss'))
@@ -549,55 +547,50 @@ class BeamAligner(BaseAligner):
         if config.beam_size <= 1:
             raise ValueError("Must specify a beam size of more than 1 with seq2seq model")
 
-    def add_decoder_op(self, enc_final_state, enc_hidden_states, output_embed_matrix, training):
-        cell_dec = tf.contrib.rnn.MultiRNNCell([self.make_rnn_cell(i, for_decoder=True) for i in range(self.config.rnn_layers)])
-
-        encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
-        decoder_hidden_size = int(cell_dec.output_size)
-        
-        # if encoder and decoder have different sizes, add a projection layer
-        if encoder_hidden_size != decoder_hidden_size:
-            assert False, (encoder_hidden_size, decoder_hidden_size)
-            with tf.variable_scope('hidden_projection'):
-                kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
-            
-                # apply a relu to the projection for good measure
-                enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
-                enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
-        else:
-            # flatten and repack the state
-            enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))
+    def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
+        cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
+                                              self.config.output_embed_size,
+                                              self.config.decoder_hidden_size,
+                                              self.dropout_placeholder)
+        enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
+                                                                          enc_hidden_states,
+                                                                          enc_final_state)
 
         beam_width = self.config.training_beam_size if training else self.config.beam_size
 
         #cell_dec = ParentFeedingCellWrapper(cell_dec, tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width))
         if self.config.apply_attention:
-            attention = LuongAttention(decoder_hidden_size,
-                                       tf.contrib.seq2seq.tile_batch(enc_hidden_states, beam_width),
-                                       tf.contrib.seq2seq.tile_batch(self.input_length_placeholder, beam_width),
-                                       probability_fn=tf.nn.softmax)
-            cell_dec = AttentionWrapper(cell_dec, attention,
-                                        cell_input_fn=lambda inputs, _: inputs,
-                                        attention_layer_size=decoder_hidden_size,
-                                        initial_cell_state=tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width))
-            enc_final_state = cell_dec.zero_state(self.batch_size * beam_width, dtype=tf.float32)
+            tiled_enc_hidden_states = tf.contrib.seq2seq.tile_batch(enc_hidden_states, beam_width)
+            tiled_input_length = tf.contrib.seq2seq.tile_batch(self.input_length_placeholder, beam_width)
+            tiled_enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width)
+            
+            cell_dec, enc_final_state = common.apply_attention(cell_dec,
+                                                               tiled_enc_hidden_states,
+                                                               tiled_enc_final_state,
+                                                               tiled_input_length,
+                                                               self.batch_size * beam_width,
+                                                               self.config.attention_probability_fn)
         else:
             enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width)
         
         print('enc_final_state', enc_final_state)
-        linear_layer = tf_core_layers.Dense(self.config.output_size)
+        
+        if self.config.use_dot_product_output:
+            output_layer = common.DotProductLayer(self.output_embed_matrix)
+        else:
+            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
-        decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
+        decoder = BeamSearchOptimizationDecoder(training, cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
                                                 beam_width=beam_width,
-                                                output_layer=linear_layer,
+                                                output_layer=output_layer,
                                                 gold_sequence=self.output_placeholder if training else None,
                                                 gold_sequence_length=(self.output_length_placeholder+1) if training else None)
-        
-        if self.config.use_grammar_constraints:
-            raise NotImplementedError("Grammar constraints are not implemented for the beam search yet")
-        
-        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, output_time_major=True, maximum_iterations=self.config.max_length)
+
+        final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
+                                                                output_time_major=True,
+                                                                maximum_iterations=self.config.max_length)
         return final_outputs
         
     def finalize_predictions(self, preds : FinalBeamSearchOptimizationDecoderOutput):

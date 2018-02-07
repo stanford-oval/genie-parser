@@ -35,12 +35,10 @@ class Config(object):
             encoder_type='birnn',
             encoder_hidden_size=35,
             decoder_hidden_size=70,
-            function_hidden_size=100,
-            function_nonlinearity='tanh',
-            first_token_hidden_size=25,
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
+            attention_probability_fn='softmax'
         )
         self._config['training'] = OrderedDict(
             batch_size=256,
@@ -49,12 +47,18 @@ class Config(object):
             dropout=0.5,
             gradient_clip=0.5,
             l2_regularization=0.0,
+            l1_regularization=0.0,
+            embedding_l2_regularization=0.0,
+            scheduled_sampling=0.0,
+            decoder_action_count_loss=0.0,
+            decoder_sequence_loss=1.0,
             optimizer='RMSProp'
         )
         self._config['input'] = OrderedDict(
             input_words='./input_words.txt',
             input_embeddings='./embeddings-300.txt',
             input_embed_size=300,
+            input_projection=50,
             max_length=60,
             train_input_embeddings='false',
             use_typed_embeddings='true'
@@ -64,7 +68,6 @@ class Config(object):
             grammar_input_file='./thingpedia.json',
             train_output_embeddings='true',
             output_embed_size=15,
-            use_grammar_constraints='true',
             beam_width=10,
             training_beam_width=10,
             use_dot_product_output='false',
@@ -76,7 +79,7 @@ class Config(object):
         self._reverse = None
         self._embeddings_matrix = None
         self._output_embeddings_matrix = None
-        self._embed_size = int(self._config['input']['input_embed_size'])
+        self._input_embed_size = 0
             
     @property
     def model_type(self):
@@ -95,8 +98,12 @@ class Config(object):
         return float(self._config['training']['dropout'])
     
     @property
-    def embed_size(self):
-        return self._embed_size
+    def input_embed_size(self):
+        return self._input_embed_size
+    
+    @property
+    def input_projection(self):
+        return int(self._config['input']['input_projection'])
     
     @property
     def output_embed_size(self):
@@ -126,16 +133,16 @@ class Config(object):
             return int(model_conf['decoder_hidden_size'])
     
     @property
-    def function_hidden_size(self):
-        return int(self._config['model']['function_hidden_size'])
+    def decoder_action_count_loss(self):
+        return float(self._config['training']['decoder_action_count_loss'])
     
     @property
-    def function_nonlinearity(self):
-        return self._config['model']['function_nonlinearity']
-
+    def decoder_sequence_loss(self):
+        return float(self._config['training']['decoder_sequence_loss'])
+    
     @property
-    def first_token_hidden_size(self):
-        return int(self._config['model']['first_token_hidden_size'])
+    def scheduled_sampling(self):
+        return float(self._config['training']['scheduled_sampling'])
     
     @property
     def batch_size(self):
@@ -170,6 +177,14 @@ class Config(object):
     @property
     def l2_regularization(self):
         return float(self._config['training']['l2_regularization'])
+
+    @property
+    def l1_regularization(self):
+        return float(self._config['training']['l1_regularization'])
+
+    @property
+    def embedding_l2_regularization(self):
+        return float(self._config['training']['embedding_l2_regularization'])
 
     @property
     def optimizer(self):
@@ -208,12 +223,12 @@ class Config(object):
         return self._config['model'].getboolean('apply_attention')
     
     @property
-    def grammar(self):
-        return self._grammar
+    def attention_probability_fn(self):
+        return self._config['model']['attention_probability_fn']
     
     @property
-    def use_grammar_constraints(self):
-        return self._config['output'].getboolean('use_grammar_constraints')
+    def grammar(self):
+        return self._grammar
     
     @property
     def dictionary_size(self):
@@ -244,7 +259,7 @@ class Config(object):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
-        self._embed_size = int(self._config['input']['input_embed_size'])
+        self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
         
@@ -261,11 +276,12 @@ class Config(object):
             assert not self.typed_input_embeddings
             self._embeddings_matrix = None
         else:
-            self._embeddings_matrix, self._embed_size = load_embeddings(self._config['input']['input_embeddings'], words,
-                                                                        use_types=self.typed_input_embeddings,
-                                                                        grammar=self._grammar,
-                                                                        embed_size=self.embed_size)
-        print("Input embed size", self._embed_size)
+            self._embeddings_matrix, self._input_embed_size = load_embeddings(self._config['input']['input_embeddings'],
+                                                                              words,
+                                                                              use_types=self.typed_input_embeddings,
+                                                                              grammar=self._grammar,
+                                                                              embed_size=self._input_embed_size)
+        print("Input embed size", self._input_embed_size)
         
         if self._config['output'].get('output_embeddings', None):
             self._output_embeddings_matrix, _ = load_embeddings(self._config['output']['output_embeddings'],
@@ -274,6 +290,6 @@ class Config(object):
                                                                 embed_size=int(self._config['output']['output_embed_size']))
         else:
             self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
-        print("Output embed size", self._output_embeddings_matrix.shape[1])
+        print("Output embed size", self.output_embed_size)
         
         return self
