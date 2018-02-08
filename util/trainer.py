@@ -40,6 +40,7 @@ class Trainer(object):
                  max_length=40,
                  batch_size=256,
                  n_epochs=40,
+                 shuffle_data=True,
                  **kw):
         '''
         Constructor
@@ -56,13 +57,14 @@ class Trainer(object):
         self._max_length = max_length
         self._batch_size = batch_size
         self._n_epochs = n_epochs
+        self._shuffle_data = shuffle_data
         self._extra_kw = kw
 
     def run_epoch(self, sess, losses, grad_norms, epoch):
         n_minibatches, total_loss = 0, 0
         total_n_minibatches = (len(self.train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
-        for data_batch in get_minibatches(self.train_data, self._batch_size):
+        for data_batch in get_minibatches(self.train_data, self._batch_size, shuffle=self._shuffle_data):
             loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
             total_loss += loss
             losses.append(float(loss))

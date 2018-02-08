@@ -69,7 +69,8 @@ class Config(object):
             scheduled_sampling=0.0,
             decoder_action_count_loss=0.0,
             decoder_sequence_loss=1.0,
-            optimizer='RMSProp'
+            optimizer='RMSProp',
+            shuffle_data='true'
         )
         self._config['input'] = OrderedDict(
             input_words='./input_words.txt',
@@ -204,6 +205,10 @@ class Config(object):
     @property
     def optimizer(self):
         return self._config['training']['optimizer']
+
+    @property
+    def shuffle_training_data(self):
+        return self._config['training'].getboolean('shuffle_data')
     
     @property
     def train_input_embeddings(self):
