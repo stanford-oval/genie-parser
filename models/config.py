@@ -21,10 +21,27 @@ Created on Jul 20, 2017
 '''
 
 import configparser
-import grammar
+import importlib
 
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
+
+def create_grammar(grammar_type, *args, **kw):
+    pkg = None
+    class_name = None
+    
+    # for compat with existing configuration files
+    if grammar_type in ("tt", 'new-tt'):
+        pkg = 'thingtalk'
+        class_name = 'ThingTalkGrammar'
+    elif grammar_type == "simple":
+        pkg = 'simple'
+        class_name = 'SimpleGrammar'
+    else:
+        pkg, class_name = grammar_type.rsplit('.', limit=1)
+    module = importlib.import_module('grammar.' + pkg)
+    return getattr(module, class_name)(*args, **kw)
+
 
 class Config(object):
     def __init__(self):
@@ -261,7 +278,7 @@ class Config(object):
         self._config.read(filenames)
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
-        self._grammar = grammar.create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
+        self._grammar = create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
