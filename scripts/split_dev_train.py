@@ -22,8 +22,11 @@ import itertools
 import sys
 import os
 
+def is_function(x):
+    return x.startswith('@') or x in ('timer', 'attimer', 'now', 'notify')
+
 def get_functions(prog):
-    return [x for x in prog.split(' ') if (x.startswith('tt:') or x.startswith('@')) and not x.startswith('tt:$builtin.')]
+    return tuple(x for x in prog.split(' ') if is_function(x))
 
 def is_compound(prog):
     return len(get_functions(prog)) >= 2
@@ -65,6 +68,7 @@ with os.scandir(sys.argv[1]) as iter:
 traindevsets = dict()
 traindevall = []
 traindevprogs = set()
+traindevsigs = set()
 
 for filename in traindevfiles:
     prefix = os.path.basename(filename)[:-len('-train+dev.tsv')]
@@ -75,25 +79,28 @@ for filename in traindevfiles:
     progs = set(x[2] for x in sentences)
     print('= %d programs' % len(progs))
     traindevprogs |= progs
+    sigs = set(map(get_functions, progs))
+    print('= %d signatures' % len(sigs))
+    traindevsigs |= sigs
 
-print('Total train+dev: %d sentences, %d programs' % (len(traindevall), len(traindevprogs)))
+print('Total train+dev: %d sentences, %d programs, %d signatures' % (len(traindevall), len(traindevprogs), len(traindevsigs)))
 
-dev_progs = set(random.sample(traindevprogs, len(traindevprogs)//10))
+dev_sigs = set(random.sample(traindevsigs, len(traindevsigs)//10))
 #dev_progs = set(x for x in dev_progs if is_compound(x))
 
-print('%d dev programs' % len(dev_progs))
-devall = [x for x in traindevall if x[2] in dev_progs]
+print('%d dev signatures' % len(dev_sigs))
+devall = [x for x in traindevall if get_functions(x[2]) in dev_sigs]
 print('%d dev sentences' % len(devall))
 
 trainsets = dict()
 devsets = dict()
 trainall = []
 for prefix,dataset in traindevsets.items():
-    train = [x for x in dataset if x[2] not in dev_progs]
+    train = [x for x in dataset if get_functions(x[2]) not in dev_sigs]
     print('%d %s train sentences' % (len(train), prefix))
     trainsets[prefix] = train
     trainall += train
-    dev = [x for x in dataset if x[2] in dev_progs]
+    dev = [x for x in dataset if get_functions(x[2]) in dev_sigs]
     print('%d %s dev sentences' % (len(dev), prefix))
     devsets[prefix] = dev
 
@@ -102,7 +109,7 @@ for filename in generatedfiles:
     prefix = os.path.basename(filename)[:-4]
     other = readfile(filename)
     print('%d %s train sentences' % (len(other), prefix))
-    other = [x for x in other if x[2] not in dev_progs]
+    other = [x for x in other if get_functions(x[2]) not in dev_sigs]
     print('= %d after filtering' % len(other))
     generated += other
 
