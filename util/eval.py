@@ -68,7 +68,7 @@ class Seq2SeqEvaluator(object):
         sequences = []
         sum_eval_loss = 0
         if save_to_file:
-            _, _, _, labels, _, _ = self.data
+            _, _, _, labels, _ = self.data
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
             for gold in labels:
@@ -101,7 +101,7 @@ class Seq2SeqEvaluator(object):
         progbar = Progbar(total_n_minibatches)
         try:
             for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-                input_batch, input_length_batch, _, label_batch, label_length_batch, _ = data_batch
+                input_batch, input_length_batch, _, label_batch, label_length_batch = data_batch
                 
                 if self.model.action_counts is not None:
                     feed = self.model.create_feed_dict(*data_batch, batch_number=n_minibatches)

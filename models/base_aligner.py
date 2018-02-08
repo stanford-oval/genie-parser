@@ -67,7 +67,7 @@ class BaseAligner(BaseModel):
                 action_count_loss = tf.losses.hinge_loss(labels=binarized_label, logits=action_count_logits,
                                                          reduction=tf.losses.Reduction.NONE)
                 action_count_loss = tf.reduce_sum(action_count_loss, axis=1)
-                action_count_loss = tf.reduce_sum(self.output_weight_placeholder * action_count_loss) / tf.reduce_sum(self.output_weight_placeholder)
+                action_count_loss = tf.reduce_mean(action_count_loss)
         else:
             action_count_loss = 0
         
@@ -126,7 +126,6 @@ class BaseAligner(BaseModel):
     def add_output_placeholders(self):
         self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='output_sequence')
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='output_length')
-        self.output_weight_placeholder = tf.placeholder(tf.float32, shape=(None,), name='output_weight')
         self.output_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, self.config.grammar.output_size), name='output_action_counts')
         
     def add_extra_placeholders(self):
@@ -135,7 +134,7 @@ class BaseAligner(BaseModel):
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name='dropout_probability')
 
     def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch,
-                         labels_batch=None, label_length_batch=None, label_weight_batch=None,
+                         labels_batch=None, label_length_batch=None,
                          dropout=1, batch_number=0, epoch=0):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
@@ -145,8 +144,6 @@ class BaseAligner(BaseModel):
             feed_dict[self.output_placeholder] = labels_batch
         if label_length_batch is not None:
             feed_dict[self.output_length_placeholder] = label_length_batch
-        if label_weight_batch is not None:
-            feed_dict[self.output_weight_placeholder] = label_weight_batch
         feed_dict[self.dropout_placeholder] = dropout
         feed_dict[self.batch_number_placeholder] = batch_number
         feed_dict[self.epoch_placeholder] = epoch

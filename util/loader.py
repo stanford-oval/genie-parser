@@ -188,8 +188,6 @@ def load_data(from_file, input_words, grammar, max_length):
     parses = []
     labels = []
     label_lengths = []
-    # add one to all counts for laplace smoothing
-    total_output_counts = np.ones((grammar.output_size,), dtype=np.int32)
     
     with open(from_file, 'r') as data:
         for line in data:
@@ -205,22 +203,9 @@ def load_data(from_file, input_words, grammar, max_length):
             label, label_len = grammar.vectorize_program(canonical, max_length)
             labels.append(label)
             label_lengths.append(label_len)
-            total_output_counts += np.bincount(label, minlength=grammar.output_size)
             if parse is not None:
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
 
-    action_weight = len(labels) / total_output_counts
-    label_weights = []
-    for i in range(len(labels)):
-        #output_counts = (np.bincount(labels[i], minlength=grammar.output_size) > 0).astype(np.float64)
-        #weight = 1 + 2 * np.sum(output_counts * action_weight, dtype=np.float64)/grammar.output_size
-        #label_weights.append(weight)
-        label_weights.append(1.)
-
-    print('max label weight in', from_file, np.max(label_weights))
-    print('min label weight in', from_file, np.min(label_weights))
-    print('avg label weight in', from_file, np.mean(label_weights))
-
-    return inputs, input_lengths, parses, labels, label_lengths, label_weights
+    return inputs, input_lengths, parses, labels, label_lengths
