@@ -56,12 +56,14 @@ TYPES = {
         ('$constant_Date', '-', '$constant_Measure(ms)')
         ]),
     'Time': (['=='], ['TIME']),
+    'Currency': (['==', '<', '>', '>=', '<='], ['CURRENCY']),
     'Number': (['==', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
-    'Entity(tt:username)': (['=='], ['USERNAME']),
-    'Entity(tt:hashtag)': (['=='], ['HASHTAG']),
-    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER']),
-    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS']),
-    'Entity(tt:url)': (['=='], ['URL']),
+    'Entity(tt:username)': (['=='], ['USERNAME', ('$constant_String',) ]),
+    'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('$constant_String',) ]),
+    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('$constant_String',) ]),
+    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
+    'Entity(tt:url)': (['=='], ['URL', ('$constant_String',) ]),
+    'Entity(tt:path_name)': (['=='], ['PATH_NAME', ('$constant_String',) ]),
     'Entity(tt:picture)': (['=='], [])
 }
 TYPE_RENAMES = {
@@ -207,7 +209,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
             '$stream': [('timer', 'base', '=', '$constant_Date', ',', 'interval', '=', '$constant_Measure(ms)'),
                         ('attimer', 'time', '=', '$constant_Time',),
                         ('monitor', '(', '$table', ')'),
-                        ('monitor', '(', '$table', ')', 'on', 'new', '$out_param'),
+                        ('monitor', '(', '$table', ')', 'on', 'new', '$out_param_Any'),
                         ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
                         ('edge', '(', '$stream', ')', 'on', '$filter'),
                         #('edge', '(', '$stream', ')', 'on', 'true'),
@@ -216,34 +218,39 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                              ('$stream_join', 'on', '$param_passing')],
             '$thingpedia_queries': [('$thingpedia_queries', '$const_param')],
             '$thingpedia_actions': [('$thingpedia_actions', '$const_param')],
-            '$param_passing': OrderedSet(),
-            '$const_param': OrderedSet(),
-            '$out_param': OrderedSet(),
-            '$out_param_list': [('$out_param',),
-                                ('$out_param_list', ',', '$out_param')],
+            '$param_passing': [],
+            '$const_param': [],
+            '$out_param_Any': [],
+            '$out_param_list': [('$out_param_Any',),
+                                ('$out_param_list', ',', '$out_param_Any')],
 
             '$filter': [('$or_filter',),
                         ('$filter', 'and', '$or_filter',)],
             '$or_filter': [('$atom_filter',),
                            ('not', '$atom_filter',),
                            ('$or_filter', 'or', '$atom_filter')],
-            '$atom_filter': OrderedSet([('$out_param', 'in_array', '$constant_Array')]),
+            '$atom_filter': [],
             
-            '$constant_Array': [('[', '$constant_array_values', ']',)],
-            '$constant_array_values': [('$constant_Any',),
-                                       ('$constant_array_values', ',', '$constant_Any')],
-            '$constant_Any': OrderedSet(),
+            #'$constant_Array': [('[', '$constant_array_values', ']',)],
+            #'$constant_array_values': [('$constant_Any',),
+            #                           ('$constant_array_values', ',', '$constant_Any')],
+            #'$constant_Any': OrderedSet(),
         })
         
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
             GRAMMAR['$constant_' + type] = value_rules
-            GRAMMAR['$constant_Any'].add(('$constant_' + type,))
+            #GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
-                GRAMMAR['$atom_filter'].add(('$out_param', op, '$constant_' + type))
+                GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, '$constant_' + type))
+                GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, 'in_array', '[', '$constant_' + type, '$constant_' + type, ']'))
                 # FIXME reenable some day
                 #GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
-            GRAMMAR['$atom_filter'].add(('$out_param', 'contains', '$constant_' + type))
+            GRAMMAR['$atom_filter'].append(('$out_param_Array(' + type + ')', 'contains', '$constant_' + type))
+            GRAMMAR['$out_param_' + type] = []
+            GRAMMAR['$out_param_Array(' + type + ')'] = []
+            GRAMMAR['$out_param_Any'].append(('$out_param_' + type,))
+            GRAMMAR['$out_param_Any'].append(('$out_param_Array(' + type + ')',))
 
         # base types
         for type, (operators, values) in TYPES.items():
@@ -279,6 +286,7 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                 value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
             else:
                 value_rules = []
+            value_rules.append(('$constant_String',))
             add_type('Entity(' + generic_entity + ')', value_rules, ['=='])
             
         # maps a parameter to the list of types it can possibly have
@@ -306,35 +314,38 @@ class NewThingTalkGrammar(ShiftReduceGrammar):
                     for enum in enum_type:
                         #GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
                         if param_direction == 'in':
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'enum:' + enum))
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'enum:' + enum))
                         else:
                             # NOTE: enum filters don't follow the usual convention for filters
                             # this is because, linguistically, it does not make much sense to go
                             # through $out_param: enum parameters are often implicit
                             # one does not say "if the mode of my hvac is off", one says "if my hvac is off"
                             # (same, and worse, with booleans)
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'enum:' + enum))
+                            GRAMMAR['$atom_filter'].append(('param:' + param_name + ':' + param_type, '==', 'enum:' + enum))
                 else:
                     if param_direction == 'out':
                         if param_type != 'Boolean':
-                            GRAMMAR['$out_param'].add(('param:' + param_name,))
+                            GRAMMAR['$out_param_' + param_type].append(('param:' + param_name + ':' + param_type,))
                         else:
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'true'))
-                            GRAMMAR['$atom_filter'].add(('param:' + param_name, '==', 'false'))
+                            GRAMMAR['$atom_filter'].append(('param:' + param_name + ':' + param_type, '==', 'true'))
+                            GRAMMAR['$atom_filter'].append(('param:' + param_name + ':' + param_type, '==', 'false'))
+                    else:
+                        if param_type in ('Any', 'String'):
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_Any'))
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', 'event'))
+                        elif param_type.startswith('Entity('):
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_' + param_type))
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_String'))
+                        else:
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_' + param_type))
                     if param_direction == 'in':
-                        GRAMMAR['$param_passing'].add(('param:' + param_name, '=', '$out_param'))
-                        if param_type == 'String':
-                            GRAMMAR['$param_passing'].add(('param:' + param_name, '=', 'event'))
-                    if param_direction == 'in' and param_type != 'Any':
-                        if param_type != 'Boolean':
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_' + param_type))
+                        if param_type == 'Any':
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_String'))
+                        elif param_type != 'Boolean':
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_' + param_type))
                         else:
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'true'))
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', 'false'))
-                        if param_type.startswith('Entity('):
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_String'))
-                        if param_type in ('Entity(tt:phone_number)', 'Entity(tt:email_address)'):
-                            GRAMMAR['$const_param'].add(('param:' + param_name, '=', '$constant_Entity(tt:username)'))
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'true'))
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'false'))
 
         self.tokens += self.construct_parser(GRAMMAR)
         print('num functions', self.num_functions)

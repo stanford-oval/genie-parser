@@ -91,7 +91,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
 
 ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
             'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
-            'TIME', 'URL', 'USERNAME']
+            'TIME', 'URL', 'USERNAME', 'PATH_NAME']
 MAX_ARG_VALUES = 5
 
 def load_dictionary(file, use_types=False, grammar=None):

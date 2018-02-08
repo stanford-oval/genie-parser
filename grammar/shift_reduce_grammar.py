@@ -117,6 +117,15 @@ class ShiftReduceGrammar(AbstractGrammar):
                 lhs, rhs = self._parser.rules[action - self.num_control_tokens]
                 print('reduce', action - self.num_control_tokens, ':', lhs, '->', ' '.join(rhs))
 
+    def output_to_string(self, action):
+        if action == 0:
+            return 'accept'
+        elif action == 1:
+            return 'start'
+        else:
+            lhs, rhs = self._parser.rules[action - self.num_control_tokens]
+            return (lhs + ' -> ' + (' '.join(rhs)))
+
     def prediction_to_string(self, sequence):
         def action_to_string(action):
             if action == 0:
