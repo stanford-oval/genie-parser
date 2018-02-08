@@ -10,6 +10,7 @@ from tensorflow.contrib.rnn import LSTMStateTuple
 from collections import namedtuple
 
 from .base_aligner import BaseAligner
+from .seq2seq_aligner import Seq2SeqAligner
 from . import common
 
 # in paper notation:
@@ -140,7 +141,7 @@ class RPAGDecoder(tf.contrib.seq2seq.Decoder):
             return (output, next_state, next_inputs, finished)
 
 
-class RPAGAligner(BaseAligner):
+class RPAGAligner(Seq2SeqAligner):
     '''
     "repeat, plan, attend, generate" decoder from
     "Plan, Attend, Generate: Planning for Sequence-to-Sequence Models",
@@ -157,10 +158,7 @@ class RPAGAligner(BaseAligner):
                                                                           enc_hidden_states,
                                                                           enc_final_state)
         
-        if self.config.use_dot_product_output:
-            output_layer = tf.layers.Dense(self.config.output_embed_size, use_bias=True)
-        else:
-            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = RPAGDecoder(cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
@@ -175,37 +173,3 @@ class RPAGAligner(BaseAligner):
         self.attention_scores = tf.transpose(final_state.alignment_history.stack(), [1, 0, 2])
         
         return final_outputs
-    
-    def finalize_predictions(self, preds):
-        # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
-        return tf.expand_dims(preds.sample_id, axis=1)
-    
-    def add_loss_op(self, result):
-        logits = result.rnn_output
-        with tf.control_dependencies([tf.assert_positive(tf.shape(logits)[1], data=[tf.shape(logits)])]):
-            length_diff = tf.reshape(self.config.max_length - tf.shape(logits)[1], shape=(1,))
-        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
-        preds = tf.pad(logits, padding, mode='constant')
-        preds.set_shape((None, self.config.max_length, result.rnn_output.shape[2]))
-        
-        mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
-        
-        if self.config.use_dot_product_output:
-            # use a distance loss against the embedding of the real solution
-            with tf.name_scope('label_encoding'):
-                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
-                
-            difference = preds - label_encoded
-            print('difference', difference)
-            l2_distance = tf.norm(difference, ord=2, axis=2)
-            print('l2_distance', l2_distance)
-            l2_distance = l2_distance * tf.cast(mask, tf.float32)
-            
-            return tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
-        else:
-            # add epsilon to avoid division by 0
-            preds = preds + 1e-5
-            loss = tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
-
-            with tf.control_dependencies([tf.assert_non_negative(loss, data=[preds, mask])]):
-                return tf.identity(loss)

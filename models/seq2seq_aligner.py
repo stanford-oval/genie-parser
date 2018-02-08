@@ -28,22 +28,6 @@ from . import common
 from tensorflow.contrib.seq2seq import BasicDecoder, \
     TrainingHelper, GreedyEmbeddingHelper, ScheduledEmbeddingTrainingHelper
 
-class MinDistanceGreedyEmbeddingHelper(GreedyEmbeddingHelper):
-    def __init__(self, embedding, start_tokens, end_token):
-        super().__init__(embedding, start_tokens, end_token)
-        self._embedding = embedding
-    
-    def sample(self, time, outputs, state, name=None):
-        """sample for MinDistanceGreedyEmbeddingHelper."""
-        
-        difference = tf.expand_dims(outputs, axis=1) - \
-            tf.expand_dims(self._embedding, axis=0)
-        print('difference', difference)
-        
-        l2_distance = tf.norm(difference, ord=2, axis=2)
-        sample_ids = tf.cast(tf.argmax(l2_distance, axis=1), tf.int32)
-        return sample_ids
-
 class Seq2SeqAligner(BaseAligner):
     '''
     A model that implements Seq2Seq: that is, it uses a sequence loss
@@ -83,15 +67,10 @@ class Seq2SeqAligner(BaseAligner):
                                                           sampling_probability=sampling_probability)
             else:
                 helper = TrainingHelper(outputs, self.output_length_placeholder+1)
-        elif self.config.use_dot_product_output:
-            helper = MinDistanceGreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         else:
             helper = GreedyEmbeddingHelper(self.output_embed_matrix, go_vector, self.config.grammar.end)
         
-        if self.config.use_dot_product_output:
-            output_layer = tf.layers.Dense(self.config.output_embed_size, use_bias=True)
-        else:
-            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         decoder = BasicDecoder(cell_dec, helper, enc_final_state, output_layer=output_layer)
         final_outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
@@ -107,55 +86,44 @@ class Seq2SeqAligner(BaseAligner):
         # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
         return tf.expand_dims(preds.sample_id, axis=1)
     
+    def _max_margin_loss(self, preds, mask):
+        # as in Crammer and Singer, "On the Algorithmic Implementation of Multiclass Kernel-based Vector Machines"
+
+        flat_mask = tf.reshape(mask, (self.batch_size * self.config.max_length,))
+        flat_preds = tf.reshape(preds, (self.batch_size * self.config.max_length, self.config.output_size))
+        flat_gold = tf.reshape(self.output_placeholder, (self.batch_size * self.config.max_length,))
+
+        flat_indices = tf.range(self.batch_size * self.config.max_length, dtype=tf.int32)
+        flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
+
+        one_hot_gold = tf.one_hot(self.output_placeholder, depth=self.config.output_size, dtype=tf.float32)
+        marginal_scores = preds - one_hot_gold + 1
+
+        marginal_scores = tf.reshape(marginal_scores, (self.batch_size * self.config.max_length, self.config.output_size))
+        max_margin = tf.reduce_max(marginal_scores, axis=1)
+
+        gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
+        margin = max_margin - gold_score
+
+        margin = margin * flat_mask
+
+        margin = tf.reshape(margin, (self.batch_size, self.config.max_length))
+
+        return tf.reduce_mean(tf.reduce_sum(margin, axis=1) / tf.cast(self.output_length_placeholder, dtype=tf.float32), axis=0)
+
     def add_loss_op(self, result):
         logits = result.rnn_output
-        with tf.control_dependencies([tf.assert_positive(tf.shape(logits)[1], data=[tf.shape(logits)])]):
-            length_diff = tf.reshape(self.config.max_length - tf.shape(logits)[1], shape=(1,))
-        padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0, 0]], axis=0), shape=(3, 2))
+        length_diff = self.config.max_length - tf.shape(logits)[1]
+        padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
         preds = tf.pad(logits, padding, mode='constant')
         preds.set_shape((None, self.config.max_length, result.rnn_output.shape[2]))
         
         mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
         
-        if self.config.use_dot_product_output:
-            # use a distance loss against the embedding of the real solution
-            with tf.name_scope('label_encoding'):
-                label_encoded = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
-                
-            difference = preds - label_encoded
-            print('difference', difference)
-            l2_distance = tf.norm(difference, ord=2, axis=2)
-            print('l2_distance', l2_distance)
-            l2_distance = l2_distance * tf.cast(mask, tf.float32)
-            
-            return tf.reduce_mean(tf.reduce_sum(l2_distance, axis=1), axis=0)
-        else:
-            # add epsilon to avoid division by 0
-            preds = preds + 1e-5
+        # add epsilon to avoid division by 0
+        preds = preds + 1e-5
 
-            # as in Crammer and Singer, "On the Algorithmic Implementation of Multiclass Kernel-based Vector Machines"
+        return self._max_margin_loss(preds, mask)
 
-            flat_mask = tf.reshape(mask, (self.batch_size * self.config.max_length,))
-            flat_preds = tf.reshape(preds, (self.batch_size * self.config.max_length, self.config.output_size))
-            flat_gold = tf.reshape(self.output_placeholder, (self.batch_size * self.config.max_length,))
-
-            flat_indices = tf.range(self.batch_size * self.config.max_length, dtype=tf.int32)
-            flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
-
-            one_hot_gold = tf.one_hot(self.output_placeholder, depth=self.config.output_size, dtype=tf.float32)
-            marginal_scores = preds - one_hot_gold + 1
-
-            marginal_scores = tf.reshape(marginal_scores, (self.batch_size * self.config.max_length, self.config.output_size))
-            max_margin = tf.reduce_max(marginal_scores, axis=1)
-
-            gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
-            margin = max_margin - gold_score
-
-            margin = margin * flat_mask
-
-            margin = tf.reshape(margin, (self.batch_size, self.config.max_length))
-
-            return tf.reduce_mean(tf.reduce_sum(margin, axis=1) / tf.cast(self.output_length_placeholder, dtype=tf.float32), axis=0)
-
-            #return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
-            #                                        tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)
+        #return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
+        #                                        tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)

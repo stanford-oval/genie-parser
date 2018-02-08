@@ -86,9 +86,7 @@ class Config(object):
             train_output_embeddings='true',
             output_embed_size=15,
             beam_width=10,
-            training_beam_width=10,
-            use_dot_product_output='false',
-            connect_output_decoder='true'
+            training_beam_width=10
         )
         
         self._grammar = None
@@ -214,14 +212,6 @@ class Config(object):
     @property
     def typed_input_embeddings(self):
         return self._config['input'].getboolean('use_typed_embeddings')
-    
-    @property
-    def use_dot_product_output(self):
-        return self._config['output'].getboolean('use_dot_product_output')
-    
-    @property
-    def connect_output_decoder(self):
-        return self._config['output'].getboolean('connect_output_decoder')
     
     @property
     def train_output_embeddings(self):

@@ -1,4 +1,3 @@
-# Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
 #
 # Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
 #
@@ -575,11 +574,7 @@ class BeamAligner(BaseAligner):
         
         print('enc_final_state', enc_final_state)
         
-        if self.config.use_dot_product_output:
-            output_layer = common.DotProductLayer(self.output_embed_matrix)
-        else:
-            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
-        
+        output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = BeamSearchOptimizationDecoder(training, cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
