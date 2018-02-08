@@ -43,7 +43,14 @@ def run():
     model_dir = sys.argv[1]
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
     model = create_model(config)
-    test_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
+
+    test_data = dict()
+    for filename in sys.argv[2:]:
+        print('Loading', filename)
+        data = load_data(filename, config.dictionary, config.grammar, config.max_length)
+        key = os.path.basename(filename)
+        key = key[:key.rindex('.')]
+        test_data[key] = data
     print("unknown", unknown_tokens)
 
     with tf.Graph().as_default():
@@ -51,7 +58,9 @@ def run():
         with tf.device('/cpu:0'):
             model.build()
         
-            test_eval = Seq2SeqEvaluator(model, config.grammar, test_data, 'test', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
+            test_evals = dict()
+            for key, data in test_data.items():
+                test_evals[key] = Seq2SeqEvaluator(model, config.grammar, data, key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
             loader = tf.train.Saver()
 
             with tf.Session() as sess:
@@ -60,7 +69,9 @@ def run():
                 #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
                 #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
-                test_eval.eval(sess, save_to_file=True)
+                for test_eval in test_evals.values():
+                    print()
+                    test_eval.eval(sess, save_to_file=True)
             
 if __name__ == '__main__':
     run()
