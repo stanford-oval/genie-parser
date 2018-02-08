@@ -41,8 +41,16 @@ def run():
     model_conf = os.path.join(model_dir, 'model.conf')
     config = Config.load(['./default.conf', model_conf])
     model = create_model(config)
+
+    print('Loading', sys.argv[2], 'as training')
     train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
-    dev_data = load_data(sys.argv[3], config.dictionary, config.grammar, config.max_length)
+    dev_data = dict()
+    for filename in sys.argv[3:]:
+        print('Loading', filename, 'as dev')
+        data = load_data(filename, config.dictionary, config.grammar, config.max_length)
+        key = os.path.basename(filename)
+        key = key[:key.rindex('.')]
+        dev_data[key] = data
     print("unknown", unknown_tokens)
     try:
         os.mkdir(model_dir)
@@ -61,9 +69,11 @@ def run():
         saver = tf.train.Saver(max_to_keep=config.n_epochs)
         
         train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
-        dev_eval = Seq2SeqEvaluator(model, config.grammar, dev_data, 'dev', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
-        trainer = Trainer(model, train_data, train_eval, dev_eval, saver,
-                          opt_eval_metric='parse_action_f1',
+        dev_evals = []
+        for key, data in dev_data.items():
+            dev_evals.append(Seq2SeqEvaluator(model, config.grammar, data, key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size))
+        trainer = Trainer(model, train_data, train_eval, dev_evals, saver,
+                          opt_eval_metric='accuracy',
                           model_dir=model_dir,
                           max_length=config.max_length,
                           batch_size=config.batch_size,
@@ -80,10 +90,7 @@ def run():
             #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
             # Fit the model
-            best_dev, best_train = trainer.fit(sess)
-
-            print("best train", best_train)
-            print("best dev", best_dev)
+            trainer.fit(sess)
 
 if __name__ == "__main__":
     run()

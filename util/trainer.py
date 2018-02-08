@@ -34,7 +34,7 @@ class Trainer(object):
     Train a model on data
     '''
 
-    def __init__(self, model, train_data, train_eval, dev_eval, saver,
+    def __init__(self, model, train_data, train_eval, dev_evals, saver,
                  opt_eval_metric='accuracy',
                  model_dir='./model',
                  max_length=40,
@@ -48,7 +48,7 @@ class Trainer(object):
         self.train_data = train_data
 
         self.train_eval = train_eval
-        self.dev_eval = dev_eval
+        self.dev_evals = dev_evals
         self.saver = saver
 
         self._opt_eval_metric = opt_eval_metric
@@ -84,16 +84,25 @@ class Trainer(object):
                 average_loss = self.run_epoch(sess, losses, grad_norms, epoch)
                 print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
 
+                epoch_metrics = dict()
+
                 train_metrics = self.train_eval.eval(sess, save_to_file=False)
-                dev_metrics = self.dev_eval.eval(sess, save_to_file=False)
-                for metric, dev_value in dev_metrics.items():
+                for metric, train_value in train_metrics.items():
+                    epoch_metrics[metric] = [train_value]
+
+                for dev_eval in self.dev_evals:
+                    dev_metrics = dev_eval.eval(sess, save_to_file=False)
+                    for metric, dev_value in dev_metrics.items():
+                        epoch_metrics[metric].append(float(dev_value))
+                for metric, values in epoch_metrics.items():
                     if metric not in eval_metrics:
                         eval_metrics[metric] = []
-                    eval_metrics[metric].append((float(train_metrics[metric]), float(dev_value)))
-                comparison_metric = dev_metrics[self._opt_eval_metric]
+                    eval_metrics[metric].append(values)
+
+                comparison_metric = epoch_metrics[self._opt_eval_metric][1]
                 
                 if best is None or comparison_metric >= best:
-                    print('Found new model with best ' + self._opt_eval_metric)
+                    print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
                     self.saver.save(sess, os.path.join(self._model_dir, 'best'))
                     best = comparison_metric
                     best_train = train_metrics[self._opt_eval_metric]
@@ -108,4 +117,3 @@ class Trainer(object):
                 output = dict(loss=losses, grad=grad_norms)
                 output.update(eval_metrics)
                 json.dump(output, fp)
-        return best, best_train
