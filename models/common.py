@@ -223,7 +223,8 @@ def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
     
     return enc_hidden_states, enc_final_state
 
-def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn):
+def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn,
+                    alignment_history=True):
     if attention_probability_fn == 'softmax':
         probability_fn = tf.nn.softmax
         score_mask_value = float('-inf')
@@ -251,7 +252,7 @@ def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, 
     cell_dec = AttentionWrapper(cell_dec, attention,
                                 cell_input_fn=lambda inputs, _: inputs,
                                 attention_layer_size=int(cell_dec.output_size),
-                                alignment_history=True,
+                                alignment_history=alignment_history,
                                 initial_cell_state=enc_final_state)
     enc_final_state = cell_dec.zero_state(batch_size, dtype=tf.float32)
     

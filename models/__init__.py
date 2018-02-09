@@ -25,6 +25,7 @@ import tensorflow as tf
 from .seq2seq_aligner import Seq2SeqAligner
 from .beam_aligner import BeamAligner
 from .rpag_aligner import RPAGAligner
+from .beamdecode_aligner import BeamDecodeAligner
 
 from .config import Config
     
@@ -33,6 +34,8 @@ def create_model(config):
         model = Seq2SeqAligner(config)
     elif config.model_type == 'beamsearch':
         model = BeamAligner(config)
+    elif config.model_type == 'beamdecode':
+        model = BeamDecodeAligner(config)
     elif config.model_type == 'rpag':
         model = RPAGAligner(config)
     else:

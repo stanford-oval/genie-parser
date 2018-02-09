@@ -167,7 +167,7 @@ class Config(object):
     
     @property
     def beam_size(self):
-        if self._config['model']['model_type'] == 'beamsearch':
+        if self._config['model']['model_type'] in ('beamsearch','beamdecode'):
             return int(self._config['output']['beam_width'])
         else:
             return 1
