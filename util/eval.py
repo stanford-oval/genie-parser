@@ -174,7 +174,10 @@ class Seq2SeqEvaluator(object):
                             sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
                             gold_str = ' '.join(gold)
                             decoded_str = ' '.join(decoded)
-                            print(sentence, gold_str, decoded_str, is_ok_full, sep='\t', file=fp)
+                            print(sentence, gold_str, decoded_str, is_ok_full,
+                                  'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
+                                  'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
+                                  sep='\t', file=fp)
                 
                 n_minibatches += 1
                 example_counter = n_minibatches * self._batch_size

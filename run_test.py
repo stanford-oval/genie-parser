@@ -48,6 +48,8 @@ def run():
     for filename in sys.argv[2:]:
         print('Loading', filename)
         data = load_data(filename, config.dictionary, config.grammar, config.max_length)
+        if len(data[0]) == 0:
+            continue
         key = os.path.basename(filename)
         key = key[:key.rindex('.')]
         test_data[key] = data
