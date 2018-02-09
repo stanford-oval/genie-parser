@@ -244,7 +244,8 @@ class BaseAligner(BaseModel):
     def add_regularization_loss(self):
         return self._add_l2_helper('/kernel:0', self.config.l2_regularization) + \
             self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization) + \
-            self._add_l1_helper('/kernel:0', self.config.l1_regularization)
+            self._add_l1_helper('/kernel:0', self.config.l1_regularization) + \
+            self._add_l2_helper('/decoder/dense/kernel:0', self.config.embedding_l2_regularization)
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()
@@ -255,7 +256,12 @@ class BaseAligner(BaseModel):
     def add_training_op(self, loss):
         optclass = getattr(tf.train, self.config.optimizer + 'Optimizer')
         assert issubclass(optclass, tf.train.Optimizer)
-        optimizer = optclass(self.config.learning_rate)
+
+        global_step = tf.train.get_or_create_global_step()
+
+        learning_rate = tf.train.exponential_decay(self.config.learning_rate, global_step,
+                                                   100, self.config.learning_rate_decay)
+        optimizer = optclass(learning_rate)
 
         gradient_var_pairs = optimizer.compute_gradients(loss)
         vars = [x[1] for x in gradient_var_pairs]
@@ -266,7 +272,7 @@ class BaseAligner(BaseModel):
             clipped = gradients
 
         self.grad_norm = tf.global_norm(clipped)
-        train_op = optimizer.apply_gradients(zip(clipped, vars))
+        train_op = optimizer.apply_gradients(zip(clipped, vars), global_step=global_step)
         return train_op
 
     def __init__(self, config : Config):

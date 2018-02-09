@@ -61,6 +61,7 @@ class Config(object):
             batch_size=256,
             n_epochs=25,
             learning_rate=0.01,
+            learning_rate_decay=0.95,
             dropout=0.5,
             gradient_clip=0.5,
             l2_regularization=0.0,
@@ -185,6 +186,10 @@ class Config(object):
     @property
     def learning_rate(self):
         return float(self._config['training']['learning_rate'])
+
+    @property
+    def learning_rate_decay(self):
+        return float(self._config['training']['learning_rate_decay'])
 
     @property
     def gradient_clip(self):

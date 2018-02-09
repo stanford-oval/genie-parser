@@ -39,7 +39,7 @@ TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
     'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['""', 'QUOTED_STRING']),
-    'Date': (['==', '>', '<', '>=', '<='], [
+    'Date': (['==', '>=', '<='], [
         'DATE',
         'now',
         ('start_of', 'unit:h'),
@@ -56,8 +56,8 @@ TYPES = {
         ('$constant_Date', '-', '$constant_Measure(ms)')
         ]),
     'Time': (['=='], ['TIME']),
-    'Currency': (['==', '<', '>', '>=', '<='], ['CURRENCY']),
-    'Number': (['==', '<', '>', '>=', '<='], ['NUMBER', '1', '0']),
+    'Currency': (['==', '>=', '<='], ['CURRENCY']),
+    'Number': (['==', '>=', '<='], ['NUMBER', '1', '0']),
     'Entity(tt:username)': (['=='], ['USERNAME', ('$constant_String',) ]),
     'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('$constant_String',) ]),
     'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('$constant_String',) ]),
@@ -243,9 +243,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             #GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
                 GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, '$constant_' + type))
-                GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, 'in_array', '[', '$constant_' + type, '$constant_' + type, ']'))
                 # FIXME reenable some day
                 #GRAMMAR['$atom_filter'].add(('$out_param', op, '$out_param'))
+            GRAMMAR['$atom_filter'].append(('$out_param_' + type, 'in_array', '[', '$constant_' + type, ',', '$constant_' + type, ']'))
             GRAMMAR['$atom_filter'].append(('$out_param_Array(' + type + ')', 'contains', '$constant_' + type))
             GRAMMAR['$out_param_' + type] = []
             GRAMMAR['$out_param_Array(' + type + ')'] = []
