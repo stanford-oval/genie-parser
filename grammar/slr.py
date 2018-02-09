@@ -404,7 +404,10 @@ class ShiftReduceParser:
         
     @property
     def num_rules(self):
-        return len(self.rules)
+        # the last rule is $ROOT -> $input <<EOF>>
+        # which is a pseudo-rule needed for the SLR generator
+        # we ignore it here
+        return len(self.rules)-1
     
     @property
     def num_states(self):
