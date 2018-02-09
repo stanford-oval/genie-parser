@@ -38,7 +38,7 @@ SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
-    'String': (['==', '=~', '~=', 'starts_with', 'ends_with', 'prefix_of', 'suffix_of'], ['""', 'QUOTED_STRING']),
+    'String': (['==', '=~', '~=', 'starts_with', 'ends_with'], ['""', 'QUOTED_STRING']),
     'Date': (['==', '>=', '<='], [
         'DATE',
         'now',
@@ -83,9 +83,9 @@ UNITS = dict(C=["C", "F"],
              kg=["kg", "g", "lb", "oz"],
              kcal=["kcal", "kJ"],
              bpm=["bpm"],
-             byte=["byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"])
+             byte=["byte", "KB", "MB", "GB", "TB"])
 
-MAX_ARG_VALUES = 4
+MAX_ARG_VALUES = 3
 MAX_STRING_ARG_VALUES = 5
 
 def clean(name):
@@ -117,7 +117,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     
     def _process_devices(self, devices):
         for device in devices:
-            if device['kind_type'] == 'global':
+            if device['kind_type'] in ('global', 'discovery', 'category'):
+                continue
+            if device['kind'] == 'org.thingpedia.builtin.test':
                 continue
             self.devices.append('device:' + device['kind'])
             
@@ -284,9 +286,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         for generic_entity, has_ner in self.entities:
             if has_ner:
                 value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
+                value_rules.append(('$constant_String',))
             else:
                 value_rules = []
-            value_rules.append(('$constant_String',))
             add_type('Entity(' + generic_entity + ')', value_rules, ['=='])
             
         # maps a parameter to the list of types it can possibly have
@@ -332,7 +334,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     else:
                         if param_type in ('Any', 'String'):
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_Any'))
-                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', 'event'))
+                            if param_type == 'String':
+                                GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', 'event'))
                         elif param_type.startswith('Entity('):
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_' + param_type))
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_String'))

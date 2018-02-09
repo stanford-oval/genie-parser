@@ -260,7 +260,7 @@ class BaseAligner(BaseModel):
         global_step = tf.train.get_or_create_global_step()
 
         learning_rate = tf.train.exponential_decay(self.config.learning_rate, global_step,
-                                                   100, self.config.learning_rate_decay)
+                                                   50000, self.config.learning_rate_decay)
         optimizer = optclass(learning_rate)
 
         gradient_var_pairs = optimizer.compute_gradients(loss)
