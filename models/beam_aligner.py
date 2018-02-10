@@ -569,6 +569,7 @@ class BeamAligner(BaseAligner):
                                                                tiled_input_length,
                                                                self.batch_size * beam_width,
                                                                self.config.attention_probability_fn,
+                                                               self.dropout_placeholder,
                                                                alignment_history=False)
         else:
             enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, beam_width)

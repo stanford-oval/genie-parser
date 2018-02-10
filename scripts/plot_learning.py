@@ -161,5 +161,6 @@ def learning():
 
     plt.tight_layout()
     plt.show()
+    #plt.savefig('plot.png')
 
 learning()

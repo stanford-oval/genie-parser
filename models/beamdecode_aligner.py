@@ -59,6 +59,7 @@ class BeamDecodeAligner(Seq2SeqAligner):
                                                                tiled_sequence_length,
                                                                self.batch_size * self.config.beam_size,
                                                                self.config.attention_probability_fn,
+                                                               self.dropout_placeholder,
                                                                alignment_history=False)
             #enc_final_state = enc_final_state.clone(cell_state=tiled_enc_final_state)
         else:

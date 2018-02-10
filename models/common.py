@@ -59,27 +59,21 @@ class StackRNNCell(tf.contrib.rnn.RNNCell):
                 nop_prob = tf.expand_dims(action[:,2], axis=1)
                 
                 stack = tf.reshape(state.stacks[i], (batch_size, self._stack_size, self._num_units))
-                print('stack', stack)
                 
                 stack_0 = stack[:,0]
                 stack_1 = stack[:,1]
                 with tf.name_scope('new_stack_0'): 
                     new_stack_0 = tf.expand_dims(push_prob * self._push_layers[i](state.hidden_state) +
                                                  pop_prob * stack_1 + nop_prob * stack_0, axis=1)
-                print('new_stack_0', new_stack_0)
                 with tf.name_scope('new_stack_i'):
                     stack_push = (stack[:,:-1])
-                    print('stack_push', stack_push)
                     stack_pop = tf.concat((stack[:,2:], tf.zeros((batch_size, 1, self._num_units), dtype=tf.float32)), axis=1)
-                    print('stack_pop', stack_pop)
                     stack_nop = stack[:,1:]
-                    print('stack_nop', stack_nop)
                     
                     new_stack_i = tf.expand_dims(push_prob, axis=1) * stack_push + \
                         tf.expand_dims(pop_prob, axis=1) * stack_pop + \
                         tf.expand_dims(nop_prob, axis=1) * stack_nop
                 new_stack = tf.concat((new_stack_0, new_stack_i), axis=1)
-                print('new_stack', new_stack)
                 new_stacks.append(new_stack)
         
         stack_tops = [tf.reshape(stack[:,:self._stack_top_k], (batch_size, self._stack_top_k * self._num_units)) for stack in new_stacks]
@@ -223,8 +217,48 @@ def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
     
     return enc_hidden_states, enc_final_state
 
+
+def _enumerated_map_structure_up_to(shallow_structure, map_fn, *args, **kwargs):
+    ix = [0]
+    def enumerated_fn(*inner_args, **inner_kwargs):
+        r = map_fn(ix[0], *inner_args, **inner_kwargs)
+        ix[0] += 1
+        return r
+    return nest.map_structure_up_to(shallow_structure, enumerated_fn, *args, **kwargs)
+
+class NotBrokenDropoutWrapper(tf.contrib.rnn.DropoutWrapper):
+    def __init__(self, cell, output_keep_prob):
+        self._dropout_state_filter = lambda x: False
+        self._state_keep_prob = 1.0
+        self._input_keep_prob = 1.0
+        self._output_keep_prob = output_keep_prob
+
+        self._cell = cell
+        self._variational_recurrent = True
+        self._seed = None
+
+        self._recurrent_input_noise = None
+        self._recurrent_state_noise = None
+        self._recurrent_output_noise = None
+
+        def convert_to_batch_shape(s):
+            # Prepend a 1 for the batch dimension; for recurrent
+            # variational dropout we use the same dropout mask for all
+            # batch elements.
+            return tf.concat(([1], tf.TensorShape(s).as_list()), 0)
+
+        def batch_noise(s, inner_seed):
+            shape = convert_to_batch_shape(s)
+            return tf.random_uniform(shape, seed=inner_seed, dtype=tf.float32)
+
+        self._recurrent_output_noise = _enumerated_map_structure_up_to(
+            cell.output_size,
+            lambda i, s: batch_noise(s, inner_seed=self._gen_seed("output", i)),
+            cell.output_size)
+
+
 def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn,
-                    alignment_history=True):
+                    dropout, alignment_history=True):
     if attention_probability_fn == 'softmax':
         probability_fn = tf.nn.softmax
         score_mask_value = float('-inf')
@@ -255,5 +289,7 @@ def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, 
                                 alignment_history=alignment_history,
                                 initial_cell_state=enc_final_state)
     enc_final_state = cell_dec.zero_state(batch_size, dtype=tf.float32)
-    
+
+    cell_dec = NotBrokenDropoutWrapper(cell_dec, output_keep_prob=dropout)
+
     return cell_dec, enc_final_state
