@@ -50,18 +50,20 @@ class RNNEncoder(BaseEncoder):
 class BiRNNEncoder(RNNEncoder):
     def encode(self, inputs, input_length, _parses):
         with tf.name_scope('BiRNNEncoder'):
-            fw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self._input_size, self.output_size, self._dropout)
-            bw_cell_enc = common.make_multi_rnn_cell(self._num_layers, self._cell_type, self._input_size, self.output_size, self._dropout)
+            fw_cells = [common.make_rnn_cell(self._cell_type, self._input_size, self.output_size, self._dropout) for _ in range(self._num_layers)]
+            bw_cells = [common.make_rnn_cell(self._cell_type, self._input_size, self.output_size, self._dropout) for _ in range(self._num_layers)]
+            
+            outputs, fw_output_state, bw_output_state = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(fw_cells,
+                                                                                                       bw_cells,
+                                                                                                       inputs,
+                                                                                                       sequence_length=input_length,
+                                                                                                       dtype=tf.float32)
 
-            outputs, output_state = tf.nn.bidirectional_dynamic_rnn(fw_cell_enc, bw_cell_enc, inputs, input_length,
-                                                                    dtype=tf.float32)
-
-            fw_output_state, bw_output_state = output_state
-            # concat each element of the final state, so that we're compatible with a unidirectional
-            # decoder
-            output_state = nest.pack_sequence_as(fw_output_state, [tf.concat((x, y), axis=1) for x, y in zip(nest.flatten(fw_output_state), nest.flatten(bw_output_state))])
-
-            return tf.concat(outputs, axis=2), output_state
+            # concat each element of the final state, so that we're compatible
+            # with a unidirectional decoder
+            states = [tf.concat((x, y), axis=1) for x, y in zip(nest.flatten(fw_output_state), nest.flatten(bw_output_state))]
+            output_state = nest.pack_sequence_as(fw_output_state, states)
+            return outputs, output_state
 
 
 class BagOfWordsEncoder(BaseEncoder):
