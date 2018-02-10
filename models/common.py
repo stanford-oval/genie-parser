@@ -257,6 +257,25 @@ class NotBrokenDropoutWrapper(tf.contrib.rnn.DropoutWrapper):
             cell.output_size)
 
 
+class ActivationWrapper(tf.contrib.rnn.RNNCell):
+    def __init__(self, cell, activation=tf.tanh):
+        super().__init__()
+
+        self._cell = cell
+        self._activation = activation
+
+    @property
+    def output_size(self):
+        return self._cell.output_size
+
+    @property
+    def state_size(self):
+        return self._cell.state_size
+
+    def call(self, inputs, state):
+        output, next_state = self._cell(inputs, state)
+        return nest.map_structure(lambda x: self._activation(x), output), next_state
+
 def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn,
                     dropout, alignment_history=True):
     if attention_probability_fn == 'softmax':
@@ -290,6 +309,7 @@ def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, 
                                 initial_cell_state=enc_final_state)
     enc_final_state = cell_dec.zero_state(batch_size, dtype=tf.float32)
 
+    cell_dec = ActivationWrapper(cell_dec, activation=tf.tanh)
     cell_dec = NotBrokenDropoutWrapper(cell_dec, output_keep_prob=dropout)
 
     return cell_dec, enc_final_state
