@@ -332,10 +332,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                             GRAMMAR['$atom_filter'].append(('param:' + param_name + ':' + param_type, '==', 'true'))
                             GRAMMAR['$atom_filter'].append(('param:' + param_name + ':' + param_type, '==', 'false'))
                     else:
-                        if param_type in ('Any', 'String'):
+                        if param_type == 'String':
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_Any'))
-                            if param_type == 'String':
-                                GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', 'event'))
+                            GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', 'event'))
                         elif param_type.startswith('Entity('):
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_' + param_type))
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_String'))
