@@ -48,9 +48,12 @@ class BaseAligner(BaseModel):
         self.final_encoder_state = enc_final_state
         
         if self.config.decoder_action_count_loss > 0:
-            count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
+            # only consider the first 23 values (excluding any query, action, parameter or filter)
+            #count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
+            count_layer = tf.layers.Dense(23, name='action_count_layer')
             action_count_logits = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
-            self.action_counts = action_count_logits > 0
+            #self.action_counts = action_count_logits > 0
+            self.action_counts = None
         else:
             self.action_counts = None
 
@@ -60,7 +63,7 @@ class BaseAligner(BaseModel):
 
         if self.config.decoder_action_count_loss > 0:
             with tf.name_scope('action_count_loss'):
-                binarized_label = tf.cast(self.output_action_counts >= 1, dtype=tf.float32)
+                binarized_label = tf.cast(self.output_action_counts[:,:23] >= 1, dtype=tf.float32)
                 #binarized_predictions = tf.cast(self.action_counts >= 0.5, dtype=tf.float32)
                 #action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
                 

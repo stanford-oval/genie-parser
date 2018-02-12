@@ -186,7 +186,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             #'$program': [('$rule',),
             #             ('$constant_Entity(tt:username)', ':', '$rule')],
             '$input': [('$stream', '=>', '$thingpedia_actions'),
+                       ('$stream_join', '=>', '$thingpedia_actions'),
                        ('$stream', '=>', 'notify'),
+                       ('$stream_join', '=>', 'notify'),
                        ('now', '=>', '$table', '=>', '$thingpedia_actions'),
                        ('now', '=>', '$table', '=>', 'notify'),
                        ('now', '=>', '$thingpedia_actions'),
@@ -215,7 +217,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
                         ('edge', '(', '$stream', ')', 'on', '$filter'),
                         #('edge', '(', '$stream', ')', 'on', 'true'),
-                        ('$stream_join',)],
+                        #('$stream_join',)
+                        ],
             '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
             '$thingpedia_queries': [('$thingpedia_queries', '$const_param')],
@@ -230,7 +233,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ('$filter', 'and', '$or_filter',)],
             '$or_filter': [('$atom_filter',),
                            ('not', '$atom_filter',),
-                           ('$or_filter', 'or', '$atom_filter')],
+                           ('$or_filter', 'or', '$atom_filter')
+                           ],
             '$atom_filter': [],
             
             #'$constant_Array': [('[', '$constant_array_values', ']',)],

@@ -6,7 +6,7 @@ import itertools
 import os
 
 def is_function(token):
-    if token.startswith('@') and token != '@org.thingpedia.builtin.thingengine.builtin.say':
+    if token.startswith('@'):
         return True
     if token in ('timer', 'attimer'):
         return True
