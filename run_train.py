@@ -32,7 +32,7 @@ from tensorflow.python import debug as tf_debug
 
 def run():
     if len(sys.argv) < 4:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train Set>> <<Dev Set>>")
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -48,15 +48,26 @@ def run():
         load_existing = True
         off = 3
 
-    print('Loading', sys.argv[off], 'as training')
-    train_data = load_data(sys.argv[off], config.dictionary, config.grammar, config.max_length)
+    train_sets = []
+    dev_sets = []
+    train_data = dict()
     dev_data = dict()
-    for filename in sys.argv[off+1:]:
-        print('Loading', filename, 'as dev')
+    for what_filename in sys.argv[off:]:
+        what, filename = what_filename.split(':')
+        if what not in ('train', 'dev'):
+            print('I don\'t know how to use', what)
+            sys.exit(1)
+        print('Loading', filename, 'as', what)
         data = load_data(filename, config.dictionary, config.grammar, config.max_length)
+        print('Found', len(data[0]), 'sentences')
         key = os.path.basename(filename)
         key = key[:key.rindex('.')]
-        dev_data[key] = data
+        if what == 'train':
+            train_sets.append(key)
+            train_data[key] = data
+        else:
+            dev_sets.append(key)
+            dev_data[key] = data
     print("unknown", unknown_tokens)
     try:
         os.mkdir(model_dir)
@@ -64,8 +75,6 @@ def run():
         pass
     if not os.path.exists(model_conf):
         config.save(model_conf)
-
-    np.save('train-weights.npy', train_data[-1])
 
     with tf.Graph().as_default():
         tf.set_random_seed(1234)
@@ -76,12 +85,15 @@ def run():
             init = None
         
         saver = tf.train.Saver(max_to_keep=config.n_epochs)
-        
-        train_eval = Seq2SeqEvaluator(model, config.grammar, train_data, 'train', config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
         dev_evals = []
-        for key, data in dev_data.items():
-            dev_evals.append(Seq2SeqEvaluator(model, config.grammar, data, key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size))
-        trainer = Trainer(model, train_data, train_eval, dev_evals, saver,
+        for key in dev_sets:
+            dev_evals.append(Seq2SeqEvaluator(model, config.grammar, dev_data[key], key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size))
+        
+        train_evals = []
+        for key in train_sets:
+            train_evals.append(Seq2SeqEvaluator(model, config.grammar, train_data[key], key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size))
+        
+        trainer = Trainer(model, train_sets, train_data, train_evals, dev_evals, saver,
                           opt_eval_metric='accuracy',
                           model_dir=model_dir,
                           max_length=config.max_length,

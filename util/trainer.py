@@ -34,7 +34,7 @@ class Trainer(object):
     Train a model on data
     '''
 
-    def __init__(self, model, train_data, train_eval, dev_evals, saver,
+    def __init__(self, model, train_sets, train_data, train_evals, dev_evals, saver,
                  opt_eval_metric='accuracy',
                  model_dir='./model',
                  max_length=40,
@@ -47,9 +47,10 @@ class Trainer(object):
         Constructor
         '''
         self.model = model
+        self.train_sets = train_sets
         self.train_data = train_data
 
-        self.train_eval = train_eval
+        self.train_evals = train_evals
         self.dev_evals = dev_evals
         self.saver = saver
 
@@ -61,47 +62,60 @@ class Trainer(object):
         self._shuffle_data = shuffle_data
         self._load_existing = load_existing
         self._extra_kw = kw
+        
+        self._eval_metrics = dict()
+        self._losses = []
+        self._grad_norms = []
+        
+        self._best = None
+        
+        if self._load_existing:
+            with open(os.path.join(self._model_dir, 'train-stats.json'), 'r') as fp:
+                existing = json.load(fp)
+            self._losses = existing['loss']
+            self._grad_norms = existing['grad']
+            for key in existing:
+                if key in ('loss', 'grad'):
+                    continue
+                self._eval_metrics[key] = existing[key]
+            if len(self._eval_metrics[self._opt_eval_metric]) > 0:
+                self._best = max(x[1] for x in self._eval_metrics[self._opt_eval_metric])
 
-    def run_epoch(self, sess, losses, grad_norms, epoch):
+    def run_epoch(self, sess, train_data, epoch):
         n_minibatches, total_loss = 0, 0
-        total_n_minibatches = (len(self.train_data[0])+self._batch_size-1)//self._batch_size
+        total_n_minibatches = (len(train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
-        for data_batch in get_minibatches(self.train_data, self._batch_size, shuffle=(self._shuffle_data or epoch >= 3)):
+        for data_batch in get_minibatches(train_data, self._batch_size, shuffle=(self._shuffle_data or epoch >= 3)):
             loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
             total_loss += loss
-            losses.append(float(loss))
-            grad_norms.append(float(grad_norm))
+            self._losses.append(float(loss))
+            self._grad_norms.append(float(grad_norm))
             n_minibatches += 1
             progbar.update(n_minibatches, values=[('loss', loss)])
         return total_loss / n_minibatches
 
+    def _save_stats(self):
+        with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
+            output = dict(loss=self._losses, grad=self._grad_norms)
+            output.update(self._eval_metrics)
+            json.dump(output, fp)
+
     def fit(self, sess):
-        best = None
-        best_train = None
+        for i, key in enumerate(self.train_sets):
+            self._fit_set(sess, key, self.train_data[key], i)
 
-        eval_metrics = dict()
-        losses = []
-        grad_norms = []
-        if self._load_existing:
-            with open(os.path.join(self._model_dir, 'train-stats.json'), 'r') as fp:
-                existing = json.load(fp)
-                losses = existing['loss']
-                grad_norms = existing['grad']
-                for key in existing:
-                    if key in ('loss', 'grad'):
-                        continue
-                    eval_metrics[key] = existing[key]
-
+    def _fit_set(self, sess, train_key, train_data, i):
+        start_epoch = i * self._n_epochs
         # flush stdout so we show the output before the first progress bar
         sys.stdout.flush()
         try:
-            for epoch in range(self._n_epochs):
-                average_loss = self.run_epoch(sess, losses, grad_norms, epoch)
+            for epoch in range(start_epoch, start_epoch + self._n_epochs):
+                average_loss = self.run_epoch(sess, train_data, epoch)
                 print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
 
                 epoch_metrics = dict()
 
-                train_metrics = self.train_eval.eval(sess, save_to_file=False)
+                train_metrics = self.train_evals[i].eval(sess, save_to_file=False)
                 for metric, train_value in train_metrics.items():
                     epoch_metrics[metric] = [train_value]
 
@@ -110,25 +124,18 @@ class Trainer(object):
                     for metric, dev_value in dev_metrics.items():
                         epoch_metrics[metric].append(float(dev_value))
                 for metric, values in epoch_metrics.items():
-                    if metric not in eval_metrics:
-                        eval_metrics[metric] = []
-                    eval_metrics[metric].append(values)
+                    if metric not in self._eval_metrics:
+                        self._eval_metrics[metric] = []
+                    self._eval_metrics[metric].append(values)
 
                 comparison_metric = epoch_metrics[self._opt_eval_metric][1]
                 
-                if best is None or comparison_metric >= best:
+                if self._best is None or comparison_metric >= self._best:
                     print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
                     self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                    best = comparison_metric
-                    best_train = train_metrics[self._opt_eval_metric]
+                    self._best = comparison_metric
                 print()
                 sys.stdout.flush()
-                with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-                    output = dict(loss=losses, grad=grad_norms)
-                    output.update(eval_metrics)
-                    json.dump(output, fp)
+                self._save_stats()
         finally:
-            with open(os.path.join(self._model_dir, 'train-stats.json'), 'w') as fp:
-                output = dict(loss=losses, grad=grad_norms)
-                output.update(eval_metrics)
-                json.dump(output, fp)
+            self._save_stats()
