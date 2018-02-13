@@ -41,6 +41,7 @@ class Trainer(object):
                  batch_size=256,
                  n_epochs=40,
                  shuffle_data=True,
+                 load_existing=False,
                  **kw):
         '''
         Constructor
@@ -58,6 +59,7 @@ class Trainer(object):
         self._batch_size = batch_size
         self._n_epochs = n_epochs
         self._shuffle_data = shuffle_data
+        self._load_existing = load_existing
         self._extra_kw = kw
 
     def run_epoch(self, sess, losses, grad_norms, epoch):
@@ -76,9 +78,20 @@ class Trainer(object):
     def fit(self, sess):
         best = None
         best_train = None
+
+        eval_metrics = dict()
         losses = []
         grad_norms = []
-        eval_metrics = dict()
+        if self._load_existing:
+            with open(os.path.join(self._model_dir, 'train-stats.json'), 'r') as fp:
+                existing = json.load(fp)
+                losses = existing['loss']
+                grad_norms = existing['grad']
+                for key in existing:
+                    if key in ('loss', 'grad'):
+                        continue
+                    eval_metrics[key] = existing[key]
+
         # flush stdout so we show the output before the first progress bar
         sys.stdout.flush()
         try:

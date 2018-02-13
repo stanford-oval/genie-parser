@@ -88,6 +88,7 @@ def run():
                           batch_size=config.batch_size,
                           n_epochs=config.n_epochs,
                           shuffle_data=config.shuffle_training_data,
+                          load_existing=load_existing,
                           dropout=config.dropout)
 
         tfconfig = tf.ConfigProto()
