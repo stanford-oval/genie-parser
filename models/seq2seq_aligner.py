@@ -62,7 +62,7 @@ class Seq2SeqAligner(BaseAligner):
             output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1), self.output_placeholder], axis=1)
             outputs = tf.nn.embedding_lookup([self.output_embed_matrix], output_ids_with_go)
             if self.config.scheduled_sampling > 0:
-                sampling_probability = tf.minimum(self.config.scheduled_sampling*tf.cast(self.epoch_placeholder, tf.float32), 1)
+                sampling_probability = tf.minimum(self.config.scheduled_sampling*tf.cast((self.epoch_placeholder+1)//2, tf.float32), 1)
                 helper = ScheduledEmbeddingTrainingHelper(inputs=outputs, sequence_length=self.output_length_placeholder+1,
                                                           embedding=self.output_embed_matrix,
                                                           sampling_probability=sampling_probability)

@@ -270,10 +270,10 @@ class Seq2SeqEvaluator(object):
                 
             metrics = {
                 'eval_loss': (sum_eval_loss / n_minibatches),
-                'grammar_accuracy': acc_grammar[0],
-                'accuracy': acc_full[0],
-                'function_accuracy': acc_fn[0],
-                'program_recall': recall[0],
+                'grammar_accuracy': float(acc_grammar[0]),
+                'accuracy': float(acc_full[0]),
+                'function_accuracy': float(acc_fn[0]),
+                'program_recall': float(recall[0]),
                 'parse_action_precision': overall_parse_action_precision,
                 'parse_action_recall': overall_parse_action_recall,
                 'parse_action_f1': overall_parse_action_f1,

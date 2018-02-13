@@ -32,7 +32,7 @@ from tensorflow.python import debug as tf_debug
 
 def run():
     if len(sys.argv) < 4:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Train Set>> <<Dev Set>>")
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train Set>> <<Dev Set>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -42,10 +42,16 @@ def run():
     config = Config.load(['./default.conf', model_conf])
     model = create_model(config)
 
-    print('Loading', sys.argv[2], 'as training')
-    train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
+    off = 2
+    load_existing = False
+    if sys.argv[2] == '--continue':
+        load_existing = True
+        off = 3
+
+    print('Loading', sys.argv[off], 'as training')
+    train_data = load_data(sys.argv[off], config.dictionary, config.grammar, config.max_length)
     dev_data = dict()
-    for filename in sys.argv[3:]:
+    for filename in sys.argv[off+1:]:
         print('Loading', filename, 'as dev')
         data = load_data(filename, config.dictionary, config.grammar, config.max_length)
         key = os.path.basename(filename)
@@ -64,7 +70,10 @@ def run():
     with tf.Graph().as_default():
         tf.set_random_seed(1234)
         model.build()
-        init = tf.global_variables_initializer()
+        if not load_existing:
+            init = tf.global_variables_initializer()
+        else:
+            init = None
         
         saver = tf.train.Saver(max_to_keep=config.n_epochs)
         
@@ -86,7 +95,10 @@ def run():
 
         with tf.Session(config=tfconfig) as sess:
             # Run the Op to initialize the variables.
-            sess.run(init)
+            if not load_existing:
+                sess.run(init)
+            else:
+                saver.restore(sess, os.path.join(model_dir, 'best'))
             #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
             #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
