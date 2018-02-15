@@ -124,7 +124,7 @@ class Seq2SeqAligner(BaseAligner):
         # add epsilon to avoid division by 0
         preds = preds + 1e-5
 
-        return self._max_margin_loss(preds, mask)
-
-        #return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder,
-        #                                        tf.expand_dims(self.output_weight_placeholder, axis=1) * mask)
+        if self.config.use_margin_loss:
+            return self._max_margin_loss(preds, mask)
+        else:
+            return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
