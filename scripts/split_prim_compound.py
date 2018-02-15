@@ -31,12 +31,12 @@ filename = filename[:filename.rindex('.')]
 complexity = {
 'prim': [],
 'prim-filter': [],
-'prim-filter-newtt': [],
+#'prim-filter-newtt': [],
 'compound': [],
-'compound-1pp': [],
-'compound-multipp': [],
-'compound-filter': [],
-'compound-filter-newtt': []
+#'compound-1pp': [],
+#'compound-multipp': [],
+#'compound-filter': [],
+#'compound-filter-newtt': []
 }
 
 NEWTT_TOKENS = set(['new', 'edge', 'in_array', 'not', 'or'])
@@ -56,7 +56,7 @@ for id, sentence, code in input:
             num_pp += 1
             if token == 'param:message:Any':
                 is_newtt = True
-        elif token == 'filter':
+        elif token in ('filter', 'edge'):
             has_filter = True
         elif is_function(token):
             num_functions += 1
@@ -64,20 +64,20 @@ for id, sentence, code in input:
     is_compound = num_functions > 1
 
     if is_compound:
-        if is_newtt:
-            complexity['compound-filter-newtt'].append((id,sentence,code))
-        elif has_filter:
-            complexity['compound-filter'].append((id,sentence,code))
-        elif num_pp > 1:
-            complexity['compound-multipp'].append((id,sentence,code))
-        elif num_pp > 0:
-            complexity['compound-1pp'].append((id,sentence,code))
-        else:
-            complexity['compound'].append((id,sentence,code))
+        #if is_newtt:
+        #    complexity['compound-filter-newtt'].append((id,sentence,code))
+        #elif has_filter:
+        #    complexity['compound-filter'].append((id,sentence,code))
+        #elif num_pp > 1:
+        #    complexity['compound-multipp'].append((id,sentence,code))
+        #elif num_pp > 0:
+        #    complexity['compound-1pp'].append((id,sentence,code))
+        #else:
+        complexity['compound'].append((id,sentence,code))
     else:
-        if is_newtt:
-            complexity['prim-filter-newtt'].append((id,sentence,code))
-        elif has_filter:
+        #if is_newtt:
+        #    complexity['prim-filter-newtt'].append((id,sentence,code))
+        if has_filter:
             complexity['prim-filter'].append((id,sentence,code))
         else:
             complexity['prim'].append((id,sentence,code))

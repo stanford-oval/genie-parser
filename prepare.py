@@ -128,7 +128,27 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
         'weather': None,
         'skydrive': None,
         'imgur': None,
-        '____': None
+        '____': None,
+        'github': None,
+        'related': None,
+        'med.': None,
+        'sized': None,
+        'primary': None,
+        'category': None,
+        'alphabetically': None,
+        'ordered': None,
+        'recently': None,
+        'changed': None,
+        'reverse': None,
+        'abc': None,
+        'newly': None,
+        'reported': None,
+        'newest': None,
+        'updated': None,
+        'home': None,
+        'taken': None,
+        'direct': None,
+        'messages': None
     }
     HACK_REPLACEMENT = {
         # onedrive is the new name of skydrive
@@ -165,7 +185,15 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
                 vector = HACK[word[:-3]]
             elif word in HACK_REPLACEMENT:
                 vector = HACK[HACK_REPLACEMENT[word]]
-            if vector:
+            elif '-' in word:
+                vector = np.zeros(shape=(len(HACK['____']),), dtype=np.float64)
+                for w in word.split('-'):
+                    if w in HACK:
+                        vector += np.array(HACK[w], dtype=np.float64)
+                    else:
+                        vector = None
+                        break
+            if vector is not None:
                 print(word, *vector, file=outfp)
             else:
                 if not word[0].isupper():
