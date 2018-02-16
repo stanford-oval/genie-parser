@@ -27,41 +27,30 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from util.seq2seq import Seq2SeqEvaluator
+from util.eval import Seq2SeqEvaluator
 from util.trainer import Trainer
 
-from util.loader import load_dictionary, load_embeddings
+from models import Config, create_model
 from util.loader import unknown_tokens, load_data
-from thingtalk.grammar import ThingtalkGrammar
 
 def run():
     if len(sys.argv) < 5:
-        print("** Usage: python " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Train Set> <<Test Set>>")
+        print("** Usage: python " + sys.argv[0] + " <<Model Dir>> <<Train Set> <<Test Set>>")
         sys.exit(1)
 
     np.random.seed(42)
+
+    model_dir = sys.argv[1]
+    model_conf = os.path.join(model_dir, 'model.conf')
+    config = Config.load(['./default.conf', model_conf])
     
-    words, reverse = load_dictionary(sys.argv[1], 'tt')
-    print("%d words in dictionary" % (len(words),))
-    embeddings_matrix = load_embeddings(sys.argv[2], words, embed_size=300)
-    max_length = 60
-    
-    grammar = ThingtalkGrammar()
-    
-    train_data = load_data(sys.argv[3], words, grammar.dictionary,
-                           reverse, grammar.tokens,
-                           max_length)
-    test_data = load_data(sys.argv[4], words, grammar.dictionary,
-                             reverse, grammar.tokens,
-                             max_length)
+    train_data = load_data(sys.argv[2], config.dictionary, config.grammar, config.max_length)
+    dev_data = load_data(sys.argv[3], config.dictionary, config.grammar, config.max_length)
     print("unknown", unknown_tokens)
 
-    # Tell TensorFlow that the model will be built into the default Graph.
-    # (not required but good practice)
     with tf.Graph().as_default():
-        # Create a session for running Ops in the Graph
         with tf.Session() as sess:
-            input_embed_matrix = tf.constant(embeddings_matrix)
+            input_embed_matrix = tf.constant(config.embeddings_matrix)
             train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[0]))
             train_encoded = tf.reduce_sum(train_inputs, axis=1)
             #print train_encoded.eval()

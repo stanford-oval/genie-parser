@@ -34,8 +34,8 @@ complexity = {
 #'prim-filter-newtt': [],
 'compound': [],
 #'compound-1pp': [],
-#'compound-multipp': [],
-#'compound-filter': [],
+'compound-multipp': [],
+'compound-filter': [],
 #'compound-filter-newtt': []
 }
 
@@ -66,14 +66,14 @@ for id, sentence, code in input:
     if is_compound:
         #if is_newtt:
         #    complexity['compound-filter-newtt'].append((id,sentence,code))
-        #elif has_filter:
-        #    complexity['compound-filter'].append((id,sentence,code))
-        #elif num_pp > 1:
-        #    complexity['compound-multipp'].append((id,sentence,code))
+        if has_filter:
+            complexity['compound-filter'].append((id,sentence,code))
+        elif num_pp > 1:
+            complexity['compound-multipp'].append((id,sentence,code))
         #elif num_pp > 0:
         #    complexity['compound-1pp'].append((id,sentence,code))
-        #else:
-        complexity['compound'].append((id,sentence,code))
+        else:
+            complexity['compound'].append((id,sentence,code))
     else:
         #if is_newtt:
         #    complexity['prim-filter-newtt'].append((id,sentence,code))
