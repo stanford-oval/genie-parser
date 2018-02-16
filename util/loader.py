@@ -208,4 +208,4 @@ def load_data(from_file, input_words, grammar, max_length):
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
 
-    return inputs, input_lengths, parses, labels, label_lengths
+    return np.array(inputs), np.array(input_lengths), np.array(parses), np.array(labels), np.array(label_lengths)
