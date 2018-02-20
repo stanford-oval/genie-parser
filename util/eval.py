@@ -177,6 +177,7 @@ class Seq2SeqEvaluator(object):
                             print(sentence, gold_str, decoded_str, is_ok_full,
                                   'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
                                   'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
+                                  'CorrectNumFunction' if (is_ok_grammar and len(gold_functions) == len(decoded_functions)) else 'IncorrectNumFunction',
                                   sep='\t', file=fp)
                 
                 n_minibatches += 1
