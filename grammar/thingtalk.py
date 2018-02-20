@@ -368,12 +368,17 @@ if __name__ == '__main__':
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
+    ok_grammar = 0
+    fail_grammar = 0
     for line in sys.stdin:
         try:
             vectors.append(grammar.vectorize_program(line.strip())[0])
+            ok_grammar += 1
         except:
             print(line.strip())
-            raise
+            fail_grammar += 1
+            #raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)
+    print(ok_grammar / (ok_grammar+fail_grammar))
     #for i, name in enumerate(grammar.state_names):
     #    print i, name

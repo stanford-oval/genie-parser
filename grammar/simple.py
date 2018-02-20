@@ -45,3 +45,5 @@ class SimpleGrammar(AbstractGrammar):
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
+
+        self.entities = [(x, True) for x in self.tokens if x.startswith('GENERIC_ENTITY_')]
