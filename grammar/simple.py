@@ -46,4 +46,7 @@ class SimpleGrammar(AbstractGrammar):
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
 
-        self.entities = [(x, True) for x in self.tokens if x.startswith('GENERIC_ENTITY_')]
+        self.entities = set((x[len('GENERIC_ENTITY_'):-2], True) for x in self.tokens if x.startswith('GENERIC_ENTITY_'))
+        self.entities = list(self.entities)
+        self.entities.sort()
+        print(self.entities)
