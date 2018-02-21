@@ -21,6 +21,7 @@ Created on Jul 20, 2017
 '''
 
 from .abstract import AbstractGrammar
+from .thingtalk import ThingTalkGrammar
 
 class SimpleGrammar(AbstractGrammar):
     '''
@@ -51,3 +52,19 @@ class SimpleGrammar(AbstractGrammar):
         self.entities = list(self.entities)
         self.entities.sort()
         print(self.entities)
+        
+        # HACK
+        self._thingtalk = ThingTalkGrammar('./thingpedia.json')
+        
+    def reconstruct_program(self, sequence, ignore_errors=False):
+        program = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+        
+        try:
+            self._thingtalk.vectorize_program(program, 60)
+            return program
+        except:
+            if ignore_errors:
+                return []
+            else:
+                raise
+        
