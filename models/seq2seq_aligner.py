@@ -127,4 +127,5 @@ class Seq2SeqAligner(BaseAligner):
         if self.config.use_margin_loss:
             return self._max_margin_loss(preds, mask)
         else:
+            print('using softmax loss')
             return tf.contrib.seq2seq.sequence_loss(preds, self.output_placeholder, mask)
