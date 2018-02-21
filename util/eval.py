@@ -21,6 +21,7 @@ Created on Mar 16, 2017
 '''
 
 import numpy as np
+from collections import Counter
 
 from grammar.abstract import AbstractGrammar
 from .general_utils import get_minibatches, Progbar
@@ -87,7 +88,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return [x for x in seq if (x.startswith('tt:') or x.startswith('@'))]
+            return set(x for x in seq if x.startswith('@'))
 
         output_size = self.grammar.output_size
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
@@ -95,6 +96,12 @@ class Seq2SeqEvaluator(object):
         action_count_fp = np.zeros((output_size,), dtype=np.int32)
         action_count_tn = np.zeros((output_size,), dtype=np.int32)
         action_count_fn = np.zeros((output_size,), dtype=np.int32)
+        function_tp = Counter()
+        function_fp = Counter()
+        #function_tn = Counter()
+        function_fn = Counter()
+        gold_functions_counter = Counter()
+        #all_functions = set(self.grammar.allfunctions)
         
         n_minibatches = 0
         total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
@@ -133,6 +140,7 @@ class Seq2SeqEvaluator(object):
                     gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
                     #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
+                    gold_functions_counter.update(gold_functions)
 
                     is_ok_grammar = False
                     is_ok_fn = False
@@ -152,6 +160,12 @@ class Seq2SeqEvaluator(object):
                             is_ok_grammar = True
 
                         decoded_functions = get_functions(decoded)
+                        if save_to_file:
+                            function_tp.update(gold_functions & decoded_functions)
+                            function_fp.update(decoded_functions - gold_functions)
+                            function_fn.update(gold_functions - decoded_functions)
+                            #function_tn.update(all_functions - (gold_functions | decoded_functions))
+                        
                         if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
                             ok_fn[beam_pos] += 1
                             is_ok_fn = True
@@ -203,6 +217,19 @@ class Seq2SeqEvaluator(object):
                 with open(self.tag + '-f1.tsv', 'w') as out:
                     for i in range(output_size):
                         print(i, parse_action_precision[i], parse_action_recall[i], parse_action_f1[i], sep='\t', file=out)
+                        
+                with open(self.tag + '-function-f1.tsv', 'w') as out:
+                    all_f1s = []
+                    for f in self.grammar.allfunctions:
+                        if gold_functions_counter[f] == 0:
+                            continue
+                        function_precision = function_tp[f] / (function_tp[f] + function_fp[f])
+                        function_recall = function_tp[f] / (function_tp[f] + function_fn[f])
+                        function_f1 = 2* (function_precision * function_recall) / (function_precision + function_recall)
+                        all_f1s.append(function_f1)
+                        print(f, gold_functions_counter[f], function_precision, function_recall, function_f1, sep='\t', file=out)
+                    all_f1s = np.array(all_f1s)
+                    print(self.tag, 'function f1', np.power(np.prod(all_f1s, dtype=np.float64), 1/len(all_f1s)))
             
             parse_action_precision = np.ma.masked_invalid(parse_action_precision)
             parse_action_recall = np.ma.masked_invalid(parse_action_recall)

@@ -111,6 +111,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         actions = OrderedDict()
         functions = dict(queries=queries, actions=actions)
         self.functions = functions
+        self.allfunctions = []
         self.entities = []
         self._enum_types = OrderedDict()
         self.devices = []
@@ -128,6 +129,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     function_name = '@' + device['kind'] + '.' + name
                     paramlist = []
                     self.functions[function_type][function_name] = paramlist
+                    self.allfunctions.append(function_name)
                     for argname, argtype, is_input in zip(function['args'],
                                                           function['schema'],
                                                           function['is_input']):
