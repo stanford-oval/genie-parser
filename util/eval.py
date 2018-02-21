@@ -223,13 +223,13 @@ class Seq2SeqEvaluator(object):
                     for f in self.grammar.allfunctions:
                         if gold_functions_counter[f] == 0:
                             continue
-                        function_precision = function_tp[f] / (function_tp[f] + function_fp[f])
+                        function_precision = function_tp[f] / (function_tp[f] + function_fp[f] + 1e-5)
                         function_recall = function_tp[f] / (function_tp[f] + function_fn[f])
-                        function_f1 = 2* (function_precision * function_recall) / (function_precision + function_recall)
+                        function_f1 = 2* (function_precision * function_recall) / (function_precision + function_recall + 1e-5)
                         all_f1s.append(function_f1)
                         print(f, gold_functions_counter[f], function_precision, function_recall, function_f1, sep='\t', file=out)
                     all_f1s = np.array(all_f1s)
-                    print(self.tag, 'function f1', np.power(np.prod(all_f1s, dtype=np.float64), 1/len(all_f1s)))
+                    print(self.tag, 'function f1', np.average(all_f1s))#np.power(np.prod(all_f1s, dtype=np.float64), 1/len(all_f1s)))
             
             parse_action_precision = np.ma.masked_invalid(parse_action_precision)
             parse_action_recall = np.ma.masked_invalid(parse_action_recall)
