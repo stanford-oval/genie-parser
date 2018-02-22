@@ -34,6 +34,10 @@ def create_grammar(grammar_type, *args, **kw):
     if grammar_type in ("tt", 'new-tt'):
         pkg = 'thingtalk'
         class_name = 'ThingTalkGrammar'
+    elif grammar_type == 'reverse-tt':
+        pkg = 'thingtalk'
+        class_name = 'ThingTalkGrammar'
+        kw['reverse'] = True
     elif grammar_type == "simple":
         pkg = 'simple'
         class_name = 'SimpleGrammar'

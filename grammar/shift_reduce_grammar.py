@@ -26,17 +26,20 @@ from .abstract import AbstractGrammar
 from .slr import SLRParserGenerator
 
 class ShiftReduceGrammar(AbstractGrammar):
-    def __init__(self):
+    def __init__(self, reverse=False):
         super().__init__()
         
         self.tokens = ['</s>', '<s>']
         
         self._parser = None
+        self._reverse = reverse
 
     def construct_parser(self, grammar):
         generator = SLRParserGenerator(grammar, '$input')
         self._parser = generator.build()
         
+        if self._reverse:
+            print('using reversed grammar')
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
         return generator.terminals
@@ -67,6 +70,11 @@ class ShiftReduceGrammar(AbstractGrammar):
                 assert vector[i] < self.output_size
                 i += 1
             vector[i] = self.end # eos
+            if self._reverse:
+                for j in range(0, i//2):
+                    tmp = vector[j]
+                    vector[j] = vector[i-1-j]
+                    vector[i-1-j] = tmp
             i += 1
             
             return vector, i
@@ -83,6 +91,18 @@ class ShiftReduceGrammar(AbstractGrammar):
                         return ('accept', None)
                     else:
                         return ('reduce', x - self.num_control_tokens)
+                if self._reverse:
+                    sequence = np.array(sequence) # make a copy and reverse that
+                    seq_len = len(sequence)
+                    for i in range(len(sequence)):
+                        if sequence[i] == self.end:
+                            seq_len = i
+                            break
+                    for j in range(0, seq_len//2):
+                        tmp = sequence[j]
+                        sequence[j] = sequence[i-1-j]
+                        sequence[i-1-j] = tmp
+                    
                 return self._parser.reconstruct((gen_action(x) for x in sequence))
             except (KeyError, TypeError, IndexError, ValueError):
                 if ignore_errors:
@@ -108,6 +128,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         for action in sequence:
             if action == 0:
                 print('accept')
+                return
             elif action == 1:
                 print('start')
             else:

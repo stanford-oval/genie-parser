@@ -101,8 +101,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None):
-        super().__init__()
+    def __init__(self, filename=None, **kw):
+        super().__init__(**kw)
         if filename is not None:
             self.init_from_file(filename)
         
@@ -366,7 +366,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             self.dictionary[token] = i
 
 if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1])
+    grammar = ThingTalkGrammar(sys.argv[1], reverse=True)
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
@@ -374,12 +374,19 @@ if __name__ == '__main__':
     fail_grammar = 0
     for line in sys.stdin:
         try:
-            vectors.append(grammar.vectorize_program(line.strip())[0])
+            program = line.strip()
+            vectors.append(grammar.vectorize_program(program)[0])
+            reconstructed = grammar.reconstruct_program(vectors[-1])
+            assert program == ' '.join(reconstructed)
+            print()
+            print(program)
+            grammar.print_prediction(vectors[-1])
+            
             ok_grammar += 1
         except:
             print(line.strip())
             fail_grammar += 1
-            #raise
+            raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)
     print(ok_grammar / (ok_grammar+fail_grammar))
     #for i, name in enumerate(grammar.state_names):
