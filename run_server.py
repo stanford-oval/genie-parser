@@ -25,7 +25,6 @@ Created on Jul 15, 2017
 import os
 import sys
 import numpy as np
-import tensorflow as tf
 import tornado.ioloop
 import configparser
 import ssl
@@ -37,32 +36,9 @@ except ImportError:
 
 from concurrent.futures import ThreadPoolExecutor
 
-from models import Config, create_model
-
-from server.application import Application, LanguageContext
-from server.tokenizer import Tokenizer, TokenizerService
+from server.application import Application
+from server.tokenizer import TokenizerService
 from server.config import ServerConfig
-
-def load_language(app, tokenizer_service, tag, model_dir):
-    config = Config.load(['./default.conf', './default.' + tag + '.conf', os.path.join(model_dir, 'model.conf')])
-    model = create_model(config)
-    
-    graph = tf.Graph()
-    session = tf.Session(graph=graph)
-    with graph.as_default():
-        tf.set_random_seed(1234)
-        
-        # Force everything to run on CPU, we run on single inputs so there is not much point
-        # on going through the GPU
-        with tf.device('/cpu:0'):
-            model.build()
-            loader = tf.train.Saver()
-
-        with session.as_default():
-            loader.restore(session, os.path.join(model_dir, 'best'))
-    tokenizer = Tokenizer(tokenizer_service, tag)
-    app.add_language(tag, LanguageContext(tag, tokenizer, session, config, model))
-    print('Loaded language ' + tag)
 
 def run():
     np.random.seed(42)
@@ -72,7 +48,8 @@ def run():
         thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')
     else:
         thread_pool = ThreadPoolExecutor(max_workers=32)
-    app = Application(config, thread_pool)
+    tokenizer_service = TokenizerService()
+    app = Application(config, thread_pool, tokenizer_service)
 
     if config.ssl_key:
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -88,11 +65,8 @@ def run():
     if sd:
         sd.notify('READY=1')
 
-    tokenizer_service = TokenizerService()
     tokenizer_service.run()
-    
-    for language in config.languages:
-        load_language(app, tokenizer_service, language, config.get_model_directory(language))
+    app.load_all_languages()
 
     sys.stdout.flush()
     tornado.ioloop.IOLoop.current().start()
