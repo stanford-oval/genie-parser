@@ -38,7 +38,12 @@ class LanguageContext(object):
 
 class Application(tornado.web.Application):
     def __init__(self, config, thread_pool):
-        super().__init__([(r"/query", QueryHandler), (r"/learn", LearnHandler)])
+        super().__init__([
+            (r"/query", QueryHandler),
+            (r"/learn", LearnHandler),
+            (r"/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
+            (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler)
+        ])
     
         if config.db_url:
             self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
@@ -74,4 +79,4 @@ class Application(tornado.web.Application):
         if language:
             return language
         else:
-            return language['en']
+            return self._languages[self.config.default_language]

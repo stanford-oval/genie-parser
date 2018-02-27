@@ -34,7 +34,9 @@ from collections import OrderedDict
 from orderedset import OrderedSet
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
-                  'special:makerule', 'special:failed']
+                  'special:makerule', 'special:failed',
+                  'special:thank_you', 'special:hello',
+                  'special:sorry', 'special:cool']
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
@@ -180,7 +182,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             #'$input': [('$program',),
             #           ('bookkeeping', '$bookkeeping')],
             #'$bookkeeping': [('special', '$special'),
-            #                 ('command', '$command'),
             #                 ('answer', '$constant_Any')],
             #'$special': [(x,) for x in SPECIAL_TOKENS],
             #'$command': [('help', 'generic'),

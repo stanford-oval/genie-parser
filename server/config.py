@@ -29,6 +29,7 @@ class ServerConfig():
         self._config['server'] = {
             'port': '8400',
             'user': '',
+            'default_language': 'en'
         }
         
         self._config['db'] = {
@@ -51,6 +52,10 @@ class ServerConfig():
     @property
     def user(self):
         return self._config['server']['user']
+
+    @property
+    def default_language(self):
+        return self._config['server']['default_language']
 
     @property
     def db_url(self):

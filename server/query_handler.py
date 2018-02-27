@@ -1,3 +1,19 @@
+# Copyright 2017-2018 The Board of Trustees of the Leland Stanford Junior University
+#
+# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 '''
 Created on Jul 1, 2017
 
@@ -8,13 +24,10 @@ import numpy as np
 import tornado.web
 import tornado.gen
 import tornado.concurrent
-import json
 import sys
 import traceback
 
 from util.loader import vectorize, vectorize_constituency_parse
-
-from . import json_syntax
 
 class QueryHandler(tornado.web.RequestHandler):
     '''
@@ -28,7 +41,6 @@ class QueryHandler(tornado.web.RequestHandler):
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
         tokens, values, parse = tokenized
-        print("Input", tokens, values)
 
         results = []
         config = language.config
@@ -36,51 +48,57 @@ class QueryHandler(tornado.web.RequestHandler):
         with language.session.as_default():
             with language.session.graph.as_default():
                 input, input_len = vectorize(tokens, config.dictionary, config.max_length)
-                parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
+                if parse:
+                    parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
+                else:
+                    parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
                 input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
                 sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
                 assert len(sequences) == 1
                 
-                for i, decoded in enumerate(sequences[0]):
+                for i, beam in enumerate(sequences[0]):
                     if i >= limit:
                         break
-                    decoded = list(decoded)
-                    try:
-                        decoded = decoded[:decoded.index(grammar.end)]
-                    except ValueError:
-                        pass
-                    decoded = [grammar.tokens[x] for x in decoded]
-                    print("Beam", i+1, decoded)
-                    try:
-                        json_rep = dict(answer=json.dumps(json_syntax.to_json(decoded, grammar, values)), prob=1./len(sequences[0]), score=1)
-                    except Exception as e:
-                        print("Failed to represent " + str(decoded) + " as json", e)
-                        traceback.print_exc(file=sys.stdout)
+                    decoded = grammar.reconstruct_program(beam, ignore_errors=True)
+                    if not decoded:
                         continue
+                    print("Beam", i+1, decoded)
+                    json_rep = dict(code=decoded, score=1)
                     results.append(json_rep)
         return results
 
     @tornado.gen.coroutine
-    def get(self):
+    def get(self, **kw):
         query = self.get_query_argument("q")
-        locale = self.get_query_argument("locale", default="en-US")
+        locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         language = self.application.get_language(locale)
         limit = int(self.get_query_argument("limit", default=5))
-        print('GET /query', query)
+        expect = self.get_query_argument('expect', default=None)
+        print('GET /%s/query' % locale, query)
 
         tokenized = yield language.tokenizer.tokenize(query)
-        result = yield self._do_run_query(language, tokenized, limit)
+        tokens, values, _ = tokenized
+        print("Input", tokens, values)
+        
+        result = None
+        if tokens[0].isupper() and len(tokens[0]) == 1:
+            # if the whole input is just an entity, return that as an answer
+            result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
+        if result is None and language.exact:
+            exact = language.exact.get(' '.join(tokens))
+            if exact:
+                result = [dict(code=exact, score='Infinity')]
+                
+        if result is None:
+            result = yield self._do_run_query(language, tokenized, limit)
         
         if len(result) > 0 and self.application.database:
-            self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, target_json, click_count) " +
-                                              "values (0, %(language)s, 'log', %(utterance)s, %(target_json)s, -1)",
+            self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
+                                              "values (0, %(language)s, 'log', %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
                                               utterance=query,
-                                              target_json=result[0]['answer'])
+                                              preprocessed=' '.join(tokens),
+                                              target_code=' '.join(result[0]['code']))
         
-        if language.exact:
-            exact = language.exact.get(query)
-            if exact:
-                result.insert(0, dict(answer=exact, prob=1, score='Infinity'))
         sys.stdout.flush()
-        self.write(dict(candidates=result, sessionId='X'))
+        self.write(dict(candidates=result, tokens=tokens, entities=values, sessionId='X'))
