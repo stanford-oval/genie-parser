@@ -26,7 +26,7 @@ Please see the Tensorflow documentation if you wish to use GPU
 acceleration (you'll need to install nvidia+cuda or amdgpu-pro+rocm
 drivers).
 
-Almond NN-Parser has been tested successfully on Fedora 25 and 26
+Almond NN-Parser has been tested successfully on Fedora 25 to 27
 x86_64 with CPU and Nvidia GPU acceleration.
 
 ## Training
@@ -41,52 +41,62 @@ that uses Almond NN-Parser).
    which can be downloaded from <http://nlp.stanford.edu/data/glove.42B.300d.zip>.
    Set the `GLOVE` environment variable to the path of uncompressed text file.
 3. Prepare the working directory:
-```
+    ```
     mkdir ~/workdir
     cd ~/workdir
-    ~/almond-nnparser/scripts/prepare.sh . ${SNAPSHOT}
-```
+    ~/almond-nnparser/prepare.py . ${SNAPSHOT}
+   ```
    This script computes the input dictionary, downloads a snapshot of Thingpedia,
    and computes a subset of the word embedding matrix to make it faster to
    load. Use the snapshot argument to choose which Thingpedia snapshot to train
    against, or pass -1 for the latest content of Thingpedia. Be aware that
    using -1 might make the results impossible to reproduce.
+   
 4. Check that the dataset is compatible with the Thingpedia snapshot:
-```
+   ```
     cut -f2 ${DATASET}/*.tsv > programs.txt
     cd ~/almond-nnparser
-    python3 -m grammar.thingtalk ~/workdir/thingpedia.txt < ~/workdir/programs.txt
-```
+    python3 -m grammar.thingtalk ~/workdir/thingpedia.json < ~/workdir/programs.txt
+   ```
 5. Prepare a model directory, eg. `model.1`, inside the working directory,
    and create a `model.conf` inside it. Edit any model parameters that you
    wish.
 6. Train:
-```
+    ```
     ~/almond-nnparser/run_train.py ./model.1 ${DATASET}/train.tsv ${DATASET}/dev.tsv
-```
+    ```
 7. Visualize the training:
-```
+    ```
     ~/almond-nnparser/scripts/plot_learning.py ./model.1/train-stats.json
-```
+    ```
 8. Test:
-```
+    ```
     ~/almond-nnparser/run_test.py ./model.1 ${DATASET}/test.tsv
-```
+    ```
+    
+    This will produce a `stats_test.txt` file for error analysis. The file is tab-separated and has 7 columns;
+    the first column is the input sentence, then the gold program, then the predicted program, then `True` or `False`
+    whether it was predicted correctly or not, then `CorrectGrammar` or `IncorrectGrammar`, then `CorrectFunction` or
+    `IncorrectFunction`, and finally `CorrectNumFunction` or `IncorrectNumFunction`.
+    This command will also produce `test-function-f1.tsv`, reporting precision, recall and F1 score for each function
+    in the test set, as a binary prediction. It will produce `test-f1.tsv`, reporting precision, recall and F1 score,
+    for each grammar reduction (parse action), based on the confusion matrix between the prediction and the gold sequence.
+    NOTE: if the input file is called `foo.tsv`, the output file will be called `stats_foo.txt`.
 
 ## Running the server
 
 After training, a server which is compatible with Almond can be run from the
 trained working directory:
 
-    ~/almond-nnparser/run_server.py en:./model.1
+    ~/almond-nnparser/run_server.py
 
-By default, the server runs at port 8400. You can change that with a server.conf
-file. You can change the paths in model.conf if you wish to run the server in a different
-directory.
+You must create a `server.conf` that points to the trained models for the supported languages:
+```
+[models]
+en=./path-to-model
+```
 
-The server can also be run for multiple languages, as in:
+By default, the server runs at port 8400. You can change that in the server.conf file.
 
-    ~/almond-nnparser/run_server.py en:./model.1 es:./model.2 zh:./model.3
-
-The server expects to connect to a TokenizerService (provided by SEMPRE) on
+The server expects to connect to a TokenizerService (provided by Almond Tokenizer) on
 localhost, port 8888.
