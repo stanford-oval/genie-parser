@@ -31,6 +31,7 @@ from models import Config, create_model
 
 from .query_handler import QueryHandler
 from .learn_handler import LearnHandler
+from .admin_handlers import ReloadHandler
 from .exact import ExactMatcher
 from .tokenizer import Tokenizer
 
@@ -48,7 +49,8 @@ class Application(tornado.web.Application):
             (r"/query", QueryHandler),
             (r"/learn", LearnHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
-            (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler)
+            (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
+            (r"/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
         ])
     
         if config.db_url:
@@ -93,6 +95,7 @@ class Application(tornado.web.Application):
             self._load_language(tag, self.config.get_model_directory(tag))
     
     def reload_language(self, tag):
+        print('Reloading language ' + tag)
         self._load_language(tag, self.config.get_model_directory(tag))
     
     def get_language(self, locale):
