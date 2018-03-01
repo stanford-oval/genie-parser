@@ -25,7 +25,7 @@ import tornado.web
 import tornado.gen
 import tornado.concurrent
 import sys
-import traceback
+import datetime
 
 from util.loader import vectorize, vectorize_constituency_parse
 
@@ -101,4 +101,7 @@ class QueryHandler(tornado.web.RequestHandler):
                                               target_code=' '.join(result[0]['code']))
         
         sys.stdout.flush()
+        cache_time = 3600
+        self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
+        self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
         self.write(dict(candidates=result, tokens=tokens, entities=values, sessionId='X'))
