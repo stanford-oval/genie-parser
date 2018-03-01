@@ -34,7 +34,7 @@ from collections import OrderedDict
 from orderedset import OrderedSet
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
-                  'special:makerule', 'special:failed',
+                  'special:makerule', 'special:failed', 'special:help',
                   'special:thank_you', 'special:hello',
                   'special:sorry', 'special:cool']
 TYPES = {
@@ -66,7 +66,8 @@ TYPES = {
     'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
     'Entity(tt:url)': (['=='], ['URL', ('$constant_String',) ]),
     'Entity(tt:path_name)': (['=='], ['PATH_NAME', ('$constant_String',) ]),
-    'Entity(tt:picture)': (['=='], [])
+    'Entity(tt:picture)': (['=='], []),
+    'Entity(tt:program)': (['=='], [])
 }
 TYPE_RENAMES = {
     'Username': 'Entity(tt:username)',
@@ -179,37 +180,34 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self.num_functions = len(self.functions['queries']) + len(self.functions['actions'])
         
         GRAMMAR = OrderedDict({
-            #'$input': [('$program',),
-            #           ('bookkeeping', '$bookkeeping')],
-            #'$bookkeeping': [('special', '$special'),
-            #                 ('answer', '$constant_Any')],
-            #'$special': [(x,) for x in SPECIAL_TOKENS],
-            #'$command': [('help', 'generic'),
-            #             ('help', '$constant_Entity(tt:device)')],
-            #'$program': [('$rule',),
-            #             ('$constant_Entity(tt:username)', ':', '$rule')],
-            '$input': [('$stream', '=>', '$thingpedia_actions'),
+            '$input': [('$rule',),
+                       ('$constant_Entity(tt:username)', ':', '$rule'),
+                       ('bookkeeping', '$bookkeeping')],
+            '$bookkeeping': [('special', '$special'),
+                             ('answer', '$constant_Any')],
+            '$special': [(x,) for x in SPECIAL_TOKENS],
+            '$rule':  [('$stream', '=>', '$thingpedia_actions'),
                        ('$stream_join', '=>', '$thingpedia_actions'),
                        ('$stream', '=>', 'notify'),
                        ('$stream_join', '=>', 'notify'),
                        ('now', '=>', '$table', '=>', '$thingpedia_actions'),
                        ('now', '=>', '$table', '=>', 'notify'),
                        ('now', '=>', '$thingpedia_actions'),
-                       ('$input', 'on', '$param_passing')],
+                       ('$rule', 'on', '$param_passing')],
             '$table': [('$thingpedia_queries',),
                        ('(', '$table', ')', 'filter', '$filter'),
-                       #('aggregate', 'min', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'max', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'sum', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'avg', '$out_param', 'of', '(', '$table', ')'),
-                       #('aggregate', 'count', 'of', '(', '$table', ')'),
-                       #('aggregate', 'argmin', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       #('aggregate', 'argmax', '$out_param', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       ('aggregate', 'min', '$out_param_Any', 'of', '(', '$table', ')'),
+                       ('aggregate', 'max', '$out_param_Any', 'of', '(', '$table', ')'),
+                       ('aggregate', 'sum', '$out_param_Any', 'of', '(', '$table', ')'),
+                       ('aggregate', 'avg', '$out_param_Any', 'of', '(', '$table', ')'),
+                       ('aggregate', 'count', 'of', '(', '$table', ')'),
+                       ('aggregate', 'argmin', '$out_param_Any', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       ('aggregate', 'argmax', '$out_param_Any', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
                        ('$table_join',),
-                       #('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
-                       #('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
-                       #('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
-                       #('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')
+                       ('window', '$constant_Number', ',', '$constant_Number', 'of', '(', '$stream', ')'),
+                       ('timeseries', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$stream', ')'),
+                       ('sequence', '$constant_Number', ',', '$constant_Number', 'of', '(', '$table', ')'),
+                       ('history', '$constant_Date', ',', '$constant_Measure(ms)', 'of', '(', '$table', ')')
                        ],
             '$table_join': [('(', '$table', ')', 'join', '(', '$table', ')'),
                             ('$table_join', 'on', '$param_passing')],
@@ -219,7 +217,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ('monitor', '(', '$table', ')', 'on', 'new', '$out_param_Any'),
                         ('monitor', '(', '$table', ')', 'on', 'new', '[', '$out_param_list', ']'),
                         ('edge', '(', '$stream', ')', 'on', '$filter'),
-                        #('edge', '(', '$stream', ')', 'on', 'true'),
+                        ('edge', '(', '$stream', ')', 'on', 'true'),
                         #('$stream_join',)
                         ],
             '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
@@ -239,17 +237,18 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                            ('$or_filter', 'or', '$atom_filter')
                            ],
             '$atom_filter': [],
-            
-            #'$constant_Array': [('[', '$constant_array_values', ']',)],
-            #'$constant_array_values': [('$constant_Any',),
-            #                           ('$constant_array_values', ',', '$constant_Any')],
-            #'$constant_Any': OrderedSet(),
+
+            '$constant_Array': [('[', '$constant_array_values', ']',)],
+            '$constant_array_values': [('$constant_Any',),
+                                       ('$constant_array_values', ',', '$constant_Any')],
+            '$constant_Any': OrderedSet(),
         })
         
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
             GRAMMAR['$constant_' + type] = value_rules
-            #GRAMMAR['$constant_Any'].add(('$constant_' + type,))
+            if not type.startswith('Entity('):
+                GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
                 GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, '$constant_' + type))
                 # FIXME reenable some day
@@ -278,16 +277,15 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             add_type(type, value_rules, operators)
         for base_unit, units in UNITS.items():
             value_rules = [('$constant_Number', 'unit:' + unit) for unit in units]
-            # FIXME reenable someday when we want to handle 6ft 3in
-            #value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
+            value_rules += [('$constant_Measure(' + base_unit + ')', '$constant_Number', 'unit:' + unit) for unit in units]
             operators, _ = TYPES['Number']
             add_type('Measure(' + base_unit + ')', value_rules, operators)
         for i in range(MAX_ARG_VALUES):
             GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
 
         # well known entities
-        #add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
-        add_type('Entity(tt:device)', [], ['='])
+        add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
+        #add_type('Entity(tt:device)', [], ['='])
 
         # other entities
         for generic_entity, has_ner in self.entities:
