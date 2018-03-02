@@ -53,3 +53,5 @@ class LearnHandler(tornado.web.RequestHandler):
                                           target_json=target_json)
         #if language.exact and store == 'online':
         #    language.exact.add(query, target_json)
+        self.write(dict(result='ok'))
+        self.finish()

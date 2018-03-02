@@ -105,3 +105,4 @@ class QueryHandler(tornado.web.RequestHandler):
         self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
         self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
         self.write(dict(candidates=result, tokens=tokens, entities=values))
+        self.finish()

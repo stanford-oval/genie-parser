@@ -36,3 +36,5 @@ class ReloadHandler(BaseAdminHandler):
         self.check_authenticated()
         language = self.application.get_language(locale)
         self.application.reload_language(language.tag)
+        self.write(dict(result='ok'))
+        self.finish()
