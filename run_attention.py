@@ -119,10 +119,17 @@ def run():
                         if len(index):
                             prediction = prediction[:index[0]+1]
                         config.grammar.print_prediction(prediction)
-                        try:
-                            print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
-                        except (KeyError, TypeError, IndexError, ValueError):
-                            print('failed to predict')
+                        if len(predictions[0]) == 1:
+                            try:
+                                print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
+                            except (KeyError, TypeError, IndexError, ValueError):
+                                print('failed to predict')
+                        else:
+                            for i, beam in enumerate(predictions[0]):
+                                try:
+                                    print('beam', i, ' '.join(config.grammar.reconstruct_program(beam)))
+                                except (KeyError, TypeError, IndexError, ValueError):
+                                    print('beam', i, 'failed to predict')
                         
                         sentence = list(config.reverse_dictionary[x] for x in sentence[:sentence_length])
                         show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
