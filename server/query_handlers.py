@@ -29,6 +29,28 @@ import datetime
 
 from util.loader import vectorize, vectorize_constituency_parse
 
+class TokenizeHandler(tornado.web.RequestHandler):
+    '''
+    Handle /tokenize
+    '''
+
+    @tornado.gen.coroutine
+    def get(self, locale='en-US', **kw):
+        query = self.get_query_argument("q")
+        language = self.application.get_language(locale)
+        
+        print('GET /%s/tokenize' % locale, query)
+        tokenized = yield language.tokenizer.tokenize(query)
+        print("Tokenized", tokenized.tokens, tokenized.values)
+        
+        sys.stdout.flush()
+        cache_time = 3600
+        self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
+        self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
+        self.write(dict(tokens=tokenized.tokens, entities=tokenized.values))
+        self.finish()
+
+
 class QueryHandler(tornado.web.RequestHandler):
     '''
     Handle /query
@@ -40,7 +62,8 @@ class QueryHandler(tornado.web.RequestHandler):
     
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
-        tokens, values, parse = tokenized
+        tokens = tokenized.tokens
+        parse = tokenized.constituency_parse
 
         results = []
         config = language.config
@@ -77,10 +100,10 @@ class QueryHandler(tornado.web.RequestHandler):
         print('GET /%s/query' % locale, query)
 
         tokenized = yield language.tokenizer.tokenize(query)
-        tokens, values, _ = tokenized
-        print("Input", tokens, values)
+        print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
+        tokens = tokenized.tokens
         if len(tokens) == 1 and tokens[0].isupper():
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
@@ -104,5 +127,5 @@ class QueryHandler(tornado.web.RequestHandler):
         cache_time = 3600
         self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
         self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
-        self.write(dict(candidates=result, tokens=tokens, entities=values))
+        self.write(dict(candidates=result, tokens=tokens, entities=tokenized.values))
         self.finish()
