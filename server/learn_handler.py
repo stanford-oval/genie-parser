@@ -21,37 +21,57 @@ Created on Aug 2, 2017
 '''
 
 import tornado.web
-import json
+import re
+
+entity_re = re.compile('^[A-Z_]+_[0-9]')
+def check_program_entities(program, entities):
+    for token in program:
+        if entity_re.match(token) or token.startswith('GENERIC_ENTITY_'):
+            if not token in entities:
+                return False
+    return True
 
 class LearnHandler(tornado.web.RequestHandler):
-    def get(self, *kw):
-        query = self.get_query_argument("q")
-        locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
+    @tornado.gen.coroutine
+    def post(self, locale='en-US', **kw):
+        query = self.get_argument("q")
         language = self.application.get_language(locale)
-        target_json = self.get_query_argument("target")
-        store = self.get_query_argument("store", "automatic")
+        target_code = self.get_argument("target")
+        store = self.get_argument("store", "automatic")
+        print('POST /%s/learn' % locale, target_code)
         
+        grammar = language.config.grammar
+        sequence = target_code.split(' ')
         try:
-            json.loads(target_json)
-        except Exception:
-            raise tornado.web.HTTPError(400, "Invalid JSON")
+            program_vector, program_length = grammar.vectorize_program(sequence, max_length=language.config.max_length)
+        except ValueError:
+            raise tornado.web.HTTPError(400, reason="Invalid ThingTalk")
+        
+        tokenized = yield language.tokenizer.tokenize(query)
+        if not check_program_entities(sequence, tokenized.values):
+            raise tornado.web.HTTPError(400, reason="Missing entities")
+        preprocessed = ' '.join(tokenized.tokens)
         
         if store == 'no':
+            # do nothing, successfully
             self.finish(dict(result="Learnt successfully"))
             return
         
         if not store in ('automatic', 'online'):
-            raise tornado.web.HTTPError(400, "Invalid store parameter")
+            raise tornado.web.HTTPError(400, reason="Invalid store parameter")
+        if store == 'online' and sequence[0] == 'bookkeeping':
+            store = 'online-bookkeeping'
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, target_json, click_count) " +
-                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(target_json)s, -1)",
+        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
+                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
                                           language=language.tag,
                                           utterance=query,
+                                          preprocessed=preprocessed,
                                           type=store,
-                                          target_json=target_json)
-        #if language.exact and store == 'online':
-        #    language.exact.add(query, target_json)
-        self.write(dict(result='ok'))
+                                          target_code=target_code)
+        if language.exact and store in ('online', 'online-bookkeeping'):
+            language.exact.add(preprocessed, target_code)
+        self.write(dict(result="Learnt successfully"))
         self.finish()
