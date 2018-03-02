@@ -81,7 +81,7 @@ class QueryHandler(tornado.web.RequestHandler):
         print("Input", tokens, values)
         
         result = None
-        if tokens[0].isupper() and len(tokens[0]) == 1:
+        if len(tokens) == 1 and tokens[0].isupper():
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
         if result is None and language.exact:
