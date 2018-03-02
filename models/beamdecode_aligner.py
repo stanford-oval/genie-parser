@@ -14,8 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
-from tensorflow.contrib.seq2seq.python.ops.beam_search_decoder import FinalBeamSearchDecoderOutput
-from tensorflow.contrib.seq2seq.python.ops.basic_decoder import BasicDecoderOutput
 
 '''
 Created on Feb 9, 2018
@@ -28,8 +26,8 @@ import tensorflow as tf
 from . import common
 from .seq2seq_aligner import Seq2SeqAligner
 
-from tensorflow.contrib.seq2seq import BeamSearchDecoder
-    
+from tensorflow.contrib.seq2seq import BeamSearchDecoder, FinalBeamSearchDecoderOutput
+
 class BeamDecodeAligner(Seq2SeqAligner):
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         if training:
@@ -64,7 +62,6 @@ class BeamDecodeAligner(Seq2SeqAligner):
             #enc_final_state = enc_final_state.clone(cell_state=tiled_enc_final_state)
         else:
             enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, multiplier=self.config.beam_size)
-        print('enc final_state', enc_final_state)
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         
@@ -79,10 +76,12 @@ class BeamDecodeAligner(Seq2SeqAligner):
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder,
                                                                 maximum_iterations=self.config.max_length,
                                                                 swap_memory=True)
+        self.attention_scores = tf.zeros((self.batch_size, self.config.max_length, tf.shape(final_outputs.predicted_ids)[2]), dtype=tf.float32)
+        
         return final_outputs
 
     def finalize_predictions(self, preds):
-        return preds.predicted_ids
+        return tf.transpose(preds.predicted_ids, [0, 2, 1])
     
     def add_loss_op(self, result):
         if isinstance(result, FinalBeamSearchDecoderOutput):
