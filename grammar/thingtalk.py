@@ -123,9 +123,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         for device in devices:
             if device['kind_type'] in ('global', 'discovery', 'category'):
                 continue
+            self.devices.append('device:' + device['kind'])
             if device['kind'] == 'org.thingpedia.builtin.test':
                 continue
-            self.devices.append('device:' + device['kind'])
             
             for function_type in ('queries', 'actions'):
                 for name, function in device[function_type].items():
