@@ -78,7 +78,7 @@ class Seq2SeqAligner(BaseAligner):
                                                                           impute_finished=True,
                                                                           maximum_iterations=self.config.max_length,
                                                                           swap_memory=True)
-        if self.config.apply_attention:
+        if self.config.apply_attention and not training:
             # convert alignment history from time-major to batch major
             self.attention_scores = tf.transpose(final_state.alignment_history.stack(), [1, 0, 2])
         return final_outputs
