@@ -13,8 +13,11 @@ import tornado.gen
 import tornado.ioloop
 from tornado.iostream import IOStream, StreamClosedError
 from tornado.concurrent import Future
+from collections import namedtuple
 
 PORT = 8888
+
+TokenizerResult = namedtuple('TokenizerResult', ('tokens', 'values', 'constituency_parse'))
 
 class TokenizerService(object):
     '''
@@ -41,7 +44,10 @@ class TokenizerService(object):
             response = json.loads(str(response, encoding='utf-8'))
             
             id = int(response['req'])
-            self._requests[id].set_result((response['tokens'], response['values'], response['constituencyParse']))
+            result = TokenizerResult(tokens=response['tokens'],
+                                     values=response['values'],
+                                     constituency_parse=response['constituencyParse'])
+            self._requests[id].set_result(result)
             del self._requests[id]
         
     def tokenize(self, language_tag, query):

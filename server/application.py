@@ -28,8 +28,7 @@ import tensorflow as tf
 
 from models import Config, create_model
 
-
-from .query_handler import QueryHandler
+from .query_handlers import QueryHandler, TokenizeHandler
 from .learn_handler import LearnHandler
 from .admin_handlers import ReloadHandler
 from .exact import ExactMatcher
@@ -48,6 +47,7 @@ class Application(tornado.web.Application):
         super().__init__([
             (r"/query", QueryHandler),
             (r"/learn", LearnHandler),
+            (r"/(?P<locale>[a-zA-Z-]+)/tokenize", TokenizeHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
@@ -79,8 +79,8 @@ class Application(tornado.web.Application):
     
             with session.as_default():
                 loader.restore(session, os.path.join(model_dir, 'best'))
+
         tokenizer = Tokenizer(self._tokenizer, tag)
-        
         language = LanguageContext(tag, tokenizer, session, config, model)
         self._languages[tag] = language
         if self.database:
