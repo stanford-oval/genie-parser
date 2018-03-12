@@ -66,7 +66,8 @@ TYPES = {
     'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
     'Entity(tt:url)': (['=='], ['URL', ('$constant_String',) ]),
     'Entity(tt:path_name)': (['=='], ['PATH_NAME', ('$constant_String',) ]),
-    'Entity(tt:picture)': (['=='], [])
+    'Entity(tt:picture)': (['=='], []),
+    'Entity(tt:program)': (['=='], [])
 }
 TYPE_RENAMES = {
     'Username': 'Entity(tt:username)',
