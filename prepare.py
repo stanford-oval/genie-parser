@@ -116,6 +116,14 @@ def create_dictionary(input_words, dataset):
                 sentence = line.strip().split('\t')[1]
                 add_words(input_words, sentence)
 
+    if len(sys.argv) > 4:
+       extra_word_file = sys.argv[4]
+       print('Adding extra dictionary from', extra_word_file)
+       with open(extra_word_file, 'r') as fp:
+           for line in fp:
+               input_words.add(line.strip())
+
+
 def save_dictionary(input_words, workdir):
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
         for word in sorted(input_words):
@@ -221,7 +229,7 @@ def main():
     input_words = set()
     # add the canonical words for the builtin functions
     add_words(input_words, 'now nothing notify return the event')
-    
+
     create_dictionary(input_words, dataset)
     get_thingpedia(input_words, workdir, snapshot)
     save_dictionary(input_words, workdir)

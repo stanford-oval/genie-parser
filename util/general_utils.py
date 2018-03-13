@@ -84,6 +84,7 @@ class Progbar(object):
         self.total_width = 0
         self.seen_so_far = 0
         self.verbose = verbose
+        self._isatty = sys.stderr.isatty()
 
     def update(self, current, values=[], exact=[]):
         """
@@ -108,6 +109,9 @@ class Progbar(object):
                 self.unique_values.append(k)
             self.sum_values[k] = [v, 1]
         self.seen_so_far = current
+
+        if not self._isatty:
+            return
 
         now = time.time()
         if self.verbose == 1:
