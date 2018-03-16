@@ -380,13 +380,14 @@ if __name__ == '__main__':
             vectors.append(grammar.vectorize_program(program)[0])
             reconstructed = grammar.reconstruct_program(vectors[-1])
             assert program == ' '.join(reconstructed)
-            print()
-            print(program)
-            grammar.print_prediction(vectors[-1])
+            #print()
+            #print(program)
+            #grammar.print_prediction(vectors[-1])
             
             ok_grammar += 1
         except:
             print(line.strip())
+            grammar.print_prediction(vectors[-1])
             fail_grammar += 1
             raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)

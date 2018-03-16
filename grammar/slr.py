@@ -484,7 +484,8 @@ class ShiftReduceParser:
         
         def recurse(start_at):
             action, param = sequence[start_at]
-            assert action == 'reduce'
+            if action != 'reduce':
+                raise ValueError('invalid action')
             _, rhs = self.rules[param]
             length = 1
             for rhsitem in rhs:
