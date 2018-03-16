@@ -58,7 +58,10 @@ class ShiftReduceGrammar(AbstractGrammar):
         if self.USE_SHIFT_REDUCE:
             if isinstance(program, str):
                 program = program.split(' ')
-            parsed = self._parser.parse(program)
+            if self._reverse:
+                parsed = self._parser.parse_reverse(program)
+            else:
+                parsed = self._parser.parse(program)
             vector = np.zeros((max_length,), dtype=np.int32)
             i = 0
             for action, param in parsed:
@@ -70,11 +73,6 @@ class ShiftReduceGrammar(AbstractGrammar):
                 assert vector[i] < self.output_size
                 i += 1
             vector[i] = self.end # eos
-            if self._reverse:
-                for j in range(0, i//2):
-                    tmp = vector[j]
-                    vector[j] = vector[i-1-j]
-                    vector[i-1-j] = tmp
             i += 1
             
             return vector, i
@@ -91,19 +89,11 @@ class ShiftReduceGrammar(AbstractGrammar):
                         return ('accept', None)
                     else:
                         return ('reduce', x - self.num_control_tokens)
+                
                 if self._reverse:
-                    sequence = np.array(sequence) # make a copy and reverse that
-                    seq_len = len(sequence)
-                    for i in range(len(sequence)):
-                        if sequence[i] == self.end:
-                            seq_len = i
-                            break
-                    for j in range(0, seq_len//2):
-                        tmp = sequence[j]
-                        sequence[j] = sequence[i-1-j]
-                        sequence[i-1-j] = tmp
-                    
-                return self._parser.reconstruct((gen_action(x) for x in sequence))
+                    return self._parser.reconstruct_reverse((gen_action(x) for x in sequence))
+                else:
+                    return self._parser.reconstruct((gen_action(x) for x in sequence))
             except (KeyError, TypeError, IndexError, ValueError):
                 if ignore_errors:
                     # the NN generated something that does not conform to the grammar,
