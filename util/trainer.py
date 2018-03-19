@@ -42,6 +42,8 @@ class Trainer(object):
                  n_epochs=40,
                  shuffle_data=True,
                  load_existing=False,
+                 curriculum_max_prob=0.9,
+                 curriculum_schedule=0.05,
                  **kw):
         '''
         Constructor
@@ -61,6 +63,15 @@ class Trainer(object):
         self._n_epochs = n_epochs
         self._shuffle_data = shuffle_data
         self._load_existing = load_existing
+        
+        if len(self.train_sets) == 1:
+            curriculum_schedule = 0
+            curriculum_max_prob = 0
+        if len(self.train_sets) != 2 and curriculum_schedule != 0.0:
+            raise ValueError('Must have exactly two training sets for curriculum learning')
+        self._curriculum_schedule = curriculum_schedule
+        self._curriculum_max_prob = curriculum_max_prob
+        
         self._extra_kw = kw
         
         self._eval_metrics = dict()
@@ -101,8 +112,73 @@ class Trainer(object):
             json.dump(output, fp)
 
     def fit(self, sess):
-        for i, key in enumerate(self.train_sets):
-            self._fit_set(sess, key, self.train_data[key], i)
+        if self._curriculum_schedule != 0.0:
+            self._fit_curriculum(sess)
+        else:
+            for i, key in enumerate(self.train_sets):
+                self._fit_set(sess, key, self.train_data[key], i)
+    
+    def _mix_curriculum(self, epoch):
+        easy_set = self.train_data[self.train_sets[0]]
+        hard_set = self.train_data[self.train_sets[1]]
+        
+        easy_set_size = len(easy_set[0])
+        hard_set_size = len(hard_set[0])
+        
+        hard_set_fraction = min(self._curriculum_max_prob, self._curriculum_schedule * epoch)
+        
+        easy_set_target = int((1 - hard_set_fraction) * (easy_set_size + hard_set_size))
+        hard_set_target = int(hard_set_fraction * (easy_set_size + hard_set_size))
+        if hard_set_target > hard_set_size:
+            hard_set_target = hard_set_size
+            easy_set_target = int(hard_set_size * (1 - hard_set_fraction) / hard_set_fraction)
+        elif easy_set_target > easy_set_size:
+            easy_set_target = easy_set_size
+            hard_set_target = int(easy_set_size * hard_set_fraction / (1 - hard_set_fraction))
+        
+        print('Epoch %d: easy set = %d, hard set = %d' % (epoch, easy_set_target, hard_set_target))
+        easy_set_indices = np.random.choice(np.arange(easy_set_size), size=easy_set_target)
+        hard_set_indices = np.random.choice(np.arange(hard_set_size), size=hard_set_target)
+        
+        return tuple(np.concatenate((easy[easy_set_indices], hard[hard_set_indices]), axis=0) for easy, hard in
+                     zip(easy_set, hard_set))  
+    
+    def _fit_curriculum(self, sess):
+        # flush stdout so we show the output before the first progress bar
+        sys.stdout.flush()
+        try:
+            for epoch in range(self._n_epochs):
+                train_data = self._mix_curriculum(epoch)
+                average_loss = self.run_epoch(sess, train_data, epoch)
+                print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
+
+                epoch_metrics = dict()
+
+                # eval train accuracy only on the hard set
+                train_metrics = self.train_evals[1].eval(sess, save_to_file=False)
+                for metric, train_value in train_metrics.items():
+                    epoch_metrics[metric] = [train_value]
+
+                for dev_eval in self.dev_evals:
+                    dev_metrics = dev_eval.eval(sess, save_to_file=False)
+                    for metric, dev_value in dev_metrics.items():
+                        epoch_metrics[metric].append(float(dev_value))
+                for metric, values in epoch_metrics.items():
+                    if metric not in self._eval_metrics:
+                        self._eval_metrics[metric] = []
+                    self._eval_metrics[metric].append(values)
+
+                comparison_metric = epoch_metrics[self._opt_eval_metric][1]
+                
+                if self._best is None or comparison_metric >= self._best:
+                    print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
+                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                    self._best = comparison_metric
+                print()
+                sys.stdout.flush()
+                self._save_stats()
+        finally:
+            self._save_stats()
 
     def _fit_set(self, sess, train_key, train_data, i):
         start_epoch = i * self._n_epochs
