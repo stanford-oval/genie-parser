@@ -36,7 +36,7 @@ from orderedset import OrderedSet
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed', 'special:help',
                   'special:thank_you', 'special:hello',
-                  'special:sorry', 'special:cool']
+                  'special:sorry', 'special:cool', 'special:wakeup']
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
