@@ -173,8 +173,8 @@ class SLRParserGenerator():
         self.non_terminals.sort()
 
     def print_rules(self, fp=sys.stdout):
-        for lhs, rhs in self.rules:
-            print(lhs, '->', ' '.join(rhs), file=fp)
+        for i, (lhs, rhs) in enumerate(self.rules):
+            print(i, lhs, '->', ' '.join(rhs), file=fp)
 
     def _number_rules(self, grammar):
         self.rules = []
@@ -412,6 +412,37 @@ class ShiftReduceParser:
     @property
     def num_states(self):
         return len(self._action_table)
+    
+    def parse_reverse(self, sequence):
+        bottom_up_sequence = self.parse(sequence)
+        lens = [None] * len(bottom_up_sequence)
+        children = [None] * len(bottom_up_sequence)
+        reduces = [None] * len(bottom_up_sequence)
+        i = 0
+        for action,param in bottom_up_sequence:
+            if action == 'shift':
+                continue
+            lhs, rhs = self.rules[param]
+            current_child = i-1
+            my_length = 1
+            my_children = []
+            for rhsitem in reversed(rhs):
+                if rhsitem.startswith('$'):
+                    my_children.append(current_child)
+                    my_length += lens[current_child]
+                    current_child -= lens[current_child]
+            lens[i] = my_length
+            reduces[i] = (action,param)
+            children[i] = tuple(reversed(my_children))
+            i += 1
+        reversed_sequence = []
+        def write_subsequence(node, start):
+            reversed_sequence.append(reduces[node])
+            for c in children[node]:
+                write_subsequence(c, start)
+                start += lens[c]
+        write_subsequence(i-1, 0)
+        return reversed_sequence
         
     def parse(self, sequence):
         stack = [0]
@@ -445,6 +476,27 @@ class ShiftReduceParser:
                 state = stack[-1]
                 state = self._goto_table[state][lhs]
                 stack.append(state)
+                
+    def reconstruct_reverse(self, sequence):
+        output_sequence = []
+        if not isinstance(sequence, list):
+            sequence = list(sequence)
+        
+        def recurse(start_at):
+            action, param = sequence[start_at]
+            if action != 'reduce':
+                raise ValueError('invalid action')
+            _, rhs = self.rules[param]
+            length = 1
+            for rhsitem in rhs:
+                if rhsitem.startswith('$'):
+                    length += recurse(start_at + length)
+                else:
+                    output_sequence.append(rhsitem)
+            return length
+        
+        recurse(0)
+        return output_sequence
 
     def reconstruct(self, sequence):
         stacks = dict()
@@ -474,11 +526,11 @@ class ShiftReduceParser:
 TEST_GRAMMAR = {
 '$prog':    [('$command',),
              ('$rule',)],
-'$rule':    [('$stream', '$action')],
-'$command': [('$table', 'notify'),
-             ('$table', '$action')],
+'$rule':    [('$stream', '=>', '$action')],
+'$command': [('$table', '=>', 'notify'),
+             ('$table', '=>', '$action')],
 '$table':   [('$get',),
-             ('$table', '$filter')],
+             ('$table', 'filter', '$filter')],
 '$stream':  [('monitor', '$table')],
 '$get':     [('$get', '$ip'),
              ('xkcd.get_comic',),
@@ -523,21 +575,23 @@ PARENTHESIS_GRAMMAR = {
 
 
 if __name__ == '__main__':
-    if False:
+    if True:
         generator = SLRParserGenerator(TEST_GRAMMAR, '$prog')
-        print("Action table:")
-        for i, actions in enumerate(generator.action_table):
-            print(i, ":", actions)
+        generator.print_rules(sys.stdout)
+        #print("Action table:")
+        #for i, actions in enumerate(generator.action_table):
+        #    print(i, ":", actions)
         
-        print()          
-        print("Goto table:")
-        for i, next_states in enumerate(generator.goto_table):
-            print(i, ":", next_states)
+        #print()          
+        #print("Goto table:")
+        #for i, next_states in enumerate(generator.goto_table):
+        #    print(i, ":", next_states)
         
         parser = generator.build()
         
-        print(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0']))
-        print(parser.reconstruct(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'])))
+        topdown_seq = parser.parse_reverse(['monitor', 'thermostat.get_temp', '=>', 'twitter.post', 'param:text', 'qs0'])
+        print(topdown_seq)
+        print(parser.reconstruct_reverse(parser.parse_reverse(['monitor', 'thermostat.get_temp', '=>', 'twitter.post', 'param:text', 'qs0'])))
     else:
         generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, '$S')
         print("Action table:")
