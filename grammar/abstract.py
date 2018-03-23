@@ -55,6 +55,10 @@ class AbstractGrammar(object):
     def end(self):
         ''' The ID of the end token, which signals end of decoding '''
         return self.dictionary['</s>']
+
+    def dump_tokens(self):
+        for t in self.tokens:
+            print(t)
     
     def reconstruct_program(self, sequence, ignore_errors=False):
         ret = []

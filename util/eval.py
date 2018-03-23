@@ -88,7 +88,7 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return set(x for x in seq if x.startswith('@'))
+            return tuple(x for x in seq if x.startswith('@'))
 
         output_size = self.grammar.output_size
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
