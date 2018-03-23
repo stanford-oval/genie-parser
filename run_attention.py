@@ -63,8 +63,8 @@ def show_heatmap(x, y, attention):
     
     plt.colorbar(heatmap)
     
-    plt.show()
-    #plt.savefig('./attention-out.pdf')
+    #plt.show()
+    plt.savefig('./attention-out.pdf')
 
 def run():
     if len(sys.argv) < 2:
