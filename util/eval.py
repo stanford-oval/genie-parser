@@ -140,6 +140,7 @@ class Seq2SeqEvaluator(object):
                     gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
                     #print "GOLD:", ' '.join(gold)
                     gold_functions = get_functions(gold)
+                    gold_function_set = set(gold_functions)
                     gold_functions_counter.update(gold_functions)
 
                     is_ok_grammar = False
@@ -160,10 +161,11 @@ class Seq2SeqEvaluator(object):
                             is_ok_grammar = True
 
                         decoded_functions = get_functions(decoded)
+                        decoded_function_set = set(decoded_functions)
                         if save_to_file:
-                            function_tp.update(gold_functions & decoded_functions)
-                            function_fp.update(decoded_functions - gold_functions)
-                            function_fn.update(gold_functions - decoded_functions)
+                            function_tp.update(gold_function_set & decoded_function_set)
+                            function_fp.update(decoded_function_set - gold_function_set)
+                            function_fn.update(gold_function_set - decoded_function_set)
                             #function_tn.update(all_functions - (gold_functions | decoded_functions))
                         
                         if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
