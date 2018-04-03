@@ -36,6 +36,8 @@ class TokenizeHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def get(self, locale='en-US', **kw):
+        self.set_header('Access-Control-Allow-Origin', '*')
+
         query = self.get_query_argument("q")
         language = self.application.get_language(locale)
         
@@ -93,6 +95,8 @@ class QueryHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def get(self, **kw):
+        self.set_header('Access-Control-Allow-Origin', '*')
+
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         language = self.application.get_language(locale)
@@ -108,7 +112,7 @@ class QueryHandler(tornado.web.RequestHandler):
         
         result = None
         tokens = tokenized.tokens
-        if len(tokens) == 1 and tokens[0].isupper():
+        if len(tokens) == 1 and (tokens[0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
         if result is None and language.exact:
