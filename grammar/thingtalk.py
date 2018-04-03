@@ -365,8 +365,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             self.dictionary[token] = i
 
 if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], reverse=True)
-    #grammar.dump_tokens()
+    grammar = ThingTalkGrammar(sys.argv[1], reverse=False)
+    grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
     ok_grammar = 0
