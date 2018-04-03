@@ -54,7 +54,7 @@ class Application(tornado.web.Application):
         ])
     
         if config.db_url:
-            self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=3600)
+            self.database = sqlalchemy.create_engine(config.db_url, pool_recycle=600)
         else:
             self.database = None
         self.config = config

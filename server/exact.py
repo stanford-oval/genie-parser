@@ -39,7 +39,7 @@ and preprocessed <> ''""",
         print('Loaded %d exact matches for language %s' % (n, self._language))
             
     def add(self, utterance, target_json):
-        self._dict[utterance] = target_json
+        self._dict[utterance] = target_json.split(' ')
         
     def get(self, utterance):
         return self._dict.get(utterance, None)
