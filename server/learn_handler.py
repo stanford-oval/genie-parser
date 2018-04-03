@@ -34,6 +34,8 @@ def check_program_entities(program, entities):
 class LearnHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self, locale='en-US', **kw):
+        self.set_header('Access-Control-Allow-Origin', '*')
+
         query = self.get_argument("q")
         language = self.application.get_language(locale)
         target_code = self.get_argument("target")
