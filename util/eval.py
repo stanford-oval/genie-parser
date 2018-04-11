@@ -80,7 +80,9 @@ class Seq2SeqEvaluator(object):
             correct_programs = None
     
         ok_grammar = np.zeros((self._beam_size,), dtype=np.int32)
+        ok_fn_count = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
+        ok_signature = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
         fp = None
         if save_to_file:
@@ -89,6 +91,8 @@ class Seq2SeqEvaluator(object):
 
         def get_functions(seq):
             return tuple(x for x in seq if x.startswith('@'))
+        def get_signature(seq):
+            return [x for x in seq if x.startswith('@') or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
 
         output_size = self.grammar.output_size
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
@@ -142,9 +146,12 @@ class Seq2SeqEvaluator(object):
                     gold_functions = get_functions(gold)
                     gold_function_set = set(gold_functions)
                     gold_functions_counter.update(gold_functions)
+                    gold_signature = get_signature(gold)
 
                     is_ok_grammar = False
+                    is_ok_fn_count = False
                     is_ok_fn = False
+                    is_ok_signature = False
                     is_ok_full = False
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
@@ -167,11 +174,20 @@ class Seq2SeqEvaluator(object):
                             function_fp.update(decoded_function_set - gold_function_set)
                             function_fn.update(gold_function_set - decoded_function_set)
                             #function_tn.update(all_functions - (gold_functions | decoded_functions))
-                        
+                        decoded_signature = get_signature(decoded)
+
+                        if is_ok_fn_count or (is_ok_grammar and len(gold_functions) == len(decoded_functions)):
+                            ok_fn_count[beam_pos] += 1
+                            is_ok_fn_count = True
+
                         if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
                             ok_fn[beam_pos] += 1
                             is_ok_fn = True
-                            
+
+                        if is_ok_signature or (is_ok_grammar and gold_signature == decoded_signature):
+                            ok_signature[beam_pos] += 1
+                            is_ok_signature = True
+
                         if is_ok_full or (is_ok_grammar and self.grammar.compare(gold, decoded)):
                             if save_to_file:
                                 correct_programs[beam_pos].add(decoded_tuple)
@@ -193,7 +209,8 @@ class Seq2SeqEvaluator(object):
                             print(sentence, gold_str, decoded_str, is_ok_full,
                                   'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
                                   'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
-                                  'CorrectNumFunction' if (is_ok_grammar and len(gold_functions) == len(decoded_functions)) else 'IncorrectNumFunction',
+                                  'CorrectNumFunction' if is_ok_fn_count else 'IncorrectNumFunction',
+                                  'CorrectSignature' if is_ok_signature else 'IncorrectSignature',
                                   sep='\t', file=fp)
                 
                 n_minibatches += 1
@@ -247,7 +264,9 @@ class Seq2SeqEvaluator(object):
                     (overall_parse_action_precision + overall_parse_action_recall)
             
             acc_grammar = ok_grammar.astype(np.float32)/len(self.data[0])
+            acc_fn_count = ok_fn_count.astype(np.float32)/len(self.data[0])
             acc_fn = ok_fn.astype(np.float32)/len(self.data[0])
+            acc_signature = ok_signature.astype(np.float32)/len(self.data[0])
             acc_full = ok_full.astype(np.float32)/len(self.data[0])
             if save_to_file:
                 recall = [float(len(p))/len(gold_programs) for p in correct_programs]
@@ -255,7 +274,9 @@ class Seq2SeqEvaluator(object):
                 recall = [0]
                 
             print(self.tag, "ok grammar:", acc_grammar)
+            print(self.tag, "ok function count:", acc_fn_count)
             print(self.tag, "ok function:", acc_fn)
+            print(self.tag, "ok signature:", acc_signature)
             print(self.tag, "ok full:", acc_full)
             print(self.tag, "program recall:", recall)
             print(self.tag, "parse-action avg precision:", overall_parse_action_precision, "over %d actions" % parse_action_precision.count())
@@ -302,7 +323,9 @@ class Seq2SeqEvaluator(object):
                 'eval_loss': (sum_eval_loss / n_minibatches),
                 'grammar_accuracy': float(acc_grammar[0]),
                 'accuracy': float(acc_full[0]),
+                'function_count_accuracy': float(acc_fn_count[0]),
                 'function_accuracy': float(acc_fn[0]),
+                'signature_accuracy': float(acc_signature[0]),
                 'program_recall': float(recall[0]),
                 'parse_action_precision': overall_parse_action_precision,
                 'parse_action_recall': overall_parse_action_recall,
