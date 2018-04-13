@@ -72,7 +72,8 @@ class QueryHandler(tornado.web.RequestHandler):
         grammar = config.grammar
         with language.session.as_default():
             with language.session.graph.as_default():
-                input, input_len = vectorize(tokens, config.dictionary, config.max_length)
+                input, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+                print('Vectorized', input, input_len)
                 if parse:
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
@@ -82,14 +83,14 @@ class QueryHandler(tornado.web.RequestHandler):
                 assert len(sequences) == 1
                 
                 for i, beam in enumerate(sequences[0]):
-                    if i >= limit:
-                        break
                     decoded = grammar.reconstruct_program(beam, ignore_errors=True)
+                    print("Beam", i+1, decoded if decoded else 'failed to predict')
                     if not decoded:
                         continue
-                    print("Beam", i+1, decoded)
                     json_rep = dict(code=decoded, score=1)
                     results.append(json_rep)
+                    if limit >= 0 and len(results) >= limit:
+                        break
         return results
 
     @tornado.gen.coroutine
@@ -99,7 +100,10 @@ class QueryHandler(tornado.web.RequestHandler):
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         language = self.application.get_language(locale)
-        limit = int(self.get_query_argument("limit", default=5))
+        try:
+            limit = int(self.get_query_argument("limit", default=5))
+        except ValueError:
+            raise tornado.web.HTTPError(400, reason='Invalid limit argument')
         expect = self.get_query_argument('expect', default=None)
         print('GET /%s/query' % locale, query)
 
