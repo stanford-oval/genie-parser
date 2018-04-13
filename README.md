@@ -54,7 +54,7 @@ that uses Almond NN-Parser).
    
 4. Check that the dataset is compatible with the Thingpedia snapshot:
    ```
-    cut -f2 ${DATASET}/*.tsv > programs.txt
+    cut -f3 ${DATASET}/*.tsv > programs.txt
     cd ~/almond-nnparser
     python3 -m grammar.thingtalk ~/workdir/thingpedia.json < ~/workdir/programs.txt
    ```
@@ -63,7 +63,7 @@ that uses Almond NN-Parser).
    wish.
 6. Train:
     ```
-    ~/almond-nnparser/run_train.py ./model.1 ${DATASET}/train.tsv ${DATASET}/dev.tsv
+    ~/almond-nnparser/run_train.py ./model.1 train:${DATASET}/train.tsv dev:${DATASET}/dev.tsv
     ```
 7. Visualize the training:
     ```
