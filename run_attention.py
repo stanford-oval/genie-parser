@@ -103,6 +103,7 @@ def run():
                             continue
                         
                         sentence, sentence_length = vectorize(line, config.dictionary, config.max_length, add_eos=True, add_start=True)
+                        print('Vectorized', sentence, sentence_length)
                         fake_input, fake_length = vectorize('ig to fb', config.dictionary, config.max_length, add_eos=True, add_start=True)
                         fake_parse = np.zeros((2*config.max_length-1,))
                         
