@@ -35,8 +35,10 @@ class SimpleGrammar(AbstractGrammar):
     where $Token is any grammar token
     '''
     
-    def __init__(self, filename):
+    def __init__(self, filename, split_device=False):
         super().__init__()
+        
+        self._split_device = split_device
         
         self.tokens = ['</s>', '<s>']
         with open(filename, 'r') as fp:
@@ -56,8 +58,24 @@ class SimpleGrammar(AbstractGrammar):
         # HACK
         self._thingtalk = ThingTalkGrammar('./thingpedia.json')
         
+    def vectorize_program(self, program, max_length):
+        if not self._split_device:
+            return super().vectorize_program(program, max_length=max_length)
+        
+        if isinstance(program, str):
+            program = program.split(' ')
+        def program_with_device():
+            for tok in program:
+                if tok.startswith('@'):
+                    device = tok[:tok.rindex('.')]
+                    yield '@' + device
+                yield tok
+        return super().vectorize_program(program_with_device(), max_length=max_length)
+        
     def reconstruct_program(self, sequence, ignore_errors=False):
         program = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+        if self._split_device:
+            program = [x for x in program if not x.startswith('@@')]
         
         try:
             self._thingtalk.vectorize_program(program, 60)

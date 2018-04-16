@@ -30,17 +30,29 @@ def create_grammar(grammar_type, *args, **kw):
     pkg = None
     class_name = None
     
-    # for compat with existing configuration files
     if grammar_type in ("tt", 'new-tt'):
         pkg = 'thingtalk'
         class_name = 'ThingTalkGrammar'
+    elif grammar_type in ('tt-split-device', 'new-tt-split-device'):
+        pkg = 'thingtalk'
+        class_name = 'ThingTalkGrammar'
+        kw['split_device'] = True
     elif grammar_type == 'reverse-tt':
         pkg = 'thingtalk'
         class_name = 'ThingTalkGrammar'
         kw['reverse'] = True
+    elif grammar_type == 'reverse-tt-split-device':
+        pkg = 'thingtalk'
+        class_name = 'ThingTalkGrammar'
+        kw['reverse'] = True
+        kw['split_device'] = True
     elif grammar_type == "simple":
         pkg = 'simple'
         class_name = 'SimpleGrammar'
+    elif grammar_type == 'simple-split-device':
+        pkg = 'simple'
+        class_name = 'SimpleGrammar'
+        kw['split_device'] = True
     else:
         pkg, class_name = grammar_type.rsplit('.', limit=1)
     module = importlib.import_module('grammar.' + pkg)

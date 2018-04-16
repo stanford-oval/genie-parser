@@ -449,11 +449,11 @@ class ShiftReduceParser:
         state = 0
         i = 0
         result = []
+        
+        sequence_iter = iter(sequence)
+        sequence_done = False
+        token = next(sequence_iter)
         while True:
-            if i < len(sequence):
-                token = sequence[i]
-            else:
-                token = EOF_TOKEN
             if token not in self._action_table[state]:
                 raise ValueError("Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(self._action_table[state].keys()))
             action, param = self._action_table[state][token]
@@ -465,12 +465,18 @@ class ShiftReduceParser:
             #else:
             #    print('reduce', param, self._rules[param])
             if action == 'shift':
+                #print('shift', param, token)
                 state = param
                 stack.append(state)
-                i += 1
+                
+                try:
+                    token = next(sequence_iter)
+                except StopIteration:
+                    token = EOF_TOKEN
             else:
                 rule_id = param
                 lhs, rhs = self.rules[rule_id]
+                #print('reduce', lhs, '->', rhs)
                 for _ in rhs:
                     stack.pop()
                 state = stack[-1]
