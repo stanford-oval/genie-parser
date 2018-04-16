@@ -104,8 +104,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None, **kw):
+    def __init__(self, filename=None, split_device=False, **kw):
         super().__init__(**kw)
+        self._split_device = split_device
         if filename is not None:
             self.init_from_file(filename)
         
@@ -160,6 +161,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         with open(filename, 'r') as fp:
             thingpedia = json.load(fp)
         
+        self._devices = thingpedia['devices']
         self._process_devices(thingpedia['devices'])
         self._process_entities(thingpedia['entities'])
 
@@ -171,10 +173,32 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         ssl_context = ssl.create_default_context()
 
         with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
+            self._devices = res
             self._process_devices(json.load(res)['data'])
 
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
             self._process_entities(json.load(res)['data'])
+    
+    def vectorize_program(self, program, max_length=60):
+        if not self._split_device:
+            return super().vectorize_program(program, max_length=max_length)
+        
+        if isinstance(program, str):
+            program = program.split(' ')
+        def program_with_device():
+            for tok in program:
+                if tok.startswith('@'):
+                    device = tok[:tok.rindex('.')]
+                    yield '@' + device
+                yield tok
+        return super().vectorize_program(program_with_device(), max_length=max_length)
+    
+    def reconstruct_program(self, sequence, ignore_errors=False):
+        reconstructed = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+        if not self._split_device:
+            return reconstructed
+        else:
+            return [x for x in reconstructed if not x.startswith('@@')]
     
     def complete(self):
         self.num_functions = len(self.functions['queries']) + len(self.functions['actions'])
@@ -303,6 +327,28 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         # over the whole Thingpedia
         param_types = OrderedDict()
         
+        if self._split_device:
+            GRAMMAR['$thingpedia_device_name'] = []
+            for function_type in ('queries', 'actions'):
+                GRAMMAR['$thingpedia_' + function_type].append(('$thingpedia_device_name', '$thingpedia_' + function_type + '_name',))
+                GRAMMAR['$thingpedia_' + function_type + '_name'] = []
+            for device in self._devices:
+                if device['kind_type'] in ('global', 'discovery', 'category'):
+                    continue
+                kind = device['kind']
+                if kind == 'org.thingpedia.builtin.test':
+                    continue
+                
+                GRAMMAR['$thingpedia_device_name'].append(('@@' + kind,))
+                for function_type in ('queries', 'actions'):
+                    for name, function in device[function_type].items():
+                        function_name = '@' + kind + '.' + name
+                        GRAMMAR['$thingpedia_' + function_type + '_name'].append((function_name,))
+        else:
+            for function_type in ('queries', 'actions'):
+                for function_name, params in self.functions[function_type].items():
+                    GRAMMAR['$thingpedia_' + function_type].append((function_name,))
+
         for function_type in ('queries', 'actions'):
             for function_name, params in self.functions[function_type].items():
                 for param_name, param_type, param_direction in params:
@@ -315,7 +361,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     if param_name not in param_types:
                         param_types[param_name] = OrderedSet()
                     param_types[param_name].add((param_type, param_direction))
-                GRAMMAR['$thingpedia_' + function_type].append((function_name,))
 
         for param_name, options in param_types.items():
             for (param_type, param_direction) in options:
@@ -368,7 +413,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             self.dictionary[token] = i
 
 if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], reverse=False)
+    grammar = ThingTalkGrammar(sys.argv[1], split_device=True, reverse=False)
     grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
