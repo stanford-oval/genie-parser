@@ -61,6 +61,7 @@ TYPES = {
     'Currency': (['==', '>=', '<='], ['CURRENCY']),
     'Number': (['==', '>=', '<='], ['NUMBER', '1', '0']),
     'Entity(tt:username)': (['=='], ['USERNAME', ('$constant_String',) ]),
+    'Entity(tt:contact_name)': (['=='], [('$constant_Entity(tt:username)',) ]),
     'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('$constant_String',) ]),
     'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('$constant_String',) ]),
     'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
@@ -366,7 +367,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
 
 if __name__ == '__main__':
     grammar = ThingTalkGrammar(sys.argv[1], reverse=False)
-    grammar.dump_tokens()
+    #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
     ok_grammar = 0
