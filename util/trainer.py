@@ -41,7 +41,7 @@ class Trainer(object):
                  n_epochs=40,
                  shuffle_data=True,
                  load_existing=False,
-                 curriculum_max_prob=0.9,
+                 curriculum_max_prob=0.8,
                  curriculum_schedule=0.05,
                  **kw):
         '''
