@@ -23,7 +23,6 @@ Created on Mar 16, 2017
 import sys
 import json
 import os
-import tensorflow as tf
 import numpy as np
 import time
 
@@ -91,6 +90,11 @@ class Trainer(object):
                 self._eval_metrics[key] = existing[key]
             if len(self._eval_metrics[self._opt_eval_metric]) > 0:
                 self._best = max(x[1] for x in self._eval_metrics[self._opt_eval_metric])
+                
+        if 'PROGRESS_PIPE' in os.environ:
+            self._progress = os.fdopen(int(os.environ['PROGRESS_PIPE']), mode='w', buffering=1)
+        else:
+            self._progress = None
 
     def run_epoch(self, sess, train_data, epoch):
         n_minibatches, total_loss = 0, 0
@@ -112,11 +116,18 @@ class Trainer(object):
             json.dump(output, fp)
 
     def fit(self, sess):
-        if self._curriculum_schedule != 0.0:
-            self._fit_curriculum(sess)
-        else:
-            for i, key in enumerate(self.train_sets):
-                self._fit_set(sess, key, self.train_data[key], i)
+        # flush stdout so we show the output before the first progress bar
+        sys.stdout.flush()
+        try:
+            if self._curriculum_schedule != 0.0:
+                self._fit_curriculum(sess)
+            else:
+                for i, key in enumerate(self.train_sets):
+                    self._fit_set(sess, key, self.train_data[key], i)
+        finally:
+            self._save_stats()
+            if self._progress:
+                self._progress.close()
     
     def _mix_curriculum(self, epoch):
         easy_set = self.train_data[self.train_sets[0]]
@@ -144,74 +155,84 @@ class Trainer(object):
                      zip(easy_set, hard_set))  
     
     def _fit_curriculum(self, sess):
-        # flush stdout so we show the output before the first progress bar
-        sys.stdout.flush()
-        try:
-            for epoch in range(self._n_epochs):
-                train_data = self._mix_curriculum(epoch)
-                average_loss = self.run_epoch(sess, train_data, epoch)
-                print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
-
-                epoch_metrics = dict()
-
-                # eval train accuracy only on the hard set
-                train_metrics = self.train_evals[1].eval(sess, save_to_file=False)
-                for metric, train_value in train_metrics.items():
-                    epoch_metrics[metric] = [train_value]
-
-                for dev_eval in self.dev_evals:
-                    dev_metrics = dev_eval.eval(sess, save_to_file=False)
-                    for metric, dev_value in dev_metrics.items():
-                        epoch_metrics[metric].append(float(dev_value))
-                for metric, values in epoch_metrics.items():
-                    if metric not in self._eval_metrics:
-                        self._eval_metrics[metric] = []
-                    self._eval_metrics[metric].append(values)
-
-                comparison_metric = epoch_metrics[self._opt_eval_metric][1]
-                
-                if self._best is None or comparison_metric >= self._best:
-                    print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
-                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                    self._best = comparison_metric
-                print()
-                sys.stdout.flush()
-                self._save_stats()
-        finally:
+        for epoch in range(self._n_epochs):
+            start_time = time.time()
+            if self._progress:
+                print('progress:%d/%d' % (epoch, self._n_epochs), file=self._progress)
+    
+            train_data = self._mix_curriculum(epoch)
+            average_loss = self.run_epoch(sess, train_data, epoch)
+            print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
+    
+            epoch_metrics = dict()
+    
+            # eval train accuracy only on the hard set
+            train_metrics = self.train_evals[1].eval(sess, save_to_file=False)
+            for metric, train_value in train_metrics.items():
+                epoch_metrics[metric] = [train_value]
+    
+            for dev_eval in self.dev_evals:
+                dev_metrics = dev_eval.eval(sess, save_to_file=False)
+                for metric, dev_value in dev_metrics.items():
+                    epoch_metrics[metric].append(float(dev_value))
+            for metric, values in epoch_metrics.items():
+                if metric not in self._eval_metrics:
+                    self._eval_metrics[metric] = []
+                self._eval_metrics[metric].append(values)
+    
+            comparison_metric = epoch_metrics[self._opt_eval_metric][1]
+            
+            if self._best is None or comparison_metric >= self._best:
+                print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
+                self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                self._best = comparison_metric
+            print()
+            sys.stdout.flush()
             self._save_stats()
-
+            end_time = time.time()
+    
+            if self._progress:                
+                delta_time = end_time - start_time
+                eta = (self._n_epochs - epoch - 1) * delta_time
+                print('eta:%f' % (eta,), file=self._progress)
+                
     def _fit_set(self, sess, train_key, train_data, i):
         start_epoch = i * self._n_epochs
-        # flush stdout so we show the output before the first progress bar
-        sys.stdout.flush()
-        try:
-            for epoch in range(start_epoch, start_epoch + self._n_epochs):
-                average_loss = self.run_epoch(sess, train_data, epoch)
-                print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
-
-                epoch_metrics = dict()
-
-                train_metrics = self.train_evals[i].eval(sess, save_to_file=False)
-                for metric, train_value in train_metrics.items():
-                    epoch_metrics[metric] = [train_value]
-
-                for dev_eval in self.dev_evals:
-                    dev_metrics = dev_eval.eval(sess, save_to_file=False)
-                    for metric, dev_value in dev_metrics.items():
-                        epoch_metrics[metric].append(float(dev_value))
-                for metric, values in epoch_metrics.items():
-                    if metric not in self._eval_metrics:
-                        self._eval_metrics[metric] = []
-                    self._eval_metrics[metric].append(values)
-
-                comparison_metric = epoch_metrics[self._opt_eval_metric][1]
+        for epoch in range(start_epoch, start_epoch + self._n_epochs):
+            start_time = time.time()
+            if self._progress:
+                print('progress:%d/%d' % (epoch, self._n_epochs), file=self._progress)
                 
-                if self._best is None or comparison_metric >= self._best:
-                    print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
-                    self.saver.save(sess, os.path.join(self._model_dir, 'best'))
-                    self._best = comparison_metric
-                print()
-                sys.stdout.flush()
-                self._save_stats()
-        finally:
+            average_loss = self.run_epoch(sess, train_data, epoch)
+            print('Epoch {:}: loss = {:.4f}'.format(epoch, average_loss))
+
+            epoch_metrics = dict()
+
+            train_metrics = self.train_evals[i].eval(sess, save_to_file=False)
+            for metric, train_value in train_metrics.items():
+                epoch_metrics[metric] = [train_value]
+
+            for dev_eval in self.dev_evals:
+                dev_metrics = dev_eval.eval(sess, save_to_file=False)
+                for metric, dev_value in dev_metrics.items():
+                    epoch_metrics[metric].append(float(dev_value))
+            for metric, values in epoch_metrics.items():
+                if metric not in self._eval_metrics:
+                    self._eval_metrics[metric] = []
+                self._eval_metrics[metric].append(values)
+
+            comparison_metric = epoch_metrics[self._opt_eval_metric][1]
+            
+            if self._best is None or comparison_metric >= self._best:
+                print('Found new model with best ' + self._opt_eval_metric + ' (' + str(comparison_metric) + ')')
+                self.saver.save(sess, os.path.join(self._model_dir, 'best'))
+                self._best = comparison_metric
+            print()
+            sys.stdout.flush()
             self._save_stats()
+            end_time = time.time()
+    
+            if self._progress:                
+                delta_time = end_time - start_time
+                eta = (self._n_epochs - epoch) * delta_time
+                print('eta:%f' % (eta,), file=self._progress)
