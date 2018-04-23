@@ -41,9 +41,9 @@ class TokenizeHandler(tornado.web.RequestHandler):
         query = self.get_query_argument("q")
         language = self.application.get_language(locale)
         
-        print('GET /%s/tokenize' % locale, query)
+        #print('GET /%s/tokenize' % locale, query)
         tokenized = yield language.tokenizer.tokenize(query)
-        print("Tokenized", tokenized.tokens, tokenized.values)
+        #print("Tokenized", tokenized.tokens, tokenized.values)
         
         sys.stdout.flush()
         cache_time = 3600
@@ -73,7 +73,7 @@ class QueryHandler(tornado.web.RequestHandler):
         with language.session.as_default():
             with language.session.graph.as_default():
                 input, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
-                print('Vectorized', input, input_len)
+                #print('Vectorized', input, input_len)
                 if parse:
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
@@ -84,7 +84,7 @@ class QueryHandler(tornado.web.RequestHandler):
                 
                 for i, beam in enumerate(sequences[0]):
                     decoded = grammar.reconstruct_program(beam, ignore_errors=True)
-                    print("Beam", i+1, decoded if decoded else 'failed to predict')
+                    #print("Beam", i+1, decoded if decoded else 'failed to predict')
                     if not decoded:
                         continue
                     json_rep = dict(code=decoded, score=1)
@@ -105,10 +105,10 @@ class QueryHandler(tornado.web.RequestHandler):
         except ValueError:
             raise tornado.web.HTTPError(400, reason='Invalid limit argument')
         expect = self.get_query_argument('expect', default=None)
-        print('GET /%s/query' % locale, query)
+        #print('GET /%s/query' % locale, query)
 
         tokenized = yield language.tokenizer.tokenize(query)
-        print("Tokenized", tokenized.tokens, tokenized.values)
+        #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
         tokens = tokenized.tokens

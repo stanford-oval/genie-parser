@@ -33,6 +33,9 @@ from util.eval import Seq2SeqEvaluator
 from models import Config, create_model
 from util.loader import unknown_tokens, load_data
 
+import warnings
+warnings.simplefilter("ignore", DeprecationWarning)
+
 def run():
     if len(sys.argv) < 3:
         print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Test Set>>")
