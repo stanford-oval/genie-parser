@@ -18,7 +18,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
         self.entities = []
         
         GRAMMAR = OrderedDict({
-            '$input': [('$trigger', '$action')],
+            '$input': [('$trigger', '=>', '$action')],
             '$channel': [],
             '$trigger': [('$channel', '$trigger_function')],
             '$trigger_function': [],
