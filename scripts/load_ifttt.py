@@ -21,15 +21,21 @@ def run():
     for what in ('train', 'dev', 'test'):
         with open('ifttt-' + what + '.tsv', 'w') as fout:
             for i, sentence in enumerate(data[what]):
-                channels.add(sentence['label_names'][0])
-                triggers.add(sentence['label_names'][1])
-                channels.add(sentence['label_names'][2])
-                actions.add(sentence['label_names'][3])
-                print(what + str(i), ' '.join(sentence['words']), ' '.join(sentence['label_names']), sep='\t', file=fout)
+                ch1 = sentence['label_names'][0]
+                channels.add(ch1)
+                trigger = sentence['label_names'][1]
+                triggers.add(trigger)
+                ch2 = sentence['label_names'][2]
+                channels.add(ch2)
+                action = sentence['label_names'][3]
+                actions.add(action)
+                
+                prog = '@' + ch1 + ' ' + trigger + ' => ' + '@' + ch2 + ' ' + action 
+                print(what + str(i), ' '.join(sentence['words']), prog, sep='\t', file=fout)
 
     with open('ifttt-output-words.txt', 'w') as fout:
         for c in sorted(channels):
-            print('channel', c, file=fout)
+            print('channel', '@' + c, file=fout)
         for t in sorted(triggers):
             print('trigger', t, file=fout)
         for a in sorted(actions):
