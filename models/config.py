@@ -54,7 +54,7 @@ def create_grammar(grammar_type, *args, **kw):
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
     else:
-        pkg, class_name = grammar_type.rsplit('.', limit=1)
+        pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)
     return getattr(module, class_name)(*args, **kw)
 
