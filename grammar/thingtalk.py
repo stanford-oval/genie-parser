@@ -61,7 +61,7 @@ TYPES = {
     'Currency': (['==', '>=', '<='], ['CURRENCY']),
     'Number': (['==', '>=', '<='], ['NUMBER', '1', '0']),
     'Entity(tt:username)': (['=='], ['USERNAME', ('$constant_String',) ]),
-    'Entity(tt:contact_name)': (['=='], [('$constant_Entity(tt:username)',) ]),
+    'Entity(tt:contact)': (['=='], [('$constant_Entity(tt:username)',) ]),
     'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('$constant_String',) ]),
     'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('$constant_String',) ]),
     'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
@@ -89,7 +89,7 @@ UNITS = dict(C=["C", "F"],
              bpm=["bpm"],
              byte=["byte", "KB", "MB", "GB", "TB"])
 
-MAX_ARG_VALUES = 3
+MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
 
 def clean(name):
@@ -206,19 +206,30 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         
         GRAMMAR = OrderedDict({
             '$input': [('$rule',),
-                       ('$constant_Entity(tt:username)', ':', '$rule'),
+                       ('executor', '=', '$constant_Entity(tt:username)', ':', '$rule'),
+                       ('policy', '$policy'),
                        ('bookkeeping', '$bookkeeping')],
             '$bookkeeping': [('special', '$special'),
                              ('answer', '$constant_Any')],
             '$special': [(x,) for x in SPECIAL_TOKENS],
-            '$rule':  [('$stream', '=>', '$thingpedia_actions'),
-                       ('$stream_join', '=>', '$thingpedia_actions'),
-                       ('$stream', '=>', 'notify'),
-                       ('$stream_join', '=>', 'notify'),
-                       ('now', '=>', '$table', '=>', '$thingpedia_actions'),
-                       ('now', '=>', '$table', '=>', 'notify'),
-                       ('now', '=>', '$thingpedia_actions'),
+            '$rule':  [('$stream', '=>', '$action'),
+                       ('$stream_join', '=>', '$action'),
+                       ('now', '=>', '$table', '=>', '$action'),
+                       ('now', '=>', '$action'),
                        ('$rule', 'on', '$param_passing')],
+            '$policy': [('true', ':', '$policy_body'),
+                        ('$filter', ':', '$policy_body')],
+            '$policy_body': [('now', '=>', '$policy_action'),
+                             ('$policy_query', '=>', 'notify'),
+                             ('$policy_query', '=>', '$policy_action')],
+            '$policy_query': [('*',),
+                              #('$thingpedia_device_star'),
+                              ('$thingpedia_queries',),
+                              ('$thingpedia_queries', 'filter', '$filter')],
+            '$policy_action': [('*',),
+                               #('$thingpedia_device_star'),
+                               ('$thingpedia_actions',),
+                               ('$thingpedia_actions', 'filter', '$filter')],
             '$table': [('$thingpedia_queries',),
                        ('(', '$table', ')', 'filter', '$filter'),
                        ('aggregate', 'min', '$out_param_Any', 'of', '(', '$table', ')'),
@@ -247,6 +258,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ],
             '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
+            '$action': [('notify',),
+                        ('return',),
+                        ('$thingpedia_actions',)],
             '$thingpedia_queries': [('$thingpedia_queries', '$const_param')],
             '$thingpedia_actions': [('$thingpedia_actions', '$const_param')],
             '$param_passing': [],
@@ -324,6 +338,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         # maps a parameter to the list of types it can possibly have
         # over the whole Thingpedia
         param_types = OrderedDict()
+        # add a parameter over the source
+        param_types['source'] = OrderedSet()
+        param_types['source'].add(('Entity(tt:contact)', 'out'))
         
         if self._split_device:
             GRAMMAR['$thingpedia_device_name'] = []
@@ -359,6 +376,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     if param_name not in param_types:
                         param_types[param_name] = OrderedSet()
                     param_types[param_name].add((param_type, param_direction))
+                    if param_direction == 'in':
+                        # add the corresponding in out direction too, so we can handle
+                        # filters on it for policies
+                        param_types[param_name].add((param_type, 'out'))
 
         for param_name, options in param_types.items():
             for (param_type, param_direction) in options:
