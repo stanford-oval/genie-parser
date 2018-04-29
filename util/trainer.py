@@ -124,6 +124,8 @@ class Trainer(object):
             else:
                 for i, key in enumerate(self.train_sets):
                     self._fit_set(sess, key, self.train_data[key], i)
+            if self._progress:
+                print('progress:%d/%d' % (self._n_epochs, self._n_epochs), file=self._progress)
         finally:
             self._save_stats()
             if self._progress:
