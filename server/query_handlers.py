@@ -99,11 +99,14 @@ class QueryHandler(tornado.web.RequestHandler):
 
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
+        store = self.get_query_argument("store", "yes")
         language = self.application.get_language(locale)
         try:
             limit = int(self.get_query_argument("limit", default=5))
         except ValueError:
             raise tornado.web.HTTPError(400, reason='Invalid limit argument')
+        if store not in ('yes','no'):
+            raise tornado.web.HTTPError(400, reason='Invalid store argument')
         expect = self.get_query_argument('expect', default=None)
         #print('GET /%s/query' % locale, query)
 
@@ -123,7 +126,7 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database:
+        if len(result) > 0 and self.application.database and store != 'no':
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
