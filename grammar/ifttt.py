@@ -26,6 +26,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
             '$action_function': [],
         })
     
+        self.allfunctions = set()
         with open(filename, 'r') as fp:
             for line in fp:
                 where, what = line.strip().split(' ')
@@ -37,6 +38,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
                 #    GRAMMAR['$param_value'].append((what,))
                 else:
                     GRAMMAR['$' + where + '_function'].append((what,))
+                    self.allfunctions.add(what)
 
         self.num_functions = len(GRAMMAR['$trigger_function']) + len(GRAMMAR['$action_function'])
         self.tokens += self.construct_parser(GRAMMAR)
