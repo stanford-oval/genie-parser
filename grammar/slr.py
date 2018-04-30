@@ -44,6 +44,8 @@ class ItemSet:
 
 DEBUG = False
 
+ITEM_SET_SEP = ()
+
 class SLRParserGenerator():
     '''
     Construct a shift-reduce parser given an SLR grammar.
@@ -194,21 +196,21 @@ class SLRParserGenerator():
         for rule in item_set.rules:
             _, rhs = rule
             for i in range(len(rhs)-1):
-                if rhs[i] == '*' and rhs[i+1] != EOF_TOKEN:
+                if rhs[i] == ITEM_SET_SEP and rhs[i+1] != EOF_TOKEN:
                     yield rhs[i+1]
 
     def _advance(self, item_set, token):
         for rule in item_set.rules:
             rule_id, rhs = rule
             for i in range(len(rhs)-1):
-                if rhs[i] == '*' and rhs[i+1] == token:
-                    yield rule_id, (rhs[:i] + (token, '*') + rhs[i+2:])
+                if rhs[i] == ITEM_SET_SEP and rhs[i+1] == token:
+                    yield rule_id, (rhs[:i] + (token, ITEM_SET_SEP) + rhs[i+2:])
                     break
         
     def _make_item_set(self, lhs):
         for rule_id in self.grammar[lhs]:
             lhs, rhs = self.rules[rule_id]
-            yield rule_id, ('*',) + rhs
+            yield rule_id, (ITEM_SET_SEP,) + rhs
     
     def _close(self, items):
         def _is_nonterminal(symbol):
@@ -220,7 +222,7 @@ class SLRParserGenerator():
             item = stack.pop()
             _, rhs = item
             for i in range(len(rhs)-1):
-                if rhs[i] == '*' and _is_nonterminal(rhs[i+1]):
+                if rhs[i] == ITEM_SET_SEP and _is_nonterminal(rhs[i+1]):
                     for new_rule in self._make_item_set(rhs[i+1]):
                         if new_rule in item_set:
                             continue
@@ -363,13 +365,13 @@ class SLRParserGenerator():
             for item in item_set.rules:
                 _, rhs = item
                 for i in range(len(rhs)-1):
-                    if rhs[i] == '*' and rhs[i+1] == EOF_TOKEN:
+                    if rhs[i] == ITEM_SET_SEP and rhs[i+1] == EOF_TOKEN:
                         self.action_table[item_set.info.id][EOF_TOKEN] = ('accept', None)
         
         for item_set in self._item_sets:
             for item in item_set.rules:
                 rule_id, rhs = item
-                if rhs[-1] != '*':
+                if rhs[-1] != ITEM_SET_SEP:
                     continue
                 lhs, _ = self.rules[rule_id]
                 for term in self.terminals:

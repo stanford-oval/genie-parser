@@ -33,22 +33,28 @@ def do_one(fout, data, what, tag = None):
         action = sentence['label_names'][3]
         actions.add(action)
         
-        trig_params, act_params = sentence['params']
-        trig_params.sort(key=lambda x:x[0])
-        act_params.sort(key=lambda x:x[0])
+        #trig_params, act_params = sentence['params']
+        #trig_params.sort(key=lambda x:x[0])
+        #act_params.sort(key=lambda x:x[0])
         
         prog = '@@' + ch1 + ' @' + trigger
-        for name, value in trig_params:
-            param_names.add('param:' + name)
-            value = urllib.quote_plus(value)
-            param_values.add(value)
-            prog += ' param:' + name + ' ' + '\"' + value + '\"'
+        #for name, value in trig_params:
+        #    if ' ' in name:
+        #        # preprocessor fail, ignore
+        #        continue
+        #    param_names.add('param:' + name)
+        #    value = urllib.quote_plus(value)
+        #    param_values.add(value)
+        #    prog += ' param:' + name + ' ' + '\"' + value + '\"'
         prog += ' => ' + '@@' + ch2 + ' @' + action
-        for name, value in act_params:
-            param_names.add('param:' + name)
-            value = urllib.quote_plus(value)
-            param_values.add(value)
-            prog += ' param:' + name + ' ' + '\"' + value + '\"'
+        #for name, value in act_params:
+        #    if ' ' in name:
+        #        # preprocessor fail, ignore
+        #        continue
+        #    param_names.add('param:' + name)
+        #    value = urllib.quote_plus(value)
+        #    param_values.add(value)
+        #    prog += ' param:' + name + ' ' + '\"' + value + '\"'
         #if what == 'test':
         #    print(sentence)
         
