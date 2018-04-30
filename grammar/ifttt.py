@@ -23,7 +23,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
             '$trigger': [('$channel', '$trigger_function')],
             '$trigger_function': [],
             '$action': [('$channel', '$action_function')],
-            '$action_function': []
+            '$action_function': [],
         })
     
         with open(filename, 'r') as fp:
@@ -31,6 +31,10 @@ class IFTTTGrammar(ShiftReduceGrammar):
                 where, what = line.strip().split(' ')
                 if where == 'channel':
                     GRAMMAR['$channel'].append((what,))
+                #elif where == 'param':
+                #    GRAMMAR['$param_name'].append((what,))
+                #elif where == 'value':
+                #    GRAMMAR['$param_value'].append((what,))
                 else:
                     GRAMMAR['$' + where + '_function'].append((what,))
 
