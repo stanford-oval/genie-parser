@@ -46,6 +46,7 @@ DEBUG = False
 
 ITEM_SET_SEP = ()
 
+
 class SLRParserGenerator():
     '''
     Construct a shift-reduce parser given an SLR grammar.
@@ -237,7 +238,7 @@ class SLRParserGenerator():
                         stack.append(new_rule)
                     break
         item_set = list(item_set)
-        item_set.sort()
+        #item_set.sort()
         return item_set
     
     def _generate_all_item_sets(self):

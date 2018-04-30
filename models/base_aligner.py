@@ -207,7 +207,7 @@ class BaseAligner(BaseModel):
             # first the embed the input
             with tf.variable_scope('input'):
                 if self.config.train_input_embeddings:
-                    if self.config.input_embedding_matrix:
+                    if self.config.input_embedding_matrix is not None:
                         initializer = tf.constant_initializer(self.config.input_embedding_matrix)
                     else:
                         initializer = None
