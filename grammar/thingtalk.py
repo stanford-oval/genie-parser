@@ -99,14 +99,12 @@ def clean(name):
 def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
 
-class ThingTalkGrammar(ShiftReduceGrammar):
-    '''
-    The grammar of ThingTalk
-    '''
-    
-    def __init__(self, filename=None, split_device=False, **kw):
-        super().__init__(**kw)
-        self._split_device = split_device
+
+class ThingtalkGrammar(ShiftReduceGrammar):
+    def __init__(self, filename=None, flatten=True):
+        super().__init__(flatten=flatten)
+        if not flatten:
+            raise NotImplementedError('Extensible Grammar is not supported for Old ThingTalk')
         if filename is not None:
             self.init_from_file(filename)
         
@@ -417,25 +415,11 @@ if __name__ == '__main__':
     grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
-    ok_grammar = 0
-    fail_grammar = 0
+
     for line in sys.stdin:
         try:
-            program = line.strip()
-            vectors.append(grammar.vectorize_program(program)[0])
-            reconstructed = grammar.reconstruct_program(vectors[-1])
-            assert program == ' '.join(reconstructed)
-            #print()
-            #print(program)
-            #grammar.print_prediction(vectors[-1])
-            
-            ok_grammar += 1
+            vectors.append(grammar.vectorize_program(line.strip())[0])
         except:
             print(line.strip())
-            grammar.print_prediction(vectors[-1])
-            fail_grammar += 1
             raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)
-    print(ok_grammar / (ok_grammar+fail_grammar))
-    #for i, name in enumerate(grammar.state_names):
-    #    print i, name

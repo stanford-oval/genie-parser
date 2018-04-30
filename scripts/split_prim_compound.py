@@ -11,6 +11,12 @@ def is_function(token):
     if token in ('timer', 'attimer'):
         return True
     return False
+def get_functions(prog):
+    return [x for x in prog.split(' ') if x.startswith('@') and x != '@org.thingpedia.builtin.thingengine.builtin.say']
+
+def is_compound(prog):
+    return len(get_functions(prog)) >= 2
+
 
 def readfile(filename):
     with open(filename) as fp:

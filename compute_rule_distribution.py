@@ -42,15 +42,17 @@ def run():
     # load programs
     all_programs = np.load(sys.argv[2], allow_pickle=False)
 
-    # concatenate all programs into one vector
-    all_programs = np.reshape(all_programs, (-1,))
+    counts = dict()
+    for key, size in config.output_size.items():
+        # concatenate all programs into one vector
+        flat_all_programs = np.reshape(all_programs[key], (-1,))
     
-    counts = np.bincount(all_programs, minlength=config.output_size)
-    #config.grammar.print_all_actions()
+        counts[key] = np.bincount(flat_all_programs+1, minlength=size+1)
     
-    # ignore the control tokens
-    for i in range(config.grammar.output_size):
-        print(i, counts[i], config.grammar.output_to_string(i), sep='\t')
+
+    for key, size in config.output_size.items():
+        for i in range(size):
+            print(key + ' '*(18-len(key)), i, counts[key][i+1], ' '.join(config.grammar.output_to_print_full(key, i)), sep='\t')
 
 if __name__ == '__main__':
     run()
