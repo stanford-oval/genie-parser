@@ -90,9 +90,9 @@ class Seq2SeqEvaluator(object):
             print("Writing decoded values to ", fp.name)
 
         def get_functions(seq):
-            return tuple(x for x in seq if x.startswith('@'))
+            return tuple(x for x in seq if (x.startswith('@') and not x.startswith('@@')))
         def get_signature(seq):
-            return [x for x in seq if x.startswith('@') or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
+            return [x for x in seq if (x.startswith('@') and not x.startswith('@@')) or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
 
         output_size = self.grammar.output_size
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
