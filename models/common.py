@@ -92,7 +92,7 @@ class StackRNNCell(tf.contrib.rnn.RNNCell):
         return StackRNNState(hidden_state=tf.TensorShape((self._num_units,)),
                              stacks=tuple(tf.TensorShape((self._stack_size * self._num_units)) for _ in range(self._num_stacks)))
 
-def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
+def make_rnn_cell(cell_type, hidden_size, dropout):
     if cell_type == "lstm":
         cell = tf.contrib.rnn.LSTMBlockCell(hidden_size)
     elif cell_type == "gru":
@@ -107,12 +107,11 @@ def make_rnn_cell(cell_type, input_size, hidden_size, dropout):
                                          variational_recurrent=True,
                                          output_keep_prob=dropout,
                                          state_keep_prob=dropout if cell_type != 'gru' else 1.0,
-                                         input_size=input_size,
                                          dtype=tf.float32)
     return cell
 
-def make_multi_rnn_cell(num_layers, cell_type, input_size, hidden_size, dropout):
-    return tf.contrib.rnn.MultiRNNCell([make_rnn_cell(cell_type, input_size, hidden_size, dropout) for _ in range(num_layers)])
+def make_multi_rnn_cell(num_layers, cell_type, hidden_size, dropout):
+    return tf.contrib.rnn.MultiRNNCell([make_rnn_cell(cell_type, hidden_size, dropout) for _ in range(num_layers)])
 
 class DotProductLayer(tf.layers.Layer):
     def __init__(self, against):
@@ -132,20 +131,113 @@ class DotProductLayer(tf.layers.Layer):
                                                       trainable=True)
         else:
             self._space_transform = None
+        self.built = True
     
-    def call(self, input):
-        if self._space_transform:
-            input = tf.matmul(input, self._space_transform)
+    def call(self, inputs):
+        inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
+        shape = inputs.get_shape().as_list()
+        if len(shape) > 2:
+            # Broadcasting is required for the inputs.
+            if self._space_transform is not None:
+                inputs = tf.tensordot(inputs, self._space_transform, [[len(shape) - 1], [0]])
+            outputs = tf.tensordot(inputs, self._against, [[len(shape) - 1], [1]])
+            
+            # Reshape the output back to the original ndim of the input.
+            output_shape = tf.TensorShape(shape[:-1] + [self._output_size])
+            assert output_shape.is_compatible_with(outputs.shape)
+            outputs.set_shape(output_shape)
+            return outputs
+        else:
+            if self._space_transform is not None:
+                inputs = tf.matmul(inputs, self._space_transform)
         
-        # input is batch by depth
-        # self._against is output by depth
-        # result is batch by output
-        return tf.matmul(input, self._against, transpose_b=True)
+            # input is batch by depth
+            # self._against is output by depth
+            # result is batch by output
+            return tf.matmul(inputs, self._against, transpose_b=True)
 
     def _compute_output_shape(self, input_shape):
         input_shape = tf.TensorShape(input_shape)
         input_shape = input_shape.with_rank_at_least(2)
         return input_shape[:-1].concatenate(self._output_size)
+
+
+class EmbeddingPointerLayer(tf.layers.Layer):
+    """
+    A pointer layer that chooses from an embedding matrix (of size O x D, where
+    D is the depth of the embedding and O the space of choices), using an MLP
+    """
+    def __init__(self, hidden_size, embeddings, activation=tf.tanh, dropout=1):
+        super().__init__()
+        
+        self._embeddings = embeddings
+        self._embedding_size = embeddings.get_shape()[-1]
+        self._hidden_size = hidden_size
+        self._activation = activation
+        self._dropout = dropout
+        
+    def build(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
+        
+        self.kernel1 = self.add_variable('kernel1', shape=(self._embedding_size, self._hidden_size), dtype=self.dtype)
+        self._matmul1 = tf.tensordot(self._embeddings, self.kernel1, [[1], [0]])
+
+        self.kernel2 = self.add_variable('kernel2', shape=(input_shape[-1], self._hidden_size), dtype=self.dtype)
+        self.bias = self.add_variable('bias', shape=(self._hidden_size,), dtype=self.dtype)
+        self.output_projection = self.add_variable('output_projection', shape=(self._hidden_size,), dtype=self.dtype)
+        self.built = True
+        
+    def call(self, inputs):
+        with tf.name_scope('EmbeddingPointerLayer', (inputs,)):
+            input_shape = inputs.shape
+            matmul2 = tf.tensordot(inputs, self.kernel2, [[input_shape.ndims-1], [0]])
+            
+            matmul1 = self._matmul1
+            for _ in range(input_shape.ndims-1):
+                matmul1 = tf.expand_dims(matmul1, axis=0)
+            
+            matmul2 = tf.expand_dims(matmul2, axis=input_shape.ndims-1)
+            
+            neuron_input = matmul1 + matmul2
+            neuron_input = tf.nn.bias_add(neuron_input, self.bias)
+            activation = self._activation(neuron_input)
+            activation = tf.nn.dropout(activation, keep_prob=self._dropout)
+            
+            scores = tf.tensordot(activation, self.output_projection, [[input_shape.ndims], [0]])
+            return scores
+    
+    @property
+    def output_size(self):
+        #return tf.shape(self._embeddings)[0]
+        return self._embeddings.shape[0]
+
+
+class AttentivePointerLayer(tf.layers.Layer):
+    """
+    A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
+    """
+    def __init__(self, enc_hidden_states):
+        super().__init__()
+        
+        self._enc_hidden_states = enc_hidden_states
+        self._num_units = enc_hidden_states.shape[-1]
+        
+    def build(self, input_shape):
+        self.kernel = self.add_variable('kernel', (self._num_units, self._num_units), dtype=self.dtype)
+        self.built = True
+        
+    def call(self, inputs):
+        with tf.name_scope('AttentivePointerLayer', (inputs,)):
+            is_2d = False
+            if inputs.shape.ndims < 3:
+                is_2d = True
+                inputs = tf.expand_dims(inputs, axis=1)
+            
+            score = tf.matmul(inputs, self._enc_hidden_states, transpose_b=True)
+            if is_2d:
+                score = tf.squeeze(score, axis=1)
+            return score
+
 
 def pad_up_to(vector, size):
     rank = vector.get_shape().ndims - 1
@@ -208,9 +300,8 @@ def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
         with tf.variable_scope('hidden_projection'):
             kernel = tf.get_variable('kernel', (encoder_hidden_size, decoder_hidden_size), dtype=tf.float32)
         
-            # apply a relu to the projection for good measure
-            enc_final_state = nest.map_structure(lambda x: tf.nn.relu(tf.matmul(x, kernel)), enc_final_state)
-            enc_hidden_states = tf.nn.relu(tf.tensordot(enc_hidden_states, kernel, [[2], [1]]))
+            enc_final_state = nest.map_structure(lambda x: tf.matmul(x, kernel), enc_final_state)
+            enc_hidden_states = tf.tensordot(enc_hidden_states, kernel, [[2], [1]])
     else:
         # flatten and repack the state
         enc_final_state = nest.pack_sequence_as(cell_dec.state_size, nest.flatten(enc_final_state))

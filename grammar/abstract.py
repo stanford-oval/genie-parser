@@ -23,8 +23,6 @@ Created on Jul 20, 2017
 import tensorflow as tf
 import numpy as np
 
-from util.loader import vectorize
-
 class AbstractGrammar(object):
     '''
     Base class for a Grammar that defines the output of a Sequence to Sequence
@@ -37,14 +35,10 @@ class AbstractGrammar(object):
     All Grammars must include a mapping for <s> and </s>
     '''
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.tokens = []
         self.dictionary = dict()
         self.num_control_tokens = 2
-
-    @property
-    def output_size(self):
-        return len(self.tokens)
 
     @property
     def start(self):
@@ -60,25 +54,30 @@ class AbstractGrammar(object):
         for t in self.tokens:
             print(t)
     
-    def reconstruct_program(self, sequence, ignore_errors=False):
-        ret = []
-        for x in sequence:
-            if x == self.end:
-                break
-            ret.append(self.tokens[x])
-        return ret
+    @property
+    def output_size(self):
+        raise NotImplementedError()
     
-    def print_prediction(self, sequence):
+    def is_copy_type(self, output):
+        return False
+    
+    def reconstruct_program(self, input_sentence, sequence, ignore_errors=False):
+        raise NotImplementedError()
+    
+    def print_prediction(self, input_sentence, sequence):
         print(' '.join(self.tokens[x] for x in sequence))
     
     def prediction_to_string(self, sequence):
         return [self.tokens[x] for x in sequence]
     
-    def vectorize_program(self, program, max_length):
-        return vectorize(program, self.dictionary, max_length, add_eos=True)
+    def vectorize_program(self, input_sentence, program, max_length):
+        raise NotImplementedError()
     
-    def get_embeddings(self, *args):
-        return np.identity(self.output_size, np.float32)
+    def get_embeddings(self, input_words, input_embeddings):
+        embeddings = dict()
+        for key, size in self.output_size.items():
+            embeddings[key] = np.identity(size, dtype=np.float32)
+        return embeddings
 
     def compare(self, seq1, seq2):
         '''
