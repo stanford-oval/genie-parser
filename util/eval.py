@@ -81,6 +81,7 @@ class Seq2SeqEvaluator(object):
     
         ok_grammar = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn_count = np.zeros((self._beam_size,), dtype=np.int32)
+        ok_device = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
         ok_signature = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
@@ -89,10 +90,12 @@ class Seq2SeqEvaluator(object):
             fp = open("stats_" + self.tag + ".txt", "w")
             print("Writing decoded values to ", fp.name)
 
+        def get_devices(seq):
+            return tuple(x for x in seq if x.startswith('@@'))
         def get_functions(seq):
-            return tuple(x for x in seq if x.startswith('@'))
+            return tuple(x for x in seq if (x.startswith('@') and not x.startswith('@@')))
         def get_signature(seq):
-            return [x for x in seq if x.startswith('@') or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
+            return [x for x in seq if (x.startswith('@') and not x.startswith('@@')) or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
 
         output_size = self.grammar.output_size
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
@@ -143,6 +146,7 @@ class Seq2SeqEvaluator(object):
                 for i, seq in enumerate(sequences):
                     gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
                     #print "GOLD:", ' '.join(gold)
+                    gold_devices = get_devices(gold)
                     gold_functions = get_functions(gold)
                     gold_function_set = set(gold_functions)
                     gold_functions_counter.update(gold_functions)
@@ -150,6 +154,7 @@ class Seq2SeqEvaluator(object):
 
                     is_ok_grammar = False
                     is_ok_fn_count = False
+                    is_ok_device = False
                     is_ok_fn = False
                     is_ok_signature = False
                     is_ok_full = False
@@ -167,6 +172,7 @@ class Seq2SeqEvaluator(object):
                             ok_grammar[beam_pos] += 1
                             is_ok_grammar = True
 
+                        decoded_devices = get_devices(decoded)
                         decoded_functions = get_functions(decoded)
                         decoded_function_set = set(decoded_functions)
                         if save_to_file:
@@ -179,6 +185,10 @@ class Seq2SeqEvaluator(object):
                         if is_ok_fn_count or (is_ok_grammar and len(gold_functions) == len(decoded_functions)):
                             ok_fn_count[beam_pos] += 1
                             is_ok_fn_count = True
+                        
+                        if is_ok_device or (is_ok_grammar and gold_devices == decoded_devices):
+                            ok_device[beam_pos] += 1
+                            is_ok_device = True
 
                         if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
                             ok_fn[beam_pos] += 1
@@ -253,8 +263,8 @@ class Seq2SeqEvaluator(object):
             parse_action_precision = np.ma.masked_invalid(parse_action_precision)
             parse_action_recall = np.ma.masked_invalid(parse_action_recall)
             
-            overall_parse_action_precision = np.power(np.prod(parse_action_precision, dtype=np.float64), 1/parse_action_precision.count())
-            overall_parse_action_recall = np.power(np.prod(parse_action_recall, dtype=np.float64), 1/parse_action_recall.count())
+            overall_parse_action_precision = np.mean(parse_action_precision, dtype=np.float64)
+            overall_parse_action_recall = np.mean(parse_action_recall, dtype=np.float64)
             
             # avoid division by 0
             if np.abs(overall_parse_action_precision + overall_parse_action_recall) < 1e-6:
@@ -265,6 +275,7 @@ class Seq2SeqEvaluator(object):
             
             acc_grammar = ok_grammar.astype(np.float32)/len(self.data[0])
             acc_fn_count = ok_fn_count.astype(np.float32)/len(self.data[0])
+            acc_device = ok_device.astype(np.float32)/len(self.data[0])
             acc_fn = ok_fn.astype(np.float32)/len(self.data[0])
             acc_signature = ok_signature.astype(np.float32)/len(self.data[0])
             acc_full = ok_full.astype(np.float32)/len(self.data[0])
@@ -275,6 +286,7 @@ class Seq2SeqEvaluator(object):
                 
             print(self.tag, "ok grammar:", acc_grammar)
             print(self.tag, "ok function count:", acc_fn_count)
+            print(self.tag, "ok device:", acc_device)
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok signature:", acc_signature)
             print(self.tag, "ok full:", acc_full)
@@ -299,9 +311,9 @@ class Seq2SeqEvaluator(object):
                             print(i, action_count_precision[i], action_count_recall[i], action_count_f1[i], sep='\t', file=out)
                 
                 action_count_precision = np.ma.masked_invalid(action_count_precision)
-                action_count_avg_precision = np.power(np.prod(action_count_precision, dtype=np.float64), 1/action_count_precision.count())
+                action_count_avg_precision = np.mean(action_count_precision, dtype=np.float64)
                 action_count_recall = np.ma.masked_invalid(action_count_recall)
-                action_count_avg_recall = np.power(np.prod(action_count_recall, dtype=np.float64), 1/action_count_recall.count())
+                action_count_avg_recall = np.mean(action_count_recall, dtype=np.float64)
                 print(self.tag, "action-count avg precision:", action_count_avg_precision, "over %d actions" % action_count_precision.count())
                 print(self.tag, "action-count avg recall:", action_count_avg_recall, "over %d actions" % action_count_recall.count())
                 print(self.tag, "action-count min precision:", np.min(action_count_precision))
@@ -324,6 +336,7 @@ class Seq2SeqEvaluator(object):
                 'grammar_accuracy': float(acc_grammar[0]),
                 'accuracy': float(acc_full[0]),
                 'function_count_accuracy': float(acc_fn_count[0]),
+                'device_accuracy': float(acc_device[0]),
                 'function_accuracy': float(acc_fn[0]),
                 'signature_accuracy': float(acc_signature[0]),
                 'program_recall': float(recall[0]),
