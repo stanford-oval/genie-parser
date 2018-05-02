@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
 #
 # Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
@@ -26,11 +27,16 @@ import csv
 
 def main():
     writer = csv.DictWriter(sys.stdout, ('sentence_length', 'gold_length', 'gold_num_prod', 'ok',
-                                         'ok_grammar', 'ok_function', 'ok_fn_count'))
+                                         'ok_grammar', 'ok_function', 'ok_fn_count', 'ok_signature'))
     grammar = ThingTalkGrammar(sys.argv[1])
     
     for line in sys.stdin:
-        sentence, gold, predicted, ok, ok_grammar, ok_function, ok_fn_count = line.strip().split('\t')
+        sentence, gold, predicted, ok, ok_grammar, ok_function, ok_fn_count, ok_signature = line.strip().split('\t')
+        assert ok in ('True', 'False')
+        assert ok_grammar in ('CorrectGrammar', 'IncorrectGrammar')
+        assert ok_function in ('CorrectFunction', 'IncorrectFunction')
+        assert ok_fn_count in ('CorrectNumFunction', 'IncorrectNumFunction')
+        assert ok_signature in ('CorrectSignature', 'IncorrectSignature')
         gold = gold.split(' ')
         vector, length = grammar.vectorize_program(gold, max_length=60)
         
@@ -42,6 +48,7 @@ def main():
             'ok_grammar': 1 if ok_grammar == 'CorrectGrammar' else 0,
             'ok_function': 1 if ok_function == 'CorrectFunction' else 0,
             'ok_fn_count': 1 if ok_fn_count == 'CorrectNumFunction' else 0,
+            'ok_signature': 1 if ok_signature == 'CorrectSignature' else 0
         })
 
 if __name__ == '__main__':
