@@ -467,19 +467,17 @@ class ShiftReduceParser:
     @property
     def extensible_terminals(self):
         return self._extensible_terminals
+
 # >>>>>>> wip/extensible-aligner
-        
+
+################################################################################
+################################################################################
     def parse(self, sequence):
         stack = [0]
         state = 0
         i = 0
         result = []
-        
-        sequence_iter = iter(sequence)
-        sequence_done = False
-        token = next(sequence_iter)
         while True:
-
             if i < len(sequence):
                 token = sequence[i]
             else:
@@ -489,57 +487,105 @@ class ShiftReduceParser:
             else:
                 terminal = token
                 tokenidx = 0
-                
+
             if terminal not in self._action_table[state]:
-                raise ValueError("Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(self._action_table[state].keys()))
+                raise ValueError(
+                    "Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(
+                        self._action_table[state].keys()))
             action, param = self._action_table[state][terminal]
             if action == 'accept':
                 return result
-            #if action == 'shift':
+            # if action == 'shift':
             #    print('shift', param, token)
-            #else:
+            # else:
             #    print('reduce', param, self._rules[param])
             if action == 'shift':
-                #print('shift', param, token)
                 state = param
                 result.append(('shift', (terminal, tokenidx)))
                 stack.append(state)
-                
-                try:
-                    token = next(sequence_iter)
-                except StopIteration:
-                    token = EOF_TOKEN
+                i += 1
             else:
                 rule_id = param
                 result.append(('reduce', rule_id))
                 lhs, rhs = self.rules[rule_id]
-                #print('reduce', lhs, '->', rhs)
                 for _ in rhs:
                     stack.pop()
                 state = stack[-1]
                 state = self._goto_table[state][lhs]
                 stack.append(state)
+################################################################################
+################################################################################
+    # def parse(self, sequence):
+    #     stack = [0]
+    #     state = 0
+    #     i = 0
+    #     result = []
+    #
+    #     sequence_iter = iter(sequence)
+    #     sequence_done = False
+    #     token = next(sequence_iter)
+    #     while True:
+    #
+    #         if i < len(sequence):
+    #             token = sequence[i]
+    #         else:
+    #             token = EOF_TOKEN
+    #         if token in self._reverse_extensible_terminals:
+    #             terminal, tokenidx = self._reverse_extensible_terminals[token]
+    #         else:
+    #             terminal = token
+    #             tokenidx = 0
+    #
+    #         if terminal not in self._action_table[state]:
+    #             raise ValueError("Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(self._action_table[state].keys()))
+    #         action, param = self._action_table[state][terminal]
+    #         if action == 'accept':
+    #             return result
+    #         #if action == 'shift':
+    #         #    print('shift', param, token)
+    #         #else:
+    #         #    print('reduce', param, self._rules[param])
+    #         if action == 'shift':
+    #             #print('shift', param, token)
+    #             state = param
+    #             result.append(('shift', (terminal, tokenidx)))
+    #             stack.append(state)
+    #
+    #             try:
+    #                 token = next(sequence_iter)
+    #             except StopIteration:
+    #                 token = EOF_TOKEN
+    #         else:
+    #             rule_id = param
+    #             result.append(('reduce', rule_id))
+    #             lhs, rhs = self.rules[rule_id]
+    #             #print('reduce', lhs, '->', rhs)
+    #             for _ in rhs:
+    #                 stack.pop()
+    #             state = stack[-1]
+    #             state = self._goto_table[state][lhs]
+    #             stack.append(state)
                 
-    def reconstruct_reverse(self, sequence):
-        output_sequence = []
-        if not isinstance(sequence, list):
-            sequence = list(sequence)
-        
-        def recurse(start_at):
-            action, param = sequence[start_at]
-            if action != 'reduce':
-                raise ValueError('invalid action')
-            _, rhs = self.rules[param]
-            length = 1
-            for rhsitem in rhs:
-                if rhsitem.startswith('$'):
-                    length += recurse(start_at + length)
-                else:
-                    output_sequence.append(rhsitem)
-            return length
-        
-        recurse(0)
-        return output_sequence
+    # def reconstruct_reverse(self, sequence):
+    #     output_sequence = []
+    #     if not isinstance(sequence, list):
+    #         sequence = list(sequence)
+    #
+    #     def recurse(start_at):
+    #         action, param = sequence[start_at]
+    #         if action != 'reduce':
+    #             raise ValueError('invalid action')
+    #         _, rhs = self.rules[param]
+    #         length = 1
+    #         for rhsitem in rhs:
+    #             if rhsitem.startswith('$'):
+    #                 length += recurse(start_at + length)
+    #             else:
+    #                 output_sequence.append(rhsitem)
+    #         return length
+    #
+    #     recurse(0)
+    #     return output_sequence
 
     def reconstruct(self, sequence):
         stacks = dict()

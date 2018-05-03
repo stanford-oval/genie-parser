@@ -96,8 +96,8 @@ class ShiftReduceGrammar(AbstractGrammar):
         for i, term in enumerate(self._copy_terminals):
             self._copy_terminal_indices[term] = i
         
-        if self._reverse:
-            print('using reversed grammar')
+        # if self._reverse:
+        #     print('using reversed grammar')
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
         print('num shifts', len(self._extensible_terminals) + 1)
@@ -308,7 +308,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                 print(action, 'shift', term, sequences[term][i], self._parser.extensible_terminals[term][sequences[term][i]])
 
-<<<<<<< HEAD
+# <<<<<<< HEAD
 #     def output_to_string(self, action):
 #         if action == 0:
 #             return 'accept'
