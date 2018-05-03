@@ -108,7 +108,7 @@ def download_glove(glove):
 
 def create_dictionary(input_words, dataset):
     for filename in os.listdir(dataset):
-        if not filename.endswith('.tsv'):
+        if not filename.endswith('.txt'):
             continue
 
         with open(os.path.join(dataset, filename), 'r') as fp:
@@ -218,7 +218,7 @@ def main():
     add_words(input_words, 'now nothing notify return the event 0 1 2 3 4 5 6 7 8 9 10')
     
     create_dictionary(input_words, dataset)
-    get_thingpedia(input_words, workdir, snapshot)
+    #get_thingpedia(input_words, workdir, snapshot)
     save_dictionary(input_words, workdir)
     trim_embeddings(input_words, workdir, embed_size, glove)
 

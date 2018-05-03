@@ -70,7 +70,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
             vector[i] = words[word]
         elif '<unk>' in words:
             unknown_tokens.add(word)
-            #print("sentence: ", sentence, "; word: ", word)
+            print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)
@@ -190,20 +190,27 @@ def load_data(from_file, input_words, grammar, max_length):
     label_sequences = []
 
     with open(from_file, 'r') as data:
+        counter = 0
         for line in data:
+            counter += 1
             split = line.strip().split('\t')
             if len(split) == 4:
                 _, sentence, canonical, parse = split
             else:
                 _, sentence, canonical = split
                 parse = None
+            print(counter, sentence)
             sentence = sentence.split(' ')
+
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
+
             inputs.append(input)
             input_lengths.append(in_len)
             label_sequence = canonical.split(' ')
             label_sequences.append(label_sequence)
+            print('enter1')
             label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+            print('enter2')
             for key in grammar.output_size:
                 labels[key].append(label[key])
             label_lengths.append(label_len)
