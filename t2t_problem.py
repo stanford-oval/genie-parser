@@ -32,27 +32,27 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-_ENDE_TRAIN_DATASETS = [
-    [
-        "http://data.statmt.org/wmt17/translation-task/training-parallel-nc-v12.tgz",  # pylint: disable=line-too-long
-        ("training/news-commentary-v12.de-en.en",
-         "training/news-commentary-v12.de-en.de")
-    ],
-    [
-        "http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz",
-        ("commoncrawl.de-en.en", "commoncrawl.de-en.de")
-    ],
-    [
-        "http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz",
-        ("training/europarl-v7.de-en.en", "training/europarl-v7.de-en.de")
-    ],
-]
-_ENDE_TEST_DATASETS = [
-    [
-        "http://data.statmt.org/wmt17/translation-task/dev.tgz",
-        ("dev/newstest2013.en", "dev/newstest2013.de")
-    ],
-]
+# _ENDE_TRAIN_DATASETS = [
+#     [
+#         "http://data.statmt.org/wmt17/translation-task/training-parallel-nc-v12.tgz",  # pylint: disable=line-too-long
+#         ("training/news-commentary-v12.de-en.en",
+#          "training/news-commentary-v12.de-en.de")
+#     ],
+#     [
+#         "http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz",
+#         ("commoncrawl.de-en.en", "commoncrawl.de-en.de")
+#     ],
+#     [
+#         "http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz",
+#         ("training/europarl-v7.de-en.en", "training/europarl-v7.de-en.de")
+#     ],
+# ]
+# _ENDE_TEST_DATASETS = [
+#     [
+#         "http://data.statmt.org/wmt17/translation-task/dev.tgz",
+#         ("dev/newstest2013.en", "dev/newstest2013.de")
+#     ],
+# ]
 
 
 def _get_wmt_ende_bpe_dataset(directory, filename):
@@ -79,7 +79,8 @@ class ParseAlmond(translate.TranslateProblem):
 
   @property
   def vocab_filename(self):
-    return "vocab.bpe.%d" % self.approx_vocab_size
+    return "../workdir/input_words.txt'"
+    #vocab.bpe.%d" % self.approx_vocab_size
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
     vocab_filename = os.path.join(data_dir, self.vocab_filename)
@@ -90,8 +91,7 @@ class ParseAlmond(translate.TranslateProblem):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
-    dataset_path = ("train.tok.clean.bpe.32000"
-                    if train else "newstest2013.tok.bpe.32000")
+    dataset_path = "../dataset/com.gmail/t2t_train"
     train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
@@ -104,55 +104,55 @@ class ParseAlmond(translate.TranslateProblem):
       with tf.gfile.GFile(token_path, mode="w") as f:
         f.write(vocab_data)
 
-    return text_problems.text2text_txt_iterator(train_path + ".en",
-                                                train_path + ".de")
+    return text_problems.text2text_txt_iterator(train_path + "_x",
+                                                train_path + "_y")
 
 
-@registry.register_problem
-class TranslateEndeWmt8k(translate.TranslateProblem):
-  """Problem spec for WMT En-De translation."""
+# @registry.register_problem
+# class TranslateEndeWmt8k(translate.TranslateProblem):
+#   """Problem spec for WMT En-De translation."""
 
-  @property
-  def approx_vocab_size(self):
-    return 2**13  # 8192
+#   @property
+#   def approx_vocab_size(self):
+#     return 2**13  # 8192
 
-  @property
-  def vocab_filename(self):
-    return "vocab.ende.%d" % self.approx_vocab_size
+#   @property
+#   def vocab_filename(self):
+#     return "vocab.ende.%d" % self.approx_vocab_size
 
-  def source_data_files(self, dataset_split):
-    train = dataset_split == problem.DatasetSplit.TRAIN
-    return _ENDE_TRAIN_DATASETS if train else _ENDE_TEST_DATASETS
-
-
-@registry.register_problem
-class TranslateEndeWmt32k(TranslateEndeWmt8k):
-
-  @property
-  def approx_vocab_size(self):
-    return 2**15  # 32768
+#   def source_data_files(self, dataset_split):
+#     train = dataset_split == problem.DatasetSplit.TRAIN
+#     return _ENDE_TRAIN_DATASETS if train else _ENDE_TEST_DATASETS
 
 
-@registry.register_problem
-class TranslateEndeWmt32kPacked(TranslateEndeWmt32k):
+# @registry.register_problem
+# class TranslateEndeWmt32k(TranslateEndeWmt8k):
 
-  @property
-  def packed_length(self):
-    return 256
-
-
-@registry.register_problem
-class TranslateEndeWmt8kPacked(TranslateEndeWmt8k):
-
-  @property
-  def packed_length(self):
-    return 256
+#   @property
+#   def approx_vocab_size(self):
+#     return 2**15  # 32768
 
 
-@registry.register_problem
-class TranslateEndeWmtCharacters(translate.TranslateProblem):
-  """Problem spec for WMT En-De translation."""
+# @registry.register_problem
+# class TranslateEndeWmt32kPacked(TranslateEndeWmt32k):
 
-  @property
-  def vocab_type(self):
-    return text_problems.VocabType.CHARACTER
+#   @property
+#   def packed_length(self):
+#     return 256
+
+
+# @registry.register_problem
+# class TranslateEndeWmt8kPacked(TranslateEndeWmt8k):
+
+#   @property
+#   def packed_length(self):
+#     return 256
+
+
+# @registry.register_problem
+# class TranslateEndeWmtCharacters(translate.TranslateProblem):
+#   """Problem spec for WMT En-De translation."""
+
+#   @property
+#   def vocab_type(self):
+#     return text_problems.VocabType.CHARACTER
