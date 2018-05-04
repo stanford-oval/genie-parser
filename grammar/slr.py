@@ -426,62 +426,54 @@ class ShiftReduceParser:
         # the last rule is $ROOT -> $input <<EOF>>
         # which is a pseudo-rule needed for the SLR generator
         # we ignore it here
-        return len(self.rules)-1
+        return len(self.rules)
     
     @property
     def num_states(self):
         return len(self._action_table)
     
-# <<<<<<< HEAD
-#     def parse_reverse(self, sequence):
-#         bottom_up_sequence = self.parse(sequence)
-#         lens = [None] * len(bottom_up_sequence)
-#         children = [None] * len(bottom_up_sequence)
-#         reduces = [None] * len(bottom_up_sequence)
-#         i = 0
-#         for action,param in bottom_up_sequence:
-#             if action == 'shift':
-#                 continue
-#             lhs, rhs = self.rules[param]
-#             current_child = i-1
-#             my_length = 1
-#             my_children = []
-#             for rhsitem in reversed(rhs):
-#                 if rhsitem.startswith('$'):
-#                     my_children.append(current_child)
-#                     my_length += lens[current_child]
-#                     current_child -= lens[current_child]
-#             lens[i] = my_length
-#             reduces[i] = (action,param)
-#             children[i] = tuple(reversed(my_children))
-#             i += 1
-#         reversed_sequence = []
-#         def write_subsequence(node, start):
-#             reversed_sequence.append(reduces[node])
-#             for c in children[node]:
-#                 write_subsequence(c, start)
-#                 start += lens[c]
-#         write_subsequence(i-1, 0)
-#         return reversed_sequence
-# =======
+    def parse_reverse(self, sequence):
+        bottom_up_sequence = self.parse(sequence)
+        lens = [None] * len(bottom_up_sequence)
+        children = [None] * len(bottom_up_sequence)
+        reduces = [None] * len(bottom_up_sequence)
+        i = 0
+        for action,param in bottom_up_sequence:
+            if action == 'shift':
+                continue
+            lhs, rhs = self.rules[param]
+            current_child = i-1
+            my_length = 1
+            my_children = []
+            for rhsitem in reversed(rhs):
+                if rhsitem.startswith('$'):
+                    my_children.append(current_child)
+                    my_length += lens[current_child]
+                    current_child -= lens[current_child]
+            lens[i] = my_length
+            reduces[i] = (action,param)
+            children[i] = tuple(reversed(my_children))
+            i += 1
+        reversed_sequence = []
+        def write_subsequence(node, start):
+            reversed_sequence.append(reduces[node])
+            for c in children[node]:
+                write_subsequence(c, start)
+                start += lens[c]
+        write_subsequence(i-1, 0)
+        return reversed_sequence
+
     @property
     def extensible_terminals(self):
         return self._extensible_terminals
 
-# >>>>>>> wip/extensible-aligner
-
-################################################################################
-################################################################################
     def parse(self, sequence):
         stack = [0]
         state = 0
-        i = 0
         result = []
+        sequence_iter = iter(sequence)
+        token = next(sequence_iter)
         while True:
-            if i < len(sequence):
-                token = sequence[i]
-            else:
-                token = EOF_TOKEN
             if token in self._reverse_extensible_terminals:
                 terminal, tokenidx = self._reverse_extensible_terminals[token]
             else:
@@ -503,7 +495,10 @@ class ShiftReduceParser:
                 state = param
                 result.append(('shift', (terminal, tokenidx)))
                 stack.append(state)
-                i += 1
+                try:
+                    token = next(sequence_iter)
+                except StopIteration:
+                    token = EOF_TOKEN
             else:
                 rule_id = param
                 result.append(('reduce', rule_id))
@@ -513,79 +508,27 @@ class ShiftReduceParser:
                 state = stack[-1]
                 state = self._goto_table[state][lhs]
                 stack.append(state)
-################################################################################
-################################################################################
-    # def parse(self, sequence):
-    #     stack = [0]
-    #     state = 0
-    #     i = 0
-    #     result = []
-    #
-    #     sequence_iter = iter(sequence)
-    #     sequence_done = False
-    #     token = next(sequence_iter)
-    #     while True:
-    #
-    #         if i < len(sequence):
-    #             token = sequence[i]
-    #         else:
-    #             token = EOF_TOKEN
-    #         if token in self._reverse_extensible_terminals:
-    #             terminal, tokenidx = self._reverse_extensible_terminals[token]
-    #         else:
-    #             terminal = token
-    #             tokenidx = 0
-    #
-    #         if terminal not in self._action_table[state]:
-    #             raise ValueError("Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(self._action_table[state].keys()))
-    #         action, param = self._action_table[state][terminal]
-    #         if action == 'accept':
-    #             return result
-    #         #if action == 'shift':
-    #         #    print('shift', param, token)
-    #         #else:
-    #         #    print('reduce', param, self._rules[param])
-    #         if action == 'shift':
-    #             #print('shift', param, token)
-    #             state = param
-    #             result.append(('shift', (terminal, tokenidx)))
-    #             stack.append(state)
-    #
-    #             try:
-    #                 token = next(sequence_iter)
-    #             except StopIteration:
-    #                 token = EOF_TOKEN
-    #         else:
-    #             rule_id = param
-    #             result.append(('reduce', rule_id))
-    #             lhs, rhs = self.rules[rule_id]
-    #             #print('reduce', lhs, '->', rhs)
-    #             for _ in rhs:
-    #                 stack.pop()
-    #             state = stack[-1]
-    #             state = self._goto_table[state][lhs]
-    #             stack.append(state)
                 
-    # def reconstruct_reverse(self, sequence):
-    #     output_sequence = []
-    #     if not isinstance(sequence, list):
-    #         sequence = list(sequence)
-    #
-    #     def recurse(start_at):
-    #         action, param = sequence[start_at]
-    #         if action != 'reduce':
-    #             raise ValueError('invalid action')
-    #         _, rhs = self.rules[param]
-    #         length = 1
-    #         for rhsitem in rhs:
-    #             if rhsitem.startswith('$'):
-    #                 length += recurse(start_at + length)
-    #             else:
-    #                 output_sequence.append(rhsitem)
-    #         return length
-    #
-    #     recurse(0)
-    #     return output_sequence
+    def reconstruct_reverse(self, sequence):
+        output_sequence = []
+        if not isinstance(sequence, list):
+            sequence = list(sequence)
+    
+        def recurse(start_at):
+            action, param = sequence[start_at]
+            if action != 'reduce':
+                raise ValueError('invalid action')
+            _, rhs = self.rules[param]
+            length = 1
+            for rhsitem in rhs:
+                if rhsitem.startswith('$'):
+                    length += recurse(start_at + length)
+                else:
+                    output_sequence.append(rhsitem)
+            return length
+    
+        recurse(0)
+        return output_sequence
 
     def reconstruct(self, sequence):
         stacks = dict()

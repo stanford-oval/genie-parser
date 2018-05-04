@@ -41,7 +41,7 @@ def clean(name):
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
 def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?\_]', re.sub('[()]', '', name.lower()))
+    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
 
 def add_words(input_words, canonical):
     if isinstance(canonical, str):
@@ -108,7 +108,7 @@ def download_glove(glove):
 
 def create_dictionary(input_words, dataset):
     for filename in os.listdir(dataset):
-        if not filename.endswith('.txt'):
+        if not filename.endswith('.tsv'):
             continue
 
         with open(os.path.join(dataset, filename), 'r') as fp:
@@ -134,26 +134,40 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
         'xkcd': None,
         'uber': None,
         'weather': None,
+        'skydrive': None,
+        'imgur': None,
         '____': None,
+        'github': None,
+        'related': None,
+        'med.': None,
+        'sized': None,
+        'primary': None,
+        'category': None,
+        'alphabetically': None,
+        'ordered': None,
+        'recently': None,
+        'changed': None,
+        'reverse': None,
+        'abc': None,
+        'newly': None,
+        'reported': None,
+        'newest': None,
+        'updated': None,
+        'home': None,
+        'taken': None,
+        'direct': None,
+        'messages': None
     }
     HACK_REPLACEMENT = {
         # onedrive is the new name of skydrive
         'onedrive': 'skydrive',
-
-        'phdcomic': 'phdcomics',
-        'yahoofinance': 'yahoo!finance',
-
+    
         # imgflip is kind of the same as imgur (or 9gag)
         # until we have either in thingpedia, it's fine to reuse the word vector
-        'imgflip': 'imgur',
-
-        'thecatapi': 'cat',
-        'thedogapi': 'dog'
+        'imgflip': 'imgur'
     }
-    for v in HACK_REPLACEMENT.values():
-        HACK[v] = None
     blank = re.compile('^_+$')
-
+    
     output_embedding_file = os.path.join(workdir, 'embeddings-' + str(embed_size) + '.txt')
     with open(output_embedding_file, 'w') as outfp:
         with open(glove, 'r') as fp:
@@ -213,12 +227,11 @@ def main():
     download_glove(glove)
     
     input_words = set()
+    # add the canonical words for the builtin functions
+    add_words(input_words, 'now nothing notify return the event')
 
-    # and a few canonical words that are useful
-    add_words(input_words, 'now nothing notify return the event 0 1 2 3 4 5 6 7 8 9 10')
-    
     create_dictionary(input_words, dataset)
-    #get_thingpedia(input_words, workdir, snapshot)
+    get_thingpedia(input_words, workdir, snapshot)
     save_dictionary(input_words, workdir)
     trim_embeddings(input_words, workdir, embed_size, glove)
 

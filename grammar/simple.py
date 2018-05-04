@@ -40,7 +40,7 @@ class SimpleGrammar(AbstractGrammar):
     '''
     
 
-    def __init__(self, filename, flatten=True, **kw):
+    def __init__(self, filename, flatten=True, split_device=False, **kw):
         super().__init__(**kw)
         
         if not flatten:
@@ -71,14 +71,13 @@ class SimpleGrammar(AbstractGrammar):
     def primary_output(self):
         return 'tokens'
 
-
     @property
     def output_size(self):
         return {
             'tokens': len(self.tokens)
         }
 
-    def vectorize_program(self, program, max_length):
+    def vectorize_program(self, input_sentence, program, max_length):
         if not self._split_device:
             del input_sentence
             return {

@@ -21,14 +21,13 @@ Created on Dec 8, 2017
 '''
 
 import numpy as np
-import tensorflow as tf
 
 from .abstract import AbstractGrammar
 from .slr import SLRParserGenerator
 
 class ShiftReduceGrammar(AbstractGrammar):
 
-    def __init__(self, flatten=True, max_input_length=60):
+    def __init__(self, reverse=True, flatten=True, max_input_length=60):
         super().__init__()
         
         self.tokens = ['</s>', '<s>']
@@ -41,6 +40,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         self._copy_terminal_indices = dict()
         self._copy_tokens = []
         self._flatten = flatten
+        self._reverse = reverse
         self._max_input_length = max_input_length
 
     @property
@@ -96,8 +96,8 @@ class ShiftReduceGrammar(AbstractGrammar):
         for i, term in enumerate(self._copy_terminals):
             self._copy_terminal_indices[term] = i
         
-        # if self._reverse:
-        #     print('using reversed grammar')
+        if self._reverse:
+            print('using reversed grammar')
         print('num rules', self._parser.num_rules)
         print('num states', self._parser.num_states)
         print('num shifts', len(self._extensible_terminals) + 1)
@@ -126,65 +126,14 @@ class ShiftReduceGrammar(AbstractGrammar):
     @property
     def output_size(self):
         return self._output_size
-# <<<<<<< HEAD
-#         if self.USE_SHIFT_REDUCE:
-#             # padding, eos, go, reduce 0 to n-1
-#             return self.num_control_tokens + self._parser.num_rules
-#         else:
-#             return len(self.tokens)
-#
-#     def vectorize_program(self, program, max_length=60):
-#         if self.USE_SHIFT_REDUCE:
-#             if isinstance(program, str):
-#                 program = program.split(' ')
-#             if self._reverse:
-#                 parsed = self._parser.parse_reverse(program)
-#             else:
-#                 parsed = self._parser.parse(program)
-#             vector = np.zeros((max_length,), dtype=np.int32)
-#             i = 0
-#             for action, param in parsed:
-#                 if action == 'shift':
-#                     continue
-#                 if i >= max_length-1:
-#                     raise ValueError("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
-#                 vector[i] = self.num_control_tokens + param
-#                 assert vector[i] < self.output_size
-#                 i += 1
-#             vector[i] = self.end # eos
-#             i += 1
-#
-#             return vector, i
-#         else:
-#             vector, length = super().vectorize_program(program, max_length)
-#             self.normalize_sequence(vector)
-#             return vector, length
-#
-#     def reconstruct_program(self, sequence, ignore_errors=False):
-#         if self.USE_SHIFT_REDUCE:
-#             try:
-#                 def gen_action(x):
-#                     if x <= self.end:
-#                         return ('accept', None)
-#                     else:
-#                         return ('reduce', x - self.num_control_tokens)
-#
-#                 if self._reverse:
-#                     return self._parser.reconstruct_reverse((gen_action(x) for x in sequence))
-#                 else:
-#                     return self._parser.reconstruct((gen_action(x) for x in sequence))
-#             except (KeyError, TypeError, IndexError, ValueError):
-#                 if ignore_errors:
-#                     # the NN generated something that does not conform to the grammar,
-#                     # ignore it
-#                     return []
-# =======
-
     
     def vectorize_program(self, input_sentence, program, max_length=60):
         if isinstance(program, str):
             program = program.split(' ')
-        parsed = self._parser.parse(program)
+        if self._reverse:
+            parsed = self._parser.parse_reverse(program)
+        else:
+            parsed = self._parser.parse(program)
         
         vectors = dict()
         vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
@@ -238,7 +187,10 @@ class ShiftReduceGrammar(AbstractGrammar):
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))
-            return self._parser.reconstruct((gen_action(i) for i in range(len(actions))))
+            if self._reverse:
+                return self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
+            else:
+                return self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
         except (KeyError, TypeError, IndexError, ValueError):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
@@ -307,19 +259,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             else:
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                 print(action, 'shift', term, sequences[term][i], self._parser.extensible_terminals[term][sequences[term][i]])
-
-# <<<<<<< HEAD
-#     def output_to_string(self, action):
-#         if action == 0:
-#             return 'accept'
-#         elif action == 1:
-#             return 'start'
-#         else:
-#             lhs, rhs = self._parser.rules[action - self.num_control_tokens]
-#             return (lhs + ' -> ' + (' '.join(rhs)))
-#
-#     def prediction_to_string(self, sequence):
-# =======
+    
     def prediction_to_string(self, sequences):
         def action_to_string(action):
             if action == 0:

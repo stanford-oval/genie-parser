@@ -34,12 +34,11 @@ def movingaverage (values, window):
 def learning():
     with open(sys.argv[1], 'r') as fp:
         data = json.load(fp)
-
-    loss = np.array(data['loss'])[20:]
+    loss = np.array(data['loss'])
     accuracy = np.array(data['accuracy'])
     train_acc = 100*accuracy[:,0]
     dev_acc = 100*accuracy[:,1]
-    grad_norm = np.array(data['grad'])[20:]
+    grad_norm = np.array(data['grad'])
     #print('grad norm mean', np.average(grad_norm[100:]))
     #print('grad norm std', np.std(grad_norm[100:]))
     function_accuracy = np.array(data['function_accuracy'])

@@ -50,9 +50,7 @@ class Trainer(object):
         '''
         self.model = model
         self.train_sets = train_sets
-        print("train_sets: " + train_sets)
         self.train_data = train_data
-        print("train_sets: " + train_data)
 
         self.train_evals = train_evals
         self.dev_evals = dev_evals
