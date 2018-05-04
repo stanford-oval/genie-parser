@@ -55,7 +55,8 @@ TYPES = {
         ('end_of', 'unit:mon'),
         ('end_of', 'unit:year'),
         ('$constant_Date', '+', '$constant_Measure(ms)'),
-        ('$constant_Date', '-', '$constant_Measure(ms)')
+        ('$constant_Date', '-', '$constant_Measure(ms)'),
+        ('$constant_Time',),
         ]),
     'Time': (['=='], ['TIME']),
     'Currency': (['==', '>=', '<='], ['CURRENCY']),
@@ -287,7 +288,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
             GRAMMAR['$constant_' + type] = value_rules
-            if not type.startswith('Entity('):
+            if not type.startswith('Entity(') and type != 'Time':
                 GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
                 GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, '$constant_' + type))
@@ -324,7 +325,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             GRAMMAR['$constant_Measure(ms)'].append(('DURATION_' + str(i),))
 
         # well known entities
-        add_type('Entity(tt:device)', [(device,) for device in self.devices], ['='])
+        add_type('Entity(tt:device)', [(device,) for device in self.devices], ['=='])
         #add_type('Entity(tt:device)', [], ['='])
 
         # other entities
