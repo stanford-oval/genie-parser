@@ -41,46 +41,24 @@ class Seq2SeqEvaluator(object):
         self._beam_size = beam_size
         self._batch_size = batch_size
         
-    def compute_confusion_matrix(self, session):
-        output_size = self.grammar.output_size
-        print('output_size', output_size)
-        confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
-
-        n_minibatches = 0
-        total_n_minibatches = (len(self.data[0])+self._batch_size-1)//self._batch_size
-        progbar = Progbar(total_n_minibatches)
-        
-        for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-            input_batch, input_length_batch, _, label_batch, _ = data_batch
-            sequences, _ = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
-            n_minibatches += 1
-    
-            for i, beam in enumerate(sequences):
-                gold = label_batch[i]
-                prediction = beam[0] # top of the beam
-                
-                for j in range(len(gold)):
-                    pred_action = prediction[j] if j < len(prediction) else 0 # pad
-                    confusion_matrix[pred_action,gold[j]] += 1
-            progbar.update(n_minibatches)
-        return confusion_matrix
-        
     def eval(self, session, save_to_file=False):
         sequences = []
         sum_eval_loss = 0
+        _, _, _, label_sequences, _, _ = self.data
+        
         if save_to_file:
-            _, _, _, labels, _ = self.data
+
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
-            for gold in labels:
-                gold = self.grammar.reconstruct_program(gold, ignore_errors=False)
-                gold_programs.add(tuple(gold))
+            for label in label_sequences:
+                gold_programs.add(tuple(label))
         else:
             gold_programs = set()
             correct_programs = None
     
         ok_grammar = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn_count = np.zeros((self._beam_size,), dtype=np.int32)
+        ok_device = np.zeros((self._beam_size,), dtype=np.int32)
         ok_fn = np.zeros((self._beam_size,), dtype=np.int32)
         ok_signature = np.zeros((self._beam_size,), dtype=np.int32)
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
@@ -89,12 +67,14 @@ class Seq2SeqEvaluator(object):
             fp = open("stats_" + self.tag + ".txt", "w")
             print("Writing decoded values to ", fp.name)
 
+        def get_devices(seq):
+            return tuple(x for x in seq if x.startswith('@@'))
         def get_functions(seq):
-            return tuple(x for x in seq if x.startswith('@'))
+            return tuple(x for x in seq if (x.startswith('@') and not x.startswith('@@')))
         def get_signature(seq):
-            return [x for x in seq if x.startswith('@') or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
+            return [x for x in seq if (x.startswith('@') and not x.startswith('@@')) or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
 
-        output_size = self.grammar.output_size
+        output_size = self.grammar.output_size[self.grammar.primary_output]
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
         action_count_tp = np.zeros((output_size,), dtype=np.int32)
         action_count_fp = np.zeros((output_size,), dtype=np.int32)
@@ -112,15 +92,16 @@ class Seq2SeqEvaluator(object):
         progbar = Progbar(total_n_minibatches)
         try:
             for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-                input_batch, input_length_batch, _, label_batch, label_length_batch = data_batch
-                
+
+                input_batch, input_length_batch, _, _, label_batch, label_length_batch = data_batch
+
                 if self.model.action_counts is not None:
                     feed = self.model.create_feed_dict(*data_batch, batch_number=n_minibatches)
                     sequences, action_counts, eval_loss = session.run([self.model.pred, self.model.action_counts, self.model.eval_loss], feed_dict=feed)
                     
                     label_action_counts = np.zeros((len(label_batch), output_size), dtype=np.int32)
-                    for i in range(len(label_batch)):
-                        label_action_counts[i] = np.bincount(label_batch[i][:label_length_batch[i]],
+                    for i in range(len(label_batch[self.grammar.primary_output])):
+                        label_action_counts[i] = np.bincount(label_batch[self.grammar.primary_output][i, :label_length_batch[i]],
                                                              minlength=output_size)
                 else:
                     sequences, eval_loss = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
@@ -140,9 +121,13 @@ class Seq2SeqEvaluator(object):
                     action_count_tn += true_negatives
                     action_count_fn += false_negatives
 
-                for i, seq in enumerate(sequences):
-                    gold = self.grammar.reconstruct_program(label_batch[i], ignore_errors=False)
-                    #print "GOLD:", ' '.join(gold)
+
+                primary_sequences = sequences[self.grammar.primary_output]
+                primary_label_batch = label_batch[self.grammar.primary_output]
+
+                for i, seq in enumerate(primary_sequences):
+                    gold = label_sequences[n_minibatches * self._batch_size + i]
+                    gold_devices = get_devices(gold)
                     gold_functions = get_functions(gold)
                     gold_function_set = set(gold_functions)
                     gold_functions_counter.update(gold_functions)
@@ -150,13 +135,18 @@ class Seq2SeqEvaluator(object):
 
                     is_ok_grammar = False
                     is_ok_fn_count = False
+                    is_ok_device = False
                     is_ok_fn = False
                     is_ok_signature = False
                     is_ok_full = False
                     for beam_pos, beam in enumerate(seq):
                         if beam_pos >= self._beam_size:
                             break
-                        decoded = self.grammar.reconstruct_program(beam, ignore_errors=True)
+                        
+                        decoded_vectors = dict()
+                        for key in self.grammar.output_size:
+                            decoded_vectors[key] = sequences[key][i,beam_pos]
+                        decoded = self.grammar.reconstruct_program(input_batch[i], decoded_vectors, ignore_errors=True)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)
@@ -167,6 +157,7 @@ class Seq2SeqEvaluator(object):
                             ok_grammar[beam_pos] += 1
                             is_ok_grammar = True
 
+                        decoded_devices = get_devices(decoded)
                         decoded_functions = get_functions(decoded)
                         decoded_function_set = set(decoded_functions)
                         if save_to_file:
@@ -179,6 +170,10 @@ class Seq2SeqEvaluator(object):
                         if is_ok_fn_count or (is_ok_grammar and len(gold_functions) == len(decoded_functions)):
                             ok_fn_count[beam_pos] += 1
                             is_ok_fn_count = True
+                        
+                        if is_ok_device or (is_ok_grammar and gold_devices == decoded_devices):
+                            ok_device[beam_pos] += 1
+                            is_ok_device = True
 
                         if is_ok_fn or (is_ok_grammar and gold_functions == decoded_functions):
                             ok_fn[beam_pos] += 1
@@ -195,12 +190,12 @@ class Seq2SeqEvaluator(object):
                             is_ok_full = True
                         
                         if beam_pos == 0:
-                            length_diff = len(label_batch[i]) - len(beam)
+                            length_diff = len(primary_label_batch[i]) - len(beam)
                             if length_diff > 0:
                                 padded_pred = np.concatenate((beam, np.zeros((length_diff,), np.int32)), axis=0)
                             else:
                                 padded_pred = beam
-                            confusion_matrix[padded_pred,label_batch[i]] += 1
+                            confusion_matrix[padded_pred,primary_label_batch[i]] += 1
 
                         if beam_pos == 0 and save_to_file:
                             sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
@@ -253,8 +248,8 @@ class Seq2SeqEvaluator(object):
             parse_action_precision = np.ma.masked_invalid(parse_action_precision)
             parse_action_recall = np.ma.masked_invalid(parse_action_recall)
             
-            overall_parse_action_precision = np.power(np.prod(parse_action_precision, dtype=np.float64), 1/parse_action_precision.count())
-            overall_parse_action_recall = np.power(np.prod(parse_action_recall, dtype=np.float64), 1/parse_action_recall.count())
+            overall_parse_action_precision = np.mean(parse_action_precision, dtype=np.float64)
+            overall_parse_action_recall = np.mean(parse_action_recall, dtype=np.float64)
             
             # avoid division by 0
             if np.abs(overall_parse_action_precision + overall_parse_action_recall) < 1e-6:
@@ -265,6 +260,7 @@ class Seq2SeqEvaluator(object):
             
             acc_grammar = ok_grammar.astype(np.float32)/len(self.data[0])
             acc_fn_count = ok_fn_count.astype(np.float32)/len(self.data[0])
+            acc_device = ok_device.astype(np.float32)/len(self.data[0])
             acc_fn = ok_fn.astype(np.float32)/len(self.data[0])
             acc_signature = ok_signature.astype(np.float32)/len(self.data[0])
             acc_full = ok_full.astype(np.float32)/len(self.data[0])
@@ -275,6 +271,7 @@ class Seq2SeqEvaluator(object):
                 
             print(self.tag, "ok grammar:", acc_grammar)
             print(self.tag, "ok function count:", acc_fn_count)
+            print(self.tag, "ok device:", acc_device)
             print(self.tag, "ok function:", acc_fn)
             print(self.tag, "ok signature:", acc_signature)
             print(self.tag, "ok full:", acc_full)
@@ -299,9 +296,9 @@ class Seq2SeqEvaluator(object):
                             print(i, action_count_precision[i], action_count_recall[i], action_count_f1[i], sep='\t', file=out)
                 
                 action_count_precision = np.ma.masked_invalid(action_count_precision)
-                action_count_avg_precision = np.power(np.prod(action_count_precision, dtype=np.float64), 1/action_count_precision.count())
+                action_count_avg_precision = np.mean(action_count_precision, dtype=np.float64)
                 action_count_recall = np.ma.masked_invalid(action_count_recall)
-                action_count_avg_recall = np.power(np.prod(action_count_recall, dtype=np.float64), 1/action_count_recall.count())
+                action_count_avg_recall = np.mean(action_count_recall, dtype=np.float64)
                 print(self.tag, "action-count avg precision:", action_count_avg_precision, "over %d actions" % action_count_precision.count())
                 print(self.tag, "action-count avg recall:", action_count_avg_recall, "over %d actions" % action_count_recall.count())
                 print(self.tag, "action-count min precision:", np.min(action_count_precision))
@@ -324,6 +321,7 @@ class Seq2SeqEvaluator(object):
                 'grammar_accuracy': float(acc_grammar[0]),
                 'accuracy': float(acc_full[0]),
                 'function_count_accuracy': float(acc_fn_count[0]),
+                'device_accuracy': float(acc_device[0]),
                 'function_accuracy': float(acc_fn[0]),
                 'signature_accuracy': float(acc_signature[0]),
                 'program_recall': float(recall[0]),

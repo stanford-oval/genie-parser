@@ -42,17 +42,15 @@ def get_minibatches(data, minibatch_size, shuffle=True):
 
 
 def minibatch(data, minibatch_idx):
-    return data[minibatch_idx] if isinstance(data, np.ndarray) else [data[i] for i in minibatch_idx]
-
-
-def test_all_close(name, actual, expected):
-    if actual.shape != expected.shape:
-        raise ValueError("{:} failed, expected output to have shape {:} but has shape {:}"
-                         .format(name, expected.shape, actual.shape))
-    if np.amax(np.fabs(actual - expected)) > 1e-6:
-        raise ValueError("{:} failed, expected {:} but value is {:}".format(name, expected, actual))
+    if isinstance(data, dict):
+        minidict = dict()
+        for key, v in data.items():
+            minidict[key] = minibatch(v, minibatch_idx)
+        return minidict
+    elif isinstance(data, np.ndarray):
+        return data[minibatch_idx]
     else:
-        print(name, "passed!")
+        return [data[i] for i in minibatch_idx]
 
 
 def logged_loop(iterable, n=None):
