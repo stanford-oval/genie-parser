@@ -70,7 +70,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
             vector[i] = words[word]
         elif '<unk>' in words:
             unknown_tokens.add(word)
-            #print("sentence: ", sentence, "; word: ", word)
+            print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)
@@ -186,9 +186,12 @@ def load_data(from_file, input_words, grammar, max_length):
     inputs = []
     input_lengths = []
     parses = []
-    labels = []
+    labels = dict()
+    for key in grammar.output_size:
+        labels[key] = []
     label_lengths = []
-    
+    label_sequences = []
+
     with open(from_file, 'r') as data:
         for line in data:
             split = line.strip().split('\t')
@@ -197,15 +200,29 @@ def load_data(from_file, input_words, grammar, max_length):
             else:
                 _, sentence, canonical = split
                 parse = None
+            sentence = sentence.split(' ')
+
             input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
+
             inputs.append(input)
             input_lengths.append(in_len)
-            label, label_len = grammar.vectorize_program(canonical, max_length)
-            labels.append(label)
+            label_sequence = canonical.split(' ')
+            label_sequences.append(label_sequence)
+            label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+            for key in grammar.output_size:
+                labels[key].append(label[key])
             label_lengths.append(label_len)
             if parse is not None:
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
 
-    return np.array(inputs), np.array(input_lengths), np.array(parses), np.array(labels), np.array(label_lengths)
+
+    # FIXME remove
+    inputs = np.array(inputs)
+    input_lengths = np.array(input_lengths)
+    parses = np.array(parses)
+    for key in grammar.output_size:
+        labels[key] = np.array(labels[key])
+
+    return inputs, input_lengths, parses, label_sequences, labels, label_lengths

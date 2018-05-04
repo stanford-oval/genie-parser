@@ -20,8 +20,12 @@ Created on Jul 20, 2017
 @author: gcampagn
 '''
 
+import tensorflow as tf
+
 from .abstract import AbstractGrammar
 from .thingtalk import ThingTalkGrammar
+
+from util.loader import vectorize
 
 class SimpleGrammar(AbstractGrammar):
     '''
@@ -35,9 +39,13 @@ class SimpleGrammar(AbstractGrammar):
     where $Token is any grammar token
     '''
     
-    def __init__(self, filename, split_device=False):
-        super().__init__()
+
+    def __init__(self, filename, flatten=True, split_device=False, **kw):
+        super().__init__(**kw)
         
+        if not flatten:
+            raise ValueError('Cannot use a the extensible model with a simple grammar; use seq2seq model instead')
+
         self._split_device = split_device
         
         self.tokens = ['</s>', '<s>']
@@ -57,10 +65,24 @@ class SimpleGrammar(AbstractGrammar):
         
         # HACK
         self._thingtalk = ThingTalkGrammar('./thingpedia.json')
-        
-    def vectorize_program(self, program, max_length):
+
+
+    @property
+    def primary_output(self):
+        return 'tokens'
+
+    @property
+    def output_size(self):
+        return {
+            'tokens': len(self.tokens)
+        }
+
+    def vectorize_program(self, input_sentence, program, max_length):
         if not self._split_device:
-            return super().vectorize_program(program, max_length=max_length)
+            del input_sentence
+            return {
+                'tokens': vectorize(program, self.dictionary, max_length, add_eos=True)
+            }
         
         if isinstance(program, str):
             program = program.split(' ')
@@ -70,10 +92,19 @@ class SimpleGrammar(AbstractGrammar):
                     device = tok[:tok.rindex('.')]
                     yield '@' + device
                 yield tok
-        return super().vectorize_program(program_with_device(), max_length=max_length)
+        del input_sentence
+        return {
+            'tokens': vectorize(program_with_device(), self.dictionary, max_length, add_eos=True)
+        }
         
     def reconstruct_program(self, sequence, ignore_errors=False):
-        program = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+        if isinstance(sequence, dict):
+            sequence = sequence['tokens']
+        program = []
+        for x in sequence:
+            if x == self.end:
+                break
+            program.append(self.tokens[x])
         if self._split_device:
             program = [x for x in program if not x.startswith('@@')]
         
@@ -85,4 +116,3 @@ class SimpleGrammar(AbstractGrammar):
                 return []
             else:
                 raise
-        

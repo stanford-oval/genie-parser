@@ -54,7 +54,7 @@ def create_grammar(grammar_type, *args, **kw):
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
     else:
-        pkg, class_name = grammar_type.rsplit('.', limit=1)
+        pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)
     return getattr(module, class_name)(*args, **kw)
 
@@ -143,6 +143,11 @@ class Config(object):
     def output_embed_size(self):
         if self.train_output_embeddings:
             return int(self._config['output']['output_embed_size'])
+        elif isinstance(self._output_embeddings_matrix, dict):
+            sizes = dict()
+            for key, matrix in self._output_embeddings_matrix.items():
+                sizes[key] = matrix.shape[1]
+            return sizes
         else:
             return self._output_embeddings_matrix.shape[1]
         
@@ -299,7 +304,11 @@ class Config(object):
         self._config.read(filenames)
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
-        self._grammar = create_grammar(self._config['output']['grammar'], self._config['output']['grammar_input_file'])
+        flatten_grammar = self.model_type != 'extensible'
+        self._grammar = create_grammar(self._config['output']['grammar'],
+                                       self._config['output']['grammar_input_file'],
+                                       flatten=flatten_grammar,
+                                       max_input_length=self.max_length)
         
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
@@ -307,7 +316,8 @@ class Config(object):
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
-        print("%d output tokens" % (self.output_size,))
+        for key, size in self.output_size.items():
+            print("%d %s output tokens" % (size, key))
 
         if self._config['input']['input_embeddings'] == 'xavier':
             assert self.train_input_embeddings
