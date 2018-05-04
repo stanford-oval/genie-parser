@@ -54,7 +54,7 @@ class DjangoGrammar(ShiftReduceGrammar):
 
             '$augassign': [('+=',), ('-=',), ('*=',), ('/=',), ('%=',), ('&=',), ('|=',), ('^=',), ('<<=',), ('>>=',), ('**=',), ('//=',)],
 
-            '$print_stmt': [('print', ), ('print', '$test'), ('print', '$test' ',', '$test')], #fixme
+            '$print_stmt': [('print', ), ('print', '$test'), ('print', '$test', ',', '$test')], #fixme
             '$del_stmt': [('del', '$exprlist')],
             '$pass_stmt': [('pass',)],
             '$flow_stmt': [('$break_stmt',), ('$continue_stmt',), ('$return_stmt',), ('$raise_stmt',), ('$yield_stmt',)],
@@ -93,7 +93,8 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$old_test': [('$or_test', '$old_lambdef')],
             '$old_lambdef': [('lambda', ':', '$old_test'), ('lambda', '$varargslist', ':', '$old_test')],
             '$test': [('$lambdef',), ('$or_test',), ('$or_test', 'if', '$or_test', 'else', '$test')],
-            '$or_test': [('$and_test',), ('$or_test', 'or', '$and_test')],
+            #'$or_test': [('$and_test',), ('$or_test', 'or', '$and_test')], #fixme
+            '$or_test': [],
             '$and_test': [('$not_test',), ('$and_test', 'and', '$not_test')],
             '$not_test': [('not', '$not_test'), ('not', '$comparison')],
             '$comparison': [('$expr',), ('$comparison', '$comp_op', '$expr')],
@@ -141,7 +142,7 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$comp_if': [('if', '$old_test'), ('if', '$old_test', '$comp_iter')],
 
             '$testlist1': [('$test',), ('$testlist1', ',', '$test')],
-            '$yield_expr': [('yield',), ('yield', '$testlist')],
+            '$yield_expr': [('yield',)],#, ('yield', '$testlist')], #fixme
 
             '$ident': []
         })
@@ -157,15 +158,15 @@ class DjangoGrammar(ShiftReduceGrammar):
                        ])
 
         with open(filename, 'r') as fp:
-            i = 0
+            #i = 0
             for line in fp:
-                if i >= 1000:
-                    break
+                #if i >= 2000:
+                    #break
                 for token in line.strip().split(' '):
                     if token:
                         if token[0].isalpha() and not token in kwlist:
                             if token.find('$') == -1:
-                                i += 1
+                                #i += 1
                                 GRAMMAR['$ident'].append((token,))
 
         self.num_functions = 0
