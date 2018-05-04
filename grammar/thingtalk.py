@@ -275,7 +275,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                            ('not', '$atom_filter',),
                            ('$or_filter', 'or', '$atom_filter')
                            ],
-            '$atom_filter': [],
+            '$atom_filter': [('$thingpedia_queries', '{', 'true', '}'),
+                             ('$thingpedia_queries', '{', '$filter', '}')],
 
             '$constant_Array': [('[', '$constant_array_values', ']',)],
             '$constant_array_values': [('$constant_Any',),
