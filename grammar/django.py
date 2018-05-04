@@ -25,12 +25,35 @@ class DjangoGrammar(ShiftReduceGrammar):
         '''
 
         GRAMMAR = OrderedDict({
-            '$input': [('$single_input',)],
-            '$single_input': [('$simple_stmt',),
-                              ('$compound_stmt',)],
-            '$file_input': [('$stmt',),
-                            ('$file_input', '$stmt')],
-            '$eval_input': [('$testlist',)],
+            '$input': [# simple stmt
+                       ('$expr_stmt',),
+                       ('$print_stmt',),
+                       ('$del_stmt',),
+                       ('$pass_stmt',),
+                       ('$flow_stmt',),
+                       ('$import_stmt',),
+                       ('$global_stmt',),
+                       ('$exec_stmt',),
+                       ('$assert_stmt',),
+                       
+                       # flow stmt
+                       ('$break_stmt',),
+                       ('$continue_stmt',),
+                       ('$return_stmt',),
+                       ('$raise_stmt',),
+                       ('$yield_stmt',),
+                       
+                       # compount stmt
+                       ('$if_stmt',),
+                       ('$elif_stmt',),
+                       ('$else_stmt',),
+                       ('$while_stmt',),
+                       ('$for_stmt',),
+                       ('$try_stmt',),
+                       ('$with_stmt',),
+                       ('$funcdef',),
+                       ('$classdef',),
+                       ('$decorated',)],
 
             '$decorator': [('@', '$dotted_name'),
                            ('@', '$dotted_name', '(', '$arglist', ')')],
@@ -38,26 +61,20 @@ class DjangoGrammar(ShiftReduceGrammar):
                             ('$decorators', '$decorator')],
             '$decorated': [('$decorators', '$classdef'),
                            ('$decorators', '$funcdef')],
-            '$funcdef': [('def', '$ident', '$parameters', ':', '$suite')],
+            '$funcdef': [('def', '$ident', '$parameters', ':',)],
             '$parameters': [('(', '$varargslist', ')'),
                             ('(', ')')],
 
-            '$var1': [('$fpdef',),
-                      ('$fpdef', '=', '$test'),
-                      ('$fpdef', ','),
-                      ('$fpdef', '=', '$test', ',')],
-            '$varlist1': [('$var1',),
-                          ('$varlist1', '$var1')],
-            '$varargslist1': [('$varlist1', '*', '$ident'),
-                              ('$varlist1', '*', '$ident', ',', '**', '$ident'),
-                              ('$varlist1', '**', '$ident')],
-            '$varargslist2': [('$fpdef',),
-                              ('$fpdef', '=', '$test'),
-                              ('$varargslist2', ',', '$fpdef'),
-                              ('$varargslist2', ',', '$fpdef', '=', '$test')],
-            '$varargslist': [('$varargslist1',),
-                             ('$varargslist2',),
-                             ('$varargslist2', ',')],
+            '$fpvar': [('$fpdef',),
+                      ('$fpdef', '=', '$test')],
+            '$varargslist_tmp': [('$fpvar', ','),
+                                 ('$varargslist_tmp', '$fpvar', ',')],
+            '$varargslist': [('$fpvar',),
+                             ('$varargslist_tmp',),
+                             ('$varargslist_tmp', '$fpvar'),
+                             ('$varargslist_tmp', '*', '$ident'),
+                             ('$varargslist_tmp', '*', '$ident', ',', '**', '$ident'),
+                             ('$varargslist_tmp', '**', '$ident')],
 
             '$fpdef': [('$ident',),
                        ('(', '$fplist', ')')],
@@ -66,21 +83,6 @@ class DjangoGrammar(ShiftReduceGrammar):
                         ('$fpdef', ',', '$fpdef'),
                         ('$fpdef', ',', '$fpdef', ',')],
 
-            '$stmt': [('$simple_stmt',),
-                      ('$compound_stmt',)],
-            '$simple_stmt_tmp': [('$small_stmt',),
-                                 ('$simple_stmt_tmp', ';', '$small_stmt')],
-            '$simple_stmt': [('$simple_stmt_tmp',),
-                             ('$simple_stmt_tmp', ';')],
-            '$small_stmt': [('$expr_stmt',),
-                            ('$print_stmt',),
-                            ('$del_stmt',),
-                            ('$pass_stmt',),
-                            ('$flow_stmt',),
-                            ('$import_stmt',),
-                            ('$global_stmt',),
-                            ('$exec_stmt',),
-                            ('$assert_stmt',)],
             '$expr_stmt': [('$testlist', '$augassign', '$yield_expr'),
                            ('$testlist', '$augassign', '$testlist'),
                            ('$testlist', '='),
@@ -105,11 +107,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                             ('print', '$test', ',', '$test')], #fixme
             '$del_stmt': [('del', '$exprlist')],
             '$pass_stmt': [('pass',)],
-            '$flow_stmt': [('$break_stmt',),
-                           ('$continue_stmt',),
-                           ('$return_stmt',),
-                           ('$raise_stmt',),
-                           ('$yield_stmt',)],
+            '$flow_stmt': [],
             '$break_stmt': [('break',)],
             '$continue_stmt': [('continue',)],
             '$return_stmt': [('return', ),
@@ -138,31 +136,17 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$assert_stmt': [('assert', '$test'),
                              ('assert', '$test', ',', '$test')],
 
-            '$compound_stmt': [('$if_stmt',),
-                               ('$while_stmt',),
-                               ('$for_stmt',),
-                               ('$try_stmt',),
-                               ('$with_stmt',),
-                               ('$funcdef',),
-                               ('$classdef',),
-                               ('$decorated',)],
-            '$if_stmt_tmp': [('if', '$test', ':', '$suite'),
-                             ('$if_stmt_tmp', 'elif', '$test', ':', "$suite")],
-            '$if_stmt': [('$if_stmt_tmp',),
-                         ('$if_stmt_tmp', 'else', ':', '$suite')],
-            '$while_stmt': [('while', '$test', ':', '$suite'),
-                            ('while', '$test', ':', '$suite', 'else', '$suite')],
-            '$for_stmt': [('for', '$exprlist', 'in', '$testlist', ':', '$suite'),
-                          ('for', '$exprlist', 'in', '$testlist', ':', '$suite', 'else', ':', '$suite')],
-            '$try_stmt': [],
-            '$with_stmt': [('with', '$with_item', ':', '$suite')],
+            '$if_stmt': [('if', '$test', ':',)],
+            '$elif_stmt': [('elif', '$test', ':')],
+            '$else_stmt': [('else', ':')],
+            '$while_stmt': [('while', '$test', ':',)],
+            '$for_stmt': [('for', '$exprlist', 'in', '$testlist', ':',)],
+            '$try_stmt': [('try', ':')],
+            '$with_stmt': [('with', '$with_item', ':',)],
             '$with_item': [('$test',),
                            ('$test', 'as', '$expr')],
             '$except_clause': [('except',)],
-            '$suite': [('$simple_stmt',),
-                       ('INDENT', '$compound_suite', 'DEDENT')], # FIXME
-            '$compound_suite': [('$stmt',),
-                                ('$compound_suite', '$stmt')],
+
             '$testlist_safe': [('$old_test',)],
             '$old_test': [('$or_test', '$old_lambdef')],
             '$old_lambdef': [('lambda', ':', '$old_test'),
@@ -222,9 +206,13 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('{', '$dictorsetmaker','}'),
                       ('`', '$testlist1', '`'),
                       ('$ident',),
+                      ('NUMBER',),
+                      ('$string_list',),
                       ('(', ')'),
                       ('[', ']'),
                       ('{', '}')],
+            '$string_list': [('STRING',),
+                             ('$string_list', 'STRING')],
             '$listmaker': [('$test', '$list_for'),
                            ('$test', ',', 'test')], #fixme
             '$testlist_comp': [('$test', '$comp_for'),
@@ -242,18 +230,20 @@ class DjangoGrammar(ShiftReduceGrammar):
                            ('$test',)], #fixme
             '$sliceop': [(':',),
                          (':', '$test')],
+            
             '$exprlist_tmp': [('$expr',),
-                              ('$exprlist', ',', '$expr')],
+                              ('$exprlist_tmp', ',', '$expr')],
             '$exprlist': [('$exprlist_tmp',),
                           ('$exprlist_tmp', ',')],
+            
             '$testlist_tmp': [('$test',),
                               ('$testlist_tmp', ',', '$test')],
             '$testlist': [('$testlist_tmp',),
                           ('$testlist_tmp', ',')],
             '$dictorsetmaker': [],
 
-            '$classdef': [('class', '$ident', ':', '$suite'),
-                          ('class', '$ident', '(', '$testlist', ')', ':', '$suite')],
+            '$classdef': [('class', '$ident', ':',),
+                          ('class', '$ident', '(', '$testlist', ')', ':',)],
             '$arglist_tmp': [('$argument', ','),
                              ('$arglist_tmp', '$argument', ',')],
             '$arglist': [('$arglist_tmp', '$argument'),
@@ -290,12 +280,19 @@ class DjangoGrammar(ShiftReduceGrammar):
 
 
         # add common keywords
-        kwlist.extend(['name', '__init__', 'from', 'import', 'return', 'def', 'self', 'pass', 'None', 'NotImplementedError', 'io',
-                       'os', 'random', 'class', 'utils', 'key', 'value', 'open', 'close', 'pickle', 'isinstance',
-                       'LibraryValueNotFoundException'
-                       ])
+        #kwlist.extend(['name', '__init__', 'from', 'import', 'return', 'def', 'self', 'pass', 'None', 'NotImplementedError', 'io',
+        #               'os', 'random', 'class', 'utils', 'key', 'value', 'open', 'close', 'pickle', 'isinstance',
+        #               'LibraryValueNotFoundException'
+        #               ])
 
-        idents = []
+        idents = set()
+        
+        # add things that are keywords in python3 but identifiers in python2
+        idents.add('None')
+        idents.add('True')
+        idents.add('False')
+        idents.add('nonlocal')
+        
         with open(filename, 'r') as fp:
             #i = 0
             for line in fp:
@@ -305,11 +302,17 @@ class DjangoGrammar(ShiftReduceGrammar):
                     if token:
                         if token[0].isalpha() and not token in kwlist:
                             if token.find('$') == -1:
-                                idents.append(token)
+                                idents.add(token)
 
+        idents = list(idents)
         idents.sort()
         self.num_functions = 0
-        self.tokens += self.construct_parser(GRAMMAR, {}, {'IDENT': idents})
+        self.tokens += self.construct_parser(GRAMMAR, {
+            'STRING':[]
+        }, {
+            'IDENT': idents,
+            'NUMBER': list(map(str, range(100)))
+        })
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
