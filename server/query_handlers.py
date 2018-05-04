@@ -128,9 +128,8 @@ class QueryHandler(tornado.web.RequestHandler):
         
         if len(result) > 0 and self.application.database and store != 'no':
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
-                                              "values (0, %(language)s, 'log', %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
+                                              "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
-                                              utterance=query,
                                               preprocessed=' '.join(tokens),
                                               target_code=' '.join(result[0]['code']))
         
