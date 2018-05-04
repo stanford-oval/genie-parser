@@ -99,12 +99,14 @@ def clean(name):
 def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
 
-
-class ThingtalkGrammar(ShiftReduceGrammar):
-    def __init__(self, filename=None, flatten=True):
-        super().__init__(flatten=flatten)
-        if not flatten:
-            raise NotImplementedError('Extensible Grammar is not supported for Old ThingTalk')
+class ThingTalkGrammar(ShiftReduceGrammar):
+    '''
+    The grammar of ThingTalk
+    '''
+    
+    def __init__(self, filename=None, split_device=False, **kw):
+        super().__init__(**kw)
+        self._split_device = split_device
         if filename is not None:
             self.init_from_file(filename)
         
@@ -177,9 +179,9 @@ class ThingtalkGrammar(ShiftReduceGrammar):
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
             self._process_entities(json.load(res)['data'])
     
-    def vectorize_program(self, program, max_length=60):
+    def vectorize_program(self, sentence, program, max_length=60):
         if not self._split_device:
-            return super().vectorize_program(program, max_length=max_length)
+            return super().vectorize_program(sentence, program, max_length=max_length)
         
         if isinstance(program, str):
             program = program.split(' ')
@@ -189,10 +191,10 @@ class ThingtalkGrammar(ShiftReduceGrammar):
                     device = tok[:tok.rindex('.')]
                     yield '@' + device
                 yield tok
-        return super().vectorize_program(program_with_device(), max_length=max_length)
+        return super().vectorize_program(sentence, program_with_device(), max_length=max_length)
     
-    def reconstruct_program(self, sequence, ignore_errors=False):
-        reconstructed = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+    def reconstruct_program(self, input_vector, sequences, ignore_errors=False):
+        reconstructed = super().reconstruct_program(input_vector, sequences, ignore_errors=ignore_errors)
         if not self._split_device:
             return reconstructed
         else:
@@ -415,11 +417,25 @@ if __name__ == '__main__':
     grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     vectors = []
-
+    ok_grammar = 0
+    fail_grammar = 0
     for line in sys.stdin:
         try:
-            vectors.append(grammar.vectorize_program(line.strip())[0])
+            program = line.strip()
+            vectors.append(grammar.vectorize_program(program)[0])
+            reconstructed = grammar.reconstruct_program(vectors[-1])
+            assert program == ' '.join(reconstructed)
+            #print()
+            #print(program)
+            #grammar.print_prediction(vectors[-1])
+            
+            ok_grammar += 1
         except:
             print(line.strip())
+            grammar.print_prediction(vectors[-1])
+            fail_grammar += 1
             raise
     np.save('programs.npy', np.array(vectors), allow_pickle=False)
+    print(ok_grammar / (ok_grammar+fail_grammar))
+    #for i, name in enumerate(grammar.state_names):
+    #    print i, name

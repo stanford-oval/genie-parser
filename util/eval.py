@@ -127,6 +127,7 @@ class Seq2SeqEvaluator(object):
 
                 for i, seq in enumerate(primary_sequences):
                     gold = label_sequences[n_minibatches * self._batch_size + i]
+                    gold_devices = get_devices(gold)
                     gold_functions = get_functions(gold)
                     gold_function_set = set(gold_functions)
                     gold_functions_counter.update(gold_functions)
@@ -203,6 +204,8 @@ class Seq2SeqEvaluator(object):
                             print(sentence, gold_str, decoded_str, is_ok_full,
                                   'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
                                   'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
+                                  'CorrectNumFunction' if is_ok_fn_count else 'IncorrectNumFunction',
+                                  'CorrectSignature' if is_ok_signature else 'IncorrectSignature',
                                   sep='\t', file=fp)
                 
                 n_minibatches += 1

@@ -577,10 +577,7 @@ class BeamAligner(BaseAligner):
         
 
         output_embed_matrix = self.output_embed_matrices[self.config.grammar.primary_output]
-        if self.config.use_dot_product_output:
-            output_layer = common.DotProductLayer(output_embed_matrix)
-        else:
-            output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
