@@ -42,6 +42,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                 ('$continue_stmt',),
                 ('$return_stmt',),
                 ('$raise_stmt',),
+                ('$except_clause',),
                 ('$yield_stmt',),
 
                 # compount stmt
@@ -70,29 +71,19 @@ class DjangoGrammar(ShiftReduceGrammar):
                        ('$fpdef', '=', '$test')],
             '$varargslist_tmp': [('$fpvar', ','),
                                  ('$varargslist_tmp', '$fpvar', ',')],
-
-            '$zed': [(',', '$fpdef'),
-                     (',', '$fpdef', '=', '$test')],
-            '$varargslist_tmp2': [('$fpdef',),
-                                  ('$fpdef', '=', '$test'),
-                                  ('$varargslist_tmp2', '$zed')],
-            '$varargslist_tmp3': [('$varargslist_tmp2',),
-                                  ('$varargslist_tmp2', ',')],
-
             '$varargslist': [('$fpvar',),
                              ('$varargslist_tmp',),
                              ('$varargslist_tmp', '$fpvar'),
                              ('$varargslist_tmp', '*', '$ident'),
                              ('$varargslist_tmp', '*', '$ident', ',', '**', '$ident'),
-                             ('$varargslist_tmp', '**', '$ident'),
-                             ('$varargslist_tmp3',)], # fixme
+                             ('$varargslist_tmp', '**', '$ident')],
 
             '$fpdef': [('$ident',),
                        ('(', '$fplist', ')')],
-            '$fplist_tmp': [('$fpdef',),
-                       ('fplist_tmp', ',', '$fpdef')],
-            '$fplist': [('$fplist_tmp',),
-                        ('$fplist_tmp', ',')],
+            '$fplist': [('$fpdef', ','),
+                        ('$fpdef',),
+                        ('$fpdef', ',', '$fpdef'),
+                        ('$fpdef', ',', '$fpdef', ',')],
 
             '$expr_stmt': [('$testlist', '$augassign', '$yield_expr'),
                            ('$testlist', '$augassign', '$testlist'),
@@ -140,7 +131,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                              ('from', '$dotted_name', 'import', '*'),
                              ('from', '$dotted_name', 'import', '(', '$import_as_names', ')'),
                              ('from', '$dotted_name', 'import', '$import_as_name'),
-                             ],
+                             ('from', '$dotted_name', 'import', '$import_as_name', ',', '$import_as_name')], #hack
             '$import_as_name': [('$ident',),
                                 ('$ident', 'as', '$ident')],
             '$dotted_as_name': [('$dotted_name',),
@@ -165,18 +156,17 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$else_stmt': [('else', ':')],
             '$while_stmt': [('while', '$test', ':',)],
             '$for_stmt': [('for', '$exprlist', 'in', '$testlist', ':',)],
-            '$try_stmt': [('try', ':'),
-                          ('finally', ':'),
-                          ('$except_clause', ':')], #fixme
+            '$try_stmt': [('try', ':')],
             '$with_stmt': [('with', '$with_item', ':',)],
             '$with_item': [('$test',),
                            ('$test', 'as', '$expr')],
 
-            '$except_clause_tmp': [('$test',),
-                                   ('$test', 'as', '$test'),
-                                   ('$test', ',', '$test')],
+            # '$except_clause_tmp': [('$test',),
+            #                        ('$test', 'as', '$test'),
+            #                        ('$test', ',', '$test')],
             '$except_clause': [('except',),
-                               ('except', '$except_clause_tmp')],
+                               ('except', '$ident', ':')], #Hack
+                               #('except', '$except_clause_tmp')],
 
             '$testlist_safe': [('$old_test',)],
             '$old_test': [('$or_test',),
@@ -222,10 +212,10 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('$term', '/', '$factor'),
                       ('$term', '%', '$factor'),
                       ('$term', '//', '$factor')],
-            '$factor': [#('+', '$factor'),
-                        #('-', '$factor'),
-                        ('~', '$factor'),
-                        ('$power',)],
+            '$factor': [  # ('+', '$factor'),
+                          # ('-', '$factor'),
+                         ('~', '$factor'),
+                         ('$power',)],
             '$power_tmp': [('$atom',),
                            ('$atom', '$trailer_list')],
             '$trailer_list': [('$trailer',),
@@ -336,13 +326,13 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.add('nonlocal')
 
         #HACK
-        #idents.add('__name__')
+        #idents.add('Exception')
 
         with open(filename, 'r') as fp:
             for line in fp:
                 for token in line.strip().split(' '):
                     if token:
-                        if (token[0].isalpha() or token.startswith('_')) and (not token in kwlist):
+                        if (token[0].isalpha() or token.startswith('_')) and not token in kwlist:
                             if token.find('$') == -1 and token.find('STR') == -1:
                                 idents.add(token)
 
@@ -361,6 +351,5 @@ class DjangoGrammar(ShiftReduceGrammar):
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
-
 
 

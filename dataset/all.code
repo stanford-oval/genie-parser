@@ -10765,7 +10765,7 @@ from __future__ import unicode_literals
                   if nodelist . contains_nontext :
                       raise AttributeError
    except AttributeError :
-                  raise TemplateSyntaxError ( "%r must be the first tag "  "in the template." % node )
+                  raise TemplateSyntaxError ( "%r must be the first tag " "in the template." % node )
    if isinstance ( nodelist , NodeList ) and not isinstance ( node , TextNode ) :
               nodelist . contains_nontext = True
   nodelist . append ( node )
@@ -10781,7 +10781,7 @@ from __future__ import unicode_literals
           raise self . error ( token , "Empty block tag" )
    def invalid_block_tag ( self , token , command , parse_until = None ) :
           if parse_until :
-              raise self . error ( token , "Invalid block tag: '%s', expected %s" %  ( command , get_text_list ( [ "'%s'" % p for p in parse_until ] ) ) )
+              raise self . error ( token , "Invalid block tag: '%s', expected %s" % ( command , get_text_list ( [ "'%s'" % p for p in parse_until ] ) ) )
   raise self . error ( token , "Invalid block tag: '%s'" % command )
    def unclosed_block_tag ( self , parse_until ) :
           raise self . error ( None , "Unclosed tags: %s " % ', ' . join ( parse_until ) )

@@ -52,11 +52,8 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
                 line = re.sub(r'\'(?!STR)(.*?)\'', 'STR' + str(i), line, count=1)
 
 
+            line = re.sub(r'rSTR', 'STR', line)
+
             tokens = line.strip().split(' ')
+            tokens = [token for token in tokens if token != '']
             print(' '.join(tokens), end='\n', file=fout)
-
-
-
-
-
-

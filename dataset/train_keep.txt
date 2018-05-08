@@ -1,99 +1,20 @@
-10819	if length of self.backout is greater than zero ,	if not len ( self . backout ) :
-12668	if fift element of bits is not equal to a string STR0 ,	if bits [ 4 ] != STR0 :
-2912	use tag as an argument to call the iterator method next , substitute the result for invalid_tag . raise an CommandError exception with an argument string STR1 , where STR2 is replaced with invalid_tag .	raise CommandError ( STR1 % invalid_tag )
-16766	define the function module_has_submodule with 2 arguments : package and module_name .	def module_has_submodule ( package , module_name ) :
-17936	call the method _time.localtime with an argument stamp , substitute the result for tt .	tt = _time . localtime ( stamp )
-6320	ns_resolver is class instance of a class RegexURLResolver , created with 2 arguments : ns_pattern and resolver.url_patterns .	ns_resolver = RegexURLResolver ( ns_pattern , resolver . url_patterns )
-8943	boolean_attrs is an empty list .	boolean_attrs = [ ]
-10842	substitute i-th element of subject for c .	c = subject [ i ]
-17977	if AttributeError exception is caught ,	except AttributeError :
-1139	p is image parser object , set by calling the PillowImageFile.Parser method .	p = PillowImageFile . Parser ( )
-16463	define the function is_iterable with an argument x .	def is_iterable ( x ) :
-935	do nothing .	pass
-10985	convert self.literal into an integer , substitute it for self.literal .	self . literal = int ( self . literal )
-18681	call the method self._new_instance with 3 arguments : self.children , self.connector and self.negated , substitute the result for obj .	obj = self . _new_instance ( self . children , self . connector , self . negated )
-6168	use the result as an argument for the call to the b64_encode function , return the result . define the function get_cookie_signer with an argument salt set to string STR0 .	def get_cookie_signer ( salt = STR0 ) :
-2316	if bcc is true ,	if bcc :
-4777	remove the elements from the STR0 and STR1 keys of the options dictionary , substitute them for project_name and target , respectively .	project_name , target = options . pop ( STR0 ) , options . pop ( STR1 )
-11437	if other is an instance of BaseContext class ,	if isinstance ( other , BaseContext ) :
-11852	try ,	try :
-10251	if COOKIES_override is not None , or otherwise generated with the call to the function pformat with an argument request.COOKIES . if Exception exception is caught ,	except Exception :
-11541	and elements of parse_until joined into a string , separated by string STR0 . raise an self.source_error exception with 2 arguments : source and msg .	raise self . source_error ( source , msg )
-12313	if obj_list is None ,	if obj_list is None :
-10964	if plen is lesser than difference of alen and dlen , or if plen is greater than alen ,	if plen < ( alen - dlen ) or plen > alen :
-16133	find the ending position of the regular expression match of the object match , substitute the result for k .	k = match . end ( )
-4515	and string STR0 as tuples second element . if pythonrc is true ,	if not pythonrc :
-3402	if field_desc doesnt end with STR0 ,	if not field_desc . endswith ( STR0 ) :
-7893	if self.field.label is None ,	if self . field . label is None :
-7216	define the method prepare_value with arguments self and value .	def prepare_value ( self , value ) :
-4186	replace STR1 in string STR0 with second and first element of the first targets row , respectively ,	self . stdout . write ( self . style . MIGRATE_LABEL ( STR0 ) + STR1 % ( targets [ 0 ] [ 1 ] , targets [ 0 ] [ 0 ] ) )
-17039	substitute new_args for result_args .	result_args = new_args
-1867	if not ,	else :
-18487	substitute STR0 in string STR1 with line , write it to out file .	out . write ( STR0 % line )
-12207	pop_context is boolean False .	pop_context = False
-18625	convert priority into a floating point integer , substitute it for priority .	priority = float ( priority )
-7680	for every base in new_class.__mro__ in reversed order ,	for base in reversed ( new_class . __mro__ ) :
-18511	called with 2 arguments : singular and trimmed , write the result to out . if not ,	else :
-1446	derive class TemporaryFile from the base class FileProxyMixin .	class TemporaryFile ( FileProxyMixin ) :
-164	raise an exception NotImplementedError with string STR0 as argument .	raise NotImplementedError ( STR0 )
-3271	substitute value under the database key of the connections dictionary for connection .	connection = connections [ database ]
-17321	substitute callable for callable .	callable = callable
-1973	define the function mail_admins with subject , message , fails_silently set to boolean False , connection set to None ,	def mail_admins ( subject , message , fail_silently = False , connection = None ,  html_message = None ) :
-4120	from django.db.migrations.autodetector import MigrationAutodetector into default name space .	from django . db . migrations . autodetector import MigrationAutodetector
-10934	substitute settings.TEMPLATE_STRING_IF_INVALID with obj .	obj = settings . TEMPLATE_STRING_IF_INVALID
-10955	substitute new_obj for obj .	obj = new_obj
-13363	import module sta .	import stat
-9337	join elements of output in a string , separated by newlines , return it .	return STR0 . join ( output )
-5878	raise an base.DeserializationError exception with string STR0 as argument .	raise base . DeserializationError ( STR0 )
-13696	if old_handler is not None ,	if old_handler is not None :
-4283	if self.verbosity is greater or equal to integer 3 ,	if self . verbosity >= 3 :
-10346	convert the result into a string and substitute it for value . if not ,	else :
-4585	if app_config.models_module is None ,	if app_config . models_module is None :
-12979	define the function do_include with 2 arguments parser and token .	def do_include ( parser , token ) :
-9141	property decorator ,	@ property
-4622	derive the class Command from the base class AppCommand .	class Command ( AppCommand ) :
-6423	call the method apps.setdefault with 2 arguments : pattern and an empty list , append to the resulting object pattern.namespace .	apps . setdefault ( pattern . app_name , [ ] ) . append ( pattern . namespace )
-6750	return boolean True .	return True
-7541	return out .	return out
-10001	get the value under the STR0 key of the self.META dictionary , substitute the result for host .	host = self . META [ STR0 ]
-1321	define the method size with arguments self and name .	def size ( self , name ) :
-1226	define the function unlock with argument f .	def unlock ( f ) :
-16885	get the next element of the iterable pattern_iter , assign the result for ch and escaped , respectively .	ch , escaped = next ( pattern_iter )
-11309	substitute __name__ field of the result for function_name , in not , substitute func.__name__ for function_name . call the function partial with 8 arguments : generic_tag_compiler , params set to params , varargs set to varargs , varkw set to varkw ,	compile_func = partial ( generic_tag_compiler ,  params = params , varargs = varargs , varkw = varkw ,  defaults = defaults , name = function_name ,  takes_context = takes_context , node_class = InclusionNode )
-6392	self._populated is boolean False .	self . _populated = False
-7481	derive the class ComboField from the base class Field class .	class ComboField ( Field ) :
-13316	substitute OPERATORS dictionary element under token key for op .	op = OPERATORS [ token ]
-18493	append t.contents to comment .	comment . append ( t . contents )
-15526	called with an argument value under the STR0 key of the item dictionary . if value under the STR1 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
-18558	call the method imatch.group with an argument integer 1 , substitute the result for g .	g = imatch . group ( 1 )
-372	derive the class FileBasedCache from BaseCache base class .	class FileBasedCache ( BaseCache ) :
-7195	if value is an instance of datetime.date class ,	if isinstance ( value , datetime . date ) :
-703	from .registry import register , run_checks , tag_exists and Tags into default name space .	from . registry import register , run_checks , tag_exists , Tags
-6725	if whitelist is not None	if whitelist is not None :
-16664	substitute link for link_prev , link_next , key and result , respectively .	link_prev , link_next , key , result = link
-6947	s is an instance of the Select class , created with choices set to choices .	s = Select ( choices = choices )
-16307	try ,	try :
-17339	call the method e.encode with an argument string STR0 .	return s . encode ( STR0 )
-783	otherwise if self.object is an instance of the models.base.ModelBase class ,	elif isinstance ( self . obj , models . base . ModelBase ) :
-11534	return an instance of DebugVariableNode , created with an argument contents .	return DebugVariableNode ( contents )
-12593	if token.contents equals string STR0 ,	if token . contents == STR0 :
-13904	call method request.build_absolute_uri , use the result as an argument for function call of iri_to_uri ,	url = hashlib . md5 ( force_bytes ( iri_to_uri ( request . build_absolute_uri ( ) ) ) )
-17015	increment piece by firs element of elt .	piece += elt [ 0 ]
-16152	increment the lineno by the count of the newlines in self.__starttag_text .	lineno = lineno + self . __starttag_text . count ( STR0 )
-6675	evaluate the logical expression , if other is an instance of RegexValidator and self.regex.pattern equals to other.regex.pattern ,	return (  isinstance ( other , RegexValidator ) and  self . regex . pattern == other . regex . pattern and  self . regex . flags == other . regex . flags and  ( self . message == other . message ) and  ( self . code == other . code ) and  ( self . inverse_match == other . inverse_match )  )
-9187	define the method render with 4 arguments : self , name , value and attrs set to None .	def render ( self , name , value , attrs = None ) :
-15772	define the method __ne__ with 2 arguments : self and other .	def __eq__ ( self , other ) :
-5904	if field.rel.to._meta.pk.rel is true ,	if field . rel . to . _meta . pk . rel :
-13330	if self.current_token is not EndToken ,	if self . current_token is not EndToken :
-9399	define the method __init__ with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , * args , ** kwargs ) :
-34	call the import_string with argument backend , substitute it for backend_cls .	backend_cls = import_string ( backend )
-3125	excluded_apps is an empty set .	excluded_apps = set ( )
-13312	self.pos is integer 0 .	self . pos = 0
-3958	if m is true ,	if m :
-7970	if not ,	else :
-16872	otherwise if ch equals a string STR0 ,	elif ch == STR0 :
-666	define the function delete_many with self , keys and version set to None as arguments .	def delete_many ( self , keys , version = None ) :
-9739	for every i and handler in enumerated iterator self._upload_handlers ,	for i , handler in enumerate ( self . _upload_handlers ) :
-17811	and re.VERBOSE , substitute the result for smart_split_re . define the function smart_split with an argument text .	def smart_split ( text ) :
-831	for every receiver , _ and _ in receivers ,	for receiver , _ , _ in receivers :
-11925	join elements of output into a string , separated with newlines , return the result .	return STR0 . join ( output )
+14828	call the function warn_about_renamed_method with 2 arguments : class_name and unpacked list renamed_method , substitute the result for wrapper .	wrapper = warn_about_renamed_method ( class_name , * renamed_method )
+815	from itertools import chain into default name space .	from itertools import chain
+1967	call the mail.attach_alternative method with html_message and string STR0 as arguments .	mail . attach_alternative ( html_message , STR0 )
+4527	from django.core.management.base import AppCommand into default name space .	from django . core . management . base import AppCommand
+249	call the cursor method on the value under the db key of connections dictionary , preform following with return value named cursor ,	with connections [ db ] . cursor ( ) as cursor :
+3113	get the value under the STR0 key of the options dictionary , substitute the result for traceback .	show_traceback = options . get ( STR0 )
+13878	existing_headers is a set of lowercase headers for every header in vary_headers .	existing_headers = set ( header . lower ( ) for header in vary_headers )
+3195	yield obj , as an return value of the generator .	yield obj
+13392	call the function force_text with an argument base , substitute the result for base .	base = force_text ( base )
+8959	return an empty string .	return STR0
+4387	raise an CommandError exception with an argument string STR0 .	raise CommandError ( STR0 )
+11539	remove the first element from self.command_stack , assign the result to command and source , respectively .	command , source = self . command_stack . pop ( )
+7169	define the method __init__ with arguments self , input_formats set to None , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , input_formats = None , * args , ** kwargs ) :
+4668	help is a string STR0 .	help = STR0
+2429	if self.alternatives is true ,	if self . alternatives :
+8141	return a tuple with 2 elements : integer 0 and second element of k .	return ( 0 , k [ 1 ] )
+2285	call the method self.set_charset with utf8_charset as an argument .	self . set_charset ( utf8_charset )
+768	define initialization method __init__ with self class instance , level , msg , hint defaulting to None , obj defaulting to None and if defaulting to None as arguments .	def __init__ ( self , level , msg , hint = None , obj = None , id = None ) :
+1883	return self._request .	return self . _request
+4994	for model in return value of the method router.get_migratable_models with arguments app_config , connection.alias ,	for model in router . get_migratable_models ( app_config , connection . alias , include_auto_created = True ) :
