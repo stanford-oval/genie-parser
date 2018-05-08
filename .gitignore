@@ -1,2 +1,3 @@
 *.pyc
 .DS_Store
+workdir/glove.42B.300d.txt

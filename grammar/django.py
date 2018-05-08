@@ -25,35 +25,36 @@ class DjangoGrammar(ShiftReduceGrammar):
         '''
 
         GRAMMAR = OrderedDict({
-            '$input': [# simple stmt
-                       ('$expr_stmt',),
-                       ('$print_stmt',),
-                       ('$del_stmt',),
-                       ('$pass_stmt',),
-                       ('$flow_stmt',),
-                       ('$import_stmt',),
-                       ('$global_stmt',),
-                       ('$exec_stmt',),
-                       ('$assert_stmt',),
-                       
-                       # flow stmt
-                       ('$break_stmt',),
-                       ('$continue_stmt',),
-                       ('$return_stmt',),
-                       ('$raise_stmt',),
-                       ('$yield_stmt',),
-                       
-                       # compount stmt
-                       ('$if_stmt',),
-                       ('$elif_stmt',),
-                       ('$else_stmt',),
-                       ('$while_stmt',),
-                       ('$for_stmt',),
-                       ('$try_stmt',),
-                       ('$with_stmt',),
-                       ('$funcdef',),
-                       ('$classdef',),
-                       ('$decorated',)],
+            '$input': [
+                # simple stmt
+                ('$expr_stmt',),
+                ('$print_stmt',),
+                ('$del_stmt',),
+                ('$pass_stmt',),
+                ('$flow_stmt',),
+                ('$import_stmt',),
+                ('$global_stmt',),
+                ('$exec_stmt',),
+                ('$assert_stmt',),
+
+                # flow stmt
+                ('$break_stmt',),
+                ('$continue_stmt',),
+                ('$return_stmt',),
+                ('$raise_stmt',),
+                ('$yield_stmt',),
+
+                # compount stmt
+                ('$if_stmt',),
+                ('$elif_stmt',),
+                ('$else_stmt',),
+                ('$while_stmt',),
+                ('$for_stmt',),
+                ('$try_stmt',),
+                ('$with_stmt',),
+                ('$funcdef',),
+                ('$classdef',),
+                ('$decorated',)],
 
             '$decorator': [('@', '$dotted_name'),
                            ('@', '$dotted_name', '(', '$arglist', ')')],
@@ -61,12 +62,12 @@ class DjangoGrammar(ShiftReduceGrammar):
                             ('$decorators', '$decorator')],
             '$decorated': [('$decorators', '$classdef'),
                            ('$decorators', '$funcdef')],
-            '$funcdef': [('def', '$ident', '$parameters', ':',)],
+            '$funcdef': [('def', '$ident', '$parameters', ':')],
             '$parameters': [('(', '$varargslist', ')'),
                             ('(', ')')],
 
             '$fpvar': [('$fpdef',),
-                      ('$fpdef', '=', '$test')],
+                       ('$fpdef', '=', '$test')],
             '$varargslist_tmp': [('$fpvar', ','),
                                  ('$varargslist_tmp', '$fpvar', ',')],
             '$varargslist': [('$fpvar',),
@@ -85,7 +86,7 @@ class DjangoGrammar(ShiftReduceGrammar):
 
             '$expr_stmt': [('$testlist', '$augassign', '$yield_expr'),
                            ('$testlist', '$augassign', '$testlist'),
-                           ('$testlist', '='),
+                           ('$testlist',),
                            ('$testlist', '=', '$yield_expr'),
                            ('$testlist', '=', '$testlist')],
 
@@ -102,15 +103,18 @@ class DjangoGrammar(ShiftReduceGrammar):
                            ('**=',),
                            ('//=',)],
 
-            '$print_stmt': [('print', ),
-                            ('print', '$test'),
-                            ('print', '$test', ',', '$test')], #fixme
+            '$print_stmt_tmp_2': [('$test',),
+                                  ('$print_stmt_tmp_2', ',', '$test')],
+            '$print_stmt_tmp': [('$print_stmt_tmp_2',),
+                               ('$print_stmt_tmp_2', ',')],
+            '$print_stmt': [('print',),
+                            ('print', '$print_stmt_tmp')], # fixme
             '$del_stmt': [('del', '$exprlist')],
             '$pass_stmt': [('pass',)],
             '$flow_stmt': [],
             '$break_stmt': [('break',)],
             '$continue_stmt': [('continue',)],
-            '$return_stmt': [('return', ),
+            '$return_stmt': [('return',),
                              ('return', '$testlist')],
             '$yield_stmt': [('$yield_expr',)],
             '$raise_stmt': [('raise',),
@@ -121,12 +125,22 @@ class DjangoGrammar(ShiftReduceGrammar):
                              ('$import_from',)],
             '$import_name': [('import', '$dotted_as_names')],
             ########################
-            '$import_from': [],
+            '$import_from': [('from', '$dotted_name'),
+                             ('from', '.', '$dotted_name'),
+                             ('from', '$dotted_name', 'import', '*'),
+                             ('from', '$dotted_name', 'import', '(', '$import_as_names', ')'),
+                             ('from', '$dotted_name', 'import', '$import_as_name'),
+                             ],
             '$import_as_name': [('$ident',),
                                 ('$ident', 'as', '$ident')],
-            '$dotted_as_name': [],
-            '$import_as_names': [],
-            '$dotted_as_names': [],
+            '$dotted_as_name': [('$dotted_name',),
+                                ('$dotted_name', 'as', '$ident')],
+            '$import_as_names_tmp': [('$import_as_name',),
+                                     ('$import_as_names_tmp', ',', '$import_as_name')],
+            '$import_as_names': [('$import_as_names_tmp',),
+                                 ('$import_as_names_tmp', ',')],
+            '$dotted_as_names': [('$dotted_as_name',),
+                                 ('$dotted_as_names', ',', '$dotted_as_name')],
             '$dotted_name': [('$ident',),
                              ('$dotted_name', '.', '$ident')],
             '$global_stmt': [('global', '$ident'),
@@ -145,17 +159,23 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$with_stmt': [('with', '$with_item', ':',)],
             '$with_item': [('$test',),
                            ('$test', 'as', '$expr')],
-            '$except_clause': [('except',)],
+
+            '$except_clause_tmp': [('$test',),
+                                   ('$test', 'as', '$test'),
+                                   ('$test', ',', '$test')],
+            '$except_clause': [('except',),
+                               ('except', '$except_clause_tmp')],
 
             '$testlist_safe': [('$old_test',)],
-            '$old_test': [('$or_test', '$old_lambdef')],
+            '$old_test': [('$or_test',),
+                          ('$old_lambdef',)],
             '$old_lambdef': [('lambda', ':', '$old_test'),
                              ('lambda', '$varargslist', ':', '$old_test')],
             '$test': [('$lambdef',),
                       ('$or_test',),
                       ('$or_test', 'if', '$or_test', 'else', '$test')],
             '$or_test': [('$and_test',),
-                         ('$or_test', 'or', '$and_test')], #fixme
+                         ('$or_test', 'or', '$and_test')],
             '$and_test': [('$not_test',),
                           ('$and_test', 'and', '$not_test')],
             '$not_test': [('not', '$not_test'),
@@ -176,12 +196,12 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$expr': [('$xor_expr',),
                       ('$expr', '|', '$xor_expr')],
             '$xor_expr': [('$and_expr',),
-                          ('xor_expr', '^', '$and_expr')],
+                          ('$xor_expr', '^', '$and_expr')],
             '$and_expr': [('$shift_expr',),
-                          ('and_expr', '&', '$shift_expr')],
+                          ('$and_expr', '&', '$shift_expr')],
             '$shift_expr': [('$arith_expr',),
                             ('$shift_expr', '<<', '$arith_expr'),
-                            ('$shift_expr', '>>', '$arith_expr')], #fixme
+                            ('$shift_expr', '>>', '$arith_expr')],  # fixme
             '$arith_expr': [('$term',),
                             ('$arith_expr', '+', '$term'),
                             ('$arith_expr', '-', '$term')],
@@ -190,10 +210,10 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('$term', '/', '$factor'),
                       ('$term', '%', '$factor'),
                       ('$term', '//', '$factor')],
-            '$factor': [#('+', '$factor'),
-                        #('-', '$factor'),
-                        ('~', '$factor'),
-                        ('$power',)],
+            '$factor': [  # ('+', '$factor'),
+                # ('-', '$factor'),
+                ('~', '$factor'),
+                ('$power',)],
             '$power_tmp': [('$atom',),
                            ('$atom', '$trailer_list')],
             '$trailer_list': [('$trailer',),
@@ -203,7 +223,7 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$atom': [('(', '$yield_expr', ')'),
                       ('(', '$testlist_comp', ')'),
                       ('[', '$listmaker', ']'),
-                      ('{', '$dictorsetmaker','}'),
+                      ('{', '$dictorsetmaker', '}'),
                       ('`', '$testlist1', '`'),
                       ('$ident',),
                       ('NUMBER',),
@@ -213,29 +233,42 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('{', '}')],
             '$string_list': [('STRING',),
                              ('$string_list', 'STRING')],
+            '$listmaker_tmp': [('$test',),
+                               ('$listmaker_tmp', ',', '$test')],
             '$listmaker': [('$test', '$list_for'),
-                           ('$test', ',', 'test')], #fixme
+                           ('$listmaker_tmp',),
+                           ('$listmaker_tmp', ',')],
             '$testlist_comp': [('$test', '$comp_for'),
-                               ('$test', ',', 'test')],
+                               ('$test', ',', '$test')],
             '$lambdef': [('lambda', ':', '$test'),
                          ('lambda', '$varargslist', ':', '$test')],
             '$trailer': [('.', '$ident'),
                          ('(', '$arglist', ')'),
-                         ('[', 'subscriptlist', ']')],
+                         ('(', ')'),
+                         ('[', '$subscriptlist', ']'),
+                         ('[', ']')],
             '$subscriptlist_tmp': [('$subscript',),
-                                   ('$subscriptlist_tmp', '$subscript')],
+                                   ('$subscriptlist_tmp', ',', '$subscript')],
             '$subscriptlist': [('$subscriptlist_tmp',),
                                ('$subscriptlist_tmp', ',')],
             '$subscript': [('.', '.', '.'),
-                           ('$test',)], #fixme
+                           ('$test',),
+                           (':',),
+                           ('$test', ':'),
+                           ('$test', ':', '$test'),
+                           ('$test', ':', '$sliceop'),
+                           ('$test', ':', '$test', '$sliceop'),
+                           (':', '$test'),
+                           (':', '$test', '$sliceop'),
+                           (':', '$sliceop')],
             '$sliceop': [(':',),
                          (':', '$test')],
-            
+
             '$exprlist_tmp': [('$expr',),
                               ('$exprlist_tmp', ',', '$expr')],
             '$exprlist': [('$exprlist_tmp',),
                           ('$exprlist_tmp', ',')],
-            
+
             '$testlist_tmp': [('$test',),
                               ('$testlist_tmp', ',', '$test')],
             '$testlist': [('$testlist_tmp',),
@@ -246,7 +279,11 @@ class DjangoGrammar(ShiftReduceGrammar):
                           ('class', '$ident', '(', '$testlist', ')', ':',)],
             '$arglist_tmp': [('$argument', ','),
                              ('$arglist_tmp', '$argument', ',')],
-            '$arglist': [('$arglist_tmp', '$argument'),
+            '$arglist': [('$argument',),
+                         ('$argument', ','),
+                         ('*', '$test'),
+                         ('**', '$test'),
+                         ('$arglist_tmp', '$argument'),
                          ('$arglist_tmp', '$argument', ','),
                          ('$arglist_tmp', '*', '$test'),
                          ('$arglist_tmp', '**', '$test')],
@@ -270,50 +307,48 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$testlist1': [('$test',),
                            ('$testlist1', ',', '$test')],
             '$yield_expr': [('yield',),
-                            ('yield', '$testlist')], #fixme
+                            ('yield', '$testlist')],
 
             '$ident': [('IDENT',)]
         })
-            
+
 
         self.allfunctions = set()
 
-
-        # add common keywords
-        #kwlist.extend(['name', '__init__', 'from', 'import', 'return', 'def', 'self', 'pass', 'None', 'NotImplementedError', 'io',
-        #               'os', 'random', 'class', 'utils', 'key', 'value', 'open', 'close', 'pickle', 'isinstance',
-        #               'LibraryValueNotFoundException'
-        #               ])
-
         idents = set()
-        
+
         # add things that are keywords in python3 but identifiers in python2
         idents.add('None')
         idents.add('True')
         idents.add('False')
         idents.add('nonlocal')
-        
+
+        #HACK
+        #idents.add('__name__')
+
         with open(filename, 'r') as fp:
-            #i = 0
             for line in fp:
-                #if i >= 2000:
-                    #break
                 for token in line.strip().split(' '):
                     if token:
-                        if token[0].isalpha() and not token in kwlist:
-                            if token.find('$') == -1:
+                        if (token[0].isalpha() or token.startswith('__') or token.startswith('_')) and not token in kwlist:
+                            if token.find('$') == -1 and token.find('STR') == -1:
                                 idents.add(token)
 
         idents = list(idents)
         idents.sort()
         self.num_functions = 0
-        self.tokens += self.construct_parser(GRAMMAR, {
-            'STRING':[]
-        }, {
-            'IDENT': idents,
-            'NUMBER': list(map(str, range(100)))
-        })
+        self.tokens += self.construct_parser(grammar=GRAMMAR,
+                                             extensible_terminals={
+                                                                   },
+                                             copy_terminals={'IDENT': idents,
+                                                             'NUMBER': list(map(str, range(200))),
+                                                             'STRING': ['STR' + str(i) for i in range(156)]
+                                                             })
+        print(idents)
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
+
+
+

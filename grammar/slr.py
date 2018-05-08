@@ -345,7 +345,7 @@ class SLRParserGenerator():
                 for i in range(len(rule)-1):
                     if _is_nonterminal(rule[i]):
                         if _is_nonterminal(rule[i+1]):
-                            #if '*' in self._first_sets[rule[i+1]]:
+                            #if 'not' in self._first_sets[rule[i+1]]:
                             #    print(rule[i], 'followed by', rule[i+1])
                             progress = _add_all(self._first_sets[rule[i+1]], follow_sets[rule[i]]) or progress
                         else:
@@ -353,7 +353,7 @@ class SLRParserGenerator():
                                 follow_sets[rule[i]].add(rule[i+1])
                                 progress = True
                 if _is_nonterminal(rule[-1]):
-                    #if '*' in follow_sets[lhs]:
+                    #if 'not' in follow_sets[lhs]:
                     #    print(lhs, 'into', rule[-1])
                     progress = _add_all(follow_sets[lhs], follow_sets[rule[-1]]) or progress
                                     
@@ -504,10 +504,10 @@ class ShiftReduceParser:
             action, param = self._action_table[state][terminal]
             if action == 'accept':
                 return result
-            # if action == 'shift':
-            #    print('shift', param, token)
-            # else:
-            #    print('reduce', param, self._rules[param])
+            if action == 'shift':
+                print('shift', param, token)
+            else:
+                print('reduce', param, self.rules[param])
             if action == 'shift':
                 state = param
                 result.append(('shift', (terminal, tokenidx)))

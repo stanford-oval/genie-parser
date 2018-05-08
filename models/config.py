@@ -53,6 +53,9 @@ def create_grammar(grammar_type, *args, **kw):
         pkg = 'simple'
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
+    elif grammar_type == 'django':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
     else:
         pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)

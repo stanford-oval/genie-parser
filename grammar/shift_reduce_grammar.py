@@ -27,7 +27,7 @@ from .slr import SLRParserGenerator
 
 class ShiftReduceGrammar(AbstractGrammar):
 
-    def __init__(self, reverse=True, flatten=True, max_input_length=60):
+    def __init__(self, reverse=False, flatten=True, max_input_length=60):
         super().__init__()
         
         self.tokens = ['</s>', '<s>']
