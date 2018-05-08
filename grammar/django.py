@@ -222,8 +222,8 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('$term', '/', '$factor'),
                       ('$term', '%', '$factor'),
                       ('$term', '//', '$factor')],
-            '$factor': [('+', '$factor'),
-                        ('-', '$factor'),
+            '$factor': [#('+', '$factor'),
+                        #('-', '$factor'),
                         ('~', '$factor'),
                         ('$power',)],
             '$power_tmp': [('$atom',),
@@ -342,7 +342,7 @@ class DjangoGrammar(ShiftReduceGrammar):
             for line in fp:
                 for token in line.strip().split(' '):
                     if token:
-                        if (token[0].isalpha() or token.startswith('__') or token.startswith('_')) and not token in kwlist:
+                        if (token[0].isalpha() or token.startswith('_')) and (not token in kwlist):
                             if token.find('$') == -1 and token.find('STR') == -1:
                                 idents.add(token)
 
