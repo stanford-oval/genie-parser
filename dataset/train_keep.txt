@@ -11,8 +11,7 @@
 16463	define the function is_iterable with an argument x .	def is_iterable ( x ) :
 935	do nothing .	pass
 10985	convert self.literal into an integer , substitute it for self.literal .	self . literal = int ( self . literal )
-16397	ipv4_address is a string STR0 formated with first 2 elements of seventh element of hextets converted into hexadecimal number ,	ipv4_address = STR0 % (  int ( hextets [ 6 ] [ 0 : 2 ] , 16 ) ,  int ( hextets [ 6 ] [ 2 : 4 ] , 16 ) ,  int ( hextets [ 7 ] [ 0 : 2 ] , 16 ) ,  int ( hextets [ 7 ] [ 2 : 4 ] , 16 ) ,  )
-18681	call the method self._new_instance with 3 arguments : self.children , self.connector and self.negated , substitute the result for obj .	obj = self . _new_instance ( self . children , self . connector ,  self . negated )
+18681	call the method self._new_instance with 3 arguments : self.children , self.connector and self.negated , substitute the result for obj .	obj = self . _new_instance ( self . children , self . connector , self . negated )
 6168	use the result as an argument for the call to the b64_encode function , return the result . define the function get_cookie_signer with an argument salt set to string STR0 .	def get_cookie_signer ( salt = STR0 ) :
 2316	if bcc is true ,	if bcc :
 4777	remove the elements from the STR0 and STR1 keys of the options dictionary , substitute them for project_name and target , respectively .	project_name , target = options . pop ( STR0 ) , options . pop ( STR1 )

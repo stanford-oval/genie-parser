@@ -498,6 +498,7 @@ class ShiftReduceParser:
                 tokenidx = 0
 
             if terminal not in self._action_table[state]:
+                #print('token:', token)
                 raise ValueError(
                     "Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(
                         self._action_table[state].keys()))

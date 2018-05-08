@@ -16392,7 +16392,7 @@ from __future__ import unicode_literals
    hextets = ip_str . split ( ':' )
   if '.' in hextets [ - 1 ] :
            return ip_str
-   ipv4_address = "%d.%d.%d.%d" % (  int ( hextets [ 6 ] [ 0 : 2 ] , 16 ) ,  int ( hextets [ 6 ] [ 2 : 4 ] , 16 ) ,  int ( hextets [ 7 ] [ 0 : 2 ] , 16 ) ,  int ( hextets [ 7 ] [ 2 : 4 ] , 16 ) ,  )
+   ipv4_address = "%d.%d.%d.%d" % ( int ( hextets [ 6 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 6 ] [ 2 : 4 ] , 16 ) , int ( hextets [ 7 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 7 ] [ 2 : 4 ] , 16 ) , )
  result = ':' . join ( hextets [ 0 : 6 ] )
  result += ':' + ipv4_address
   return result
@@ -18676,7 +18676,7 @@ from __future__ import unicode_literals
                     self . children . append ( data )
  return data
    else :
-              obj = self . _new_instance ( self . children , self . connector ,  self . negated )
+              obj = self . _new_instance ( self . children , self . connector , self . negated )
  self . connector = conn_type
  self . children = [ obj , data ]
  return data
