@@ -10781,7 +10781,7 @@ from __future__ import unicode_literals
           raise self . error ( token , "Empty block tag" )
    def invalid_block_tag ( self , token , command , parse_until = None ) :
           if parse_until :
-              raise self . error ( token , "Invalid block tag: '%s', expected %s" % ( command , get_text_list ( [ "'%s'" % p for p in parse_until ] ) ) )
+              raise self . error ( token , "Invalid block tag: '%s', expected %s" %  ( command , get_text_list ( [ "'%s'" % p for p in parse_until ] ) ) )
   raise self . error ( token , "Invalid block tag: '%s'" % command )
    def unclosed_block_tag ( self , parse_until ) :
           raise self . error ( None , "Unclosed tags: %s " % ', ' . join ( parse_until ) )
@@ -12989,7 +12989,7 @@ from collections import defaultdict
   if option == 'with' :
               value = token_kwargs ( remaining_bits , parser , support_legacy = False )
  if not value :
-                  raise TemplateSyntaxError ( '"with" in %r tag needs at least '  'one keyword argument.' % bits [ 0 ] )
+                  raise TemplateSyntaxError ( '"with" in %r tag needs at least '  ' one keyword argument.' % bits [ 0 ] )
    elif option == 'only' :
               value = True
   else :
@@ -16977,7 +16977,7 @@ from django . conf import settings
           ch , escaped = next ( input_iter )
  quant . append ( ch )
   quant = quant [ : - 1 ]
- values = '' . join ( quant ) . split ( ',' )
+ values = ' ' . join ( quant ) . split ( ',' )
    try :
           ch , escaped = next ( input_iter )
   except StopIteration :

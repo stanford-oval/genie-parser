@@ -23,36 +23,41 @@ else:
 with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path.basename(inputfile) + '.txt'), 'w') as fout:
 
     for line in fin:
-        #line.replace('"', "'")
+
+        length1 = len(re.findall(r'\"(.+?)\"', line))
+        for i in range(length1):
+            line = re.sub(r'\"(?!STR)(.+?)\"', 'STR' + str(i), line, count=1)
+
+        length2 = len(re.findall(r'\'(.+?)\'', line)) + length1
+        for i in range(length1, length2):
+            line = re.sub(r'\'(?!STR)(.+?)\'', 'STR' + str(i), line, count=1)
+
+
+
+        length1 = len(re.findall(r'\"(.+?)\"', line))
+        for i in range(length1):
+            line = re.sub(r'\"(.+?)\"', 'STR' + str(i), line, count=1)
+
+        length2 = len(re.findall(r'\'(.+?)\'', line)) + length1
+        for i in range(length1, length2):
+            line = re.sub(r'\'(.+?)\'', 'STR' + str(i), line, count=1)
+
+
+
+
+
 
         if os.path.basename(inputfile) == 'all.anno':
-
-            length1 = len(re.findall(r'\"(.*?)\"', line))
-            for i in range(length1):
-                line = re.sub(r'\"(?!STR)(.*?)\"', 'STR' + str(i), line, count=1)
-
-            length2 = len(re.findall(r'\'(.*?)\'', line)) + length1
-            for i in range(length1,length2):
-                line = re.sub(r'\'(?!STR)(.*?)\'', 'STR' + str(i), line, count=1)
 
 
             tokens = word_tokenize(line)
             print(' '.join(tokens), end='\n', file=fout)
 
-
         elif os.path.basename(inputfile) == 'all.code':
 
-            length1 = len(re.findall(r'\"(.*?)\"', line))
-            for i in range(length1):
-                line = re.sub(r'\"(?!STR)(.*?)\"', 'STR' + str(i), line, count=1)
-
-
-            length2 = len(re.findall(r'\'(.*?)\'', line)) + length1
-            for i in range(length1,length2):
-                line = re.sub(r'\'(?!STR)(.*?)\'', 'STR' + str(i), line, count=1)
-
-
             line = re.sub(r'rSTR', 'STR', line)
+            line = re.sub(r'\'\'', '', line)
+
 
             tokens = line.strip().split(' ')
             tokens = [token for token in tokens if token != '']

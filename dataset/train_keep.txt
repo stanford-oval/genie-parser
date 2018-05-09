@@ -1,20 +1,30 @@
-14828	call the function warn_about_renamed_method with 2 arguments : class_name and unpacked list renamed_method , substitute the result for wrapper .	wrapper = warn_about_renamed_method ( class_name , * renamed_method )
-815	from itertools import chain into default name space .	from itertools import chain
-1967	call the mail.attach_alternative method with html_message and string STR0 as arguments .	mail . attach_alternative ( html_message , STR0 )
-4527	from django.core.management.base import AppCommand into default name space .	from django . core . management . base import AppCommand
-249	call the cursor method on the value under the db key of connections dictionary , preform following with return value named cursor ,	with connections [ db ] . cursor ( ) as cursor :
-3113	get the value under the STR0 key of the options dictionary , substitute the result for traceback .	show_traceback = options . get ( STR0 )
-13878	existing_headers is a set of lowercase headers for every header in vary_headers .	existing_headers = set ( header . lower ( ) for header in vary_headers )
-3195	yield obj , as an return value of the generator .	yield obj
-13392	call the function force_text with an argument base , substitute the result for base .	base = force_text ( base )
-8959	return an empty string .	return STR0
-4387	raise an CommandError exception with an argument string STR0 .	raise CommandError ( STR0 )
-11539	remove the first element from self.command_stack , assign the result to command and source , respectively .	command , source = self . command_stack . pop ( )
-7169	define the method __init__ with arguments self , input_formats set to None , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , input_formats = None , * args , ** kwargs ) :
-4668	help is a string STR0 .	help = STR0
-2429	if self.alternatives is true ,	if self . alternatives :
-8141	return a tuple with 2 elements : integer 0 and second element of k .	return ( 0 , k [ 1 ] )
-2285	call the method self.set_charset with utf8_charset as an argument .	self . set_charset ( utf8_charset )
-768	define initialization method __init__ with self class instance , level , msg , hint defaulting to None , obj defaulting to None and if defaulting to None as arguments .	def __init__ ( self , level , msg , hint = None , obj = None , id = None ) :
-1883	return self._request .	return self . _request
-4994	for model in return value of the method router.get_migratable_models with arguments app_config , connection.alias ,	for model in router . get_migratable_models ( app_config , connection . alias , include_auto_created = True ) :
+7070	derive the class IntegerField from the base class Field class .	class IntegerField ( Field ) :
+16799	return boolean True .	return True
+9686	skip this loop execution .	continue
+11472	collect is an empty list .	collect = [ ]
+17021	increment i-th element of result by piece .	result [ i ] += piece
+6024	substitute socket.AF_INET6 for self.address_family .	self . address_family = socket . AF_INET6
+18684	return data .	return data
+7688	return new_class .	return new_class
+13939	call the function _generate_cache_key with request , request.method , an empty list and key_prefix as arguments , return the result .	return _generate_cache_key ( request , request . method , [ ] , key_prefix )
+11466	return value under the key key of dictionary in last element of self.dicts .	return self . dicts [ - 1 ] [ key ]
+17905	substitute name for self.__name .	self . __name = name
+13728	if not ,	else :
+9319	if option_value is contained in selected_choices ,	if option_value in selected_choices :
+6310	raise an ViewDoesNotExist exception with an argument string STR0 ,	raise ViewDoesNotExist ( STR0 % ( mod_name , func_name ) )
+12942	for every name and var in return value of the function six.iteritems called with an argument self.extra_context . if self.isolated_context is true ,	if self . isolated_context :
+16962	otherwise if ch equals a string STR0 ,	elif ch == STR0 :
+5278	if striped x by STR0 character is not contained in ignored , for every x in ext_list put x into a set , return the resulting set .	return set ( x for x in ext_list if x . strip ( STR0 ) not in ignored )
+7370	otherwise if value is boolean False , string STR0 or string STR1	elif value in ( False , STR0 , STR1 ) :
+17700	return an empty string .	return
+11765	decorator stringfilter ,	@ stringfilter
+2098	call the method message.message .	message . message ( )
+16723	and third element of result of the function sys.exc_info . call the function import_module with an argument module_path , substitute the result for module .	module = import_module ( module_path )
+836	call the Error function with 4 arguments , string `` % s was connected to the STR0 signal with a lazy reference to the STR1 sender ,	errors . append ( Error ( STR0 STR1 STR2 % ( description , name , STR3 . join ( reference ) ) , obj = receiver . __module__ , hint = None , id = STR4 ) )
+16298	call the method ETAG_MATCH.findall with an argument etag_str , substitute the result for etags .	etags = ETAG_MATCH . findall ( etag_str )
+4539	get the value under the STR0 key of the options dictionary , use it as the key to get the value from the connections dictionary , substitute the result for connection .	connection = connections [ options [ STR0 ] ]
+15100	otherwise if disable_existing is true ,	elif disable_existing :
+12436	derive the class WithNode from Node base class .	class WithNode ( Node ) :
+16391	define the function _sanitize_ipv4_mapping with an argument ip_str .	def _sanitize_ipv4_mapping ( ip_str ) :
+5082	call the method parser.add_argument with 6 arguments : string STR0 , string STR1 , dest set to string STR2 ,	parser . add_argument ( STR1 , STR2 , dest = STR3 , action = STR4 , default = [ STR5 ] , help = STR6 STR7 STR8 )
+7299	return initial .	return initial

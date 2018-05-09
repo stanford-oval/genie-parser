@@ -1,186 +1,187 @@
-13207	call the function post_callback with an argument retval , substitute the result for newretval .	newretval = post_callback ( retval )
-9118	define the method __init__ with 6 arguments self , parent_widget , name , value , attrs and choices .	def __init__ ( self , parent_widget , name , value , attrs , choices ) :
-11378	substitute context for self.context .	self . context = context
-6307	raise an ViewDoesNotExist exception with an argument string STR0 ,	raise ViewDoesNotExist ( STR0 % ( lookup_view , mod_name ) )
-3716	convert self.file to string and append string STR0 to it , substitute the result for thefile .	thefile = STR0 % self . file
-8005	from django.utils.functional import cached_property into default name space .	from django . utils . functional import cached_property
-10678	if bit is true ,	if bit :
-7770	STR1 , error_row set to a a string STR2 , row_ender set to a string STR3 , help_text_html set to a string , STR4 , and errors_on_separate_row set to boolean False . define the method as_p with an argument self .	def as_p ( self ) :
-4069	merge_migrations is an empty list .	merge_migrations = [ ]
-5965	define the method __repr__ with an argument self .	def __repr__ ( self ) :
-15765	call the method self.__text_cast , return the result .	return self . __text_cast ( )
-4052	make a directory migrations_directory .	os . mkdir ( migrations_directory )
-7716	define the method errors with an argument self .	def errors ( self ) :
-4269	if model is contained in created_models ,	if model in created_models :
-2921	define the function has_bom with fn as argument .	def has_bom ( fn ) :
-700	substitute STR0 in TEMPLATE_FRAGMENT_KEY_TEMPLATE string with fragment_name and args.hexdigest ( ) , respectively , return the result .	return TEMPLATE_FRAGMENT_KEY_TEMPLATE % ( fragment_name , args . hexdigest ( ) )
-12602	call the method parser.parse with an argument tuple with 2 elements strings : STR0 and STR1 , substitute the result for nodelistelse .	nodelist_true = parser . parse ( ( STR0 , STR1 ) )
-7423	return self.empty_value .	return self . empty_value
-7737	if not ,	else :
-12011	return value .	return value
-1483	from django.core.files import temp as tempfile into default name space .	from django . core . files import temp as tempfile
-14849	return boolean True .	return True
-6523	if original_lookup and lookup_view are not callable objects ,	if not callable ( original_lookup ) and callable ( lookup_view ) :
-5332	if sum of the top and self.orphans is greater or equal to self.count ,	if top + self . orphans >= self . count :
-508	do nothing .	pass
-4912	raise an CommandError exception , with an arguent : string STR0 , where STR1 is replaced for app_config.label .	raise CommandError ( STR0 % app_config . label )
-16794	if KeyError exception is caught ,	except KeyError :
-13714	if sys.platform equals to string STR0 ,	if sys . platform == STR0 :
-3706	with the result renamed to fp , perform the following : call the method fp.write with an arguments src_data .	fp . write ( src_data )
-14055	close the process with an argument 0 .	sys . exit ( 0 )
-2378	call the method msg.attach with an argument body_msg .	msg . attach ( body_msg )
-17084	remove kwargs dictionary element under the STR0 key , substitute it for method .	method = kwargs . pop ( STR0 )
-2503	usage is a list containing 4 entries : an empty string , string STR0 ,	usage = [ STR0 , STR1 % self . prog_name , STR2 , STR3 , ]
-9634	if boundary is an instance of six.text_type class ,	if isinstance ( boundary , six . text_type ) :
-408	if renamed is boolean False ,	if not renamed :
-8740	append self.fk.name to form._meta.fields .	form . _meta . fields . append ( self . fk . name )
-9423	call the method self.render , return the result .	return self . render ( )
-11784	decorator function register.filter with an argument is_safe set to boolean True .	@ register . filter ( is_safe = True )
-4416	define the method inner_run with 3 arguments : self , unpacked list args and unpacked dictionary options .	def inner_run ( self , * args , ** options ) :
-15755	substitute method for value under the funcname key of the dictionary under the klass key of the cls.__dispatch dictionary .	cls . __dispatch [ klass ] [ funcname ] = method
-9857	call the method self._find_boundary with 2 arguments : chunk and boolean if length of chunks is lesser than self._rollback ,	boundary = self . _find_boundary ( chunk , len ( chunk ) < self . _rollback )
-14192	append key to self.keyOrder .	self . keyOrder . append ( key )
-17765	call the method zfile.close .	zfile . close ( )
-13042	raise an TemplateDoesNotExist exception with an argument template_name .	raise TemplateDoesNotExist ( template_name )
-14039	call the function inner.copy , substitute the result for dig1 , call the function outer.copy , substitute the result for dig2 .	dig1 , dig2 = inner . copy ( ) , outer . copy ( )
-4324	substitute second element of plan_node for title .	title = plan_node [ 1 ]
-11671	use length of result as an argument for the call to the function six.text_type , substitute the result for width . if autoescape is false , if value is an instance of SafeData ,	if not autoescape or isinstance ( value , SafeData ) :
-2430	substitute msg for body_msg .	body_msg = msg
-16823	call the function six.text_type with an argument number , use the result as an argument for the call to the function mark_safe ,	return mark_safe ( six . text_type ( number ) )
-16287	decrement factor by one .	factor -= 1
+12599	register.tag decorator ,	@ register . tag
+13822	define function dictvale , with an argument t .	def dictvalue ( t ) :
+11338	templatetags_modules_candidates is an list with an argument string STR0 .	templatetags_modules_candidates = [ STR0 ]
+17509	decrement self.active_readers by integer 1 ,	self . active_readers -= 1
+9845	for every bytes in stream ,	for bytes in stream :
+8272	if construct is true ,	if construct :
+11999	if value is None ,	if value is None :
+8024	created with 2 arguments : required as boolean False and widget set to HiddenInput . value under the MAX_NUM_FORM_COUNT of the self.base_fields dictionary is an instance of IntegerField class ,	self . base_fields [ MAX_NUM_FORM_COUNT ] = IntegerField ( required = False , widget = HiddenInput )
+3296	STR0 STR1 STR2 , where STR3 is replaced by value under the STR4 key of the connection.settings_dict dictionary and e. call the function six.reraise with 3 arguments : CommandError , CommandError created with argument new_msg ,	six . reraise ( CommandError , CommandError ( new_msg ) , sys . exc_info ( ) [ 2 ] )
+8091	and i is greater than or equal to self.min_num , value under the STR0 key of the defaults dictionary is boolean True .	defaults [ STR0 ] = True
+2096	msg_count is integer 0 .	msg_count = 0
+8527	define the method _construct_form with 3 arguments : self , i and unpacked dictionary kwargs .	def _construct_form ( self , i , ** kwargs ) :
+18454	substitute the result for block_re . call the function re.compile with an argument raw string STR0 , substitute the result for endblock_re .	endblock_re = re . compile ( STR0^\s*endblocktrans$STR1 )
+16936	consume_next is boolean True .	consume_next = True
+12622	where STR0 is replaced with first element of bits . call the method parser.compile_filter with second element of bits as an argument , substitute the result for filepath .	filepath = parser . compile_filter ( bits [ 1 ] )
+8363	get STR0 attribute from the options object , if it exists substitute it for self.help_texts , if not self.help_texts is None .	self . help_texts = getattr ( options , STR0 , None )
+4769	from importlib import import_module into default name space .	from importlib import import_module
 13327	return retval .	return retval
-8288	if commit is true ,	if commit :
-11293	call the function func with 2 arguments : unpacked list resolved_args and unpacked dictionary resolved_kwargs , substitute the result for _dict .	_dict = func ( * resolved_args , ** resolved_kwargs )
-1304	define the method det_valid_name with arguments self and name .	def get_valid_name ( self , name ) :
-2590	if subcommand is contained in no_settings_commands ,	if subcommand in no_settings_commands :
-4063	define the method handle_merge with arguments self , loader and conflicts .	def handle_merge ( self , loader , conflicts ) :
-8900	raise an ValidationError with 3 arguments : dictionary self.error_messages value under the key STR0 ,	raise ValidationError ( self . error_messages [ STR0 ] , code = STR1 , params = { STR2 : pk } , )
-3620	skip this loop iteration .	continue
-10584	call the function re.compile with an argument string STR0 , substitute all occurrences of STR1 with ,	tag_re = ( re . compile ( STR0 % ( re . escape ( BLOCK_TAG_START ) , re . escape ( BLOCK_TAG_END ) , re . escape ( VARIABLE_TAG_START ) , re . escape ( VARIABLE_TAG_END ) , re . escape ( COMMENT_TAG_START ) , re . escape ( COMMENT_TAG_END ) ) ) )
-10483	derive the class HttpResponseRedirect from the HttpResponseRedirectBase base class .	class HttpResponseRedirect ( HttpResponseRedirectBase ) :
-16477	substitute regex for self.regex .	self . regex = regex
-3080	replace STR1 in string STR0 with key and value under the key key of the user_setting dictionary , append it to the output .	output . append ( STR0 % ( key , user_settings [ key ] ) )
-223	substitute the STR0 with table and list containing key , respectively . call the cursor.fetchone method , substitute the result for row .	row = cursor . fetchone ( )
-8447	for every message in messages ,	for message in messages :
-8073	if not ,	else :
-6242	from django.utils.datastructures import MultiValueDict into default name space .	from django . utils . datastructures import MultiValueDict
-11968	substitute settings.TIME_FORMAT for arg .	arg = settings . TIME_FORMAT
-9334	append string STR0 to output .	output . append ( STR0 )
-2925	of if sample starts with codecs.BOM_UTF16_LE or sample starts with codecs.BOM_UTF16_BE , return the evaluated boolean expression . define the function is_writable with path as argument ,	def is_writable ( path ) :
-1323	define the method url with arguments self and name .	def url ( self , name ) :
-2197	from email.utils import formatdate , getaddresses , formataddr and parseaddr into default name space .	from email . utils import formatdate , getaddresses , formataddr , parseaddr
-4777	remove the elements from the STR0 and STR1 keys of the options dictionary , substitute them for project_name and target , respectively .	project_name , target = options . pop ( STR0 ) , options . pop ( STR1 )
-14911	if value is not contained in result ,	if value is not result :
-13799	call the BaseConverter function with BASE16_ALPHABET as argument , store the result in base16 .	base16 = BaseConverter ( BASE16_ALPHABET )
-13927	if eather of settings.USE_I18N or settings.USE_L10N is True , set is_accept_language_redundant to True .	is_accept_language_redundant = settings . USE_I18N or settings . USE_L10N
-7889	substitute name for self.name .	self . name = name
-479	call the _caches.setdefault method with name and empty dictionary as arguments , substitute the result for self_cache .	self . _cache = _caches . setdefault ( name , { } )
-16242	if year is lesser than integer 70 ,	if year < 70 :
-8775	substitute HiddenInput for widget .	widget = HiddenInput
-18466	singular is an empty list .	singular = [ ]
-17741	return out .	return out
-11079	for every node in self ,	for node in self :
-890	define the function debug with an argument request .	def debug ( request ) :
-9861	self._done is boolean True .	self . _done = True
-17310	return unbound .	return unbound
-18538	if not ,	else :
-12494	substituet node for value under the name key of the parser._namedCycleNodes dictionary .	parser . _namedCycleNodes [ name ] = node
-10747	call the method self.extend_nodelist with 3 arguments : nodelist , compiled_result and token .	self . extend_nodelist ( nodelist , compiled_result , token )
-7580	try ,	try :
-4784	raise an exception CommandError , with argument string STR0 , where STR1 is replaced with project_name .	raise CommandError ( STR0 STR1 STR2 % project_name )
-7731	substitute value under the name key for bf .	bf = self [ name ]
-13046	from django.utils.encoding import force_bytes into default name space .	from django . utils . encoding import force_bytes
-2532	return klass .	return klass
-166	if length of key is greater than MEMCACHE_MAX_KEY_LENGTH ,	if len ( key ) > MEMCACHE_MAX_KEY_LENGTH :
-4500	raise an ImportError exception .	raise ImportError
-981	define the method update_error_dict with arguments self and error_dict .	def update_error_dict ( self , error_dict ) :
-12520	raise an TemplateSyntaxError exception with an argument string STR0 .	raise TemplateSyntaxError ( STR0 )
-8599	date_data is a tuple with 3 elements : date.year , date.month and date.day .	date_data = ( date . year , date . month , date . day )
-6831	__all__ is an list containing string STR0 .	__all__ = [ STR0 ]
-17213	_moved_attributes is a list with 55 initial elements , 13 of them are the results of the call to the function MovedAttribute ,	_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 , STR3 ) , MovedAttribute ( STR4 , STR5 , STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 , STR12 , STR13 ) , MovedAttribute ( STR14 , STR15 , STR16 , STR17 , STR18 ) , MovedAttribute ( STR19 , STR20 , STR21 , STR22 , STR23 ) , MovedAttribute ( STR24 , STR25 , STR26 , STR27 , STR28 ) , MovedAttribute ( STR29 , STR30 , STR31 , STR32 ) , MovedAttribute ( STR33 , STR34 , STR35 ) , MovedAttribute ( STR36 , STR37 , STR38 ) , MovedAttribute ( STR39 , STR40 , STR41 ) , MovedAttribute ( STR42 , STR43 , STR44 , STR45 , STR46 ) , MovedAttribute ( STR47 , STR48 , STR49 , STR50 , STR51 ) , MovedAttribute ( STR52 , STR53 , STR54 , STR55 , STR56 ) , MovedModule ( STR57 , STR58 ) , MovedModule ( STR59 , STR60 ) , MovedModule ( STR61 , STR62 ) , MovedModule ( STR63 , STR64 , STR65 ) , MovedModule ( STR66 , STR67 , STR68 ) , MovedModule ( STR69 , STR70 , STR71 ) , MovedModule ( STR72 , STR73 , STR74 ) , MovedModule ( STR75 , STR76 , STR77 ) , MovedModule ( STR78 , STR79 , STR80 ) , MovedModule ( STR81 , STR82 , STR83 ) , MovedModule ( STR84 , STR85 , STR86 ) , MovedModule ( STR87 , STR88 , STR89 ) , MovedModule ( STR90 , STR91 , STR92 ) , MovedModule ( STR93 , STR94 , STR95 ) , MovedModule ( STR96 , STR97 , STR98 ) , MovedModule ( STR99 , STR100 , STR101 ) , MovedModule ( STR102 , STR103 ) , MovedModule ( STR104 , STR105 ) , MovedModule ( STR106 , STR107 ) , MovedModule ( STR108 , STR109 , STR110 ) , MovedModule ( STR111 , STR112 ) , MovedModule ( STR113 , STR114 , STR115 ) , MovedModule ( STR116 , STR117 , STR118 ) , MovedModule ( STR119 , STR120 , STR121 ) , MovedModule ( STR122 , STR123 , STR124 ) , MovedModule ( STR125 , STR126 , STR127 ) , MovedModule ( STR128 , STR129 , STR130 ) , MovedModule ( STR131 , STR132 , STR133 ) , MovedModule ( STR134 , STR135 , STR136 ) , MovedModule ( STR137 , STR138 , STR139 ) , MovedModule ( STR140 , STR141 , STR142 ) , MovedModule ( STR143 , STR144 , STR145 ) , MovedModule ( STR146 , STR147 , STR148 ) , MovedModule ( STR149 , STR150 , STR151 ) , MovedModule ( STR152 , STR153 , STR154 ) , MovedModule ( STR155 , __name__ + STR156 , STR157 ) , MovedModule ( STR158 , __name__ + STR159 , STR160 ) , MovedModule ( STR161 , __name__ + STR162 , __name__ + STR163 ) , MovedModule ( STR164 , STR165 , STR166 ) , MovedModule ( STR167 , STR168 , STR169 ) , MovedModule ( STR170 , STR171 , STR172 ) , MovedModule ( STR173 , STR174 ) , ]
-7565	if recursive is true ,	if recursive :
-5813	call the method field.value_to_string with an argument obj , use the result as an argument for the call the method self.xml.characters .	self . xml . characters ( field . value_to_string ( obj ) )
-15036	if StandardError , renamed to e , exception is caught ,	except StandardError as e :
-3072	default set to boolean False and help set to a string STR1 define the method handle with arguments self and unpacked dictionary options .	def handle ( self , ** options ) :
-17861	call the function datetime.datetime with utc as argument if call to the is_aware ( d ) returns True , if not None is the argument , store the result in now .	now = datetime . datetime . now ( utc if is_aware ( d ) else None )
-368	try ,	try :
-10021	define the method get_full_path with an argument self .	def get_full_path ( self ) :
-1884	decorator cached_property .	@ cached_property
-12488	if as_form is true ,	if as_form :
-4393	call the method re.match with 2 arguments : naiveip_re and value under the STR0 key of the options dictionary , substitute the result for m .	m = re . match ( naiveip_re , options [ STR0 ] )
-618	return default .	return default
-4832	define the method run_from_argv with arguments self and argv .	def run_from_argv ( self , argv ) :
-5238	substitute STR1 in string STR0 with filename , write it to self.stdout stream .	self . stdout . write ( STR0 % filename )
-16189	import module re .	import re
-15341	define the function rfc3339_date with an argument date .	def rfc3339_date ( date ) :
-3154	raise CommandError with an argument string STR0 , where STR1 is replaced with exclude .	raise CommandError ( STR0 % app_label )
-18595	if not ,	else :
-10269	return host and an empty string .	return host , STR0
-4705	raise an CommandError with an argument string STR0 ,	raise CommandError ( STR0 % ( migration_name , app_label ) )
-17448	return an instance of metaclass class , created with 3 arguments : string STR0 , None and an empty dictionary .	return metaclass ( STR0 , None , { } )
+9234	an empty string for STR0 and self.clear_checkbox_label for STR1 . template is a string STR2 .	template = STR0
+9517	return obj .	return obj
+5968	define the method __init__ with arguments self , name , sysid and pubid .	def __init__ ( self , name , sysid , pubid ) :
+12355	substitute format_string for self.format_string .	self . format_string = format_string
+15679	import module sys .	import sys
+15894	get name attribute from the instance object , call it and return the result .	return getattr ( instance , name ) ( )
+8644	skip this loop iteration .	continue
+15430	if value under the STR0 key of the self.feed dictionary is not None ,	if self . feed [ STR0 ] is not None :
+2668	if self has an STR0 attribute , has_old_option is boolean True , otherwise it is boolean False .	has_old_option = hasattr ( self , STR0 )
+16683	substitute value under the KEY key of the root dictionary for oldkey .	oldkey = root [ KEY ]
+11747	call the function _urlize with 3 arguments : value , nofollow set to boolean True , autoescape set to autoescape ,	return mark_safe ( _urlize ( value , nofollow = True , autoescape = autoescape ) )
+9848	if bytes_read is greater than rollback ,	if bytes_read > rollback :
+3585	call the method self.compression_formats.keys , convert it to list , substitute it for cmp_fmts if cmp_fmt is None ,	cmp_fmts = list ( self . compression_formats . keys ( ) ) if cmp_fmt is None else [ cmp_fmt ]
+11199	if name is callable object ,	if callable ( name ) :
+7247	define the method _get_regex an argument self .	def _get_regex ( self ) :
+11110	call the function re.compile with an argument raw string STR0 , substitute the result for kwarg_re .	kwarg_re = re . compile ( STR0 )
+5092	make a directory top_dir .	os . makedirs ( top_dir )
+17202	substitute old_attr for new_attr .	new_attr = old_attr
+594	property decorator ,	@ property
+15101	logger.disabled is boolean True .	logger . disabled = True
+6104	call the function importlib.import_module with 2 arguments : flup_module converted to string and appended to STR0 character , and string STR1 , substitute the result for module .	module = importlib . import_module ( STR0 % flup_module , STR1 )
+14334	for every key in self ,	for key in self :
+12514	call the method parser.delete_first_token .	parser . delete_first_token ( )
+6752	do nothing .	pass
+2502	if not ,	else :
+6025	call the __init__ method from the base class of the WSGIServer class , with 2 arguments : unpacked list args and unpacked dictionary kwargs .	super ( WSGIServer , self ) . __init__ ( * args , ** kwargs )
+9743	use the result and file_obj as arguments for the call to the method self._files.appendlist . break the loop execution .	break
+17028	for every item in elt ,	for item in elt :
+2740	call the function no_style , substitute the result for self.style .	self . style = no_style ( )
+16959	skip this loop iteration .	continue
+18098	call the function lazy_number with 5 arguments : ungettext , six.text_type , singular set to singular , plural set to plural ,	return lazy_number ( ungettext , six . text_type , singular = singular , plural = plural , number = number )
+14486	if self.timezone is false ,	if not self . timezone :
+12956	try ,	try :
+5366	return the length of self.object_list .	return len ( self . object_list )
+7685	remove entry at the attr key of the declared_fields dictionary .	declared_fields . pop ( attr )
+10008	if return value of the self.is_secure is false and server port is not equal to string STR0 , join host and server_port into a string , separated with STR1 , substitute the result for host .	host = STR0 % ( host , server_port )
+13144	define the method load_template_source with 3 arguments : self , template_name , template_dirs set to None .	def load_template_source ( self , template_name , template_dirs = None ) :
+8016	DELETION_FIELD_NAME is a string STR0 .	DELETION_FIELD_NAME = STR0
+2859	from django.utils import termcolors into default name space .	from django . utils import termcolors
+6380	call the method LocaleRegexProvider.__init__ with arguments self and regex .	LocaleRegexProvider . __init__ ( self , regex )
+16525	call the method lexer.lex with an arguments js , for every name and tok in the result ,	for name , tok in lexer . lex ( js ) :
+17365	define the function iterbytes with an argument buf .	def iterbytes ( buf ) :
+1455	substitute True for self.close_called .	self . close_called = True
+4056	value under the all_label key of the directory_created dictionary is boolean True .	directory_created [ app_label ] = True
+1758	otherwise if any other exception is caught ,	except :
+8593	seen_data is an empty set .	seen_data = set ( )
+9726	call the function exhaust with an argument stream .	exhaust ( stream )
+12771	define the function make_origin with 4 arguments : display_name , loader , name and dirs .	def make_origin ( display_name , loader , name , dirs ) :
+15864	call the function new_method_proxy with an argument hash , substitute the result for __hash__ .	__hash__ = new_method_proxy ( hash )
+13700	if USE_INOTIFY is true ,	if USE_INOTIFY :
+3605	use it as an argument for the call to the glob.iglob , for every candidate in result , call the method os.path.basename with an argument candidate , is result is contained in targets ,	if os . path . basename ( candidate ) in targets :
+1294	define the method open with arguments self , name and mode defaulting to string STR0 .	def open ( self , name , mode = STR0 ) :
+18623	if priority is true ,	if priority :
+2630	if self.cmd has an attribute STR0 and next statement is not true : args is true or any arg doesnt start with STR1 for arg in args ,	if ( hasattr ( self . cmd , STR0 ) and not ( args or any ( [ not arg . startswith ( STR1 ) for arg in args ] ) ) ) :
+12976	raise an TemplateSyntaxError exception with an argument string STR0 ,	raise TemplateSyntaxError ( STR0 % bits [ 0 ] )
+9098	if extend is boolean True ,	if extend is True :
+13241	define the method nud with 2 arguments : self and parser .	def nud ( self , parser ) :
+6518	if lookup_view is contained in self._callback_strs ,	if lookup_view in self . _callback_strs :
+12689	call the method token.split_contents , substitute the result for bits .	bits = token . split_contents ( )
+9258	update default_attrs dictionary with attrs entry .	default_attrs . update ( attrs )
+4089	use it as an argument for the call to the method self.style.MIGRATE_HEADING , write the result to self.stdout . for every migration in merge_migrations ,	for migration in merge_migrations :
+16671	increment stats dictionary value under the HITS key by integer 1 .	stats [ HITS ] += 1
+7499	if self.require_all_fields is true ,	if self . require_all_fields :
+17458	for every slots_var in slots ,	for slots_var in slots :
+6266	join func.__class__.__module__ and func.__class__.__name__ into a string , separated by character STR0 , substitute it for self._func_path .	self . _func_path = STR0 . join ( [ func . __class__ . __module__ , func . __class__ . __name__ ] )
+17699	if words is not empty and length is smaller than or equal to integer 0 ,	if words and length <= 0 :
+9650	for every handler in handlers ,	for handler in handlers :
+1202	call the OVERLAPPED function , substitute the result for overlapped .	overlapped = OVERLAPPED ( )
+1900	call the method self._load_post_and_files .	self . _load_post_and_files ( )
+15998	close file descriptor s .	s . close ( )
+2516	append string STR0 , where STR1 is replaced by name to the usage .	usage . append ( STR0 % name )
+1586	derive the class TemporaryFileUploadHandler from the FileUploadHandler base class .	class TemporaryFileUploadHandler ( FileUploadHandler ) :
+17548	finally perform ,	finally :
+16420	call the function _explode_shorthand_ip_string with an argument ip_str , substitute the result for ip_str .	ip_str = _explode_shorthand_ip_string ( ip_str )
+13052	substitute loaders for self._loaders .	self . _loaders = loaders
+15590	if lang is None ,	if lang is None :
+17000	return a list containing an empty string and a list containing an empty list .	return [ ] , [ [ ] ]
+14761	if not ,	else :
+6431	substitute tuple containing 2 elements : sum of p_pattern and prefix , and sub_pattern for value under the namespace key of the namespace dictionary .	namespaces [ namespace ] = ( p_pattern + prefix , sub_pattern )
+18506	for every part in plural ,	for part in plural :
+9290	call the function force_text with an argument value , substitute the result for value under the STR0 key of the final_attrs .	final_attrs [ STR0 ] = force_text ( value )
+14030	if length of password is greater than inner.block_size ,	if len ( password ) > inner . block_size :
 14650	result of the call to the function _ with an argument string STR0 for 1 , result of the call to the function _ with an argument string STR1 for 2 , result of the call to the function _ with an argument string STR2 for 3 , result of the call to the function _ with an argument string STR3 for 4 , result of the call to the function _ with an argument string STR4 for 5 , and result of the call to the function _ with an argument string STR5 for 6 . WEEKDAYS_REV is an dictionary with 7 entries : 0 for STR6 , 1 for STR7 , 2 for STR8 , 3 for STR9 , 4 for STR10 , 5 for STR11 and 6 for STR12 .	WEEKDAYS_REV = { STR0 : 0 , STR1 : 1 , STR2 : 2 , STR3 : 3 , STR4 : 4 , STR5 : 5 , STR6 : 6 }
-7905	call the method self.field.widget.subwidgets with 3 arguments : self.html_name , return value of the method self.value and attrs ,	for subwidget in self . field . widget . subwidgets ( self . html_name , self . value ( ) , attrs ) :
-7014	errors is an empty list .	errors = [ ]
-15189	call the function _checkLevel with an argument level , use the result as an argument for the call to the method logger.setLevel .	logger . setLevel ( _checkLevel ( level ) )
-1288	from django.utils.six.moves.urllib.parse import urljoin into default name space .	from django . utils . six . moves . urllib . parse import urljoin
-3824	convert settings.LOCALE_PATHS into a list and extend list self.locale_paths with it .	self . locale_paths . extend ( list ( settings . LOCALE_PATHS ) )
-269	call the method cursor.execute with string STR0 as argument ,	cursor . execute ( STR0 STR1 % table , [ key ] )
-17781	buf is an instance of StreamingBuffer class .	buf = StreamingBuffer ( )
-4004	call the method bad_app_labels with an argument app_label ,	bad_app_labels . add ( app_label )
-9005	if error is an instance of ValidationError ,	if isinstance ( error , ValidationError ) :
-18080	try ,	try :
-3873	call the function io.open with 3 arguments : potfile , string STR0 and encoding set to string STR1 as arguments ,	with io . open ( potfile , STR0 , encoding = STR1 ) as fp :
-505	delete the value under key key of self._cache dictionary .	del self . _cache [ key ]
-16803	skip this loop iteration ,	continue
-10725	call the method self.compile_filter_error with 2 arguments : token and e , if it evaluates to false ,	if not self . compile_filter_error ( token , e ) :
-11862	decorator function register.filter with an argument is_safe set to boolean True .	@ register . filter ( is_safe = True )
-16086	call the function escape with an argument word , substitute the result for i-th element of words .	words [ i ] = escape ( word )
-11305	if csrf_token is not None ,	if csrf_token is not None :
-13111	from django.template.base import TemplateDoesNotExist into default name space .	from django . template . base import TemplateDoesNotExist
-2910	if tags exists and if all elements in the return value of the method checks.tag_exists called with an argument tag ,	if tags and any ( not checks . tag_exists ( tag ) for tag in tags ) :
-9952	is an even number , call the method s.find with 2 arguments : bytes string STR0 and end incremented by one , substitute the result for end .	end = s . find ( bSTR0 , end + 1 )
-2811	from django.apps import apps into default name space .	from django . apps import apps
-2727	call the function vars with an argument options , substitute the result for cmd_options .	cmd_options = vars ( options )
-6509	define the method _reverse_with_prefix with arguments self , lookup_view , _prefix , unpacked list args and unpacked dictionary kwargs .	def _reverse_with_prefix ( self , lookup_view , _prefix , * args , ** kwargs ) :
-9833	if unused_char is false ,	if not unused_char :
-710	from .. import Warning , register and Tags into default name space .	from . . import Warning , register , Tags
-7750	if not ,	else :
-1793	import module warnings .	import warnings
-18605	if not ,	else :
-2102	import module smtplib .	import smtplib
-6878	self.year_none_value is a tuple containing 2 elements : integer 0 and first element of empty_label .	self . year_none_value = ( 0 , empty_label [ 0 ] )
-16571	request is None .	request = None
-13977	substitute settings.SECRET_KEY for secret .	secret = settings . SECRET_KEY
-4293	call the self.stderr.write method with string STR0 as argument ,	self . stdout . write ( STR0 % ( app_name , model . _meta . object_name ) )
-14224	substitute _itervalues for values .	values = _itervalues
-5536	if self.m2m.data and save_m2m are true ,	if self . m2m_data and save_m2m :
-10208	call the method bytes_to_text with 2 arguments : value and self.encoding , substitute the result for value .	value = bytes_to_text ( value , self . encoding )
-17231	set attr.name attribute of the Module_six_moves_urllib_error object to attr .	setattr ( Module_six_moves_urllib_error , attr . name , attr )
-8132	substitute i-th element of self.forms for form .	form = self . forms [ i ]
-9257	if attrs is true ,	if attrs :
-15082	append STR0 to name , substitute the result for prefixed .	prefixed = name + STR0
-952	substitute message.error_list for message .	message = message . error_list
-18012	return value .	return value
-4339	help is a string STR0 .	help = STR0
-3599	fixture_files is an empty list .	fixture_files = [ ]
-3539	call the method connection.cursor , with the result renamed to cursor , perform the following ,	with connection . cursor ( ) as cursor :
-9301	allow_multiple_selected is boolean False .	allow_multiple_selected = False
-13034	do nothing .	pass
-14411	key is a list with elements of list key from length of self.prefixes index to the end ,	key = key [ len ( self . prefix ) : ]
-6270	append list containing view_path to self.namespaces list , join all the elements into a string separated by character STR0 ,	self . view_name = STR0 . join ( self . namespaces + [ view_path ] )
-9672	call the function force_text with 3 arguments : field_name , encoding and errors as a string STR0 , substitute the result for field_name .	field_name = force_text ( field_name , encoding , errors = STR0 )
-12010	if length of bits is lesser than integer 2 ,	if len ( bits ) < 2 :
-15100	otherwise if disable_existing is true ,	elif disable_existing :
-15854	call the function new_method_proxy with an argument str , substitute the result for __str__ .	__str__ = new_method_proxy ( str )
-9719	break the loop execution .	break
-5397	derive the class BadSerializer from the object base class .	class BadSerializer ( object ) :
-2323	substitute body for self.body .	self . body = body
-8097	define the method initial_forms with an argument self .	def initial_forms ( self ) :
-3444	in string STR0 , replace STR1 with new_name and STR2 with num , while the result is contained in used_column_names ,	while STR0 % ( new_name , num ) in used_column_names :
-18642	obj is an instance of Node class , created with 3 arguments : children , connector and negated .	obj = Node ( children , connector , negated )
-10760	define the method create_nodelist with an argument self .	def create_nodelist ( self ) :
-5521	call the function six.StringIO with an argument stream_or_string , substitute the result for self.stream .	self . stream = six . StringIO ( stream_or_string )
-18323	use global variable _default .	global _default
-3145	if length of app_labels is greater than integer 1 and primary_keys is true ,	if len ( app_labels ) > 1 and primary_keys :
-3954	join into a file path : django_dir , STR0 , STR1 , locale , STR2 and string STR3 appended to domain , substitute the result for django_po .	django_po = os . path . join ( django_dir , STR0 , STR1 , locale , STR2 , STR3 % domain )
-13325	substitute element at self.pos index of self.tokens for retval .	retval = self . tokens [ self . pos ]
+18667	if data is contained in self.children ,	if data in self . children :
+10202	define the method setlistdefault with 3 arguments : self , key and default_list set to None .	def setlistdefault ( self , key , default_list = None ) :
+13142	if ValueError exception is caught ,	except ValueError :
+15369	define the method add_item with 17 arguments : self , title , link , description , author_email set to None , author_name set to None ,	def add_item ( self , title , link , description , author_email = None , author_name = None , author_link = None , pubdate = None , comments = None , unique_id = None , unique_id_is_permalink = None , enclosure = None , categories = ( ) , item_copyright = None , ttl = None , updateddate = None , ** kwargs ) :
+7557	substitute allow_files and allow_folders for self.allow_files and self.allow_folders .	self . allow_files , self . allow_folders = allow_files , allow_folders
+14778	call the function view_func with 3 arguments : request , unpacked list args , unpacked dictionary kwargs , substitute the result for response .	response = view_func ( request , * args , ** kwargs )
+15856	if not ,	else :
+17692	define the method _text_words with 3 arguments : self , length and truncate .	def _text_words ( self , length , truncate ) :
+18393	if _supported is None ,	if _supported is None :
+14303	update self.__dict__ dictionary with obj_dict .	self . __dict__ . update ( obj_dict )
+8774	derive the class InlineForeignKeyField from the Field base class .	class InlineForeignKeyField ( Field ) :
+6838	from django.utils.encoding import force_str into default name space .	from django . utils . encoding import force_str
+11928	decorator function register.filter with an argument is_safe set to boolean False .	@ register . filter ( is_safe = False )
+3957	with the result renamed to fp , perform the following : read data from file fp , use the result as an argument for the call to the function plural_forms_re.search , substitute it for m .	m = plural_forms_re . search ( fp . read ( ) )
+11413	define the method __delitem__ with 2 arguments : self and key .	def __delitem__ ( self , key ) :
+12632	raise an TemplateSyntaxError exception with an argument string STR0 ,	raise TemplateSyntaxError ( STR0 % ( taglib , e ) )
+8388	raise an FieldError exception with an argument message .	raise FieldError ( message )
+13168	self._post_render_callbacks is an empty list .	self . _post_render_callbacks = [ ]
+10744	if TemplateSyntaxError , renamed to e , exception is caught ,	except TemplateSyntaxError as e :
+16254	call the function six.reraise with 3 arguments : ValueError , instance of a class ValueError , created with an argument string ,	six . reraise ( ValueError , ValueError ( STR0 % date ) , sys . exc_info ( ) [ 2 ] )
+3793	get the value under the STR0 key of the options dictionary , if it is true ,	if options . get ( STR0 ) :
+18601	call the method cmatch.group with an argument integer 1 , format with the result string STR0 , write it to out .	out . write ( STR0 % cmatch . group ( 1 ) )
+17561	if k equals a string STR0 ,	if k == STR0 :
+15652	call the function force_str with an argument : default if it is true , or if not , first element of the result of the function ,	format = force_str ( default or get_format ( STR0 ) [ 0 ] )
+8457	if value under the name key of self.cleaned_data dictionary is not None ,	if self . cleaned_data . get ( name ) is not None and self . cleaned_data [ name ] . _state . adding :
+15918	get maximal element from roots and substitute it for root .	root = max ( roots )
+13750	substitute jython_reloader for reloader .	reloader = jython_reloader
+7109	try ,	try :
+6814	derive the class MaxLengthValidator form the BaseValidator base class .	class MaxLengthValidator ( BaseValidator ) :
+11092	call the method template_localtime with 2 arguments : value and use_tz=context.use_tz , substitute the result for value .	value = template_localtime ( value , use_tz = context . use_tz )
+1621	derive class FileProxyMixin from the base class object , making it a new-style class .	class FileProxyMixin ( object ) :
+12515	return a class instance FilterNode , called with an arguments filter_expr and nodelist .	return FilterNode ( filter_expr , nodelist )
+15832	define the method _setup with an argument self .	def _setup ( self ) :
+1571	define the method handle_raw_input with arguments : self , input_data , META , content_length , boundary and encoding set to None .	def handle_raw_input ( self , input_data , META , content_length , boundary , encoding = None ) :
+9491	substitute i-th element of value for widget_value .	widget_value = value [ i ]
+2059	try ,	try :
+1376	if _file is None ,	if _file is None :
+15972	replace every occurrence of STR0 in p for STR1 ,	paras = [ STR0 % p . replace ( STR1 , STR2 ) for p in paras ]
+9070	define the method __getitem__ with arguments self and name .	def add_js ( self , data ) :
+3032	otherwise if f.unique is true ,	elif f . unique :
+10432	define the serialize content with an argument self .	def serialize ( self ) :
+16638	root is a list with elements : root , root , None and None .	root [ : ] = [ root , root , None , None ]
+9302	define the method __init__ with 3 arguments : self , attrs set to None and choices set to an empty tuple .	def __init__ ( self , attrs = None , choices = ( ) ) :
+4852	call the method logging.getLogger with an argument string STR0 , substitute the result for logger .	logger = logging . getLogger ( STR0 )
+5852	call the method self.indent with argument integer 2 .	self . indent ( 2 )
+9935	substitute the result for key . pdict is an empty dictionary .	pdict = { }
+8163	forms_valid is True .	forms_valid = True
+3285	request user input from the standard input , assign it o confirm , with the query string : STR0	confirm = input ( STR0You have requested a flush of the database. This will IRREVERSIBLY DESTROY all data currently in the %r database, and return each table to an empty state. Are you sure you want to do this? Type STR2 to continue, or STR3 to cancel: STR1 % connection . settings_dict [ STR4 ] )
+10771	append node to nodelist .	nodelist . append ( node )
+12123	substitute cyclevars for self.cyclevars .	self . cyclevars = cyclevars
+8893	if value is not an instance of list or tuple types ,	if not isinstance ( value , ( list , tuple ) ) :
+11389	if value is not None ,	if value is not None :
+7805	return boolean True .	return True
+5392	from django.conf import settings into default name space .	from django . conf import settings
+14478	return self.data.hour .	return self . data . hour
+8002	from django.forms.utils import ErrorList into default name space .	from django . forms . utils import ErrorList
+7425	call the function self.coerce with an argument value , substitute it for value .	value = self . coerce ( value )
+12259	call the method self.nodelist_false.render with an argument context , return the result .	return self . nodelist_false . render ( context )
+5449	use the global variable _serializers .	global _serializers
+8359	get STR0 attribute from the options object , if it exists substitute it for self.exclude , if not self.exclude is None .	self . exclude = getattr ( options , STR0 , None )
+14565	if self.data is an instance of datetime.datetime and result of the function is_aware called with an argument self.data evaluates to true ,	if isinstance ( self . data , datetime . datetime ) and is_aware ( self . data ) :
+4478	for every ip in tuple containing 3 elements : self._ipython , self._ipython_pre_100 and self._ipython_pre_011 ,	for ip in ( self . _ipython , self . _ipython_pre_100 , self . _ipython_pre_011 ) :
+14623	if match is true ,	if match :
+10596	define the method __init__ with 3 arguments : self , msg and params set to an empty tuple .	def __init__ ( self , msg , params = ( ) ) :
+6020	derive the class WSGIServer from simple_server.WSGIServer and object base classes .	class WSGIServer ( simple_server . WSGIServer , object ) :
+2667	call the function color_style , substitute the result for self.style .	self . style = color_style ( )
+11952	if vale is None or an empty string ,	if value in ( None , ) :
+8085	if self.initial is true and STR0 key is not contained in kwargs ,	if self . initial and STR0 not in kwargs :
+16913	get the next element of the iterable pattern_iter , assign the result for ch and escaped , respectively .	ch , escaped = next ( pattern_iter )
+4360	import module sys .	import sys
+18425	if request has an attribute STR0 ,	if hasattr ( request , STR0 ) :
+10068	substitute val for self._encoding .	self . _encoding = val
+8626	for every form in self.initial_forms ,	for form in self . initial_forms :
+9995	self.resolver_match is None .	self . resolver_match = None
+15783	if self._delegate_bytes and six.PY2 are both true ,	if self . _delegate_bytes and six . PY2 :
+9969	from django.core.exceptions import DisallowedHost and ImproperlyConfigured into default name space .	from django . core . exceptions import DisallowedHost , ImproperlyConfigured
+6769	call the function validate_ipv6_address with an argument value .	validate_ipv6_address ( value )
+3286	STR0 STR1Type STR2 to continue , or STR3 to cancel : `` , where STR4 is replaced with value under the STR5 key of the connection.settings_dict dictionary . if not ,	else :
+4054	if init_path is not a file ,	if not os . path . isfile ( init_path ) :
+4995	and include_auto_created set to boolean True , call the method connection.creation.sql_destroy_indexes_for_model with arguments model and style , extend the output with the result .	output . extend ( connection . creation . sql_destroy_indexes_for_model ( model , style ) )
+11536	substitute token.source for node.source .	node . source = token . source
+12882	if not ,	else :
+2116	if use_tls is None substitute settings.EMAIL_USE_TLS for self.username , if not substitute use_tls for self.use_tls .	self . use_tls = settings . EMAIL_USE_TLS if use_tls is None else use_tls
+3813	call the method settings.configure with an argument USE_I18N set to boolean True .	settings . configure ( USE_I18N = True )
+17214	with different 3 string arguments , the others are results of the call to the function MovedModule called with 3 string arguments . for every attr in _moved_attributes ,	for attr in _moved_attributes :
+130	raise an exception of class NotImplementedError with string STR0 as argument .	raise NotImplementedError ( STR0 )

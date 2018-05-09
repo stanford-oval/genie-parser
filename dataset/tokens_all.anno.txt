@@ -1927,7 +1927,7 @@ substitute self.__class__ for response._handler_class .
 replace STR0 in the string STR1 with response.status_code and response.reason_phrase , respectively , substitute it for status .
 convert to k and v to strings for every k and v in return value of the response.item method , response_headers is a list containing all the above iteration elements .
 for every c in return value of the method response.cookies.values ,
-convert STR0 to a string and convert the return value of method c.output ( header=STR1 ) call to a string ,
+convert STR0 to a string and convert the return value of method c.output ( header= '' ) call to a string ,
 format the previous in a tuple , append the tuple to the response_headers . call the start_response function with force_str ( status ) method return value and response_headers as arguments .
 return response .
 define the get_path_info function with environ as the argument .
@@ -2304,17 +2304,17 @@ mixed_subtype is a string STR0 .
 encoding is None .
 define the method __init__ with 10 arguments : self , subject set to an empty string , body set to an empty string ,
 if to is true ,
-if to is not an six.string_types instance raise an error with message string 'STR0 argument must be a list or tuple ' .
+if to is not an six.string_types instance raise an error with message string STR0 .
 put to into a list , assign it to self.to .
 if not ,
 self.to is an empty list .
 if cc is true ,
-if cc is not an six.string_types instance raise an error with message string 'STR0 argument must be a list or tuple ' .
+if cc is not an six.string_types instance raise an error with message string STR0 .
 put cc into a list , assign it to self.cc .
 if not ,
 self.cc is an empty list .
 if bcc is true ,
-if bcc is not an six.string_types instance raise an error with message string 'STR0 argument must be a list or tuple ' .
+if bcc is not an six.string_types instance raise an error with message string STR0 .
 put bcc into a list , assign it to self.bcc .
 if not ,
 self.bcc is an empty list .
@@ -2668,7 +2668,7 @@ call the function color_style , substitute the result for self.style .
 if self has an STR0 attribute , has_old_option is boolean True , otherwise it is boolean False .
 if self has an STR0 attribute , has_new_option is boolean True , otherwise it is boolean False .
 if has_old_option is true ,
-call the function warnings.warn with 2 arguments : string 'STR0 is deprecated '
+call the function warnings.warn with 2 arguments : string STR0
 STR1 and RemovedInDjango19Warning . if has_old_option and has_new_option are both true ,
 raise an ImproperlyConfigured exception wiht an argument string STR1
 STR2 , replace STR3 for self.__class__.__name__ . call the method self.requires_system_checks with an argument : self.requires_system_checks if has_new_option is true ,
@@ -4208,7 +4208,7 @@ if the STR0 key doesnt exists set fake to boolean False , as arguments . call th
 define the method migration_progress_callback with self class instance , action , migration and fake set to boolean False as arguments .
 if self.verbosity is greater or equal to integer 1 ,
 if action equals to string STR0 ,
-call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to STR2 , as arguments .
+call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .
 flush the output buffer of the self.stdout object .
 otherwise if action equals to string STR0 ,
 if fake is true ,
@@ -4216,7 +4216,7 @@ wrte to the standard output result of the call to the method self.style.MIGRATE_
 if not ,
 wrte to the standard output result of the call to the method self.style.MIGRATE_SUCCESS with string STR0 as a argument .
 otherwise if action equals to string STR0 .
-call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to STR2 , as arguments .
+call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .
 flush the output buffer of the self.stdout object .
 otherwise if action equals to string STR0 .
 if fake is true ,
@@ -4366,8 +4366,8 @@ from django.db.migrations.executor import MigrationExecutor into default name sp
 from django.utils import autoreload into default name space .
 from django.utils import six into default name space .
 from django.core.exceptions import ImproperlyConfigured into default name space .
-call the method re.compile with 2 arguments : raw string STR0STR1STR2
-STR0STR1STR2 , re.X DEFAULT_PORT is a string STR3 .
+call the method re.compile with 2 arguments : raw string STR0^ ( ? : ( ? P < addr > ( ? P < ipv4 > \d { 1,3 } ( ? : \.\d { 1,3 } ) { 3 } ) |STR1
+STR0 ( ? P < ipv6 > \ [ [ a-fA-F0-9 : ] +\ ] ) | ( ? P < fqdn > [ a-zA-Z0-9- ] + ( ? : \ . [ a-zA-Z0-9- ] + ) * ) ) : ) ? ( ? P < port > \d+ ) $ STR1 , re.X DEFAULT_PORT is a string STR2 .
 derive the class Command from the BaseCommand class .
 help is a string STR0 .
 requires_system_checks is boolean False .
@@ -4392,7 +4392,7 @@ substitute DEFAULT_PORT for self.port .
 if not ,
 call the method re.match with 2 arguments : naiveip_re and value under the STR0 key of the options dictionary , substitute the result for m .
 if m is None ,
-raise an CommandError exception with an argument string 'STR0 is not a valid port number or address : port pair . ' ,
+raise an CommandError exception with an argument string STR0 ,
 where STR0 is replaced with value under the STR1 key of the options dictionary . call the method m.groups , assign the result to self.addr , _ipv4 , _ipv6 , _fqdn and self.port , respectively .
 call the method self.port.isdigit , if it evaluates to false ,
 raise an CommandError exception with an argument string STR0 , where STR1 is repaced with self.port .
@@ -4402,7 +4402,7 @@ substitute self.addr without the first and last element for self.addr .
 self.use_ipv6 is boolean True .
 self._raw_ipv6 is boolean True .
 otherwise if self.use_ipv6 is true and _fqdn is false ,
-raise an CommandError exception with an argument string 'STR0 is not a valid IPv6 address.STR1 % s ' is replaced with self.addr .
+raise an CommandError exception with an argument string STR0 is replaced with self.addr .
 if self.addr is false ,
 if self.use_ipv6 substitute string STR0 for self.addr , if not substitute STR1 for self.addr .
 convert self.use_ipv6 to boolean , substitute it for self._raw_ipv6 .
@@ -4893,7 +4893,7 @@ from django.utils.deprecation import RemovedInDjango19Warning into default name 
 derive class Command from CheckCommand base class .
 concatenate CheckCommand.help to string STR1 , substitute it for help .
 define the method handle with self class instance and dictionary pair of elements options as arguments .
-call the method warnings.warn with string 'STR0 has been deprecated in favor of STR1 . ' and RemovedInDjango19Warning as arguments .
+call the method warnings.warn with string STR0 and RemovedInDjango19Warning as arguments .
 call the handle function with dictionary pair of elements options from the base class of the class Command .
 from __future__ import unicode_literals into default name space .
 import module codecs .
@@ -6340,7 +6340,7 @@ call the function force_text with arguments self and _regex , substitute the res
 try ,
 call the function re.compile with arguments regex and re.UNICODE , substitute the result for compiled_regex .
 if re.error , renamed to e , is caught ,
-raise an ImproperlyConfigured exception with argument string 'STR0 is not a valid regular expression : % s ' ,
+raise an ImproperlyConfigured exception with argument string STR0 ,
 where STR0 is replace by regex and return value of the function six.text_type with an argument e. substitute the compiled_regex for value under the language_code key of the self._regex_dict dictionary .
 return the value under the language_code key of the self._regex_dict dictionary .
 derive the class RegexURLPattern with LocaleRegexProvider as base class .
@@ -6495,7 +6495,7 @@ get attribute STR0 form the self.urlconf_module , substitute it for patterns , i
 substitute self.urlconf_module for self.urlconf_module . try ,
 call the function iter with an argument patterns .
 if TypeError exception is caught ,
-msg is a string STR0The included urlconf STR1 does not appear to have any patterns in it .
+msg is a string `` '' The included urlconf STR0 does not appear to have any patterns in it .
 If you see valid patterns in the file then the issue is probably caused by a circular import . '' raise an ImproperlyConfigured exception with an argument : return value of the method msg.format , called with an argument name set to self.urlconf_name .
 return patterns .
 define the method resolve_error_handler with arguments self and view_type .
@@ -7241,7 +7241,7 @@ define the method __init__ with 7 arguments : self , regex , max_length set to N
 if error_message is not None ,
 get the value under the STR0 key of the kwargs dictionary , if it exists substitute it for error_messages , if not ,
 error_messages is an empty dictionary . substitute error_message for value under the STR0 key of the error_messages dictionary .
-substitute error_messages for value under the STR0error_messages ' key of the kwargs dictionary .
+substitute error_messages for value under the STR0 key of the kwargs dictionary .
 call the method __init__ from the base class of the class RegexField , with 4 arguments : max_length , min_length , unpacked list args ,
 unpacked dictionary kwargs . call the method self._set_regex with an argument regex .
 define the method _get_regex an argument self .
@@ -7304,7 +7304,7 @@ return is boolean False .
 return is boolean True .
 derive the class ImageField from the base class FileField class .
 default_error_messages is an dictionary with an entry : return value of the function _ called with an argument string ,
-'STR0STR1invalid_image ' . define the method to_python with arguments self and data .
+STR0 . define the method to_python with arguments self and data .
 call the method to_python with an argument data from the base class of the class ImageField , substitute the result for f .
 if f is None ,
 return None .
@@ -8878,7 +8878,7 @@ if the result is equal to the result of the call to the function force_text with
 substitute SelectMultiple for widget .
 substitute MultipleHiddenInput for hidden_widget .
 default_error_messages is an dictionary with 3 entries : return value of the function _ called with an argument ,
-string STR1 for STR2 , return value of the function _ called with an argument , string STR3 for STR4 , and return value of the function _ called with an argument string 'STR0 is not a valid value for a primary key.STR5invalid_pk_value ' . define the method __init__ with 10 arguments : self , queryset , cache_choices set to None , required set to boolean True ,
+string STR1 for STR2 , return value of the function _ called with an argument , string STR3 for STR4 , and return value of the function _ called with an argument string STR0 . define the method __init__ with 10 arguments : self , queryset , cache_choices set to None , required set to boolean True ,
 widget set to None , label set to None , initial set to None , help_text set to an empty strign , unpacked list args and unpacked dictionary kwargs . call the method __init__ from the base class of the class ModelMultipleChoiceField , with 10 arguments : queryset , None ,
 cache_choices , required , widget , label , initial , help_text , unpacked list args and unpacked dictionary kwargs . define the method to_python with 2 arguments : self and value .
 if value is false ,
@@ -9543,7 +9543,7 @@ from django.utils.encoding import force_st into default name space .
 from django.utils import six into default name space .
 from django.utils.six.moves import http_cookies into default name space .
 call the function http_cookies.SimpleCookie , on the return value call the value_encode method , with the argument character STR0 ,
-if the tuple result equals to tuple containing character STR1 and string 'STR0 ' , respectively , assign _cookie_encodes_correctly the boolean True value , otherwise assign it False . assign return value of the call to the http_cookies.SimpleCookie function to _tc .
+if the tuple result equals to tuple containing character STR1 and string STR0 , respectively , assign _cookie_encodes_correctly the boolean True value , otherwise assign it False . assign return value of the call to the http_cookies.SimpleCookie function to _tc .
 try ,
 call the _tc.load method with the STR0 converted to string as an argument .
 _cookie_allows_colon_in_names is a boolean True .
@@ -10838,7 +10838,7 @@ substitute self.subject for subject .
 substitute self.pointer for i .
 define the next_space_index with 2 arguments : subject and i .
 while i is lesser than length of subject and i-th element of subject is not an empty space or tab character ,
-if i-th element of subject is 'STR0 ' '' character ,
+if i-th element of subject is STR0 '' character ,
 substitute i-th element of subject for c .
 increment i by integer 1 .
 while i is lesser than length of subject and i-th element of subject is not equal to c ,
@@ -10849,7 +10849,7 @@ where STR0 is replaced with i and STR1 is replaced with subject . increment i by
 return i .
 if i is greater than or equal to length of subject ,
 raise an TemplateSyntaxError exception with an argument STR0 ,
-where STR1 is replaced with subject . if i-th element of subject is 'STR0 ' '' character ,
+where STR1 is replaced with subject . if i-th element of subject is STR0 '' character ,
 substitute i for p .
 increment i by integer 1 ,
 while i is lesser than length of subject and i-th element of subject is not equal to p-th element of subject ,
@@ -10874,7 +10874,7 @@ append self.pointer to self.backout .
 substitute i for self.pointer .
 return s .
 constant_string is a raw string STR0 ,
-where STR3 is replaced with 'STR0\\ ] * ( ? : \\. [ ^STR1STR4strsqSTR5i18n_openSTR6_ ( STR7i18n_closeSTR8 ) ' . remove all occurrences of newline character from constant_string .
+where STR3 is replaced with STR0 . remove all occurrences of newline character from constant_string .
 filter_raw_string is a raw string `` ^ ( ? P < constant > % ( constant ) s ) |^ ( ? P < var > [ % ( var_chars ) s ] +| % ( num ) s ) | ( ? : \s* % ( filter_sep ) s\s*
 ( ? P < filter_name > \w+ ) ( ? : % ( arg_sep ) s ( ? : ( ? P < constant_arg > % ( constant ) s ) | ( ? P < var_arg > [ % ( var_chars ) s ] +| % ( num ) s ) ) ) ? ) STR0\w\ . `` , STR1 with result of the function re.escape called with an argument FILTER_SEPARATOR , anbd STR2 with result of the function re.escape called with an argument FILTER_ARGUMENT_SEPARATOR . call the function re.compile with 2 arguments : filter_raw_string and result for bitwise OR on 2 operands re.UNICODE and re.VERBOSE ,
 substitute the result for filter_re . derive the class FilterExpression form the base class object .
@@ -11603,7 +11603,7 @@ substitute func for _dec._decorated_function . call the function wraps with an a
 decorator function register.filter with an argument is_safe set to boolean True .
 decorator stringfilter ,
 define the function addslashes with an argument value .
-replace all occurrences of STR1 with STR2 in value , replace all occurrences of 'STR0 ' in the previous result ,
+replace all occurrences of STR1 with STR2 in value , replace all occurrences of STR0 in the previous result ,
 replace all occurrences of STR0 with STR1 in the previous result , return the result . decorator function register.filter with an argument is_safe set to boolean True .
 decorator stringfilter ,
 define the function capfirst with an argument value .
@@ -12509,7 +12509,7 @@ call the method parser.compile_filter with an argument string STR0 , where STR1 
 for every func and unused in filter_expr.filters ,
 get STR0 attribute of the func object , if it exists , substitute it for filter_name , if not , filter_name is None .
 if every filter_name in strings STR0 or STR1 ,
-raise an TemplateSyntaxError exception with an argument string 'STR0 is not permitted . Use the STR1 tag instead . ' ,
+raise an TemplateSyntaxError exception with an argument string STR0 ,
 where STR0 is replaced with filter_name . call the method parser.parse with an argument tuple with an element string STR1 , substitute the result for nodelist .
 call the method parser.delete_first_token .
 return a class instance FilterNode , called with an arguments filter_expr and nodelist .
@@ -12989,7 +12989,7 @@ raise an TemplateSyntaxError exception with an argument string STR0 ,
 where STR0 is replaced with options . if option equals a string STR1 ,
 call the function token_kwargs with 3 arguments : remaining_bits , parser , support_legacy set to boolean False , substitute the result for value .
 if value is true ,
-raise an TemplateSyntaxError exception with an argument string 'STR0 in % r tag needs at least one keyword argument . ' ,
+raise an TemplateSyntaxError exception with an argument string STR0 ,
 where STR0 is replaced with first element of bits . otherwise if options equals STR1 ,
 value is boolean True .
 if not ,
@@ -13327,7 +13327,7 @@ return retval .
 define the method parse with an argument self .
 call the method self.expression , substitute the result for retval .
 if self.current_token is not EndToken ,
-raise an exception self.error_class with an argument string STR0Unused STR1 at end of if expression '' ,
+raise an exception self.error_class with an argument string STR0 ,
 where STR0 is replaced with result of the method self.current_token.display . return retval .
 define the method expression with 2 arguments : self and rbp set to integer 0 .
 substitute self.current_token for t .
@@ -15103,7 +15103,7 @@ if root is true ,
 try ,
 call the method self.configure_root with an argument root .
 if StandardError , renamed to e , exception is caught ,
-raise an ValueError exception with an argument string STR0Unable to configure root logger : % s ' formated with e .
+raise an ValueError exception with an argument string STR0 formated with e .
 finally perform ,
 call the method logging._releaseLock .
 define the method configure_formatter with 2 arguments : self and config .
@@ -15932,7 +15932,7 @@ from django.utils.text import normalize_newlines into default name space .
 from .html_parser import HTMLParser and HTMLParseError into default name space .
 TRAILING_PUNCTUATION is a list with 7 elements : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 and STR6 ' .
 WRAPPING_PUNCTUATION is a list with 6 elements : tuple with 2 elements : STR0 and STR1 , tuple with 2 elements : STR2 and STR3 ,
-tuple with 2 elements : STR1 and STR2 , tuple with 2 elements : STR3 and STR4 , tuple with 2 elements : 'STR0STR5\STR6 and STR7STR8 & middot ; STR9*STR10\u2022STR11 & # 149 ; STR12 & bull ; STR13 & # 8226 ; ' .
+tuple with 2 elements : STR1 and STR2 , tuple with 2 elements : STR3 and STR4 , tuple with 2 elements : STR0 .
 call the function re.compile with raw string STR0 , substitute the result for unencoded_ampersands_re .
 call the function re.compile with raw string STR0 , substitute the result for word_split_re .
 call the function re.compile with 2 arguments : raw string STR0 and re.IGNORECASE , substitute the result for simple_url_re .
@@ -15944,7 +15944,7 @@ raw string STR1 and re.IGNORECASE , substitute the result for html_gunk_re . cal
 formated with string created by joining elements of result of the function re.escape with an argument x , with separator STR0 , for every x in DOTS , and re.DOTALL , substitute the result for hard_coded_bullets_re . call the function re.compile with raw string STR1 , substitute the result for trailing_empty_content_re .
 define the function escape with an argument text .
 call the function force_text with an argument text , replace every occurrence of STR0 in the result with STR1 ,
-every occurrence of STR1 with STR2 , every occurrence of STR3 with STR4 , every occurrence of 'STR0STR5 & # 39 ; ' , call the function mark_safe with the previous result as an argument , return the result . call the function allow_lazy with 2 arguments : escape , six.text_type , substitute the result for escape .
+every occurrence of STR1 with STR2 , every occurrence of STR3 with STR4 , every occurrence of STR0 , call the function mark_safe with the previous result as an argument , return the result . call the function allow_lazy with 2 arguments : escape , six.text_type , substitute the result for escape .
 _js_escapes is a dictionary with 11 initial entries : STR0 for integer representation of string STR1 ,
 STR0 for integer representation of string STR1 , STR2 for integer representation of string STR3 , STR4 for integer representation of string STR5 , STR6 for integer representation of string STR7 , STR8 for integer representation of string STR9 , STR10 for integer representation of string STR11 , STR12 for integer representation of string STR13 , STR14 for integer representation of string STR15 , STR16 for integer representation of string STR17 and STR18 for integer representation of string STR19 . for eery z in range of integers from 0 to 31 , update _js_escapes dictionary with STR20 formated with z ,
 for integer representation of z converted into a string . define the function escapejs with an argument value .
@@ -16299,7 +16299,7 @@ return a list with an element etag_str .
 for every e in etags call the method e.encode with an argument string STR0 , call the method decode on the result with an argument ,
 string STR0 , substitute the list of results for etags . return etags .
 define the function quote_etag with an argument etag .
-return a string 'STR0STR1\\STR2\\\\STR3 '' ' ,
+return a string STR0 ,
 is replaced with STR0 . define the function same_origin with 2 arguments url1 and url2 .
 substitute result of the function urlparse with an argument ur1 for p1 and result of the function urlparse with an argument ur2 for p2 .
 try ,
@@ -16522,11 +16522,11 @@ lexer is an instance of JsLexer class .
 c is an empty list .
 call the method lexer.lex with an arguments js , for every name and tok in the result ,
 if name equals a string STR0 ,
-tok is a string 'STR0 ' ,
+tok is a string STR0 ,
 otherwise if name starts with a string STR0 ,
 if tok starts with STR0 ,
 call the function re.sub with 3 arguments : raw string STR0 , escape_quotes and tok without the first and last element ,
-substitute the result for guts . concatenate string 'STR0 ' , substitute the result for tok .
+substitute the result for guts . concatenate string STR0 , substitute the result for tok .
 otherwise if name equals a string STR0 .
 replace every occurrence of STR0 in tok with STR1 , substitute the result for tok .
 append tok to c .
@@ -17317,7 +17317,7 @@ derive the class Iterator from the base class object .
 define the method next with an argument self .
 call the function type with an argument self , on the result call the method __next__ with an argument self , return the result .
 substitute callable for callable .
-call the function _add_doc with 2 arguments : get_unbound_function and string STR0STR1STR2 .
+call the function _add_doc with 2 arguments : get_unbound_function and string STR0Get the function out of a possibly unbound functionSTR1 .
 call the method operator.attrgetter with an argument _meth_func , substitute the result for get_method_function .
 call the method operator.attrgetter with an argument _meth_self , substitute the result for get_method_self .
 call the method operator.attrgetter with an argument _func_closure , substitute the result for get_method_closure .
@@ -17364,8 +17364,8 @@ define the function iterbytes with an argument buf .
 convert byte to its integer representation , return all of the results for every byte in buf .
 import StringIO .
 assign StringIO.StringIO to StringIO and BytesIO .
-call the function _add_doc with 2 arguments : b and string STR0STR1STR2 .
-call the function _add_doc with 2 arguments : u and string STR0STR1STR2 .
+call the function _add_doc with 2 arguments : b and string STR0Byte literalSTR1 .
+call the function _add_doc with 2 arguments : u and string STR0Text literalSTR1 .
 if PY3 is true ,
 get STR0 attribute from the moves.builtins object , substitute it for exec_ .
 define the function reraise with 3 arguments : tp , value and tb set to None .
@@ -17382,8 +17382,8 @@ substitute if _locs_ is None for _locs_ .
 delete frame .
 otherwise if _locs_ is None ,
 substitute _globs_ with an argument _locs_ .
-execute code statement STR0STR1STR2 .
-call the function exec_ with an argument string STR0STR1STR2 .
+execute code statement STR0exec _code_ in _globs_ , _locs_STR1 .
+call the function exec_ with an argument string STR0def reraise ( tp , value , tb=None ) : raise tp , value , tbSTR1 .
 get attribute STR0 from the moves.builtins object , if it exists substitute it for print_ , if not print_ is None .
 if print_ is None ,
 define the function print_ with 2 arguments : unpacked list args and unpacked dictionary kwargs .
@@ -17434,7 +17434,7 @@ if i is true ,
 call the function write with an argument sep .
 call the function write with an argument arg .
 call the function write with an argument end .
-call the function _add_doc with 2 arguments : reraise and string STR0STR1STR2 .
+call the function _add_doc with 2 arguments : reraise and string STR0Reraise an exception.STR1 .
 define the function with_metaclass with 2 arguments meta and unpacked list bases .
 derive the class metaclass form the meta base class .
 substitute type.__call__ for __call__ .

@@ -1,20 +1,30 @@
-13207	call the function post_callback with an argument retval , substitute the result for newretval .	newretval = post_callback ( retval )
-9118	define the method __init__ with 6 arguments self , parent_widget , name , value , attrs and choices .	def __init__ ( self , parent_widget , name , value , attrs , choices ) :
-11378	substitute context for self.context .	self . context = context
-6307	raise an ViewDoesNotExist exception with an argument string STR0 ,	raise ViewDoesNotExist ( STR0 % ( lookup_view , mod_name ) )
-3716	convert self.file to string and append string STR0 to it , substitute the result for thefile .	thefile = STR0 % self . file
-8005	from django.utils.functional import cached_property into default name space .	from django . utils . functional import cached_property
-10678	if bit is true ,	if bit :
-7770	STR1 , error_row set to a a string STR2 , row_ender set to a string STR3 , help_text_html set to a string , STR4 , and errors_on_separate_row set to boolean False . define the method as_p with an argument self .	def as_p ( self ) :
-4069	merge_migrations is an empty list .	merge_migrations = [ ]
-5965	define the method __repr__ with an argument self .	def __repr__ ( self ) :
-15765	call the method self.__text_cast , return the result .	return self . __text_cast ( )
-4052	make a directory migrations_directory .	os . mkdir ( migrations_directory )
-7716	define the method errors with an argument self .	def errors ( self ) :
-4269	if model is contained in created_models ,	if model in created_models :
-2921	define the function has_bom with fn as argument .	def has_bom ( fn ) :
-700	substitute STR0 in TEMPLATE_FRAGMENT_KEY_TEMPLATE string with fragment_name and args.hexdigest ( ) , respectively , return the result .	return TEMPLATE_FRAGMENT_KEY_TEMPLATE % ( fragment_name , args . hexdigest ( ) )
-12602	call the method parser.parse with an argument tuple with 2 elements strings : STR0 and STR1 , substitute the result for nodelistelse .	nodelist_true = parser . parse ( ( STR0 , STR1 ) )
-7423	return self.empty_value .	return self . empty_value
-7737	if not ,	else :
-12011	return value .	return value
+12599	register.tag decorator ,	@ register . tag
+13822	define function dictvale , with an argument t .	def dictvalue ( t ) :
+11338	templatetags_modules_candidates is an list with an argument string STR0 .	templatetags_modules_candidates = [ STR0 ]
+17509	decrement self.active_readers by integer 1 ,	self . active_readers -= 1
+9845	for every bytes in stream ,	for bytes in stream :
+8272	if construct is true ,	if construct :
+11999	if value is None ,	if value is None :
+8024	created with 2 arguments : required as boolean False and widget set to HiddenInput . value under the MAX_NUM_FORM_COUNT of the self.base_fields dictionary is an instance of IntegerField class ,	self . base_fields [ MAX_NUM_FORM_COUNT ] = IntegerField ( required = False , widget = HiddenInput )
+3296	STR0 STR1 STR2 , where STR3 is replaced by value under the STR4 key of the connection.settings_dict dictionary and e. call the function six.reraise with 3 arguments : CommandError , CommandError created with argument new_msg ,	six . reraise ( CommandError , CommandError ( new_msg ) , sys . exc_info ( ) [ 2 ] )
+8091	and i is greater than or equal to self.min_num , value under the STR0 key of the defaults dictionary is boolean True .	defaults [ STR0 ] = True
+2096	msg_count is integer 0 .	msg_count = 0
+8527	define the method _construct_form with 3 arguments : self , i and unpacked dictionary kwargs .	def _construct_form ( self , i , ** kwargs ) :
+18454	substitute the result for block_re . call the function re.compile with an argument raw string STR0 , substitute the result for endblock_re .	endblock_re = re . compile ( STR0^\s*endblocktrans$STR1 )
+16936	consume_next is boolean True .	consume_next = True
+12622	where STR0 is replaced with first element of bits . call the method parser.compile_filter with second element of bits as an argument , substitute the result for filepath .	filepath = parser . compile_filter ( bits [ 1 ] )
+8363	get STR0 attribute from the options object , if it exists substitute it for self.help_texts , if not self.help_texts is None .	self . help_texts = getattr ( options , STR0 , None )
+4769	from importlib import import_module into default name space .	from importlib import import_module
+13327	return retval .	return retval
+9234	an empty string for STR0 and self.clear_checkbox_label for STR1 . template is a string STR2 .	template = STR0
+9517	return obj .	return obj
+5968	define the method __init__ with arguments self , name , sysid and pubid .	def __init__ ( self , name , sysid , pubid ) :
+12355	substitute format_string for self.format_string .	self . format_string = format_string
+15679	import module sys .	import sys
+15894	get name attribute from the instance object , call it and return the result .	return getattr ( instance , name ) ( )
+8644	skip this loop iteration .	continue
+15430	if value under the STR0 key of the self.feed dictionary is not None ,	if self . feed [ STR0 ] is not None :
+2668	if self has an STR0 attribute , has_old_option is boolean True , otherwise it is boolean False .	has_old_option = hasattr ( self , STR0 )
+16683	substitute value under the KEY key of the root dictionary for oldkey .	oldkey = root [ KEY ]
+11747	call the function _urlize with 3 arguments : value , nofollow set to boolean True , autoescape set to autoescape ,	return mark_safe ( _urlize ( value , nofollow = True , autoescape = autoescape ) )
+9848	if bytes_read is greater than rollback ,	if bytes_read > rollback :

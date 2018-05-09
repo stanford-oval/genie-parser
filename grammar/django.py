@@ -57,8 +57,8 @@ class DjangoGrammar(ShiftReduceGrammar):
                 ('$classdef',),
                 ('$decorated',)],
 
-            '$decorator': [('@', '$dotted_name'),
-                           ('@', '$dotted_name', '(', '$arglist', ')')],
+            '$decorator': [('@', '$dotted_name', '<<EOF>>'),
+                           ('@', '$dotted_name', '(', '$arglist', ')', '<<EOF>>')], #fixme
             '$decorators': [('$decorator',),
                             ('$decorators', '$decorator')],
             '$decorated': [('$decorators', '$classdef'),
@@ -66,6 +66,8 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$funcdef': [('def', '$ident', '$parameters', ':')],
             '$parameters': [('(', '$varargslist', ')'),
                             ('(', ')')],
+
+            #########################################
 
             '$fpvar': [('$fpdef',),
                        ('$fpdef', '=', '$test')],
@@ -77,6 +79,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                              ('$varargslist_tmp', '*', '$ident'),
                              ('$varargslist_tmp', '*', '$ident', ',', '**', '$ident'),
                              ('$varargslist_tmp', '**', '$ident')],
+            ##########################################
 
             '$fpdef': [('$ident',),
                        ('(', '$fplist', ')')],
@@ -117,6 +120,8 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$continue_stmt': [('continue',)],
             '$return_stmt': [('return',),
                              ('return', '$testlist')],
+                             #('return', '$ident', '.', '$ident')],
+                             #('return', '$dotted_name')], #hack
             '$yield_stmt': [('$yield_expr',)],
             '$raise_stmt': [('raise',),
                             ('raise', '$test'),
@@ -212,10 +217,10 @@ class DjangoGrammar(ShiftReduceGrammar):
                       ('$term', '/', '$factor'),
                       ('$term', '%', '$factor'),
                       ('$term', '//', '$factor')],
-            '$factor': [  # ('+', '$factor'),
-                          # ('-', '$factor'),
-                         ('~', '$factor'),
-                         ('$power',)],
+            '$factor': [('+', '$factor'),
+                        ('-', '$factor'),
+                        ('~', '$factor'),
+                        ('$power',)],
             '$power_tmp': [('$atom',),
                            ('$atom', '$trailer_list')],
             '$trailer_list': [('$trailer',),
@@ -346,7 +351,6 @@ class DjangoGrammar(ShiftReduceGrammar):
                                                              'NUMBER': list(map(str, range(200))),
                                                              'STRING': ['STR' + str(i) for i in range(156)]
                                                              })
-        print(idents)
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
