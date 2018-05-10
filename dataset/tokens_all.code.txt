@@ -1175,8 +1175,8 @@ import msvcrt
 from ctypes import ( sizeof , c_ulong , c_void_p , c_int64 , Structure , Union , POINTER , windll , byref )
 from ctypes . wintypes import BOOL , DWORD , HANDLE
 LOCK_SH = 0
-LOCK_NB = 0x1
-LOCK_EX = 0x2
+LOCK_NB = 1
+LOCK_EX = 2
 if sizeof ( c_ulong ) != sizeof ( c_void_p ) :
 ULONG_PTR = c_int64
 else :
@@ -1200,12 +1200,12 @@ UnlockFileEx . argtypes = [ HANDLE , DWORD , DWORD , DWORD , LPOVERLAPPED ]
 def lock ( f , flags ) :
 hfile = msvcrt . get_osfhandle ( _fd ( f ) )
 overlapped = OVERLAPPED ( )
-ret = LockFileEx ( hfile , flags , 0 , 0 , 0xFFFF0000 , byref ( overlapped ) )
+ret = LockFileEx ( hfile , flags , 0 , 0 , FFFF0000 , byref ( overlapped ) )
 return bool ( ret )
 def unlock ( f ) :
 hfile = msvcrt . get_osfhandle ( _fd ( f ) )
 overlapped = OVERLAPPED ( )
-ret = UnlockFileEx ( hfile , 0 , 0 , 0xFFFF0000 , byref ( overlapped ) )
+ret = UnlockFileEx ( hfile , 0 , 0 , FFFF0000 , byref ( overlapped ) )
 return bool ( ret )
 else :
 try :
@@ -8877,7 +8877,7 @@ return force_text ( self . prepare_value ( initial_value ) ) != force_text ( dat
 class ModelMultipleChoiceField ( ModelChoiceField ) :
 widget = SelectMultiple
 hidden_widget = MultipleHiddenInput
-default_error_messages = { STR1 : fun ( STR2 ) , STR3 : fun ( STR4 STR5 ) , STR6 : fun ( STR200 ) }
+default_error_messages = { STR1 : _ ( STR2 ) , STR3 : _ ( STR4 STR5 ) , STR6 : _ ( STR200 ) }
 def __init__ ( self , queryset , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = STR , * args , ** kwargs ) :
 super ( ModelMultipleChoiceField , self ) . __init__ ( queryset , None , cache_choices , required , widget , label , initial , help_text , * args , ** kwargs )
 def to_python ( self , value ) :
@@ -16426,7 +16426,7 @@ except ValidationError :
 return False
 else :
 try :
-if int ( hextet , 16 ) < 0x0 or int ( hextet , 16 ) > 0xFFFF :
+if int ( hextet , 16 ) < 0 or int ( hextet , 16 ) > FFFF :
 return False
 except ValueError :
 return False

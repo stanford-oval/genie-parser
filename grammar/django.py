@@ -69,19 +69,32 @@ class DjangoGrammar(ShiftReduceGrammar):
                             ('(', ')')],
 
             #########################################
-
-            '$fpvar': [('$fpdef',),
+            '$fpvar1': [('$fpdef',),
                        ('$fpdef', '=', '$test')],
-            '$varargslist_tmp': [('$fpvar', ','),
-                                 ('$varargslist_tmp', '$fpvar', ',')],
-            '$varargslist': [('$fpvar',),
-                             ('$varargslist_tmp',),
-                             ('$varargslist_tmp', '$fpvar'),
-                             ('$varargslist_tmp', '*', '$ident'),
-                             ('$varargslist_tmp', '*', '$ident', ',', '**', '$ident'),
-                             ('$varargslist_tmp', '**', '$ident'),
-                             ('*', '$ident'),
-                             ('**', '$ident')
+
+            '$fpvar2': [('*', '$ident'),
+                        ('*', '$ident', ',', '**', '$ident')],
+
+            '$fpvar2_or': [('$fpvar2', ),
+                           ('**', '$ident')],
+
+            '$varargslist_tmp1': [('$fpvar2_or', ),
+                                  ('$fpvar1', '$varargslist_tmp1')],
+
+            '$fpvar3': [('$fpdef',),
+                        ('$fpdef', '=', '$test')],
+
+            '$fpvar4': [(',', '$fpdef'),
+                        (',', '$fpdef', '=', '$test')],
+
+            '$hala': [('$fpvar3', ),
+                       ('$hala', '$fpvar4')],
+            '$varargslist_tmp2': [('$hala',),
+                                  ('$hala', ',')],
+
+
+            '$varargslist': [('$varargslist_tmp1',),
+                             ('$varargslist_tmp2',)
                              ], #fixme
             ##########################################
 
@@ -133,44 +146,18 @@ class DjangoGrammar(ShiftReduceGrammar):
                              ('$import_from',)],
             '$import_name': [('import', '$dotted_as_names')],
             #######################################################################
-            '$dot_plus': [('from', '.'),
+            '$dot_plus': [('.', ),
                           ('$dot_plus', '.')],
-            '$import_from_tmp1': [('from',),
-                             ('$import_from_tmp1', '.')],
+            '$import_from_tmp': [('from', '$dot_plus', '$dotted_name'),
+                                  ('from', '$dotted_name'),
+                                  ('from', '$dot_plus')],
             '$sth': [('*',),
                      ('(', '$import_as_names', ')'),
                      ('$import_as_names',)],
-            '$import_from': [('$import_from_tmp1', '$dotted_name', 'import', '$sth'),
-                             ('$dot_plus', 'import', '$sth')
-                             ],
+
+            '$import_from': [('$import_from_tmp', 'import', '$sth')],
             #######################################################################
-            ########################################################################
-            # '$import_from': [('from', '$dotted_name'),
-            #                  ('from', '.', '$dotted_name'),
-            #                  ('from', '.', '.', '$dotted_name'),
-            #                  ('from', '$dotted_name', 'import', '*'),
-            #                  ('from', '$dotted_name', 'import', '$ident', ',', '$ident', ',', '$ident', ',', '$ident'), # hack
-            #                  ('from', '$dotted_name', 'import', '(', '$import_as_names', ')'),
-            #                  ('from', '$dotted_name', 'import', '$import_as_name'),
-            #                  ('from', '$dotted_name', 'import', '$import_as_name', ',', '$import_as_name'),
-            #                  ('from', '.', '$dotted_name', 'import', '*'),
-            #                  ('from', '.', '$dotted_name', 'import', '(', '$import_as_names', ')'),
-            #                  ('from', '.', '$dotted_name', 'import', '$import_as_name'),
-            #                  ('from', '.', '$dotted_name', 'import', '$import_as_name', ',', '$import_as_name'),
-            #                  ('from', '.', 'import', '*'),
-            #                  ('from', '.', 'import', '(', '$import_as_names', ')'),
-            #                  ('from', '.', 'import', '$import_as_name'),
-            #                  ('from', '.', 'import', '$import_as_name', ',', '$import_as_name'),
-            #                  ('from', '.', '.', '$dotted_name', 'import', '*'),
-            #                  ('from', '.', '.', '$dotted_name', 'import', '(', '$import_as_names', ')'),
-            #                  ('from', '.', '.', '$dotted_name', 'import', '$import_as_name'),
-            #                  ('from', '.', '.', '$dotted_name', 'import', '$import_as_name', ',', '$import_as_name'),
-            #                  ('from', '.', '.', 'import', '*'),
-            #                  ('from', '.', '.', 'import', '(', '$import_as_names', ')'),
-            #                  ('from', '.', '.', 'import', '$import_as_name'),
-            #                  ('from', '.', '.', 'import', '$import_as_name', ',', '$import_as_name', ',', '$import_as_name')
-            #                  ],  #hack #fixme
-            ########################################################################
+
             '$import_as_name': [('$ident',),
                                 ('$ident', 'as', '$ident')],
             '$dotted_as_name': [('$dotted_name',),
@@ -209,7 +196,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                                #('except', '$test', '$except_clause_tmp'),
                                ('except', '$ident', ':'),
                                ('except', '$ident', 'as', '$ident', ':'),
-                               ('except', '(', '$arglist', ')', ':')], #hack
+                               ('except', '(', '$arglist', ')', ':')], #hack #fixme
 
             '$testlist_safe': [('$old_test',)],
             '$old_test': [('$or_test',),
@@ -341,16 +328,22 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$classdef': [('class', '$ident', ':',),
                           ('class', '$ident', '(', '$testlist', ')', ':',)],
 
-            '$arglist_list': [('$argument',),
-                             ('$arglist_list', ',', '$argument')],
-            '$arglist': [('$arglist_list', ','),
-                         ('$arglist_list',),
-                         ('*', '$test'),
-                         ('**', '$test'),
-                         ( '*', '$test', ',', '**', '$test'),
-                         ('$arglist_list', ',', '*', '$test'),
-                         ('$arglist_list', ',', '**', '$test'),
-                         ('$arglist_list', ',', '*', '$test', ',', '**', '$test')],
+
+
+            '$arglist_tmp1': [('$argument',),
+                             ('$argument', ',')],
+            '$arglist_tmp2_zed': [('*', '$test'),
+                              ('$arglist_tmp2_zed', ',', '$argument')],
+            '$arglist_tmp2': [('$arglist_tmp2_zed',),
+                              ('$arglist_tmp2_zed', ',', '**', '$test')],
+            '$arglist_tmp3': [('**', '$test')],
+
+            '$arglist_or': [('$arglist_tmp1',),
+                            ('$arglist_tmp2',),
+                            ('$arglist_tmp3',)],
+            '$arglist': [('$arglist_or',),
+                         ('$argument', ',', '$arglist')],
+
 
             '$argument': [('$test',),
                           ('$test', '$comp_for'),

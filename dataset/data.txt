@@ -1175,8 +1175,8 @@
 1175	from ctypes import sizeof , c_ulong , c_void_p , c_int64 , Structure , Union , POINTER , windll and byref into default name space .	from ctypes import ( sizeof , c_ulong , c_void_p , c_int64 , Structure , Union , POINTER , windll , byref )
 1176	from ctypes.wintypes import BOOL , DWORD and HANDLE into default name space .	from ctypes . wintypes import BOOL , DWORD , HANDLE
 1177	LOCK_SH is a integer 0 .	LOCK_SH = 0
-1178	LOCK_NB is a hexadecimal 1 .	LOCK_NB = 0x1
-1179	LOCK_EX is a hexadecimal 2 .	LOCK_EX = 0x2
+1178	LOCK_NB is a hexadecimal 1 .	LOCK_NB = 1
+1179	LOCK_EX is a hexadecimal 2 .	LOCK_EX = 2
 1180	if size of c_ulong does not equals to size of c_void_p ,	if sizeof ( c_ulong ) != sizeof ( c_void_p ) :
 1181	substitute c_int64 for ULONG_PTR .	ULONG_PTR = c_int64
 1182	if not ,	else :
@@ -1200,12 +1200,12 @@
 1200	define the function lock with arguments f and flags .	def lock ( f , flags ) :
 1201	call the function msvcrt.get_osfhandle with return value of the _fd ( f ) function as argument , substitute the result for hfile .	hfile = msvcrt . get_osfhandle ( _fd ( f ) )
 1202	call the OVERLAPPED function , substitute the result for overlapped .	overlapped = OVERLAPPED ( )
-1203	call the LockFileEx function with 6 arguments : hfile , flags , integer 0 , integer 0 , hexadecimal value FFFF0000 , return value of the byref function called with argument overlapped , substitute the result for ret .	ret = LockFileEx ( hfile , flags , 0 , 0 , 0xFFFF0000 , byref ( overlapped ) )
+1203	call the LockFileEx function with 6 arguments : hfile , flags , integer 0 , integer 0 , hexadecimal value FFFF0000 , return value of the byref function called with argument overlapped , substitute the result for ret .	ret = LockFileEx ( hfile , flags , 0 , 0 , FFFF0000 , byref ( overlapped ) )
 1204	convert ret to a boolean , return it .	return bool ( ret )
 1205	define the function unlock with argument f .	def unlock ( f ) :
 1206	call the function msvcrt.get_osfhandle with return value of the _fd ( f ) function as argument , substitute the result for hfile .	hfile = msvcrt . get_osfhandle ( _fd ( f ) )
 1207	call the OVERLAPPED function , substitute the result for overlapped .	overlapped = OVERLAPPED ( )
-1208	call the LockFileEx function with 5 arguments : hfile , integer 0 , integer 0 , hexadecimal value FFFF0000 , return value of the byref function called with argument overlapped , substitute the result for ret .	ret = UnlockFileEx ( hfile , 0 , 0 , 0xFFFF0000 , byref ( overlapped ) )
+1208	call the LockFileEx function with 5 arguments : hfile , integer 0 , integer 0 , hexadecimal value FFFF0000 , return value of the byref function called with argument overlapped , substitute the result for ret .	ret = UnlockFileEx ( hfile , 0 , 0 , FFFF0000 , byref ( overlapped ) )
 1209	convert ret to a boolean , return it .	return bool ( ret )
 1210	if not ,	else :
 1211	try ,	try :
@@ -8877,7 +8877,7 @@
 8877	derive the class ModelMultipleChoiceField from the ModelChoiceField base class .	class ModelMultipleChoiceField ( ModelChoiceField ) :
 8878	substitute SelectMultiple for widget .	widget = SelectMultiple
 8879	substitute MultipleHiddenInput for hidden_widget .	hidden_widget = MultipleHiddenInput
-8880	default_error_messages is an dictionary with 3 entries : return value of the function fun called with an argument , string STR1 for STR2 , return value of the function fun called with an argument , string STR3 for STR4 , and return value of the function fun called with an argument string STR200 .	default_error_messages = { STR1 : fun ( STR2 ) , STR3 : fun ( STR4 STR5 ) , STR6 : fun ( STR200 ) }
+8880	default_error_messages is an dictionary with 3 entries : return value of the function _ called with an argument , string STR1 for STR2 , return value of the function _ called with an argument , string STR3 for STR4 , and return value of the function _ called with an argument string STR200 .	default_error_messages = { STR1 : _ ( STR2 ) , STR3 : _ ( STR4 STR5 ) , STR6 : _ ( STR200 ) }
 8881	define the method __init__ with 10 arguments : self , queryset , cache_choices set to None , required set to boolean True , widget set to None , label set to None , initial set to None , help_text set to an empty strign , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , queryset , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = STR , * args , ** kwargs ) :
 8882	call the method __init__ from the base class of the class ModelMultipleChoiceField , with 10 arguments : queryset , None , cache_choices , required , widget , label , initial , help_text , unpacked list args and unpacked dictionary kwargs .	super ( ModelMultipleChoiceField , self ) . __init__ ( queryset , None , cache_choices , required , widget , label , initial , help_text , * args , ** kwargs )
 8883	define the method to_python with 2 arguments : self and value .	def to_python ( self , value ) :
@@ -16009,24 +16009,24 @@
 16011	define the function remove_tags with 2 arguments : html and tags .	def remove_tags ( html , tags ) :
 16012	tags is a list containing results of the function re.escape with an argument tag , for every tag in tags split into words .	tags = [ re . escape ( tag ) for tag in tags . split ( ) ]
 16013	join elements of tags into a string , separated with STR0 , format string STR1 with it , substitute the result for tags_re .	tags_re = STR0 % STR1 . join ( tags )
-16014	call the function re.compile with 2 arguments : raw string STR0 formated with tags_re and re.U ,	starttag_re = re . compile ( STR0 % tags_re , re . U )
-16015	substitute the result for starttag_re . call the function re.compile with an argument string STR0 formated with tags_re , substitute the result for endtag_re .	endtag_re = re . compile ( STR0 % tags_re )
+16014	call the function re.compile with 2 arguments : raw string STR0 formated with tags_re and re.U , substitute the result for starttag_re .	starttag_re = re . compile ( STR0 % tags_re , re . U )
+16015	call the function re.compile with an argument string STR0 formated with tags_re , substitute the result for endtag_re .	endtag_re = re . compile ( STR0 % tags_re )
 16016	call the function starttag_re.sub with 2 arguments : an empty string and html , substitute the result for html .	html = starttag_re . sub ( STR , html )
 16017	call the function endtag_re.sub with 2 arguments : an empty string and html , substitute the result for html .	html = endtag_re . sub ( STR , html )
 16018	return html .	return html
 16019	call the function allow_lazy with 2 arguments : remove_tags , six.text_type , substitute the result for remove_tags .	remove_tags = allow_lazy ( remove_tags , six . text_type )
 16020	define the function strip_spaces_between_tags with an argument value .	def strip_spaces_between_tags ( value ) :
-16021	call the method re.sub with 3 arguments : raw string STR0 , string STR1 and result of the function force_text ,	return re . sub ( STR0 , STR1 , force_text ( value ) )
-16022	called with an argument value , return the result . call the function allow_lazy with 2 arguments : strip_spaces_between_tags , six.text_type , substitute the result for strip_spaces_between_tags .	strip_spaces_between_tags = allow_lazy ( strip_spaces_between_tags , six . text_type )
+16021	call the method re.sub with 3 arguments : raw string STR0 , string STR1 and result of the function force_text , called with an argument value , return the result .	return re . sub ( STR0 , STR1 , force_text ( value ) )
+16022	call the function allow_lazy with 2 arguments : strip_spaces_between_tags , six.text_type , substitute the result for strip_spaces_between_tags .	strip_spaces_between_tags = allow_lazy ( strip_spaces_between_tags , six . text_type )
 16023	define the function strip_entities with an argument value .	def strip_entities ( value ) :
-16024	call the method re.sub with 3 arguments : raw string STR0 , empty string and result of the function force_text ,	return re . sub ( STR0 , STR , force_text ( value ) )
-16025	called with an argument value , return the result . call the function allow_lazy with 2 arguments : strip_entities , six.text_type , substitute the result for strip_entities .	strip_entities = allow_lazy ( strip_entities , six . text_type )
+16024	call the method re.sub with 3 arguments : raw string STR0 , empty string and result of the function force_text , called with an argument value , return the result .	return re . sub ( STR0 , STR , force_text ( value ) )
+16025	call the function allow_lazy with 2 arguments : strip_entities , six.text_type , substitute the result for strip_entities .	strip_entities = allow_lazy ( strip_entities , six . text_type )
 16026	define the function smart_urlquote with an argument url .	def smart_urlquote ( url ) :
 16027	try ,	try :
 16028	call the function urlsplit with an argument url , assign the result to scheme , netloc , path , query and fragment , respectively .	scheme , netloc , path , query , fragment = urlsplit ( url )
 16029	try ,	try :
-16030	call the method netloc.encode with an argument string STR0 , call the method decode on the result with an argument STR1 ,	netloc = netloc . encode ( STR0 ) . decode ( STR1 )
-16031	substitute the result for netloc . if UnicodeError exception is caught ,	except UnicodeError :
+16030	call the method netloc.encode with an argument string STR0 , call the method decode on the result with an argument STR1 , substitute the result for netloc .	netloc = netloc . encode ( STR0 ) . decode ( STR1 )
+16031	if UnicodeError exception is caught ,	except UnicodeError :
 16032	do nothing .	pass
 16033	if not ,	else :
 16034	call the function urlunsplit with an argument tuple with 4 elements : scheme , netloc , path , query and fragment , substitute the result for url .	url = urlunsplit ( ( scheme , netloc , path , query , fragment ) )
@@ -16065,19 +16065,19 @@
 16067	otherwise if STR0 is not contained in middle and result of the function simple_email_re.match called with an argument middle ,	elif STR0 not in middle and simple_email_re . match ( middle ) :
 16068	evaluates to true , split middle into two parts from the right by STR0 character , assign the resulting parts to local and domain .	local , domain = middle . rsplit ( STR0 , 1 )
 16069	try ,	try :
-16070	call the method domain.encode with an argument string STR0 , call the method decode on the result with an argument string STR1 ,	domain = domain . encode ( STR0 ) . decode ( STR1 )
-16071	substitute the result for domain . if UnicodeError exception is caught ,	except UnicodeError :
+16070	call the method domain.encode with an argument string STR0 , call the method decode on the result with an argument string STR1 , substitute the result for domain .	domain = domain . encode ( STR0 ) . decode ( STR1 )
+16071	if UnicodeError exception is caught ,	except UnicodeError :
 16072	skip this loop iteration .	continue
 16073	url is a string STR0 formated with local and domain .	url = STR0 % ( local , domain )
 16074	nofollow_attr is an empty string .	nofollow_attr = STR
 16075	if url is true ,	if url :
 16076	call the function trim_url with an argument middle , substitute the result for trimmed .	trimmed = trim_url ( middle )
 16077	if autoescape is true and safe_input is false ,	if autoescape and not safe_input :
-16078	call the function escape with an argument lead , substitute the result for lead , call the function escape with an argument trail ,	lead , trail = escape ( lead ) , escape ( trail )
-16079	substitute the result for trail . call the function escape with an argument url , substitute the result for url , call the function escape with an argument trimmed ,	url , trimmed = escape ( url ) , escape ( trimmed )
-16080	substitute the result for trimmed . middle is a string STR1 formated with url , nofollow_attr and trimmed .	middle = STR1 % ( url , nofollow_attr , trimmed )
-16081	format string STR1 with lead , middle and trail , use it as an argument for the call to the function mark_safe ,	words [ i ] = mark_safe ( STR0 % ( lead , middle , trail ) )
-16082	substitute the result for i-th element of words . if not ,	else :
+16078	call the function escape with an argument lead , substitute the result for lead , call the function escape with an argument trail , substitute the result for trail .	lead , trail = escape ( lead ) , escape ( trail )
+16079	call the function escape with an argument url , substitute the result for url , call the function escape with an argument trimmed , substitute the result for trimmed .	url , trimmed = escape ( url ) , escape ( trimmed )
+16080	middle is a string STR1 formated with url , nofollow_attr and trimmed .	middle = STR1 % ( url , nofollow_attr , trimmed )
+16081	format string STR1 with lead , middle and trail , use it as an argument for the call to the function mark_safe , substitute the result for i-th element of words .	words [ i ] = mark_safe ( STR0 % ( lead , middle , trail ) )
+16082	if not ,	else :
 16083	if safe_input is true ,	if safe_input :
 16084	call the function mark_safe with an argument word , substitute the result for i-th element of words .	words [ i ] = mark_safe ( word )
 16085	otherwise if autoescape is true ,	elif autoescape :
@@ -16094,14 +16094,14 @@
 16096	import module re .	import re
 16097	import module sys .	import sys
 16098	substitute version_info from module sys for surrent_version .	current_version = sys . version_info
-16099	set use_workaround to boolean True if current_version tuple elements are smaller than the tuple ( 2,7,3 ) , respectively ,	use_workaround = ( ( current_version < ( 2 , 7 , 3 ) ) or ( current_version >= ( 3 , 0 ) and current_version < ( 3 , 2 , 3 ) ) )
-16100	or if current_version is greater than ( 3,0 ) , but smaller than ( 3,2,3 ) , otherwise set use_workaround to boolean False . substitute HTMLParseError from the module _html_parser for HTMLParseError .	HTMLParseError = _html_parser . HTMLParseError
+16099	set use_workaround to boolean True if current_version tuple elements are smaller than the tuple ( 2,7,3 ) , respectively , or if current_version is greater than ( 3,0 ) , but smaller than ( 3,2,3 ) , otherwise set use_workaround to boolean False .	use_workaround = ( ( current_version < ( 2 , 7 , 3 ) ) or ( current_version >= ( 3 , 0 ) and current_version < ( 3 , 2 , 3 ) ) )
+16100	substitute HTMLParseError from the module _html_parser for HTMLParseError .	HTMLParseError = _html_parser . HTMLParseError
 16101	if use_workaround is boolean False ,	if not use_workaround :
 16102	if tuple current_version elements are greater or equal to ( 3 , 4 ) , respectively ,	if current_version >= ( 3 , 4 ) :
 16103	derive the class HTMLParser from the base class HTMLParser located in the module _html_parser .	class HTMLParser ( _html_parser . HTMLParser ) :
-16104	define the initialization method __init__ , with self instance of this class , convert_charrefs set to boolean False ,	def __init__ ( self , convert_charrefs = False , ** kwargs ) :
-16105	and dictionary of arbitrary length **kwargs as arguments . call the initialization method for the base class , _html_parser.HTMLParser.__init__ with self ,	_html_parser . HTMLParser . __init__ ( self , convert_charrefs = convert_charrefs , ** kwargs )
-16106	convert_charrefs set to convert_charrefs and dictionary **kwargs as the arguments . if not ,	else :
+16104	define the initialization method __init__ , with self instance of this class , convert_charrefs set to boolean False , and dictionary of arbitrary length **kwargs as arguments .	def __init__ ( self , convert_charrefs = False , ** kwargs ) :
+16105	call the initialization method for the base class , _html_parser.HTMLParser.__init__ with self , convert_charrefs set to convert_charrefs and dictionary **kwargs as the arguments .	_html_parser . HTMLParser . __init__ ( self , convert_charrefs = convert_charrefs , ** kwargs )
+16106	if not ,	else :
 16107	substitute HTMLParser from the module _html_parser for HTMLParser .	HTMLParser = _html_parser . HTMLParser
 16108	if not ,	else :
 16109	compile a regular expression pattern string STR0 into a regular expression object and assign it to tagfind .	tagfind = re . compile ( STR0 )
@@ -16113,8 +16113,8 @@
 16115	try ,	try :
 16116	set field interesting for this class instance to interesting_cdata from module _html_parser .	self . interesting = _html_parser . interesting_cdata
 16117	if AttributeError exception is caught ,	except AttributeError :
-16118	replace STR0 in the string STR1 with the result of the function call tag.lower ( ) ,	self . interesting = re . compile ( STR0 % tag . lower ( ) , re . I )
-16119	use it and the re.I as the input arguments for function re.compile , put the result in the self.interesting . evaluate function tag.lower , without the arguments , put the result in the self.cdata_tag .	self . cdata_tag = tag . lower ( )
+16118	replace STR0 in the string STR1 with the result of the function call tag.lower ( ) , use it and the re.I as the input arguments for function re.compile , put the result in the self.interesting .	self . interesting = re . compile ( STR0 % tag . lower ( ) , re . I )
+16119	evaluate function tag.lower , without the arguments , put the result in the self.cdata_tag .	self . cdata_tag = tag . lower ( )
 16120	define method clear_cdata_mode , with self class instance as an argument .	def clear_cdata_mode ( self ) :
 16121	substitute _html_parser.interesting_normal for self.interesting .	self . interesting = _html_parser . interesting_normal
 16122	set self.cdata_tag to None .	self . cdata_tag = None
@@ -16148,11 +16148,11 @@
 16150	evaluate the self.getpos ( ) and assign the result to the lineno and offset respectfully .	lineno , offset = self . getpos ( )
 16151	if self.__stattag_text contains newline character ,	if STR0 in self . __starttag_text :
 16152	increment the lineno by the count of the newlines in self.__starttag_text .	lineno = lineno + self . __starttag_text . count ( STR0 )
-16153	find the last index of newline occurrence in self.__starttag_text , subtract it from total length of self.__starttag_text ,	offset = ( len ( self . __starttag_text ) - self . __starttag_text . rfind ( STR0 ) )
-16154	substitute the result for offset . if not ,	else :
+16153	find the last index of newline occurrence in self.__starttag_text , subtract it from total length of self.__starttag_text , substitute the result for offset .	offset = ( len ( self . __starttag_text ) - self . __starttag_text . rfind ( STR0 ) )
+16154	if not ,	else :
 16155	increment the offset by the length of self.__starttag_text .	offset = offset + len ( self . __starttag_text )
-16156	slice the rawdata from k to endpos , then take the first 20 elements of the previous slice ,	self . error ( STR0 % ( rawdata [ k : endpos ] [ : 20 ] , ) )
-16157	with it replace % r in the string STR0 , call the method self.error with the resulting string as an argument . if string end ends with string STR1 ,	if end . endswith ( STR0 ) :
+16156	slice the rawdata from k to endpos , then take the first 20 elements of the previous slice , with it replace % r in the string STR0 , call the method self.error with the resulting string as an argument .	self . error ( STR0 % ( rawdata [ k : endpos ] [ : 20 ] , ) )
+16157	if string end ends with string STR0 ,	if end . endswith ( STR0 ) :
 16158	call the method self.handle_startendtag with tag and attrs as the arguments .	self . handle_startendtag ( tag , attrs )
 16159	if not ,	else :
 16160	call the method self.handle_starttag , with tag and attrs as the arguments .	self . handle_starttag ( tag , attrs )
@@ -16161,8 +16161,8 @@
 16163	return endpos .	return endpos
 16164	define the method parse_endtag with self class instance and i as the arguments .	def parse_endtag ( self , i ) :
 16165	substitute self.rawdata for rawdata .	rawdata = self . rawdata
-16166	take two characters from the i-th element of rawdata , if they are not equal to the string STR0 ,	assert rawdata [ i : i + 2 ] == STR0 , STR1
-16167	throw an exception with string STR0 as the message . search anywhere in the rawdata string starting from the ( i+1 ) -th element for the _html_parser.endendeag , replace the result for match .	match = _html_parser . endendtag . search ( rawdata , i + 1 )
+16166	take two characters from the i-th element of rawdata , if they are not equal to the string STR1 , throw an exception with string STR0 as the message .	assert rawdata [ i : i + 2 ] == STR0 , STR1
+16167	search anywhere in the rawdata string starting from the ( i+1 ) -th element for the _html_parser.endendeag , replace the result for match .	match = _html_parser . endendtag . search ( rawdata , i + 1 )
 16168	if there is no match ,	if not match :
 16169	return integer -1 .	return - 1
 16170	find the ending position of the regular expression match of the object match , substitute the result for j .	j = match . end ( )
@@ -16201,31 +16201,31 @@
 16203	__Y is a raw string STR0 .	__Y = STR0
 16204	__Y2 is a raw string STR0 .	__Y2 = STR0
 16205	__T is a raw string STR0 .	__T = STR0
-16206	call the function re.compile with an argument raw string STR0 formated with __D , __M , __Y and __T ,	RFC1123_DATE = re . compile ( STR0 % ( __D , __M , __Y , __T ) )
-16207	substitute the result for RFC1123_DATE . call the function re.compile with an argument raw string STR0 formated with __D , __M , __Y2 and __T ,	RFC850_DATE = re . compile ( STR0 % ( __D , __M , __Y2 , __T ) )
-16208	substitute the result for RFC850_DATE . call the function re.compile with an argument raw string STR0 formated with __M , __D2 , __T and __Y ,	ASCTIME_DATE = re . compile ( STR0 % ( __M , __D2 , __T , __Y ) )
-16209	substitute the result for ASCTIME_DATE . define the function urlquote with 2 arguments : url and safe set to STR0 .	def urlquote ( url , safe = STR0 ) :
-16210	call the function quote with 2 arguments : result of the function force_str called with an argument url ,	return force_text ( quote ( force_str ( url ) , force_str ( safe ) ) )
-16211	and result of the function force_str called with an argument safe , use the result as an argument for the call to the function force_text , return the result . call the function allow_lazy with 2 arguments : urlquote and six.text_type , substitute the result for urlquote .	urlquote = allow_lazy ( urlquote , six . text_type )
+16206	call the function re.compile with an argument raw string STR0 formated with __D , __M , __Y and __T , substitute the result for RFC1123_DATE .	RFC1123_DATE = re . compile ( STR0 % ( __D , __M , __Y , __T ) )
+16207	call the function re.compile with an argument raw string STR0 formated with __D , __M , __Y2 and __T , substitute the result for RFC850_DATE .	RFC850_DATE = re . compile ( STR0 % ( __D , __M , __Y2 , __T ) )
+16208	call the function re.compile with an argument raw string STR0 formated with __M , __D2 , __T and __Y , substitute the result for ASCTIME_DATE .	ASCTIME_DATE = re . compile ( STR0 % ( __M , __D2 , __T , __Y ) )
+16209	define the function urlquote with 2 arguments : url and safe set to STR0 .	def urlquote ( url , safe = STR0 ) :
+16210	call the function quote with 2 arguments : result of the function force_str called with an argument url , and result of the function force_str called with an argument safe , use the result as an argument for the call to the function force_text , return the result .	return force_text ( quote ( force_str ( url ) , force_str ( safe ) ) )
+16211	call the function allow_lazy with 2 arguments : urlquote and six.text_type , substitute the result for urlquote .	urlquote = allow_lazy ( urlquote , six . text_type )
 16212	define the function urlquote_plus with 2 arguments : url and safe set to an empty string .	def urlquote_plus ( url , safe = STR ) :
-16213	call the function quote_plus with 2 arguments : result of the function force_str called with an argument url ,	return force_text ( quote_plus ( force_str ( url ) , force_str ( safe ) ) )
-16214	and result of the function force_str called with an argument safe , use the result as an argument for the call to the function force_text , return the result . call the function allow_lazy with 2 arguments : urlquote_plus and six.text_type , substitute the result for urlquote_plus .	urlquote_plus = allow_lazy ( urlquote_plus , six . text_type )
+16213	call the function quote_plus with 2 arguments : result of the function force_str called with an argument url , and result of the function force_str called with an argument safe , use the result as an argument for the call to the function force_text , return the result .	return force_text ( quote_plus ( force_str ( url ) , force_str ( safe ) ) )
+16214	call the function allow_lazy with 2 arguments : urlquote_plus and six.text_type , substitute the result for urlquote_plus .	urlquote_plus = allow_lazy ( urlquote_plus , six . text_type )
 16215	define the function urlunquote with an argument quoted_url .	def urlunquote ( quoted_url ) :
-16216	call the function force_str with an argument quoted_url , use the result as an argument for the call to the function unquote ,	return force_text ( unquote ( force_str ( quoted_url ) ) )
-16217	use the result as an argument for the call to the function force_text , return the result . call the function allow_lazy with 2 arguments : urlunquote and six.text_type , substitute the result for urlunquote .	urlunquote = allow_lazy ( urlunquote , six . text_type )
+16216	call the function force_str with an argument quoted_url , use the result as an argument for the call to the function unquote , use the result as an argument for the call to the function force_text , return the result .	return force_text ( unquote ( force_str ( quoted_url ) ) )
+16217	call the function allow_lazy with 2 arguments : urlunquote and six.text_type , substitute the result for urlunquote .	urlunquote = allow_lazy ( urlunquote , six . text_type )
 16218	define the function urlunquote with an argument quoted_url .	def urlunquote_plus ( quoted_url ) :
-16219	call the function force_str with an argument quoted_url , use the result as an argument for the call to the function unquote_plus ,	return force_text ( unquote_plus ( force_str ( quoted_url ) ) )
-16220	use the result as an argument for the call to the function force_text , return the result . call the function allow_lazy with 2 arguments : urlunquote_plus and six.text_type , substitute the result for urlunquote_plus .	urlunquote_plus = allow_lazy ( urlunquote_plus , six . text_type )
+16219	call the function force_str with an argument quoted_url , use the result as an argument for the call to the function unquote_plus , use the result as an argument for the call to the function force_text , return the result .	return force_text ( unquote_plus ( force_str ( quoted_url ) ) )
+16220	call the function allow_lazy with 2 arguments : urlunquote_plus and six.text_type , substitute the result for urlunquote_plus .	urlunquote_plus = allow_lazy ( urlunquote_plus , six . text_type )
 16221	define the function urlencode with 2 arguments query and doseq set to integer 0 .	def urlencode ( query , doseq = 0 ) :
 16222	if query is an instance of MultiValueDict class ,	if isinstance ( query , MultiValueDict ) :
 16223	call the method query.lists , substitute the result for query .	query = query . lists ( )
 16224	otherwise if query has an attribute STR0 ,	elif hasattr ( query , STR0 ) :
 16225	call the method query.items , substitute the result for query .	query = query . items ( )
-16226	call the function original_urlencode with 2 arguments : list with 2 elements : result of the function force_str with an argument k ,	return original_urlencode ( [ ( force_str ( k ) , [ force_str ( i ) for i in v ] if isinstance ( v , ( list , tuple ) ) else force_str ( v ) ) for k , v in query ] , doseq )
-16227	and list with results of the function force_str with an argument i , for every i in v , only if v is a list or a tuple , otherwise second element is result of the function force_str with an argument v , for every k and v in query , and doseq , return the result . define the function cookie_date with an argument epoch_seconds set to None .	def cookie_date ( epoch_seconds = None ) :
+16226	call the function original_urlencode with 2 arguments : list with 2 elements : result of the function force_str with an argument k , and list with results of the function force_str with an argument i , for every i in v , only if v is a list or a tuple , otherwise second element is result of the function force_str with an argument v , for every k and v in query , and doseq , return the result .	return original_urlencode ( [ ( force_str ( k ) , [ force_str ( i ) for i in v ] if isinstance ( v , ( list , tuple ) ) else force_str ( v ) ) for k , v in query ] , doseq )
+16227	define the function cookie_date with an argument epoch_seconds set to None .	def cookie_date ( epoch_seconds = None ) :
 16228	call the function formatdate with an argument epoch_seconds , substitute the result for rfcdate .	rfcdate = formatdate ( epoch_seconds )
-16229	return a string STR0 , formated with : first 7 elements of rfcdate , elements of rfcdate from 8-th to the 11-th index ,	return STR0 % ( rfcdate [ : 7 ] , rfcdate [ 8 : 11 ] , rfcdate [ 12 : 25 ] )
-16230	and elements of rfcdate from 12-th to the 25-th index . define the function http_date with an argument epoch_seconds set to None .	def http_date ( epoch_seconds = None ) :
+16229	return a string STR0 , formated with : first 7 elements of rfcdate , elements of rfcdate from 8-th to the 11-th index , and elements of rfcdate from 12-th to the 25-th index .	return STR0 % ( rfcdate [ : 7 ] , rfcdate [ 8 : 11 ] , rfcdate [ 12 : 25 ] )
+16230	define the function http_date with an argument epoch_seconds set to None .	def http_date ( epoch_seconds = None ) :
 16231	call the function formatdate with 2 arguments : epoch_seconds and usegmt set to boolean True , return the result .	return formatdate ( epoch_seconds , usegmt = True )
 16232	define the function parse_http_date with an argument date .	def parse_http_date ( date ) :
 16233	for every regex in tuple with 3 elements : RFC1123_DATE , RFC850_DATE and ASCTIME_DATE ,	for regex in RFC1123_DATE , RFC850_DATE , ASCTIME_DATE :
@@ -16241,16 +16241,16 @@
 16243	increment year by integer 2000 .	year += 2000
 16244	if not ,	else :
 16245	increment year by integer 1900 .	year += 1900
-16246	call the method m.group with an argument string STR0 , convert the result to lowercase , use it as an argument for the call to the ,	month = MONTHS . index ( m . group ( STR0 ) . lower ( ) ) + 1
-16247	method MONTHS.index , increment the result by integer 1 , substitute it for month . call the method m.group with an argument string STR0 , convert the result into a string , substitute it for day .	day = int ( m . group ( STR0 ) )
+16246	call the method m.group with an argument string STR0 , convert the result to lowercase , use it as an argument for the call to the , method MONTHS.index , increment the result by integer 1 , substitute it for month .	month = MONTHS . index ( m . group ( STR0 ) . lower ( ) ) + 1
+16247	call the method m.group with an argument string STR0 , convert the result into a string , substitute it for day .	day = int ( m . group ( STR0 ) )
 16248	call the method m.group with an argument string STR0 , convert the result into a string , substitute it for hour .	hour = int ( m . group ( STR0 ) )
 16249	call the method m.group with an argument string STR0 , convert the result into a string , substitute it for min .	min = int ( m . group ( STR0 ) )
 16250	call the method m.group with an argument string STR0 , convert the result into a string , substitute it for sec .	sec = int ( m . group ( STR0 ) )
 16251	call the method MONTHS.index with 6 arguments : year , month , day , hour , min and sec , substitute the result for result .	result = datetime . datetime ( year , month , day , hour , min , sec )
 16252	call the method result.utctimetuple , use the result as an argument for the call to the method calendar.timegm , return the result .	return calendar . timegm ( result . utctimetuple ( ) )
 16253	if Exception exception is caught .	except Exception :
-16254	call the function six.reraise with 3 arguments : ValueError , instance of a class ValueError , created with an argument string ,	six . reraise ( ValueError , ValueError ( STR0 % date ) , sys . exc_info ( ) [ 2 ] )
-16255	STR0 formated with date and third element of the result of the function sys.exc_info . define the function parse_http_date_safe an argument date .	def parse_http_date_safe ( date ) :
+16254	call the function six.reraise with 3 arguments : ValueError , instance of a class ValueError , created with an argument string , STR0 formated with date and third element of the result of the function sys.exc_info .	six . reraise ( ValueError , ValueError ( STR0 % date ) , sys . exc_info ( ) [ 2 ] )
+16255	define the function parse_http_date_safe an argument date .	def parse_http_date_safe ( date ) :
 16256	try ,	try :
 16257	call the function parse_http_date with an argument date , return the result .	return parse_http_date ( date )
 16258	if Exception exception is caught .	except Exception :
@@ -16289,18 +16289,18 @@
 16291	define the function urlsafe_base64_decode with an argument s .	def urlsafe_base64_decode ( s ) :
 16292	call the method s.encode with an argument string STR0 , substitute the result for s .	s = s . encode ( STR0 )
 16293	try ,	try :
-16294	left justify string s in a field of width equal to the sum of length of s and reminder of the division of length of s by integer 4 ,	return base64 . urlsafe_b64decode ( s . ljust ( len ( s ) + len ( s ) % 4 , STR0 ) )
-16295	pad the rest of the field with bytes string STR0 , use the result as an argument for the call to the method base64.urlsafe_b64decode , return the result . if LookupError or BinasciiError , renamed to e , exceptions are caught .	except ( LookupError , BinasciiError ) as e :
+16294	left justify string s in a field of width equal to the sum of length of s and reminder of the division of length of s by integer 4 , pad the rest of the field with bytes string STR0 , use the result as an argument for the call to the method base64.urlsafe_b64decode , return the result .	return base64 . urlsafe_b64decode ( s . ljust ( len ( s ) + len ( s ) % 4 , STR0 ) )
+16295	if LookupError or BinasciiError , renamed to e , exceptions are caught .	except ( LookupError , BinasciiError ) as e :
 16296	raise an ValueError exception with an argument e .	raise ValueError ( e )
 16297	define the function parse_etags with an argument etag_str .	def parse_etags ( etag_str ) :
 16298	call the method ETAG_MATCH.findall with an argument etag_str , substitute the result for etags .	etags = ETAG_MATCH . findall ( etag_str )
 16299	if etags is false ,	if not etags :
 16300	return a list with an element etag_str .	return [ etag_str ]
-16301	for every e in etags call the method e.encode with an argument string STR0 , call the method decode on the result with an argument ,	etags = [ e . encode ( STR0 ) . decode ( STR1 ) for e in etags ]
-16302	string STR0 , substitute the list of results for etags . return etags .	return etags
+16301	for every e in etags call the method e.encode with an argument string STR0 , call the method decode on the result with an argument , string STR1 , substitute the list of results for etags .	etags = [ e . encode ( STR0 ) . decode ( STR1 ) for e in etags ]
+16302	return etags .	return etags
 16303	define the function quote_etag with an argument etag .	def quote_etag ( etag ) :
-16304	return a string STR200 ,	return STR200 )
-16305	is replaced with STR0 . define the function same_origin with 2 arguments url1 and url2 .	def same_origin ( url1 , url2 ) :
+16304	return a string STR200 .	return STR200 )
+16305	define the function same_origin with 2 arguments url1 and url2 .	def same_origin ( url1 , url2 ) :
 16306	substitute result of the function urlparse with an argument ur1 for p1 and result of the function urlparse with an argument ur2 for p2 .	p1 , p2 = urlparse ( url1 ) , urlparse ( url2 )
 16307	try ,	try :
 16308	if p2.scheme , p2.hostname and p2.port equals p1.scheme , p1.hostname and p1.port , respectively , return boolean True , otherwise return boolean False .	return ( p1 . scheme , p1 . hostname , p1 . port ) == ( p2 . scheme , p2 . hostname , p2 . port )
@@ -16320,8 +16320,8 @@
 16322	import module sys .	import sys
 16323	from django.utils import six into default name space .	from django . utils import six
 16324	from django.utils.deprecation import RemovedInDjango19Warning into default name space .	from django . utils . deprecation import RemovedInDjango19Warning
-16325	call the function warnings.warn with 3 arguments : string STR0 ,	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
-16326	RemovedInDjango19Warning and stacklevel set to integer 2. define the function _resolve_name with 3 arguments : name , package and level .	def _resolve_name ( name , package , level ) :
+16325	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel set to integer 2 .	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
+16326	define the function _resolve_name with 3 arguments : name , package and level .	def _resolve_name ( name , package , level ) :
 16327	if package doesnt have an STR0 attribute ,	if not hasattr ( package , STR0 ) :
 16328	raise an ValueError with an argument string STR0 .	raise ValueError ( STR0 )
 16329	substitute length of package for dot .	dot = len ( package )
@@ -16343,8 +16343,8 @@
 16345	if character is not equal to a string STR0 ,	if character != STR0 :
 16346	break from the loop execution .	break
 16347	increment level by one .	level += 1
-16348	call the function _resolve_name with 3 arguments : name list elements from the level index to the end , package and level ,	name = _resolve_name ( name [ level : ] , package , level )
-16349	substitute the result for name . call the function __import__ with an argument name .	__import__ ( name )
+16348	call the function _resolve_name with 3 arguments : name list elements from the level index to the end , package and level , substitute the result for name .	name = _resolve_name ( name [ level : ] , package , level )
+16349	call the function __import__ with an argument name .	__import__ ( name )
 16350	return sys.modules dictionary value under the name key .	return sys . modules [ name ]
 16351	from django.core.exceptions import ValidationError into default name space .	from django . core . exceptions import ValidationError
 16352	from django.utils.translation import ugettext_lazy as _ into default name space .	from django . utils . translation import ugettext_lazy as _
@@ -16364,8 +16364,8 @@
 16366	return ipv4_unpacked .	return ipv4_unpacked
 16367	split ip_str by STR0 , substitute the result for hextets .	hextets = ip_str . split ( STR0 )
 16368	for every index in range of integers from 0 to length of hextets , not included ,	for index in range ( len ( hextets ) ) :
-16369	get the value under the index key of the hextets dictionary , remove the leading STR0 characters ,	hextets [ index ] = hextets [ index ] . lstrip ( STR0 )
-16370	substitute the result for value under the index key of the hextets dictionary . get the value under the index key of the hextets dictionary , if it is false ,	if not hextets [ index ] :
+16369	get the value under the index key of the hextets dictionary , remove the leading STR0 characters , substitute the result for value under the index key of the hextets dictionary .	hextets [ index ] = hextets [ index ] . lstrip ( STR0 )
+16370	get the value under the index key of the hextets dictionary , if it is false ,	if not hextets [ index ] :
 16371	value under the index key of the hextets dictionary is a string STR0 .	hextets [ index ] = STR0
 16372	if value under the index key of the hextets dictionary equals to string STR0 ,	if hextets [ index ] == STR0 :
 16373	increment doublecolon_len by integer 1 ,	doublecolon_len += 1
@@ -16392,8 +16392,8 @@
 16394	split ip_str into parts by STR0 , substitute the result for hextets .	hextets = ip_str . split ( STR0 )
 16395	if STR0 is contained in last elements of hextets ,	if STR0 in hextets [ - 1 ] :
 16396	return ip_str .	return ip_str
-16397	ipv4_address is a string STR0 formated with first 2 elements of seventh element of hextets converted into hexadecimal number ,	ipv4_address = STR0 % ( int ( hextets [ 6 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 6 ] [ 2 : 4 ] , 16 ) , int ( hextets [ 7 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 7 ] [ 2 : 4 ] , 16 ) , )
-16398	second 2 elements of seventh element of hextets converted into hexadecimal number , first 2 elements of eight element of hextets converted into hexadecimal number , second 2 elements of eight element of hextets converted into hexadecimal number . join first 5 elements of hextets into a string , separated by STR0 , substitute the result for result .	result = STR0 . join ( hextets [ 0 : 6 ] )
+16397	ipv4_address is a string STR0 formated with first 2 elements of seventh element of hextets converted into hexadecimal number , second 2 elements of seventh element of hextets converted into hexadecimal number , first 2 elements of eight element of hextets converted into hexadecimal number , second 2 elements of eight element of hextets converted into hexadecimal number .	ipv4_address = STR0 % ( int ( hextets [ 6 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 6 ] [ 2 : 4 ] , 16 ) , int ( hextets [ 7 ] [ 0 : 2 ] , 16 ) , int ( hextets [ 7 ] [ 2 : 4 ] , 16 ) , )
+16398	join first 5 elements of hextets into a string , separated by STR0 , substitute the result for result .	result = STR0 . join ( hextets [ 0 : 6 ] )
 16399	append STR0 and ipv4_address to result .	result += STR0 + ipv4_address
 16400	return result .	return result
 16401	define the function _unpack_ipv4 with an argument ip_str .	def _unpack_ipv4 ( ip_str ) :
@@ -16426,7 +16426,7 @@
 16428	return boolean False .	return False
 16429	if not ,	else :
 16430	try ,	try :
-16431	if hextet converted to hexadecimal number is smaller than hexadecimal 0 , or hextet converted to hexadecimal number is smaller than hexadecimal FFFF ,	if int ( hextet , 16 ) < 0x0 or int ( hextet , 16 ) > 0xFFFF :
+16431	if hextet converted to hexadecimal number is smaller than hexadecimal 0 , or hextet converted to hexadecimal number is smaller than hexadecimal FFFF ,	if int ( hextet , 16 ) < 0 or int ( hextet , 16 ) > FFFF :
 16432	return boolean False .	return False
 16433	if ValueError exception is caught .	except ValueError :
 16434	return boolean False .	return False
@@ -16450,8 +16450,8 @@
 16452	split ip_str into parts by STR0 , substitute the result for new_ip .	new_ip = ip_str . split ( STR0 )
 16453	ret_ip is an empty list .	ret_ip = [ ]
 16454	for every hextet in new_ip ,	for hextet in new_ip :
-16455	subtract length of hextet from 4 , create a string with previous result number of character STR0 , append hextet to it ,	ret_ip . append ( ( STR0 * ( 4 - len ( hextet ) ) + hextet ) . lower ( ) )
-16456	convert the result into a lowercase , append it to ret_ip . join elements of ret_ip into a string separated with STR0 , return it .	return STR0 . join ( ret_ip )
+16455	subtract length of hextet from 4 , create a string with previous result number of character STR0 , append hextet to it , convert the result into a lowercase , append it to ret_ip .	ret_ip . append ( ( STR0 * ( 4 - len ( hextet ) ) + hextet ) . lower ( ) )
+16456	join elements of ret_ip into a string separated with STR0 , return it .	return STR0 . join ( ret_ip )
 16457	define the function _is_shorthand_ip with an argument ip_str .	def _is_shorthand_ip ( ip_str ) :
 16458	if count of occurrence of STR0 in ip_str equals integer 1 ,	if ip_str . count ( STR0 ) == 1 :
 16459	return boolean True .	return True
@@ -16475,8 +16475,8 @@
 16477	substitute regex for self.regex .	self . regex = regex
 16478	substitute next for self.next .	self . next = next
 16479	define the function literals with 3 arguments : choices , prefix set to an empty string and suffix set to an empty string .	def literals ( choices , prefix = STR0" ) :
-16480	for every c in choices split into words , concatenate prefix , result of the function re.escape with an argument c and suffix ,	return STR0 . join ( prefix + re . escape ( c ) + suffix for c in choices . split ( ) )
-16481	and join the results into a string , separated with STR0 character , return the result . derive the class Lexer from the object base class .	class Lexer ( object ) :
+16480	for every c in choices split into words , concatenate prefix , result of the function re.escape with an argument c and suffix , and join the results into a string , separated with STR0 character , return the result .	return STR0 . join ( prefix + re . escape ( c ) + suffix for c in choices . split ( ) )
+16481	derive the class Lexer from the object base class .	class Lexer ( object ) :
 16482	define the method __init__ with 3 arguments self , states and first .	def __init__ ( self , states , first ) :
 16483	self.regexes is an empty dictionary .	self . regexes = { }
 16484	self.tokens is an empty dictionary .	self . toks = { }
@@ -16486,8 +16486,8 @@
 16488	groupid is a string STR0 formated with tok.id .	groupid = STR0 % tok . id
 16489	substitute tok for value under the groupid key of the self.toks dictionary .	self . toks [ groupid ] = tok
 16490	format a string STR0 with groupid and tok.regex , append it to the parts .	parts . append ( STR0 % ( groupid , tok . regex ) )
-16491	call the function re.compile with 2 arguments : elements of parts joined into a string , separated with STR0 ,	self . regexes [ state ] = re . compile ( STR0 . join ( parts ) , re . MULTILINE | re . VERBOSE )
-16492	and result of bitwise OR performed on 2 operands : re.MULTILINE and re.VERBOSE , substitute the result for value under the state key of the self.regexes dictionary . substitute first for self.state .	self . state = first
+16491	call the function re.compile with 2 arguments : elements of parts joined into a string , separated with STR0 , and result of bitwise OR performed on 2 operands : re.MULTILINE and re.VERBOSE , substitute the result for value under the state key of the self.regexes dictionary .	self . regexes [ state ] = re . compile ( STR0 . join ( parts ) , re . MULTILINE | re . VERBOSE )
+16492	substitute first for self.state .	self . state = first
 16493	define the method lex with 2 arguments self and text .	def lex ( self , text ) :
 16494	substitute length of text for end .	end = len ( text )
 16495	substitute self.state for state .	state = self . state
@@ -16508,8 +16508,8 @@
 16510	derive the class JsLexer from the Lexer base class .	class JsLexer ( Lexer ) :
 16511	both_before is a list containing 14 elements , all of them are instances of Tok class , created with 2 arguments , a string and a raw string .	both_before = [ Tok ( STR4 , STR5 ) , Tok ( STR6 , STR7 ) , Tok ( STR8 , STR9 ) , Tok ( STR10 , literals ( STR0 , suffix = STR11 ) , next = STR31 ) , Tok ( STR12 , literals ( STR13 , suffix = STR14 ) , next = STR32 ) , Tok ( STR15 , STR1 , next = STR33 ) , Tok ( STR16 , STR17 , next = STR34 ) , Tok ( STR18 , STR19 ) , Tok ( STR20 , STR2 , next = STR35 ) , Tok ( STR21 , literals ( STR3 ) , next = STR22 ) , Tok ( STR23 , literals ( STR24 ) , next = STR36 ) , Tok ( STR25 , literals ( STR26 ) , next = STR37 ) , Tok ( STR27 , STR200 ) , ]
 16512	both_after is an list with an element instance of Tok class , created with 2 arguments : string STR0 and raw string STR1 .	both_after = [ Tok ( STR0 , STR1 ) , ]
-16513	states is a dictionary with 2 arguments : appended list with an element instance of a class Tok , created with 3 arguments : STR0 ,	states = { STR4 : both_before + [ Tok ( STR1 , literals ( STR2 ) , next = STR5 ) , ] + both_after , STR6 : both_before + [ Tok ( STR3 , STR0 , next = STR7 ) , ] + both_after , }
-16514	result of the function literals called with an argument string STR0 and next as a string STR2 , to the both_before , appended both_after to the previous result , for STR3 and appended list with an element instance of a class Tok , created with 3 arguments : string STR1 , raw string STR4 , and next as a string STR5 , to the both_before , appended both_after to the previous result for STR6 . define the method __init__ with an argument self .	def __init__ ( self ) :
+16513	states is a dictionary with 2 arguments : appended list with an element instance of a class Tok , created with 3 arguments : STR0 , result of the function literals called with an argument string STR1 and next as a string STR3 , to the both_before , appended both_after to the previous result , for STR4 and appended list with an element instance of a class Tok , created with 3 arguments : string STR2 , raw string STR5 , and next as a string STR6 , to the both_before , appended both_after to the previous result for STR7 .	states = { STR4 : both_before + [ Tok ( STR1 , literals ( STR2 ) , next = STR5 ) , ] + both_after , STR6 : both_before + [ Tok ( STR3 , STR0 , next = STR7 ) , ] + both_after , }
+16514	define the method __init__ with an argument self .	def __init__ ( self ) :
 16515	call the method __init__ with 2 arguments : self.states and string STR0 from the base class of the class JsLexer .	super ( JsLexer , self ) . __init__ ( self . states , STR0 )
 16516	define the function prepare_js_for_gettext with an argument js .	def prepare_js_for_gettext ( js ) :
 16517	define the function escape_quotes with an argument m .	def escape_quotes ( m ) :
@@ -16525,8 +16525,8 @@
 16527	tok is a string STR200 ,	tok = STR200
 16528	otherwise if name starts with a string STR0 ,	elif name == STR0 :
 16529	if tok starts with STR0 ,	if tok . startswith ( STR0 ) :
-16530	call the function re.sub with 3 arguments : raw string STR0 , escape_quotes and tok without the first and last element ,	guts = re . sub ( STR0 , escape_quotes , tok [ 1 : - 1 ] )
-16531	substitute the result for guts . concatenate string STR200 , substitute the result for tok .	tok = STR200
+16530	call the function re.sub with 3 arguments : raw string STR0 , escape_quotes and tok without the first and last element , substitute the result for guts .	guts = re . sub ( STR0 , escape_quotes , tok [ 1 : - 1 ] )
+16531	concatenate string STR200 , substitute the result for tok .	tok = STR200
 16532	otherwise if name equals a string STR0 .	elif name == STR0 :
 16533	replace every occurrence of STR0 in tok with STR1 , substitute the result for tok .	tok = tok . replace ( STR0 , STR1 )
 16534	append tok to c .	c . append ( tok )
@@ -16543,8 +16543,8 @@
 16545	from logging import NullHandler .	from logging import NullHandler
 16546	from logging.config import dictConfig .	from logging . config import dictConfig
 16547	substitute logging.getLogger for getLogger .	getLogger = logging . getLogger
-16548	DEFAULT_LOGGING is a dictionary with 5 initial entries : 1 for STR0 , False for STR1 ,	DEFAULT_LOGGING = { STR0 : 1 , STR1 : False , STR2 : { STR3 : { STR4 : STR5 , } , STR6 : { STR7 : STR8 , } , } , STR9 : { STR10 : { STR11 : STR12 , STR13 : [ STR14 ] , STR15 : STR16 , } , STR17 : { STR18 : STR19 , } , STR20 : { STR21 : STR22 , STR23 : [ STR24 ] , STR25 : STR26 } } , STR27 : { STR28 : { STR29 : [ STR30 ] , } , STR31 : { STR32 : [ STR33 ] , STR34 : STR35 , STR36 : False , } , STR37 : { STR38 : [ STR39 ] , STR40 : STR41 , STR42 : False , } , STR43 : { STR44 : [ STR45 ] , } , } }
-16549	and 3 additional pairs of dictionaries for string . define the function configure_logging with 2 arguments : logging_config and logging_settings .	def configure_logging ( logging_config , logging_settings ) :
+16548	DEFAULT_LOGGING is a dictionary with 5 initial entries : 1 for STR0 , False for STR1 , and 3 additional pairs of dictionaries for string .	DEFAULT_LOGGING = { STR0 : 1 , STR1 : False , STR2 : { STR3 : { STR4 : STR5 , } , STR6 : { STR7 : STR8 , } , } , STR9 : { STR10 : { STR11 : STR12 , STR13 : [ STR14 ] , STR15 : STR16 , } , STR17 : { STR18 : STR19 , } , STR20 : { STR21 : STR22 , STR23 : [ STR24 ] , STR25 : STR26 } } , STR27 : { STR28 : { STR29 : [ STR30 ] , } , STR31 : { STR32 : [ STR33 ] , STR34 : STR35 , STR36 : False , } , STR37 : { STR38 : [ STR39 ] , STR40 : STR41 , STR42 : False , } , STR43 : { STR44 : [ STR45 ] , } , } }
+16549	define the function configure_logging with 2 arguments : logging_config and logging_settings .	def configure_logging ( logging_config , logging_settings ) :
 16550	if sys.warnoptions is false ,	if not sys . warnoptions :
 16551	call the method logging.captureWarnings with an argument boolean True .	logging . captureWarnings ( True )
 16552	call the function warnings.simplefilter with 2 arguments : string STR0 and RemovedInNextVersionWarning .	warnings . simplefilter ( STR0 , RemovedInNextVersionWarning )
@@ -16561,8 +16561,8 @@
 16563	define the method emit with 2 arguments : self and record .	def emit ( self , record ) :
 16564	try ,	try :
 16565	substitute record.request for request .	request = record . request
-16566	subject is an string STR0 , formated with record.levelname , string STR1 if value under the STR2 key ,	subject = STR0 % ( record . levelname , ( STR1 if request . META . get ( STR2 ) in settings . INTERNAL_IPS else STR3 ) , record . getMessage ( ) )
-16567	of the request.META dictionary is contained in settings.INTERNAL_IPS , otherwise use string STR0 , and result of the method record.getMessage . call the function get_exception_reporter_filter with an argument request , substitute the result for filter .	filter = get_exception_reporter_filter ( request )
+16566	subject is an string STR0 , formated with record.levelname , string STR1 if value under the STR2 key , of the request.META dictionary is contained in settings.INTERNAL_IPS , otherwise use string STR3 , and result of the method record.getMessage .	subject = STR0 % ( record . levelname , ( STR1 if request . META . get ( STR2 ) in settings . INTERNAL_IPS else STR3 ) , record . getMessage ( ) )
+16567	call the function get_exception_reporter_filter with an argument request , substitute the result for filter .	filter = get_exception_reporter_filter ( request )
 16568	call the method filter.get_request_repr with an argument request , format string STR0 with the result , substitute the result for request_repr .	request_repr = STR0 . format ( filter . get_request_repr ( request ) )
 16569	if Exception exception is caught ,	except Exception :
 16570	subject is an string STR0 formated with record.levelname and result of the method record.getMessage , respectively .	subject = STR0 % ( record . levelname , record . getMessage ( ) )
@@ -16580,8 +16580,8 @@
 16582	define the connection with an argument self .	def connection ( self ) :
 16583	call the function get_connection with 2 arguments : backend set to self.email_backend and fail_silently set to boolean True .	return get_connection ( backend = self . email_backend , fail_silently = True )
 16584	define the method format_subject with 2 arguments : self and subject .	def format_subject ( self , subject ) :
-16585	replace every occurrence of STR0 in subject with STR1 and replace every occurrence of STR2 in subject with STR3 ,	formatted_subject = subject . replace ( STR0 , STR1 ) . replace ( STR2 , STR3 )
-16586	substitute the result for formatted_subject . return first 989 elements of formatted_subject .	return formatted_subject [ : 989 ]
+16585	replace every occurrence of STR0 in subject with STR1 and replace every occurrence of STR2 in subject with STR3 , substitute the result for formatted_subject .	formatted_subject = subject . replace ( STR0 , STR1 ) . replace ( STR2 , STR3 )
+16586	return first 989 elements of formatted_subject .	return formatted_subject [ : 989 ]
 16587	derive the class CallbackFilter from logging.Filter base class .	class CallbackFilter ( logging . Filter ) :
 16588	define the method __init__ with 2 arguments : self and callback .	def __init__ ( self , callback ) :
 16589	substitute callback for self.callback .	self . callback = callback
@@ -16654,8 +16654,8 @@
 16656	return result .	return result
 16657	if not ,	else :
 16658	define the function wrapper with 2 arguments : unpacked list args and unpacked dictionary kwds .	def wrapper ( * args , ** kwds ) :
-16659	if kwds is true or typed is true , call the function make_key with 3 arguments : args , kwds and typed , substitute the result for key ,	key = make_key ( args , kwds , typed ) if kwds or typed else args
-16660	otherwise substitute args for key . with lock ,	with lock :
+16659	if kwds is true or typed is true , call the function make_key with 3 arguments : args , kwds and typed , substitute the result for key , otherwise substitute args for key .	key = make_key ( args , kwds , typed ) if kwds or typed else args
+16660	with lock ,	with lock :
 16661	call the function cache_get with an argument key , substitute the result for link .	link = cache_get ( key )
 16662	if link is not None ,	if link is not None :
 16663	substitute nonlocal_root for a tuple with an element root .	root , = nonlocal_root
@@ -16686,13 +16686,13 @@
 16688	if not ,	else :
 16689	substitute value under the PREV key of the root dictionary for last .	last = root [ PREV ]
 16690	link is a list with 4 elements : last , root , key and result .	link = [ last , root , key , result ]
-16691	substitute link for value under the NEXT key of the last dictionary , for value under the PREV key of the root dictionary ,	last [ NEXT ] = root [ PREV ] = cache [ key ] = link
-16692	for value under the key key of the cache dictionary . increment stats dictionary value under the MISSES key by integer 1 .	stats [ MISSES ] += 1
+16691	substitute link for value under the NEXT key of the last dictionary , for value under the PREV key of the root dictionary , for value under the key key of the cache dictionary .	last [ NEXT ] = root [ PREV ] = cache [ key ] = link
+16692	increment stats dictionary value under the MISSES key by integer 1 .	stats [ MISSES ] += 1
 16693	return result .	return result
 16694	define the function cache_info .	def cache_info ( ) :
 16695	with lock ,	with lock :
-16696	return an instance of _CacheInfo class , created with 4 arguments : value under the HITS key of the stats dictionary ,	return _CacheInfo ( stats [ HITS ] , stats [ MISSES ] , maxsize , len ( cache ) )
-16697	value under the MISSES key of the stats dictionary , maxsize and length of cache . define the function cache_clear .	def cache_clear ( ) :
+16696	return an instance of _CacheInfo class , created with 4 arguments : value under the HITS key of the stats dictionary , value under the MISSES key of the stats dictionary , maxsize and length of cache .	return _CacheInfo ( stats [ HITS ] , stats [ MISSES ] , maxsize , len ( cache ) )
+16697	define the function cache_clear .	def cache_clear ( ) :
 16698	with lock ,	with lock :
 16699	call the method cache.clear .	cache . clear ( )
 16700	substitute first element of nonlocal_root for root .	root = nonlocal_root [ 0 ]
@@ -16717,21 +16717,21 @@
 16719	split dotted_path into two parts from the right at the STR0 character , assign the result to module_path and class_name , respectively .	module_path , class_name = dotted_path . rsplit ( STR0 , 1 )
 16720	if ValueError exception is caught ,	except ValueError :
 16721	msg is a string STR0 formated with dotted_path .	msg = STR0 % dotted_path
-16722	call the function six.reraise with 3 arguments : ImportError , instance of ImportError class created with an argument msg ,	six . reraise ( ImportError , ImportError ( msg ) , sys . exc_info ( ) [ 2 ] )
-16723	and third element of result of the function sys.exc_info . call the function import_module with an argument module_path , substitute the result for module .	module = import_module ( module_path )
+16722	call the function six.reraise with 3 arguments : ImportError , instance of ImportError class created with an argument msg , and third element of result of the function sys.exc_info .	six . reraise ( ImportError , ImportError ( msg ) , sys . exc_info ( ) [ 2 ] )
+16723	call the function import_module with an argument module_path , substitute the result for module .	module = import_module ( module_path )
 16724	try ,	try :
 16725	get attribute class_name form the module object , return it .	return getattr ( module , class_name )
 16726	if AttributeError exception is caught ,	except AttributeError :
 16727	msg is a string STR2 formated with dotted_path and class_name , respectively .	msg = STR2 % ( dotted_path , class_name )
-16728	call the function six.reraise with 3 arguments : ImportError , instance of ImportError class created with an argument msg ,	six . reraise ( ImportError , ImportError ( msg ) , sys . exc_info ( ) [ 2 ] )
-16729	and third element of result of the function sys.exc_info . define the function import_by_path with 2 arguments dotted_path and error_prefix set to an empty string..	def import_by_path ( dotted_path , error_prefix = STR ) :
-16730	call the function warnings.warn with 3 arguments : string STR0 ,	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
-16731	RemovedInDjango19Warning and stacklevel as integer 2. try ,	try :
+16728	call the function six.reraise with 3 arguments : ImportError , instance of ImportError class created with an argument msg , and third element of result of the function sys.exc_info .	six . reraise ( ImportError , ImportError ( msg ) , sys . exc_info ( ) [ 2 ] )
+16729	define the function import_by_path with 2 arguments dotted_path and error_prefix set to an empty string..	def import_by_path ( dotted_path , error_prefix = STR ) :
+16730	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel as integer 2 .	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
+16731	try ,	try :
 16732	call the function import_string with an argument dotted_path , substitute the result for attr .	attr = import_string ( dotted_path )
 16733	if ImportError , renamed to e , exception is caught ,	except ImportError as e :
 16734	msg is a string STR1 , where STR2 is replaced with error_prefix , dotted_path and e , respectively .	msg = STR1 % ( error_prefix , dotted_path , e )
-16735	call the function six.reraise with 3 arguments : ImproperlyConfigured , instance of ImproperlyConfigured class created with msg ,	six . reraise ( ImproperlyConfigured , ImproperlyConfigured ( msg ) , sys . exc_info ( ) [ 2 ] )
-16736	and third element of the function sys.exc_info result . return attr .	return attr
+16735	call the function six.reraise with 3 arguments : ImproperlyConfigured , instance of ImproperlyConfigured class created with msg , and third element of the function sys.exc_info result .	six . reraise ( ImproperlyConfigured , ImproperlyConfigured ( msg ) , sys . exc_info ( ) [ 2 ] )
+16736	return attr .	return attr
 16737	define the function autodiscover_modules with 2 arguments unpacked list args and unpacked dictionary kwargs .	def autodiscover_modules ( * args , ** kwargs ) :
 16738	from django.apps import apps .	from django . apps import apps
 16739	get value under the STR0 key of the kwargs dictionary , substitute it for register_to .	register_to = kwargs . get ( STR0 )
@@ -16758,8 +16758,8 @@
 16760	if AttributeError exception is caught ,	except AttributeError :
 16761	return boolean False .	return False
 16762	concatenate package_name , string STR0 and module_name , substitute it for full_module_name .	full_module_name = package_name + STR0 + module_name
-16763	call the function importlib_find with 2 arguments : full_module_name and package_path , if the result is not None , return boolean True ,	return importlib_find ( full_module_name , package_path ) is not None
-16764	otherwise return boolean False . if not ,	else :
+16763	call the function importlib_find with 2 arguments : full_module_name and package_path , if the result is not None , return boolean True , otherwise return boolean False .	return importlib_find ( full_module_name , package_path ) is not None
+16764	if not ,	else :
 16765	import imp .	import imp
 16766	define the function module_has_submodule with 2 arguments : package and module_name .	def module_has_submodule ( package , module_name ) :
 16767	join package.__name__ and module_name into a string separated with STR0 , substitute it for name .	name = STR0 . join ( [ package . __name__ , module_name ] )
@@ -16779,8 +16779,8 @@
 16781	substitute the value under the entry key of the sys.path_importer_cache dictionary for finder .	finder = sys . path_importer_cache [ entry ]
 16782	if finder is None ,	if finder is None :
 16783	try ,	try :
-16784	call the method imp.find_module with 2 arguments : module_name and list containing element entry , assign the result to file_ , _ ,	file_ , _ , _ = imp . find_module ( module_name , [ entry ] )
-16785	and _ , respectively . if file_ is true ,	if file_ :
+16784	call the method imp.find_module with 2 arguments : module_name and list containing element entry , assign the result to file_ , _ , and _ , respectively .	file_ , _ , _ = imp . find_module ( module_name , [ entry ] )
+16785	if file_ is true ,	if file_ :
 16786	close file_ file descriptor .	file_ . close ( )
 16787	return boolean True .	return True
 16788	if ImportError exception is caught ,	except ImportError :
@@ -16802,8 +16802,8 @@
 16804	if not ,	else :
 16805	if entry is a directory ,	if os . path . isdir ( entry ) :
 16806	try ,	try :
-16807	call the method imp.find_module with 2 arguments : module_name and list containing element entry , assign the result to file_ , _ ,	file_ , _ , _ = imp . find_module ( module_name , [ entry ] )
-16808	and _ , respectively . if file_ is true ,	if file_ :
+16807	call the method imp.find_module with 2 arguments : module_name and list containing element entry , assign the result to file_ , _ , and _ , respectively	file_ , _ , _ = imp . find_module ( module_name , [ entry ] )
+16808	if file_ is true ,	if file_ :
 16809	close file_ file descriptor .	file_ . close ( )
 16810	return boolean True .	return True
 16811	if ImportError exception is caught ,	except ImportError :
@@ -16814,12 +16814,12 @@
 16816	from django.utils.safestring import mark_safe into default name space .	from django . utils . safestring import mark_safe
 16817	from django.utils import six into default name space .	from django . utils import six
 16818	define the function format with 6 arguments : number , decimal_sep , decimal_pos set to None , grouping set to integer 0 ,	def format ( number , decimal_sep , decimal_pos = None , grouping = 0 , thousand_sep = STR , force_grouping = False ) :
-16819	if settings.USE_L10N is true , substitute settings.USE_THOUSAND_SEPARATOR for use_grouping ,	use_grouping = settings . USE_L10N and settings . USE_THOUSAND_SEPARATOR
-16820	otherwise substitute settings.USE_L10N for use_grouping . if use_grouping is true substitute it for use_grouping , otherwise substitute force_grouping for use_grouping .	use_grouping = use_grouping or force_grouping
+16819	if settings.USE_L10N is true , substitute settings.USE_THOUSAND_SEPARATOR for use_grouping , otherwise substitute settings.USE_L10N for use_grouping .	use_grouping = settings . USE_L10N and settings . USE_THOUSAND_SEPARATOR
+16820	if use_grouping is true substitute it for use_grouping , otherwise substitute force_grouping for use_grouping .	use_grouping = use_grouping or force_grouping
 16821	if use_grouping is true and grouping is greater than integer 0 , use_grouping is boolean True , otherwise it is boolean False .	use_grouping = use_grouping and grouping > 0
 16822	if number is an integer and use_grouping is false and decimal_pos is false ,	if isinstance ( number , int ) and not use_grouping and not decimal_pos :
-16823	call the function six.text_type with an argument number , use the result as an argument for the call to the function mark_safe ,	return mark_safe ( six . text_type ( number ) )
-16824	return the result . sign is an empty string .	sign = STR
+16823	call the function six.text_type with an argument number , use the result as an argument for the call to the function mark_safe , return the result .	return mark_safe ( six . text_type ( number ) )
+16824	sign is an empty string .	sign = STR
 16825	call the function six.text_type with an argument number , substitute the result for str_number .	str_number = six . text_type ( number )
 16826	if first element of str_number equals a string STR0 .	if str_number [ 0 ] == STR0 :
 16827	sign is a string STR0 .	sign = STR0
@@ -16831,8 +16831,8 @@
 16833	if not ,	else :
 16834	substitute str_number and an empty string for int_part and dec_part .	int_part , dec_part = str_number , STR
 16835	if decimal_pos is not None	if decimal_pos is not None :
-16836	subtract length of dec_part from decimal_pos , multiply the number of character STR0 by the result ,	dec_part = dec_part + ( STR0 * ( decimal_pos - len ( dec_part ) ) )
-16837	append the resulting string to dec_part , substitute it for dec_part . if dec_part is true ,	if dec_part :
+16836	subtract length of dec_part from decimal_pos , multiply the number of character STR0 by the result , append the resulting string to dec_part , substitute it for dec_part .	dec_part = dec_part + ( STR0 * ( decimal_pos - len ( dec_part ) ) )
+16837	if dec_part is true ,	if dec_part :
 16838	add decimal_sep and dec_part , substitute the result for dec_part .	dec_part = decimal_sep + dec_part
 16839	if use_grouping is true ,	if use_grouping :
 16840	int_part_gd is an empty string .	int_part_gd = STR
@@ -16845,8 +16845,8 @@
 16847	from __future__ import unicode_literals into default name space .	from __future__ import unicode_literals
 16848	from django.utils import six into default name space .	from django . utils import six
 16849	from django.utils.six.moves import zip into default name space .	from django . utils . six . moves import zip
-16850	ESCAPE_MAPPINGS is an dictionary with 10 initial entries : None for STR0 , None for STR1 , None for STR2 , STR3 for STR4 , STR5 for STR6 ,	ESCAPE_MAPPINGS = { STR0 : None , STR1 : None , STR2 : None , STR3 : STR4 , STR5 : STR6 , STR7 : STR8 , STR9 : STR10 , STR11 : STR12 , STR13 : STR14 , STR15 : None , }
-16851	STR0 for STR1 , STR2 for STR3 , STR4 for STR5 , STR6 for STR7 and None for STR8 . derive the class Choice from list base class .	class Choice ( list ) :
+16850	ESCAPE_MAPPINGS is an dictionary with 10 initial entries : None for STR0 , None for STR1 , None for STR2 , STR3 for STR4 , STR5 for STR6 , STR7 for STR8 , STR9 for STR10 , STR11 for STR12 , STR13 for STR14 and None for STR15 .	ESCAPE_MAPPINGS = { STR0 : None , STR1 : None , STR2 : None , STR3 : STR4 , STR5 : STR6 , STR7 : STR8 , STR9 : STR10 , STR11 : STR12 , STR13 : STR14 , STR15 : None , }
+16851	derive the class Choice from list base class .	class Choice ( list ) :
 16852	derive the class Group from list base class .	class Group ( list ) :
 16853	derive the class NonCapture from list base class .	class NonCapture ( list ) :
 16854	define the function normalize with an argument pattern .	def normalize ( pattern ) :
@@ -17208,50 +17208,50 @@
 17210	call the function _import_module with an argument self.mod , substitute the result for module .	module = _import_module ( self . mod )
 17211	gett self.attr from the module object , return it .	return getattr ( module , self . attr )
 17212	derive class _MovedItems from the _LazyModule base class .	class _MovedItems ( _LazyModule ) :
-17213	_moved_attributes is a list with 55 initial elements , 13 of them are the results of the call to the function MovedAttribute ,	_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 , STR3 ) , MovedAttribute ( STR4 , STR5 , STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 , STR12 , STR13 ) , MovedAttribute ( STR14 , STR15 , STR16 , STR17 , STR18 ) , MovedAttribute ( STR19 , STR20 , STR21 , STR22 , STR23 ) , MovedAttribute ( STR24 , STR25 , STR26 , STR27 , STR28 ) , MovedAttribute ( STR29 , STR30 , STR31 , STR32 ) , MovedAttribute ( STR33 , STR34 , STR35 ) , MovedAttribute ( STR36 , STR37 , STR38 ) , MovedAttribute ( STR39 , STR40 , STR41 ) , MovedAttribute ( STR42 , STR43 , STR44 , STR45 , STR46 ) , MovedAttribute ( STR47 , STR48 , STR49 , STR50 , STR51 ) , MovedAttribute ( STR52 , STR53 , STR54 , STR55 , STR56 ) , MovedModule ( STR57 , STR58 ) , MovedModule ( STR59 , STR60 ) , MovedModule ( STR61 , STR62 ) , MovedModule ( STR63 , STR64 , STR65 ) , MovedModule ( STR66 , STR67 , STR68 ) , MovedModule ( STR69 , STR70 , STR71 ) , MovedModule ( STR72 , STR73 , STR74 ) , MovedModule ( STR75 , STR76 , STR77 ) , MovedModule ( STR78 , STR79 , STR80 ) , MovedModule ( STR81 , STR82 , STR83 ) , MovedModule ( STR84 , STR85 , STR86 ) , MovedModule ( STR87 , STR88 , STR89 ) , MovedModule ( STR90 , STR91 , STR92 ) , MovedModule ( STR93 , STR94 , STR95 ) , MovedModule ( STR96 , STR97 , STR98 ) , MovedModule ( STR99 , STR100 , STR101 ) , MovedModule ( STR102 , STR103 ) , MovedModule ( STR104 , STR105 ) , MovedModule ( STR106 , STR107 ) , MovedModule ( STR108 , STR109 , STR110 ) , MovedModule ( STR111 , STR112 ) , MovedModule ( STR113 , STR114 , STR115 ) , MovedModule ( STR116 , STR117 , STR118 ) , MovedModule ( STR119 , STR120 , STR121 ) , MovedModule ( STR122 , STR123 , STR124 ) , MovedModule ( STR125 , STR126 , STR127 ) , MovedModule ( STR128 , STR129 , STR130 ) , MovedModule ( STR131 , STR132 , STR133 ) , MovedModule ( STR134 , STR135 , STR136 ) , MovedModule ( STR137 , STR138 , STR139 ) , MovedModule ( STR140 , STR141 , STR142 ) , MovedModule ( STR143 , STR144 , STR145 ) , MovedModule ( STR146 , STR147 , STR148 ) , MovedModule ( STR149 , STR150 , STR151 ) , MovedModule ( STR152 , STR153 , STR154 ) , MovedModule ( STR155 , __name__ + STR156 , STR157 ) , MovedModule ( STR158 , __name__ + STR159 , STR160 ) , MovedModule ( STR161 , __name__ + STR162 , __name__ + STR163 ) , MovedModule ( STR164 , STR165 , STR166 ) , MovedModule ( STR167 , STR168 , STR169 ) , MovedModule ( STR170 , STR171 , STR172 ) , MovedModule ( STR173 , STR174 ) , ]
-17214	with different 3 string arguments , the others are results of the call to the function MovedModule called with 3 string arguments . for every attr in _moved_attributes ,	for attr in _moved_attributes :
+17213	_moved_attributes is a list with 55 initial elements , 13 of them are the results of the call to the function MovedAttribute , with different 3 string arguments , the others are results of the call to the function MovedModule called with 3 string arguments .	_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 , STR3 ) , MovedAttribute ( STR4 , STR5 , STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 , STR12 , STR13 ) , MovedAttribute ( STR14 , STR15 , STR16 , STR17 , STR18 ) , MovedAttribute ( STR19 , STR20 , STR21 , STR22 , STR23 ) , MovedAttribute ( STR24 , STR25 , STR26 , STR27 , STR28 ) , MovedAttribute ( STR29 , STR30 , STR31 , STR32 ) , MovedAttribute ( STR33 , STR34 , STR35 ) , MovedAttribute ( STR36 , STR37 , STR38 ) , MovedAttribute ( STR39 , STR40 , STR41 ) , MovedAttribute ( STR42 , STR43 , STR44 , STR45 , STR46 ) , MovedAttribute ( STR47 , STR48 , STR49 , STR50 , STR51 ) , MovedAttribute ( STR52 , STR53 , STR54 , STR55 , STR56 ) , MovedModule ( STR57 , STR58 ) , MovedModule ( STR59 , STR60 ) , MovedModule ( STR61 , STR62 ) , MovedModule ( STR63 , STR64 , STR65 ) , MovedModule ( STR66 , STR67 , STR68 ) , MovedModule ( STR69 , STR70 , STR71 ) , MovedModule ( STR72 , STR73 , STR74 ) , MovedModule ( STR75 , STR76 , STR77 ) , MovedModule ( STR78 , STR79 , STR80 ) , MovedModule ( STR81 , STR82 , STR83 ) , MovedModule ( STR84 , STR85 , STR86 ) , MovedModule ( STR87 , STR88 , STR89 ) , MovedModule ( STR90 , STR91 , STR92 ) , MovedModule ( STR93 , STR94 , STR95 ) , MovedModule ( STR96 , STR97 , STR98 ) , MovedModule ( STR99 , STR100 , STR101 ) , MovedModule ( STR102 , STR103 ) , MovedModule ( STR104 , STR105 ) , MovedModule ( STR106 , STR107 ) , MovedModule ( STR108 , STR109 , STR110 ) , MovedModule ( STR111 , STR112 ) , MovedModule ( STR113 , STR114 , STR115 ) , MovedModule ( STR116 , STR117 , STR118 ) , MovedModule ( STR119 , STR120 , STR121 ) , MovedModule ( STR122 , STR123 , STR124 ) , MovedModule ( STR125 , STR126 , STR127 ) , MovedModule ( STR128 , STR129 , STR130 ) , MovedModule ( STR131 , STR132 , STR133 ) , MovedModule ( STR134 , STR135 , STR136 ) , MovedModule ( STR137 , STR138 , STR139 ) , MovedModule ( STR140 , STR141 , STR142 ) , MovedModule ( STR143 , STR144 , STR145 ) , MovedModule ( STR146 , STR147 , STR148 ) , MovedModule ( STR149 , STR150 , STR151 ) , MovedModule ( STR152 , STR153 , STR154 ) , MovedModule ( STR155 , __name__ + STR156 , STR157 ) , MovedModule ( STR158 , __name__ + STR159 , STR160 ) , MovedModule ( STR161 , __name__ + STR162 , __name__ + STR163 ) , MovedModule ( STR164 , STR165 , STR166 ) , MovedModule ( STR167 , STR168 , STR169 ) , MovedModule ( STR170 , STR171 , STR172 ) , MovedModule ( STR173 , STR174 ) , ]
+17214	for every attr in _moved_attributes ,	for attr in _moved_attributes :
 17215	set attr.name attribute of the _MovedItemst object to attr .	setattr ( _MovedItems , attr . name , attr )
 17216	if attr is an instance of MovedModule .	if isinstance ( attr , MovedModule ) :
-17217	concatenate __name__ , string STR0 and attr.name together , use it as an key to get the value from the sys.modules dictionary ,	sys . modules [ __name__ + STR0 + attr . name ] = attr
-17218	substitute attr for the obtained value . delete attr .	del attr
+17217	concatenate __name__ , string STR0 and attr.name together , use it as an key to get the value from the sys.modules dictionary , substitute attr for the obtained value .	sys . modules [ __name__ + STR0 + attr . name ] = attr
+17218	delete attr .	del attr
 17219	substitute _moved_attributes for _MovedItems._moved_attributes .	_MovedItems . _moved_attributes = _moved_attributes
-17220	append string STR0 to __name__ , use it as an argument to instantiate _MovedItems class , assign it to moves ,	moves = sys . modules [ __name__ + STR0 ] = _MovedItems ( __name__ + STR1 )
-17221	and to value under the STR0 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib_parse from the _LazyModule base class .	class Module_six_moves_urllib_parse ( _LazyModule ) :
+17220	append string STR0 to __name__ , use it as an argument to instantiate _MovedItems class , assign it to moves , and to value under the STR1 appended to __name__ key of the sys.modules dictionary .	moves = sys . modules [ __name__ + STR0 ] = _MovedItems ( __name__ + STR1 )
+17221	derive class Module_six_moves_urllib_parse from the _LazyModule base class .	class Module_six_moves_urllib_parse ( _LazyModule ) :
 17222	_urllib_parse_moved_attributes is a list with 16 elemetns , all of them are the results of the call to the function MovedAttribute with different 3 string arguments .	_urllib_parse_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 ) , MovedAttribute ( STR12 , STR13 , STR14 ) , MovedAttribute ( STR15 , STR16 , STR17 ) , MovedAttribute ( STR18 , STR19 , STR20 ) , MovedAttribute ( STR21 , STR22 , STR23 ) , MovedAttribute ( STR24 , STR25 , STR26 ) , MovedAttribute ( STR27 , STR28 , STR29 ) , MovedAttribute ( STR30 , STR31 , STR32 ) , MovedAttribute ( STR33 , STR34 , STR35 ) , MovedAttribute ( STR36 , STR37 , STR38 ) , MovedAttribute ( STR39 , STR40 , STR41 ) , MovedAttribute ( STR42 , STR43 , STR44 ) , MovedAttribute ( STR45 , STR46 , STR47 ) , ]
 17223	for every attr in _urllib_parse_moved_attributes ,	for attr in _urllib_parse_moved_attributes :
 17224	set attr.name attribute of the Module_six_moves_urllib_parse object to attr .	setattr ( Module_six_moves_urllib_parse , attr . name , attr )
 17225	delete attr .	del attr
 17226	substitute _urllib_parse_moved_attributes for Module_six_moves_urllib_parse._moved_attributes .	Module_six_moves_urllib_parse . _moved_attributes = _urllib_parse_moved_attributes
-17227	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_parse ( __name__ + STR2 )
-17228	assign the result to the value under the string STR0 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR1 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib_error from the _LazyModule base class .	class Module_six_moves_urllib_error ( _LazyModule ) :
-17229	_urllib_error_moved_attributes is a list with 3 elements : result of the call to the function MovedAttribute with 3 arguments :	_urllib_error_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , ]
-17230	strings STR0 , STR1 , STR2 , result of the call to the function MovedAttribute with 3 arguments : strings STR3 , STR4 , STR5 and result of the call to the function MovedAttribute with 3 arguments : strings STR6 , STR7 , STR8 . for every attr in _urllib_error_moved_attributes ,	for attr in _urllib_error_moved_attributes :
+17227	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ , assign the result to the value under the string STR1 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR2 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_parse ( __name__ + STR2 )
+17228	derive class Module_six_moves_urllib_error from the _LazyModule base class .	class Module_six_moves_urllib_error ( _LazyModule ) :
+17229	_urllib_error_moved_attributes is a list with 3 elements : result of the call to the function MovedAttribute with 3 arguments : strings STR0 , STR1 , STR2 , result of the call to the function MovedAttribute with 3 arguments : strings STR3 , STR4 , STR5 and result of the call to the function MovedAttribute with 3 arguments : strings STR6 , STR7 , STR8 .	_urllib_error_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , ]
+17230	for every attr in _urllib_error_moved_attributes ,	for attr in _urllib_error_moved_attributes :
 17231	set attr.name attribute of the Module_six_moves_urllib_error object to attr .	setattr ( Module_six_moves_urllib_error , attr . name , attr )
 17232	delete attr .	del attr
 17233	substitute _urllib_error_moved_attributes for Module_six_moves_urllib_error._moved_attributes .	Module_six_moves_urllib_error . _moved_attributes = _urllib_error_moved_attributes
-17234	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_error ( __name__ + STR2 )
-17235	assign the result to the value under the string STR0 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR1 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib_request from the _LazyModule base class .	class Module_six_moves_urllib_request ( _LazyModule ) :
+17234	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ , assign the result to the value under the string STR1 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR2 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_error ( __name__ + STR2 )
+17235	derive class Module_six_moves_urllib_request from the _LazyModule base class .	class Module_six_moves_urllib_request ( _LazyModule ) :
 17236	_urllib_request_moved_attributes is an list with 33 elements , all of them are the results of the call to the function MovedAttribute with 3 different string arguments .	_urllib_request_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 ) , MovedAttribute ( STR12 , STR13 , STR14 ) , MovedAttribute ( STR15 , STR16 , STR17 ) , MovedAttribute ( STR18 , STR19 , STR20 ) , MovedAttribute ( STR21 , STR22 , STR23 ) , MovedAttribute ( STR24 , STR25 , STR26 ) , MovedAttribute ( STR27 , STR28 , STR29 ) , MovedAttribute ( STR30 , STR31 , STR32 ) , MovedAttribute ( STR33 , STR34 , STR35 ) , MovedAttribute ( STR36 , STR37 , STR38 ) , MovedAttribute ( STR39 , STR40 , STR41 ) , MovedAttribute ( STR42 , STR43 , STR44 ) , MovedAttribute ( STR45 , STR46 , STR47 ) , MovedAttribute ( STR48 , STR49 , STR50 ) , MovedAttribute ( STR51 , STR52 , STR53 ) , MovedAttribute ( STR54 , STR55 , STR56 ) , MovedAttribute ( STR57 , STR58 , STR59 ) , MovedAttribute ( STR60 , STR61 , STR62 ) , MovedAttribute ( STR63 , STR64 , STR65 ) , MovedAttribute ( STR66 , STR67 , STR68 ) , MovedAttribute ( STR69 , STR70 , STR71 ) , MovedAttribute ( STR72 , STR73 , STR74 ) , MovedAttribute ( STR75 , STR76 , STR77 ) , MovedAttribute ( STR78 , STR79 , STR80 ) , MovedAttribute ( STR81 , STR82 , STR83 ) , MovedAttribute ( STR84 , STR85 , STR86 ) , MovedAttribute ( STR87 , STR88 , STR89 ) , MovedAttribute ( STR90 , STR91 , STR92 ) , MovedAttribute ( STR93 , STR94 , STR95 ) , MovedAttribute ( STR96 , STR97 , STR98 ) , ]
 17237	for every attr in _urllib_request_moved_attributes ,	for attr in _urllib_request_moved_attributes :
 17238	set attr.name attribute of the Module_six_moves_urllib_request object to attr .	setattr ( Module_six_moves_urllib_request , attr . name , attr )
 17239	delete attr .	del attr
 17240	substitute _urllib_request_moved_attributes for Module_six_moves_urllib_request._moved_attributes .	Module_six_moves_urllib_request . _moved_attributes = _urllib_request_moved_attributes
-17241	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_request ( __name__ + STR2 )
-17242	assign the result to the value under the string STR0 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR1 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib_response from the _LazyModule base class .	class Module_six_moves_urllib_response ( _LazyModule ) :
-17243	_urllib_response_moved_attributes is a list with 4 elements : result of the function MovedAttribute , called with 3 arguments :	_urllib_response_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 ) , ]
-17244	strings STR0 , STR1 and STR2 , result of the function MovedAttribute , called with 3 arguments : strings STR3 , STR4 , STR5 , result of the function MovedAttribute , called with 3 arguments : strings STR6 , STR7 , STR8 and result of the function MovedAttribute , called with 3 arguments : strings STR9 , STR10 , STR11 . for every attr in _urllib_response_moved_attributes ,	for attr in _urllib_response_moved_attributes :
+17241	call the method Module_six_moves_urllib_request with an argument : string STR0 appended to __name__ , assign the result to the value under the string STR1 appended to __name__ key of the sys.modules dictionary , and to the value under the string STR2 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_request ( __name__ + STR2 )
+17242	derive class Module_six_moves_urllib_response from the _LazyModule base class .	class Module_six_moves_urllib_response ( _LazyModule ) :
+17243	_urllib_response_moved_attributes is a list with 4 elements : result of the function MovedAttribute , called with 3 arguments : strings STR0 , STR1 and STR2 , result of the function MovedAttribute , called with 3 arguments : strings STR3 , STR4 , STR5 , result of the function MovedAttribute , called with 3 arguments : strings STR6 , STR7 , STR8 and result of the function MovedAttribute , called with 3 arguments : strings STR9 , STR10 , STR11 .	_urllib_response_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , MovedAttribute ( STR3 , STR4 , STR5 ) , MovedAttribute ( STR6 , STR7 , STR8 ) , MovedAttribute ( STR9 , STR10 , STR11 ) , ]
+17244	for every attr in _urllib_response_moved_attributes ,	for attr in _urllib_response_moved_attributes :
 17245	set attr.name attribute of Module_six_moves_urllib_response object to attr .	setattr ( Module_six_moves_urllib_response , attr . name , attr )
 17246	delete attr .	del attr
 17247	substitute _urllib_response_moved_attributes for Module_six_moves_urllib_response._moved_attributes .	Module_six_moves_urllib_response . _moved_attributes = _urllib_response_moved_attributes
-17248	instantiate class Module_six_moves_urllib_response with an argument , string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_response ( __name__ + STR2 )
-17249	assign it to value under the string STR0 appended to __name__ key of the sys.modules dictionary , and to value under the string STR1 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib_robotparser from the _LazyModule base class .	class Module_six_moves_urllib_robotparser ( _LazyModule ) :
-17250	_urllib_robotparser_moved_attributes is a list containing an instance of MovedAttribute class , created with 3 argument : strings ,	_urllib_robotparser_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , ]
-17251	STR0 , STR1 , STR2 . for every attr in _urllib_robotparser_moved_attributes ,	for attr in _urllib_robotparser_moved_attributes :
+17248	instantiate class Module_six_moves_urllib_response with an argument , string STR0 appended to __name__ , assign it to value under the string STR1 appended to __name__ key of the sys.modules dictionary , and to value under the string STR2 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_response ( __name__ + STR2 )
+17249	derive class Module_six_moves_urllib_robotparser from the _LazyModule base class .	class Module_six_moves_urllib_robotparser ( _LazyModule ) :
+17250	_urllib_robotparser_moved_attributes is a list containing an instance of MovedAttribute class , created with 3 argument : strings , STR0 , STR1 , STR2 .	_urllib_robotparser_moved_attributes = [ MovedAttribute ( STR0 , STR1 , STR2 ) , ]
+17251	for every attr in _urllib_robotparser_moved_attributes ,	for attr in _urllib_robotparser_moved_attributes :
 17252	set attr.name attribute of Module_six_moves_urllib_robotparser object to attr .	setattr ( Module_six_moves_urllib_robotparser , attr . name , attr )
 17253	delete attr .	del attr
 17254	substitute _urllib_robotparser_moved_attributes for Module_six_moves_urllib_robotparser._moved_attributes .	Module_six_moves_urllib_robotparser . _moved_attributes = _urllib_robotparser_moved_attributes
-17255	instantiate class Module_six_moves_urllib_robotparser with an argument , string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_robotparser ( __name__ + STR2 )
-17256	assign it to value under the string STR0 appended to __name__ key of the sys.modules dictionary , and to value under the string STR1 appended to __name__ key of the sys.modules dictionary . derive class Module_six_moves_urllib from the types.ModuleType base class .	class Module_six_moves_urllib ( types . ModuleType ) :
+17255	instantiate class Module_six_moves_urllib_robotparser with an argument , string STR0 appended to __name__ , assign it to value under the string STR1 appended to __name__ key of the sys.modules dictionary , and to value under the string STR2 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = sys . modules [ __name__ + STR1 ] = Module_six_moves_urllib_robotparser ( __name__ + STR2 )
+17256	derive class Module_six_moves_urllib from the types.ModuleType base class .	class Module_six_moves_urllib ( types . ModuleType ) :
 17257	append string STR0 to __name__ , use it as an key to get the value from the sys.modules dictionary , substitute it for parse .	parse = sys . modules [ __name__ + STR0 ]
 17258	append string STR0 to __name__ , use it as an key to get the value from the sys.modules dictionary , substitute it for error .	error = sys . modules [ __name__ + STR0 ]
 17259	append string STR0 to __name__ , use it as an key to get the value from the sys.modules dictionary , substitute it for request .	request = sys . modules [ __name__ + STR0 ]
@@ -17259,8 +17259,8 @@
 17261	append string STR0 to __name__ , use it as an key to get the value from the sys.modules dictionary , substitute it for robotparser .	robotparser = sys . modules [ __name__ + STR0 ]
 17262	define the method __dir__ with an argument self .	def __dir__ ( self ) :
 17263	return a list with 5 elements : strings STR0 , STR1 , STR2 , STR3 and STR4 .	return [ STR0 , STR1 , STR2 , STR3 , STR4 ]
-17264	instantiate class Module_six_moves_urllib with an argument , string STR0 appended to __name__ ,	sys . modules [ __name__ + STR0 ] = Module_six_moves_urllib ( __name__ + STR1 )
-17265	substitute it for value under the string STR0 appended to __name__ key of the sys.modules dictionary . define the function add_move with an argument move .	def add_move ( move ) :
+17264	instantiate class Module_six_moves_urllib with an argument , string STR0 appended to __name__ , substitute it for value under the string STR1 appended to __name__ key of the sys.modules dictionary .	sys . modules [ __name__ + STR0 ] = Module_six_moves_urllib ( __name__ + STR1 )
+17265	define the function add_move with an argument move .	def add_move ( move ) :
 17266	set move.name attribute of the _MovedItems to move .	setattr ( _MovedItems , move . name , move )
 17267	define the function remove_move with an argument name .	def remove_move ( name ) :
 17268	try ,	try :
@@ -17325,14 +17325,14 @@
 17327	call the method operator.attrgetter with an argument _func_defaults , substitute the result for get_method_defaults .	get_function_defaults = operator . attrgetter ( _func_defaults )
 17328	call the method operator.attrgetter with an argument _func_globals , substitute the result for get_method_globals .	get_function_globals = operator . attrgetter ( _func_globals )
 17329	define the function iterkeys with 2 arguments : d and unpacked dictionary kw .	def iterkeys ( d , ** kw ) :
-17330	get _iterkeys attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable ,	return iter ( getattr ( d , _iterkeys ) ( ** kw ) )
-17331	return it . define the function itervalues with 2 arguments : d and unpacked dictionary kw .	def itervalues ( d , ** kw ) :
-17332	get _itervalues attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable ,	return iter ( getattr ( d , _itervalues ) ( ** kw ) )
-17333	return it . define the function iteritems with 2 arguments : d and unpacked dictionary kw .	def iteritems ( d , ** kw ) :
-17334	get _iteritems attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable ,	return iter ( getattr ( d , _iteritems ) ( ** kw ) )
-17335	return it . define the function iterlists with 2 arguments : d and unpacked dictionary kw .	def iterlists ( d , ** kw ) :
-17336	get _iterlists attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable ,	return iter ( getattr ( d , _iterlists ) ( ** kw ) )
-17337	return it . if PY3 is true ,	if PY3 :
+17330	get _iterkeys attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable , return it .	return iter ( getattr ( d , _iterkeys ) ( ** kw ) )
+17331	define the function itervalues with 2 arguments : d and unpacked dictionary kw .	def itervalues ( d , ** kw ) :
+17332	get _itervalues attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable , return it .	return iter ( getattr ( d , _itervalues ) ( ** kw ) )
+17333	define the function iteritems with 2 arguments : d and unpacked dictionary kw .	def iteritems ( d , ** kw ) :
+17334	get _iteritems attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable , return it .	return iter ( getattr ( d , _iteritems ) ( ** kw ) )
+17335	define the function iterlists with 2 arguments : d and unpacked dictionary kw .	def iterlists ( d , ** kw ) :
+17336	get _iterlists attribute of the class d , call the result with an argument unpacked dictionary kw , convert the result to a iterable , return it .	return iter ( getattr ( d , _iterlists ) ( ** kw ) )
+17337	if PY3 is true ,	if PY3 :
 17338	define the function b with an argument s .	def b ( s ) :
 17339	call the method e.encode with an argument string STR0 .	return s . encode ( STR0 )
 17340	define the function u with an argument s .	def u ( s ) :
@@ -17353,8 +17353,8 @@
 17355	define the function b with an argument s .	def b ( s ) :
 17356	return s .	return s
 17357	define the function u with an argument s .	def u ( s ) :
-17358	replace every occurrence of raw string STR1 in s with a raw string STR2 , use the result and string STR0 ,	return unicode ( s . replace ( STR1 , STR2 ) , STR0 )
-17359	as arguments for the call to the unicode function , return the result . substitute unichr for unichr .	unichr = unichr
+17358	replace every occurrence of raw string STR1 in s with a raw string STR2 , use the result and string STR0 , as arguments for the call to the unicode function , return the result .	return unicode ( s . replace ( STR1 , STR2 ) , STR0 )
+17359	substitute unichr for unichr .	unichr = unichr
 17360	substitute chr for int2byte .	int2byte = chr
 17361	define the function byte2int with an argument bs .	def byte2int ( bs ) :
 17362	get the integer representation of the first element of bs , return it .	return ord ( bs [ 0 ] )
@@ -17473,13 +17473,13 @@
 17475	substitute buffer for memoryview .	memoryview = buffer
 17476	buffer_types is a tuple with 2 elements bytearray and memoryview .	buffer_types = ( bytearray , memoryview )
 17477	define the function assertCountEqual with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def assertCountEqual ( self , * args , ** kwargs ) :
-17478	get _assertCountEqual attribute of the self object , call the result with 2 arguments : unpacked list args ,	return getattr ( self , _assertCountEqual ) ( * args , ** kwargs )
-17479	and unpacked dictionary kwargs , return the result . define the function assertRaisesRegex with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def assertRaisesRegex ( self , * args , ** kwargs ) :
-17480	get _assertRaisesRegex attribute of the self object , call the result with 2 arguments : unpacked list args ,	return getattr ( self , _assertRaisesRegex ) ( * args , ** kwargs )
-17481	and unpacked dictionary kwargs , return the result . define the function assertRegex with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def assertRegex ( self , * args , ** kwargs ) :
-17482	get _assertRegex attribute of the self object , call the result with 2 arguments : unpacked list args ,	return getattr ( self , _assertRegex ) ( * args , ** kwargs )
-17483	and unpacked dictionary kwargs , return the result . call the function MovedModule with 2 arguments : strings STR0 and STR1 ,	add_move ( MovedModule ( STR0 , STR1 ) )
-17484	use the result as an argument for the call to the add_move function . call the function MovedModule with 2 arguments : strings STR0 and STR1 ,	add_move ( MovedModule ( STR0 , STR1 ) )
+17478	get _assertCountEqual attribute of the self object , call the result with 2 arguments : unpacked list args , and unpacked dictionary kwargs , return the result .	return getattr ( self , _assertCountEqual ) ( * args , ** kwargs )
+17479	define the function assertRaisesRegex with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def assertRaisesRegex ( self , * args , ** kwargs ) :
+17480	get _assertRaisesRegex attribute of the self object , call the result with 2 arguments : unpacked list args , and unpacked dictionary kwargs , return the result .	return getattr ( self , _assertRaisesRegex ) ( * args , ** kwargs )
+17481	define the function assertRegex with 3 arguments : self , unpacked list args and unpacked dictionary kwargs .	def assertRegex ( self , * args , ** kwargs ) :
+17482	get _assertRegex attribute of the self object , call the result with 2 arguments : unpacked list args , and unpacked dictionary kwargs , return the result .	return getattr ( self , _assertRegex ) ( * args , ** kwargs )
+17483	call the function MovedModule with 2 arguments : strings STR0 and STR1 , use the result as an argument for the call to the add_move function .	add_move ( MovedModule ( STR0 , STR1 ) )
+17484	call the function MovedModule with 2 arguments : strings STR0 and STR1 ,	add_move ( MovedModule ( STR0 , STR1 ) )
 17485	import module contextlib .	import contextlib
 17486	try ,	try :
 17487	import threading .	import threading
@@ -17547,11 +17547,11 @@
 17549	call the method self.writer_leaves .	self . writer_leaves ( )
 17550	from django.utils import six into default name space .	from django . utils import six
 17551	color_names is a tuple with 8 elements : strings STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 and STR7 .	color_names = ( STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 )
-17552	foreground is a dictionary created with elements : x appended to a string STR0 for value under the key x of color_names dictionary ,	foreground = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
-17553	for every x in sequence of integers from 0 to 7. background is a dictionary created with elements : x appended to a string STR0 for value under the key x of color_names dictionary ,	background = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
-17554	for every x in sequence of integers from 0 to 7 . RESET is a string STR0 .	RESET = STR0
-17555	opt_dict is an dictionary with 5 elements : STR0 for STR1 , STR2 for STR3 , STR4 for STR5 , STR6 for STR7 ,	opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
-17556	and STR0 for STR1 . define the method colorize with 3 arguments : text set to an empty string , opts set to an empty tuple and unpacked dictionary kwargs .	def colorize ( text = STR , opts = ( ) , ** kwargs ) :
+17552	foreground is a dictionary created with elements : x appended to a string STR0 for value under the key x of color_names dictionary , for every x in sequence of integers from 0 to 7 .	foreground = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
+17553	background is a dictionary created with elements : x appended to a string STR0 for value under the key x of color_names dictionary , for every x in sequence of integers from 0 to 7 .	background = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
+17554	RESET is a string STR0 .	RESET = STR0
+17555	opt_dict is an dictionary with 5 elements : STR0 for STR1 , STR2 for STR3 , STR4 for STR5 , STR6 for STR7 , and STR8 for STR9 .	opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
+17556	define the method colorize with 3 arguments : text set to an empty string , opts set to an empty tuple and unpacked dictionary kwargs .	def colorize ( text = STR , opts = ( ) , ** kwargs ) :
 17557	code_list is an empty list .	code_list = [ ]
 17558	if text is an empty string and length of opts equals integer 1 and first element of opts equals string STR0 ,	if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
 17559	format string STR0 with RESET , return the result .	return STR0 % RESET
@@ -17565,10 +17565,10 @@
 17567	append value under the 0 key of the opt_dict dictionary to code_list .	code_list . append ( opt_dict [ o ] )
 17568	if string STR0 is not contained in opts ,	if STR0 not in opts :
 17569	if text is true format with it and RESET a string STR0 , if not format it with an empty string and RESET , substitute the result for text .	text = STR0 % ( text or STR , RESET )
-17570	join elements of code_list in a string , separated by STR0 , format string STR1 with it , append text to the result if exists ,	return STR0 % ( ( STR1 % STR2 . join ( code_list ) ) , text or STR )
-17571	return the string . define the function make_style with 2 arguments : opts set to an empty tuple and unpacked dictionary kwargs .	def make_style ( opts = ( ) , ** kwargs ) :
-17572	return lambda function with text as argument and return value being result of the function colorize , called with 3 arguments : text ,	return lambda text : colorize ( text , opts , ** kwargs )
-17573	opts and unpacked dictionary kwargs . NOCOLOR_PALETTE is a string STR0 .	NOCOLOR_PALETTE = STR0
+17570	join elements of code_list in a string , separated by STR0 , format string STR1 with it , append text to the result if exists , return the string .	return STR0 % ( ( STR1 % STR2 . join ( code_list ) ) , text or STR )
+17571	define the function make_style with 2 arguments : opts set to an empty tuple and unpacked dictionary kwargs .	def make_style ( opts = ( ) , ** kwargs ) :
+17572	return lambda function with text as argument and return value being result of the function colorize , called with 3 arguments : text , opts and unpacked dictionary kwargs .	return lambda text : colorize ( text , opts , ** kwargs )
+17573	NOCOLOR_PALETTE is a string STR0 .	NOCOLOR_PALETTE = STR0
 17574	DARK_PALETTE is a string STR0 .	DARK_PALETTE = STR0
 17575	LIGHT_PALETTE is a string STR0 .	LIGHT_PALETTE = STR0
 17576	PALETTES is a dictionary containing 3 elements , a dictionary with 18 pairs of dictionary value and string keys for NOCOLOR_PALETTE ,	PALETTES = { NOCOLOR_PALETTE : { STR0 : { } , STR1 : { } , STR2 : { } , STR3 : { } , STR4 : { } , STR5 : { } , STR6 : { } , STR7 : { } , STR8 : { } , STR9 : { } , STR10 : { } , STR11 : { } , STR12 : { } , STR13 : { } , STR14 : { } , STR15 : { } , STR16 : { } , STR17 : { } , } , DARK_PALETTE : { STR18 : { STR19 : STR20 , STR21 : ( STR22 , ) } , STR23 : { STR24 : STR25 , STR26 : ( STR27 , ) } , STR28 : { STR29 : STR30 } , STR31 : { STR32 : STR33 , STR34 : ( STR35 , ) } , STR36 : { STR37 : STR38 } , STR39 : { STR40 : STR41 } , STR42 : { STR43 : ( STR44 , ) } , STR45 : { STR46 : ( STR47 , ) } , STR48 : { } , STR49 : { STR50 : STR51 } , STR52 : { STR53 : STR54 } , STR55 : { STR56 : STR57 , STR58 : ( STR59 , ) } , STR60 : { STR61 : STR62 } , STR63 : { STR64 : STR65 , STR66 : ( STR67 , ) } , STR68 : { STR69 : STR70 , STR71 : ( STR72 , ) } , STR73 : { STR74 : ( STR75 , ) } , STR76 : { STR77 : STR78 , STR79 : ( STR80 , ) } , STR81 : { STR82 : STR83 , STR84 : ( STR85 , ) } , } , LIGHT_PALETTE : { STR86 : { STR87 : STR88 , STR89 : ( STR90 , ) } , STR91 : { STR92 : STR93 , STR94 : ( STR95 , ) } , STR96 : { STR97 : STR98 } , STR99 : { STR100 : STR101 , STR102 : ( STR103 , ) } , STR104 : { STR105 : STR106 } , STR107 : { STR108 : STR109 } , STR110 : { STR111 : ( STR112 , ) } , STR113 : { STR114 : ( STR115 , ) } , STR116 : { } , STR117 : { STR118 : STR119 , STR120 : ( STR121 , ) } , STR122 : { STR123 : STR124 } , STR125 : { STR126 : STR127 , STR128 : ( STR129 , ) } , STR130 : { STR131 : STR132 } , STR133 : { STR134 : STR135 , STR136 : ( STR137 , ) } , STR138 : { STR139 : STR140 , STR141 : ( STR142 , ) } , STR143 : { STR144 : ( STR145 , ) } , STR146 : { STR147 : STR148 , STR149 : ( STR150 , ) } , STR151 : { STR152 : STR153 , STR154 : ( STR155 , ) } , } }
@@ -17617,12 +17617,12 @@
 17619	from django.utils.safestring import mark_safe into default name space .	from django . utils . safestring import mark_safe
 17620	if six.PY2 is true ,	if six . PY2 :
 17621	from django.utils.encoding import force_unicode .	from django . utils . encoding import force_unicode
-17622	if identity lambda function returns false , substitute the x for capfirst , if not call the function force_text with an argument x ,	capfirst = lambda x : x and force_text ( x ) [ 0 ] . upper ( ) + force_text ( x ) [ 1 : ]
-17623	convert the first element of the result to uppercase , append to it the rest of the result , substitute it for capfirst . call the function allow_lazy with 3 arguments : capfirst and six.text_type .	capfirst = allow_lazy ( capfirst , six . text_type )
-17624	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands ,	re_words = re . compile ( STR0 , re . U | re . S )
-17625	re.U and re.S , substitute the result for re_words . call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands ,	re_chars = re . compile ( STR0 , re . U | re . S )
-17626	re.U and re.S , substitute the result for re_chars . call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands ,	re_tag = re . compile ( STR0 , re . S )
-17627	re.U and re.S , substitute the result for re_chars . call the function re.compile with an argument raw string STR0 , substitute the result for re_newlines .	re_newlines = re . compile ( STR0 )
+17622	if identity lambda function returns false , substitute the x for capfirst , if not call the function force_text with an argument x , convert the first element of the result to uppercase , append to it the rest of the result , substitute it for capfirst .	capfirst = lambda x : x and force_text ( x ) [ 0 ] . upper ( ) + force_text ( x ) [ 1 : ]
+17623	call the function allow_lazy with 3 arguments : capfirst and six.text_type .	capfirst = allow_lazy ( capfirst , six . text_type )
+17624	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands , re.U and re.S , substitute the result for re_words .	re_words = re . compile ( STR0 , re . U | re . S )
+17625	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands , re.U and re.S , substitute the result for re_chars .	re_chars = re . compile ( STR0 , re . U | re . S )
+17626	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands , re.U and re.S , substitute the result for re_chars .	re_tag = re . compile ( STR0 , re . S )
+17627	call the function re.compile with an argument raw string STR0 , substitute the result for re_newlines .	re_newlines = re . compile ( STR0 )
 17628	call the function re.compile with an argument raw string STR0 , substitute the result for re_camel_case .	re_camel_case = re . compile ( STR0 )
 17629	define the function wrap with 2 arguments text and width .	def wrap ( text , width ) :
 17630	call the function force_text with an argument text , substitute the result for text .	text = force_text ( text )
@@ -17630,8 +17630,8 @@
 17632	call the method text.splitlines with an argument boolean True , for every line in the result ,	for line in text . splitlines ( True ) :
 17633	if line ends with a new line character substitute width incremented by integer 1 for max_width , if not substitute width for max_width .	max_width = min ( ( line . endswith ( STR0 ) and width + 1 or width ) , width )
 17634	while length of line is grater than max_width ,	while len ( line ) > max_width :
-17635	get fist max_width incremented by 1 elements from line , find index of the first occurrenece of whitespace from the right side ,	space = line [ : max_width + 1 ] . rfind ( STR0 ) + 1
-17636	add integer 1 to it , substitute the result for space . if space equals integer 0 ,	if space == 0 :
+17635	get fist max_width incremented by 1 elements from line , find index of the first occurrenece of whitespace from the right side , add integer 1 to it , substitute the result for space .	space = line [ : max_width + 1 ] . rfind ( STR0 ) + 1
+17636	if space equals integer 0 ,	if space == 0 :
 17637	find first index of whitespace occurrence in line , add integer 1 to it , substitute the result for space .	space = line . find ( STR0 ) + 1
 17638	if space equals integer 0 ,	if space == 0 :
 17639	yield line .	yield line
@@ -17646,8 +17646,8 @@
 17648	call the function allow_lazy with 2 arguments : wrap and six.text_type , substitute the result for wrap .	wrap = allow_lazy ( wrap , six . text_type )
 17649	derive the class Truncator form the SimpleLazyObject class .	class Truncator ( SimpleLazyObject ) :
 17650	define the method __init__ with 2 arguments : self and text .	def __init__ ( self , text ) :
-17651	call the method __init__ from the base class of the class Truncator ,	super ( Truncator , self ) . __init__ ( lambda : force_text ( text ) )
-17652	called with with an argument lambda function which returns result of the force_text function called with an argument text . define the method add_truncation_text with 3 arguments : self , text and truncate set to None .	def add_truncation_text ( self , text , truncate = None ) :
+17651	call the method __init__ from the base class of the class Truncator , called with with an argument lambda function which returns result of the force_text function called with an argument text .	super ( Truncator , self ) . __init__ ( lambda : force_text ( text ) )
+17652	define the method add_truncation_text with 3 arguments : self , text and truncate set to None .	def add_truncation_text ( self , text , truncate = None ) :
 17653	if truncate is None ,	if truncate is None :
 17654	call the function pgettext with an argument STR0 , STR1 , substitute the result for truncate .	truncate = pgettext ( STR0 , STR1 )
 17655	call the function force_text with an argument truncate , substitute the result for truncate .	truncate = force_text ( truncate )
@@ -17679,8 +17679,8 @@
 17681	if end_index is None and s_len is greater than truncate_len ,	if end_index is None and s_len > truncate_len :
 17682	substitute i for end_index .	end_index = i
 17683	if s_len is greater than length ,	if s_len > length :
-17684	call the method self.add_truncation_text with 2 arguments : if end_index is greater than zero , first end_index elements of text ,	return self . add_truncation_text ( text [ : end_index or 0 ] , truncate )
-17685	if not an empty string , and truncate , return the result . return text .	return text
+17684	call the method self.add_truncation_text with 2 arguments : if end_index is greater than zero , first end_index elements of text , if not an empty string , and truncate , return the result .	return self . add_truncation_text ( text [ : end_index or 0 ] , truncate )
+17685	return text .	return text
 17686	define the method words with 4 arguments : self , num , truncate set to None , html set to boolean False .	def words ( self , num , truncate = None , html = False ) :
 17687	convert num to an integer , substitute the result for length .	length = int ( num )
 17688	if html is true ,	if html :
@@ -17691,8 +17691,8 @@
 17693	split self._wrapped into words , substitute the result for words .	words = self . _wrapped . split ( )
 17694	if length of words is greater than length ,	if len ( words ) > length :
 17695	substitute first length elements of words for words .	words = words [ : length ]
-17696	call the method self.add_truncation_text with 2 arguments : elements of words joined in a string , separated with whitespaces ,	return self . add_truncation_text ( STR0 . join ( words ) , truncate )
-17697	and truncate , return the result . return elements of words joined in a string , separated with whitespaces .	return STR0 . join ( words )
+17696	call the method self.add_truncation_text with 2 arguments : elements of words joined in a string , separated with whitespaces , and truncate , return the result .	return self . add_truncation_text ( STR0 . join ( words ) , truncate )
+17697	return elements of words joined in a string , separated with whitespaces .	return STR0 . join ( words )
 17698	define the method _truncate_html with 6 arguments : self , length , truncate , text , truncate_len and words .	def _truncate_html ( self , length , truncate , text , truncate_len , words ) :
 17699	if words is not empty and length is smaller than or equal to integer 0 ,	if words and length <= 0 :
 17700	return an empty string .	return STR
@@ -17712,8 +17712,8 @@
 17714	if current_len equals truncate_len ,	if current_len == truncate_len :
 17715	substitute pos for end_text_pos .	end_text_pos = pos
 17716	skip this loop iteration .	continue
-17717	call the method m.group with an argument integer 0 , use it as an argument for the call to the re_tag.match function ,	tag = re_tag . match ( m . group ( 0 ) )
-17718	substitute the result for tag . if tag is false or current_len is greater or equal to truncate_len ,	if not tag or current_len >= truncate_len :
+17717	call the method m.group with an argument integer 0 , use it as an argument for the call to the re_tag.match function , substitute the result for tag .	tag = re_tag . match ( m . group ( 0 ) )
+17718	if tag is false or current_len is greater or equal to truncate_len ,	if not tag or current_len >= truncate_len :
 17719	skip this loop iteration .	continue
 17720	call the method tag.groups , substitute the result for closing_tag , tagname and self_closing , respectively .	closing_tag , tagname , self_closing = tag . groups ( )
 17721	convert tagname to lowercase , substitute it for tagname .	tagname = tagname . lower ( )
@@ -17738,28 +17738,28 @@
 17740	replace STR0 in string STR1 with tag , append the result to out .	out += STR0 % tag
 17741	return out .	return out
 17742	define the function get_valid_filename with an argument s .	def get_valid_filename ( s ) :
-17743	call the function force_text with an argument s , strip the result of whitespaces from both ends ,	s = force_text ( s ) . strip ( ) . replace ( STR0 , STR1 )
-17744	replace every occurrence of whitespaces in the previous result for STR0 , substitute the result for s. call the function re.sub with 3 arguments : raw string STR1 , an empty string and s , return the result .	return re . sub ( STR0 , STR , s )
+17743	call the function force_text with an argument s , strip the result of whitespaces from both ends , replace every occurrence of whitespaces in the previous result for STR0 , substitute the result for s .	s = force_text ( s ) . strip ( ) . replace ( STR0 , STR1 )
+17744	call the function re.sub with 3 arguments : raw string STR0 , an empty string and s , return the result .	return re . sub ( STR0 , STR , s )
 17745	call the function allow_lazy with 2 arguments : get_valid_filename and six.text_type , substitute the result for get_valid_filename .	get_valid_filename = allow_lazy ( get_valid_filename , six . text_type )
 17746	define the function get_text_list with 2 arguments : list_ and last_word set to result of the function ugettext_lazy called with an argument string STR0 .	def get_text_list ( list_ , last_word = ugettext_lazy ( STR0 ) ) :
 17747	is length of list_ equals integer 0 ,	if len ( list_ ) == 0 :
 17748	return an empty string .	return STR
 17749	if length of list_ equals integer 1 ,	if len ( list_ ) == 1 :
 17750	call the function force_text with first element of list_ as an argument , return the result .	return force_text ( list_ [ 0 ] )
-17751	return a string STR0 formated with 3 elements : result of the function force_text called with an argument i ,	return STR0 % ( _ ( STR1 ) . join ( force_text ( i ) for i in list_ [ : - 1 ] ) , force_text ( last_word ) , force_text ( list_ [ - 1 ] ) )
-17752	separated by result of the function _ called with an argument string STR0 , for every i in list_ without last element , result of the function force_text called with an argument last_word , result of the function force_text called with an argument : last element of list_ . call the function allow_lazy with 2 arguments : get_text_list and six.text_type , substitute the result for get_text_list .	get_text_list = allow_lazy ( get_text_list , six . text_type )
+17751	return a string STR0 formated with 3 elements : result of the function force_text called with an argument i , separated by result of the function _ called with an argument string STR1 , for every i in list_ without last element , result of the function force_text called with an argument last_word , result of the function force_text called with an argument : last element of list_ .	return STR0 % ( _ ( STR1 ) . join ( force_text ( i ) for i in list_ [ : - 1 ] ) , force_text ( last_word ) , force_text ( list_ [ - 1 ] ) )
+17752	call the function allow_lazy with 2 arguments : get_text_list and six.text_type , substitute the result for get_text_list .	get_text_list = allow_lazy ( get_text_list , six . text_type )
 17753	define the function normalize_newlines with an argument text .	def normalize_newlines ( text ) :
 17754	call the function force_text with an argument text , substitute the result for text .	text = force_text ( text )
 17755	call the method re_newlines.sub with 2 arguments : STR0 and text , return the result .	return re_newlines . sub ( STR0 , text )
 17756	call the function allow_lazy with 2 arguments : normalize_newlines and six.text_type , substitute the result for normalize_newlines .	normalize_newlines = allow_lazy ( normalize_newlines , six . text_type )
 17757	define the function phone2numeric with an argument phone .	def phone2numeric ( phone ) :
-17758	char2number is an dictionary , with 26 elements : 2 for STR0 , 2 for STR1 , 2 for STR2 , 3 for STR3 , 3 for STR4 , 3 for STR5 , 4 for STR6 ,	char2number = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 , STR10 : STR11 , STR12 : STR13 , STR14 : STR15 , STR16 : STR17 , STR18 : STR19 , STR20 : STR21 , STR22 : STR23 , STR24 : STR25 , STR26 : STR27 , STR28 : STR29 , STR30 : STR31 , STR32 : STR33 , STR34 : STR35 , STR36 : STR37 , STR38 : STR39 , STR40 : STR41 , STR42 : STR43 , STR44 : STR45 , STR46 : STR47 , STR48 : STR49 , STR50 : STR51 }
-17759	4 for STR0 , 4 for STR1 , 4 for STR2 , 5 for STR3 , 5 for STR4 , 5 for STR5 , 6 for STR6 , 6 for STR7 , 6 for STR8 , 7 for STR9 , 7 for STR10 , 7 for STR11 , 7 for STR12 , 7 for STR13 , 8 for STR14 , 8 for STR15 , 8 for STR16 , 9 for STR17 , 9 for STR18 , 9 for STR19 and 9 for STR20 . for every c in phone converted to lowercase , join the value under the c key of the char2number dictionary into a string , return it .	return STR . join ( char2number . get ( c , c ) for c in phone . lower ( ) )
+17758	char2number is an dictionary , with 26 elements : 2 for STR0 , 2 for STR1 , 2 for STR2 , 3 for STR3 , 3 for STR4 , 3 for STR5 , 4 for STR6 , 4 for STR7 , 4 for STR8 , 4 for STR9 , 5 for STR10 , 5 for STR11 , 5 for STR12 , 6 for STR13 , 6 for STR14 , 6 for STR15 , 7 for STR16 , 7 for STR17 , 7 for STR18 , 7 for STR19 , 7 for STR20 , 8 for STR21 , 8 for STR22 , 8 for STR23 , 9 for STR24 , 9 for STR25 , 9 for STR26 and 9 for STR27 .	char2number = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 , STR10 : STR11 , STR12 : STR13 , STR14 : STR15 , STR16 : STR17 , STR18 : STR19 , STR20 : STR21 , STR22 : STR23 , STR24 : STR25 , STR26 : STR27 , STR28 : STR29 , STR30 : STR31 , STR32 : STR33 , STR34 : STR35 , STR36 : STR37 , STR38 : STR39 , STR40 : STR41 , STR42 : STR43 , STR44 : STR45 , STR46 : STR47 , STR48 : STR49 , STR50 : STR51 }
+17759	for every c in phone converted to lowercase , join the value under the c key of the char2number dictionary into a string , return it .	return STR . join ( char2number . get ( c , c ) for c in phone . lower ( ) )
 17760	call the function allow_lazy with an argument phone2numeric , substitute the result for phone2numeric .	phone2numeric = allow_lazy ( phone2numeric )
 17761	define the function compress_string with an argument s .	def compress_string ( s ) :
 17762	zbuf is an instance of BytesIO class .	zbuf = BytesIO ( )
-17763	zfile is an instance of GzipFile class , created with 3 arguments : mode set to string STR0 , compresslevel set to integer 6 ,	zfile = GzipFile ( mode = STR0 , compresslevel = 6 , fileobj = zbuf )
-17764	and fileobj set to zbuf . call the method zfile.write with an argument s .	zfile . write ( s )
+17763	zfile is an instance of GzipFile class , created with 3 arguments : mode set to string STR0 , compresslevel set to integer 6 , and fileobj set to zbuf .	zfile = GzipFile ( mode = STR0 , compresslevel = 6 , fileobj = zbuf )
+17764	call the method zfile.write with an argument s .	zfile . write ( s )
 17765	call the method zfile.close .	zfile . close ( )
 17766	call the method zbuf.getvalue , return the result .	return zbuf . getvalue ( )
 17767	derive the class StreamingBuffer from the object base class .	class StreamingBuffer ( object ) :
@@ -17777,8 +17777,8 @@
 17779	return nothing .	return
 17780	define the function compress_sequence with an argument sequence .	def compress_sequence ( sequence ) :
 17781	buf is an instance of StreamingBuffer class .	buf = StreamingBuffer ( )
-17782	zfile is an instance of GzipFile class , created with 3 arguments : mode set to string STR0 , compresslevel set to integer 6 ,	zfile = GzipFile ( mode = STR0 , compresslevel = 6 , fileobj = buf )
-17783	and fileobj set to buf . read data from buf file stream , yield the result .	yield buf . read ( )
+17782	zfile is an instance of GzipFile class , created with 3 arguments : mode set to string STR0 , compresslevel set to integer 6 , and fileobj set to buf .	zfile = GzipFile ( mode = STR0 , compresslevel = 6 , fileobj = buf )
+17783	read data from buf file stream , yield the result .	yield buf . read ( )
 17784	for every item in sequence ,	for item in sequence :
 17785	write item to zfile stream .	zfile . write ( item )
 17786	flush zfile stream buffer .	zfile . flush ( )
@@ -17790,8 +17790,8 @@
 17792	msg is an string STR0 .	msg = ( STR0 STR1 )
 17793	call the function warnings.warn with 3 arguments : msg , RemovedInDjango19Warning and stacklevel as integer 2 .	warnings . warn ( msg , RemovedInDjango19Warning , stacklevel = 2 )
 17794	define the function fix with an argument match .	def fix ( match ) :
-17795	get the unicode representation of result of the method match.group called with an integer 1 , format with in a string STR0 ,	return STR0 % ord ( match . group ( 1 ) )
-17796	return the result . if type of s equals bytes ,	if type ( s ) == bytes :
+17795	get the unicode representation of result of the method match.group called with an integer 1 , format with in a string STR0 , return the result .	return STR0 % ord ( match . group ( 1 ) )
+17796	if type of s equals bytes ,	if type ( s ) == bytes :
 17797	call the method s.decode with an argument string STR0 , substitute the result for s .	s = s . decode ( STR0 )
 17798	otherwise if , type of s doesnt equal to six.text_type ,	elif type ( s ) != six . text_type :
 17799	raise an TypeError with an argument s .	raise TypeError ( s )
@@ -17805,8 +17805,8 @@
 17807	replace every occurrence of STR0 in s with STR1 .	s = s . replace ( STR0 , STR1 )
 17808	call the method ustring_re.sub with 2 arguments : fix and s , return the result .	return ustring_re . sub ( fix , s )
 17809	call the function allow_lazy with 2 arguments : javascript_quote and six.text_type , substitute the result for javascript_quote .	javascript_quote = allow_lazy ( javascript_quote , six . text_type )
-17810	call the function re.compile with 2 arguments : raw string STR0 ] * ( ? : ( ? : STR1\\ ] |\\ . ) *STR2 ] * ) + ) | \+ ) '' ,	smart_split_re = re . compile ( STR0 , re . VERBOSE )
-17811	and re.VERBOSE , substitute the result for smart_split_re . define the function smart_split with an argument text .	def smart_split ( text ) :
+17810	call the function re.compile with 2 arguments : raw string STR0 ] * ( ? : ( ? : STR1\\ ] |\\ . ) *STR2 ] * ) + ) | \+ ) '' , and re.VERBOSE , substitute the result for smart_split_re .	smart_split_re = re . compile ( STR0 , re . VERBOSE )
+17811	define the function smart_split with an argument text .	def smart_split ( text ) :
 17812	call the function force_text with an argument text , substitute the result for text .	text = force_text ( text )
 17813	call the method smart_split_re.finditer with an argument text , for every bit in result ,	for bit in smart_split_re . finditer ( text ) :
 17814	call the method bit.group with an argument integer 0 , yield the result .	yield bit . group ( 0 )
@@ -17835,13 +17835,13 @@
 17837	if first element of s is not contained in STR0 ' '' or last element of s is not equal to first element of s ,	if s [ 0 ] not in STR0'" or s [ - 1 ] != s [ 0 ] :
 17838	raise an ValueError exception wit an argument string STR0 , where STR1 is replaced with s .	raise ValueError ( STR0 % s )
 17839	substitute first element of s for quote .	quote = s [ 0 ]
-17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote ,	return s [ 1 : - 1 ] . replace ( STR0 % quote , quote ) . replace ( STR1 , STR2 )
-17841	replace every occurrence of raw string STR0 in the result with string STR1 , return the result . call the function allow_lazy with an argument unescape_string_literal , substitute the result for unescape_string_literal .	unescape_string_literal = allow_lazy ( unescape_string_literal )
+17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote , replace every occurrence of raw string STR1 in the result with string STR2 , return the result .	return s [ 1 : - 1 ] . replace ( STR0 % quote , quote ) . replace ( STR1 , STR2 )
+17841	call the function allow_lazy with an argument unescape_string_literal , substitute the result for unescape_string_literal .	unescape_string_literal = allow_lazy ( unescape_string_literal )
 17842	define the function slugify with an argument value .	def slugify ( value ) :
-17843	call the method unicodedata.normalize with 2 arguments : string STR0 and value , encode the result with 2 arguments : string STR1 ,	value = unicodedata . normalize ( STR0 , value ) . encode ( STR1 , STR2 ) . decode ( STR3 )
-17844	and string STR0 , call the method decode on the result with an argument string STR1 , substitute the result for value . call the method re.sub with 3 arguments : string STR2 , empty string and value , strip the result of whitespaces from both ends ,	value = re . sub ( STR0 , STR , value ) . strip ( ) . lower ( )
-17845	and convert it to lowercase , substitute the result for value . call the function re.sub with 3 arguments : string STR0 , string STR1 and value , use the result as an argument for the call to the ,	return mark_safe ( re . sub ( STR0 , STR1 , value ) )
-17846	mark_safe function , return the result . call the function allow_lazy with 2 arguments : slugify and six.text_type , substitute the result slugify .	slugify = allow_lazy ( slugify , six . text_type )
+17843	call the method unicodedata.normalize with 2 arguments : string STR0 and value , encode the result with 2 arguments : string STR1 , and string STR2 , call the method decode on the result with an argument string STR3 , substitute the result for value .	value = unicodedata . normalize ( STR0 , value ) . encode ( STR1 , STR2 ) . decode ( STR3 )
+17844	call the method re.sub with 3 arguments : string STR0 , empty string and value , strip the result of whitespaces from both ends , and convert it to lowercase , substitute the result for value .	value = re . sub ( STR0 , STR , value ) . strip ( ) . lower ( )
+17845	call the function re.sub with 3 arguments : string STR0 , string STR1 and value , use the result as an argument for the call to the , mark_safe function , return the result .	return mark_safe ( re . sub ( STR0 , STR1 , value ) )
+17846	call the function allow_lazy with 2 arguments : slugify and six.text_type , substitute the result slugify .	slugify = allow_lazy ( slugify , six . text_type )
 17847	define the function camel_case_to_spaces with an argument value .	def camel_case_to_spaces ( value ) :
 17848	call the method re_camel_case.sub with 2 arguments : raw string STR0 and value , strip the result of whitespaces from both ends ,	return re_camel_case . sub ( STR0 , value ) . strip ( ) . lower ( )
 17849	from __future__ import unicode_literals into default name space .	from __future__ import unicode_literals
@@ -17884,8 +17884,8 @@
 17886	pytz is None .	pytz = None
 17887	from django.conf import settings into default name space .	from django . conf import settings
 17888	from django.utils import six into default name space .	from django . utils import six
-17889	__all__ is a list with 15 elements : strings STR0 , STR1 , STR2 , STR3 ,	__all__ = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , ]
-17890	STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 and STR10 . call the function timedelta with an argument integer 0 , substitute the result for ZERO .	ZERO = timedelta ( 0 )
+17889	__all__ is a list with 15 elements : strings STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 and STR14 .	__all__ = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , ]
+17890	call the function timedelta with an argument integer 0 , substitute the result for ZERO .	ZERO = timedelta ( 0 )
 17891	derive the class UTC from the tzinfo base class .	class UTC ( tzinfo ) :
 17892	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 17893	return a string STR0 .	return STR0
@@ -17929,8 +17929,8 @@
 17931	define the method tzname with 2 arguments : self and dt .	def tzname ( self , dt ) :
 17932	call the method self._isdst with an argument dt , use it as an key to get the value from the _time.tzname dictionary , return it .	return _time . tzname [ self . _isdst ( dt ) ]
 17933	define the method _isdst with 2 arguments : self and dt .	def _isdst ( self , dt ) :
-17934	tt is a tuple with 9 elements : dt.year , dt.month , dt.day , dt.hour , dt.minute , dt.second , result of the method dt.weekday ,	tt = ( dt . year , dt . month , dt . day , dt . hour , dt . minute , dt . second , dt . weekday ( ) , 0 , 0 )
-17935	ingeter 0 and integer 0. call the method _time.mktime with an argument tt , substitute the result for stamp .	stamp = _time . mktime ( tt )
+17934	tt is a tuple with 9 elements : dt.year , dt.month , dt.day , dt.hour , dt.minute , dt.second , result of the method dt.weekday , ingeter 0 and integer 0 .	tt = ( dt . year , dt . month , dt . day , dt . hour , dt . minute , dt . second , dt . weekday ( ) , 0 , 0 )
+17935	call the method _time.mktime with an argument tt , substitute the result for stamp .	stamp = _time . mktime ( tt )
 17936	call the method _time.localtime with an argument stamp , substitute the result for tt .	tt = _time . localtime ( stamp )
 17937	if tt.tm_isdst is greater than integer 0 , return the result .	return tt . tm_isdst > 0
 17938	derive the class LocalTimezone from the ReferenceLocalTimezone base class .	class LocalTimezone ( ReferenceLocalTimezone ) :
@@ -17942,8 +17942,8 @@
 17944	call the method _isdst with an argument dt from the base class of the class LocalTimezone , return the result .	return super ( LocalTimezone , self ) . _isdst ( dt )
 17945	if OverflowError or ValueError , renamed to exc , exceptions are caught ,	except ( OverflowError , ValueError ) as exc :
 17946	get the type of the exc object , substitute it for exc_type .	exc_type = type ( exc )
-17947	call the function exc_type with an argument string STR0 , replace STR1 with dt ,	exc_value = exc_type ( STR0 % dt )
-17948	substitute the result for exc_value . substitute exc for exc_value.__cause__ .	exc_value . __cause__ = exc
+17947	call the function exc_type with an argument string STR0 , replace STR1 with dt , substitute the result for exc_value .	exc_value = exc_type ( STR0 % dt )
+17948	substitute exc for exc_value.__cause__ .	exc_value . __cause__ = exc
 17949	call the function six.reraise with 3 arguments : exc_type , exc_value and third element of the result of the method sys.exc_info .	six . reraise ( exc_type , exc_value , sys . exc_info ( ) [ 2 ] )
 17950	if pytz is true , substitute pytz.utc for utc , otherwise substitute result of the function UTC for utc .	utc = pytz . utc if pytz else UTC ( )
 17951	define the function get_fixed_timezone with an argument offset .	def get_fixed_timezone ( offset ) :
@@ -17999,8 +17999,8 @@
 18001	if not ,	else :
 18002	substitute self.old_timezone for _active.value .	_active . value = self . old_timezone
 18003	define the function template_localtime with 2 arguments : value and use_tz set to None .	def template_localtime ( value , use_tz = None ) :
-18004	if value is an instance of datetime and settings.USE_TZ if use_tz is None else use_tz and call to the function is_naive ,	should_convert = ( isinstance ( value , datetime ) and ( settings . USE_TZ if use_tz is None else use_tz ) and not is_naive ( value ) and getattr ( value , STR0 , True ) )
-18005	with an argument value evaluates to false , and if STR0 attribute of value object doesnt exists , or is it does is boolean True , should_convert is boolean True , otherwise is boolean False . if should_convert is true , call the function localtime with an argument value and return the result , otherwise return value .	return localtime ( value ) if should_convert else value
+18004	if value is an instance of datetime and settings.USE_TZ if use_tz is None else use_tz and call to the function is_naive , with an argument value evaluates to false , and if STR0 attribute of value object doesnt exists , or is it does is boolean True , should_convert is boolean True , otherwise is boolean False .	should_convert = ( isinstance ( value , datetime ) and ( settings . USE_TZ if use_tz is None else use_tz ) and not is_naive ( value ) and getattr ( value , STR0 , True ) )
+18005	if should_convert is true , call the function localtime with an argument value and return the result , otherwise return value .	return localtime ( value ) if should_convert else value
 18006	define the function localtime with 2 arguments : value and timezone set to None .	def localtime ( value , timezone = None ) :
 18007	if timezone is None ,	if timezone is None :
 18008	call the function get_current_timezone , substitute the result for timezone .	timezone = get_current_timezone ( )
@@ -18014,10 +18014,10 @@
 18016	if not ,	else :
 18017	call the method datetime.now , return the result .	return datetime . now ( )
 18018	define the function is_aware with an argument value .	def is_aware ( value ) :
-18019	if value.tzinfo is not None and call to the method value.tzinfo.utcoffset called with an argument value evaluates to not None ,	return value . tzinfo is not None and value . tzinfo . utcoffset ( value ) is not None
-18020	return boolean True , otherwise return boolean False . define the function is_naive with an argument value .	def is_naive ( value ) :
-18021	if value.tzinfo is None and call to the method value.tzinfo.utcoffset called with an argument value evaluates to None ,	return value . tzinfo is None or value . tzinfo . utcoffset ( value ) is None
-18022	return boolean True , otherwise return boolean False . define the function make_aware with 2 arguments : value and timezone .	def make_aware ( value , timezone ) :
+18019	if value.tzinfo is not None and call to the method value.tzinfo.utcoffset called with an argument value evaluates to not None , return boolean True , otherwise return boolean False .	return value . tzinfo is not None and value . tzinfo . utcoffset ( value ) is not None
+18020	define the function is_naive with an argument value .	def is_naive ( value ) :
+18021	if value.tzinfo is None and call to the method value.tzinfo.utcoffset called with an argument value evaluates to None , return boolean True , otherwise return boolean False .	return value . tzinfo is None or value . tzinfo . utcoffset ( value ) is None
+18022	define the function make_aware with 2 arguments : value and timezone .	def make_aware ( value , timezone ) :
 18023	if timezone has an attribute STR0 ,	if hasattr ( timezone , STR0 ) :
 18024	call the method timezone.localize with 2 arguments : value and is_dst as None , return the result .	return timezone . localize ( value , is_dst = None )
 18025	if not ,	else :
@@ -18034,8 +18034,8 @@
 18036	from django.utils.encoding import force_text into default name space .	from django . utils . encoding import force_text
 18037	from django.utils.functional import lazy into default name space .	from django . utils . functional import lazy
 18038	from django.utils import six into default name space .	from django . utils import six
-18039	__all__ is an list containing strings : STR0 , STR1 , STR2 , STR3 , STR4 ,	__all__ = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 , STR21 , STR22 , STR23 , STR24 , STR25 , STR26 , ]
-18040	STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 and STR21 . LANGUAGE_SESSION_KEY is an string STR22 .	LANGUAGE_SESSION_KEY = STR0
+18039	__all__ is an list containing strings : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 , STR21 , STR22 , STR23 , STR24 , STR25 and STR26 .	__all__ = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 , STR21 , STR22 , STR23 , STR24 , STR25 , STR26 , ]
+18040	LANGUAGE_SESSION_KEY is an string STR0 .	LANGUAGE_SESSION_KEY = STR0
 18041	derive the class TranslatorCommentWarning from the SyntaxWarning base class .	class TranslatorCommentWarning ( SyntaxWarning ) :
 18042	do nothing .	pass
 18043	derive the class Trans from the object base class .	class Trans ( object ) :
@@ -18070,16 +18070,16 @@
 18072	define the function lazy_number with 4 arguments : func , resultclass , number set to None and unpacked dictionary kwargs .	def lazy_number ( func , resultclass , number = None , ** kwargs ) :
 18073	if number is an instance of int type .	if isinstance ( number , int ) :
 18074	substitute number for value under the STR0 key of the kwargs dictionary .	kwargs [ STR0 ] = number
-18075	call the function lazy with 2 arguments : func and resultclass , call the result with an argument , unpacked dictionary kwargs ,	proxy = lazy ( func , resultclass ) ( ** kwargs )
-18076	substitute the result for proxy . if not ,	else :
+18075	call the function lazy with 2 arguments : func and resultclass , call the result with an argument , unpacked dictionary kwargs , substitute the result for proxy .	proxy = lazy ( func , resultclass ) ( ** kwargs )
+18076	if not ,	else :
 18077	derive the class NumberAwareString from the resultclass base class .	class NumberAwareString ( resultclass ) :
 18078	define the method __mod__ with 2 arguments : self and rhs .	def __mod__ ( self , rhs ) :
 18079	if rhs is an instance of dict type and number is true ,	if isinstance ( rhs , dict ) and number :
 18080	try ,	try :
 18081	substitute value under the number key of the rhs dictionary for number_value .	number_value = rhs [ number ]
 18082	if KeyError exception is caught ,	except KeyError :
-18083	raise an KeyError with an argument string STR0 % s\STR1	raise KeyError ( STR0%s\STR1 STR2 STR3 % number )
-18084	STR0 , where STR1 is replaced with number . if not ,	else :
+18083	raise an KeyError with an argument string STR0 % s\STR1 STR2 , where STR3 is replaced with number .	raise KeyError ( STR0%s\STR1 STR2 STR3 % number )
+18084	if not ,	else :
 18085	substitute rhs for number_value .	number_value = rhs
 18086	substitute number_value for kwargs dictionary value under the STR0 key .	kwargs [ STR0 ] = number_value
 18087	call the function func with unpacked dictionary kwargs as an argument , substitute the result for translated .	translated = func ( ** kwargs )
@@ -18091,12 +18091,12 @@
 18093	call the function lazy with 2 arguments : lambda function with unpacked dictionary kwargs as an argument and return value an instance of NumberAwareString class and NumberAwareString , call the result with an argument unpacked dictionary kwargs , substitute the result for proxy .	proxy = lazy ( lambda ** kwargs : NumberAwareString ( ) , NumberAwareString ) ( ** kwargs )
 18094	return proxy .	return proxy
 18095	define the function ngettext_lazy with 3 arguments : singular , plural and number set to None .	def ngettext_lazy ( singular , plural , number = None ) :
-18096	call the function lazy_number with 5 arguments : ngettext , str , singular set to singular , plural set to plural ,	return lazy_number ( ngettext , str , singular = singular , plural = plural , number = number )
-18097	and number set to number , return the result . define the function ungettext_lazy with 3 arguments : singular , plural and number set to None .	def ungettext_lazy ( singular , plural , number = None ) :
-18098	call the function lazy_number with 5 arguments : ungettext , six.text_type , singular set to singular , plural set to plural ,	return lazy_number ( ungettext , six . text_type , singular = singular , plural = plural , number = number )
-18099	and number set to number , return the result . define the function npgettext_lazy with 4 arguments : context , singular , plural and number set to None .	def npgettext_lazy ( context , singular , plural , number = None ) :
-18100	call the function lazy_number with 6 arguments : npgettext , six.text_type , context set to context , singular set to singular ,	return lazy_number ( npgettext , six . text_type , context = context , singular = singular , plural = plural , number = number )
-18101	plural set to plural and number set to number , return the result . define the function activate with an argument language .	def activate ( language ) :
+18096	call the function lazy_number with 5 arguments : ngettext , str , singular set to singular , plural set to plural , and number set to number , return the result .	return lazy_number ( ngettext , str , singular = singular , plural = plural , number = number )
+18097	define the function ungettext_lazy with 3 arguments : singular , plural and number set to None .	def ungettext_lazy ( singular , plural , number = None ) :
+18098	call the function lazy_number with 5 arguments : ungettext , six.text_type , singular set to singular , plural set to plural , and number set to number , return the result .	return lazy_number ( ungettext , six . text_type , singular = singular , plural = plural , number = number )
+18099	define the function npgettext_lazy with 4 arguments : context , singular , plural and number set to None .	def npgettext_lazy ( context , singular , plural , number = None ) :
+18100	call the function lazy_number with 6 arguments : npgettext , six.text_type , context set to context , singular set to singular , plural set to plural and number set to number , return the result .	return lazy_number ( npgettext , six . text_type , context = context , singular = singular , plural = plural , number = number )
+18101	define the function activate with an argument language .	def activate ( language ) :
 18102	call the function _trans.activate with an argument language , return the result .	return _trans . activate ( language )
 18103	define the function deactivate .	def deactivate ( ) :
 18104	call the function _trans.deactivate , return the result .	return _trans . deactivate ( )
@@ -18145,8 +18145,8 @@
 18147	try ,	try :
 18148	get the LANG_INFO dictionary value under the generic_lang_code key , return the result .	return LANG_INFO [ generic_lang_code ]
 18149	if KeyError exception is caught ,	except KeyError :
-18150	raise an KeyError with an argument string STR0 , where STR1 is replaced with lang_code ,	raise KeyError ( STR0 % ( lang_code , generic_lang_code ) )
-18151	and generic_lang_code . call the function re.compile with an argument string STR0 , substitute the result for trim_whitespace_re .	trim_whitespace_re = re . compile ( STR0 )
+18150	raise an KeyError with an argument string STR0 , where STR1 is replaced with lang_code , and generic_lang_code .	raise KeyError ( STR0 % ( lang_code , generic_lang_code ) )
+18151	call the function re.compile with an argument string STR0 , substitute the result for trim_whitespace_re .	trim_whitespace_re = re . compile ( STR0 )
 18152	define the function trim_whitespace with an argument s .	def trim_whitespace ( s ) :
 18153	call strip s of the surrounding whitespaces , substitute every occurrence of the whitespace in the trim_whitespace_re with previous result , return the result .	return trim_whitespace_re . sub ( STR0 , s . strip ( ) )
 18154	from django.conf import settings into default name space .	from django . conf import settings
@@ -18158,8 +18158,8 @@
 18160	return plural .	return plural
 18161	substitute ngettext for ngettext_lazy .	ngettext_lazy = ngettext
 18162	define the function ungettext with 3 arguments : singular , plural and number .	def ungettext ( singular , plural , number ) :
-18163	call the function ngettext with 3 arguments : singular , plural and number , use the result as an argument for the call to the force_text ,	return force_text ( ngettext ( singular , plural , number ) )
-18164	return the result . define the function pgettext with 2 arguments : context and message .	def pgettext ( context , message ) :
+18163	call the function ngettext with 3 arguments : singular , plural and number , use the result as an argument for the call to the force_text , return the result .	return force_text ( ngettext ( singular , plural , number ) )
+18164	define the function pgettext with 2 arguments : context and message .	def pgettext ( context , message ) :
 18165	call the function ugettext with an argument message .	return ugettext ( message )
 18166	define the function ngettext with 4 arguments : context , singular , plural and number .	def npgettext ( context , singular , plural , number ) :
 18167	call the function ungettext with 3 arguments : singular , plural and number , return the result .	return ungettext ( singular , plural , number )
@@ -18178,8 +18178,8 @@
 18180	define the function to_locale with an argument language .	def to_locale ( language ) :
 18181	find position of STR0 in the index of the language , substitute the result for p .	p = language . find ( STR0 )
 18182	if p is greater or equal to integer 0 ,	if p >= 0 :
-18183	append STR0 to string created from first p elements of languages converted to lowercase ,	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . upper ( )
-18184	convert slice of language string from ( p+1 ) -th index to the end to uppercase , append it to the previous result , return the resulting string . if not ,	else :
+18183	append STR0 to string created from first p elements of languages converted to lowercase , convert slice of language string from ( p+1 ) -th index to the end to uppercase , append it to the previous result , return the resulting string .	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . upper ( )
+18184	if not ,	else :
 18185	convert language to lowercase and return it .	return language . lower ( )
 18186	define the function get_language_from_request with 2 arguments : request and check_path set to boolean False .	def get_language_from_request ( request , check_path = False ) :
 18187	return settings.LANGUAGE_CODE .	return settings . LANGUAGE_CODE
@@ -18210,9 +18210,9 @@
 18212	_default is None .	_default = None
 18213	_supported is None .	_supported = None
 18214	CONTEXT_SEPARATOR is a string STR0 .	CONTEXT_SEPARATOR = STR0
-18215	call the function re.compile with 2 arguments : raw string STR0 ,	accept_language_re = re . compile ( STRSTR7 , re . VERBOSE )
-18216	and re.VERBOSE , substitute the result for accept_language_re . call the function re.compile with 2 arguments : raw string STR0 and re.IGNORECASE ,	language_code_re = re . compile ( STR0 , re . IGNORECASE )
-18217	substitute the result for language_code_re . call the function re.compile with an argument raw string STR0 , substitute the result for language_code_prefix_re .	language_code_prefix_re = re . compile ( STR0 )
+18215	call the function re.compile with 2 arguments : raw string STR0 , and re.VERBOSE , substitute the result for accept_language_re .	accept_language_re = re . compile ( STRSTR7 , re . VERBOSE )
+18216	call the function re.compile with 2 arguments : raw string STR0 and re.IGNORECASE , substitute the result for language_code_re .	language_code_re = re . compile ( STR0 , re . IGNORECASE )
+18217	call the function re.compile with an argument raw string STR0 , substitute the result for language_code_prefix_re .	language_code_prefix_re = re . compile ( STR0 )
 18218	_BROWSERS_DEPRECATED_LOCALES is an dictionary with 2 initial entries : STR0 for STR1 and STR2 for STR3 .	_BROWSERS_DEPRECATED_LOCALES = { STR0 : STR1 , STR2 : STR3 , }
 18219	substitute _BROWSERS_DEPRECATED_LOCALES for _DJANGO_DEPRECATED_LOCALES .	_DJANGO_DEPRECATED_LOCALES = _BROWSERS_DEPRECATED_LOCALES
 18220	decorator function receiver with an argument setting_changed ,	@ receiver ( setting_changed )
@@ -18226,18 +18226,18 @@
 18228	find first index of occurrence of character STR0 in language , substitute it for p .	p = language . find ( STR0 )
 18229	if p is greater or equal to integer 0 ,	if p >= 0 :
 18230	if to_lower is true ,	if to_lower :
-18231	convert fist p elements of language to lowercase , append STR0 to it ,	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . lower ( )
-18232	covert to lowercase language elements from ( p+1 ) -th index to the end , append it to the previous result , return it . if not ,	else :
+18231	convert fist p elements of language to lowercase , append STR0 to it , covert to lowercase language elements from ( p+1 ) -th index to the end , append it to the previous result , return it .	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . lower ( )
+18232	if not ,	else :
 18233	slice language from ( p+1 ) -th index to the end , calculate the length of the obtained segment , if it is greater than integer 2 ,	if len ( language [ p + 1 : ] ) > 2 :
-18234	convert fist p elements of language to lowercase , append STR0 to it ,	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 ] . upper ( ) + language [ p + 2 : ] . lower ( )
-18235	covert to lowercase language element at ( p+1 ) -th index , append it to the previous result , covert to lowercase language elements from ( p+2 ) -th index to the end , append it to the previous result , return it . convert fist p elements of language to lowercase , append STR0 to it ,	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . upper ( )
-18236	covert to uppercase language elements from ( p+1 ) -th index to the end , append it to the previous result , return it . if not ,	else :
+18234	convert fist p elements of language to lowercase , append STR0 to it , covert to lowercase language element at ( p+1 ) -th index , append it to the previous result , covert to lowercase language elements from ( p+2 ) -th index to the end , append it to the previous result , return it .	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 ] . upper ( ) + language [ p + 2 : ] . lower ( )
+18235	convert fist p elements of language to lowercase , append STR0 to it , covert to uppercase language elements from ( p+1 ) -th index to the end , append it to the previous result , return it .	return language [ : p ] . lower ( ) + STR0 + language [ p + 1 : ] . upper ( )
+18236	if not ,	else :
 18237	convert language to lowercase , return it .	return language . lower ( )
 18238	define the function to_language with an argument locale .	def to_language ( locale ) :
 18239	find first index of occurrence of character STR0 in locale , substitute it for p .	p = locale . find ( STR0 )
 18240	if p is greater or equal to integer 0 ,	if p >= 0 :
-18241	convert fist p elements of locale to lowercase , append STR0 to it ,	return locale [ : p ] . lower ( ) + STR0 + locale [ p + 1 : ] . lower ( )
-18242	covert to lowercase locale elements from ( p+1 ) -th index to the end , append it to the previous result , return it . if not ,	else :
+18241	convert fist p elements of locale to lowercase , append STR0 to it , covert to lowercase locale elements from ( p+1 ) -th index to the end , append it to the previous result , return it .	return locale [ : p ] . lower ( ) + STR0 + locale [ p + 1 : ] . lower ( )
+18242	if not ,	else :
 18243	convert locale to lowercase and return it .	return locale . lower ( )
 18244	derive the class DjangoTranslation from gettext_module.GNUTranslations base class .	class DjangoTranslation ( gettext_module . GNUTranslations ) :
 18245	define the method __init__ with 2 arguments : self and language .	def __init__ ( self , language ) :
@@ -18245,23 +18245,23 @@
 18247	substitute language for self.__language .	self . __language = language
 18248	call the function to_language with an argument language , substitute it for self.__to_language .	self . __to_language = to_language ( language )
 18249	call the function to_locale with an argument language , substitute it for self.__locale .	self . __locale = to_locale ( language )
-18250	self.plural is an lambda function with an argument n , which returns result of boolean expression n not equal to integer 1 ,	self . plural = lambda n : int ( n != 1 )
-18251	converted to an integer . call the method self._init_translation_catalog .	self . _init_translation_catalog ( )
+18250	self.plural is an lambda function with an argument n , which returns result of boolean expression n not equal to integer 1 , converted to an integer .	self . plural = lambda n : int ( n != 1 )
+18251	call the method self._init_translation_catalog .	self . _init_translation_catalog ( )
 18252	call the method self._add_installed_apps_translations .	self . _add_installed_apps_translations ( )
 18253	call the method self._add_local_translations .	self . _add_local_translations ( )
 18254	call the method self._add_fallback .	self . _add_fallback ( )
 18255	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 18256	return a string STR0 , where STR1 is replaced with self.__language .	return STR0 % self . __language
 18257	define the method _new_gnu_trans with 3 arguments : self , localedir and use_null_fallback set to boolean True .	def _new_gnu_trans ( self , localedir , use_null_fallback = True ) :
-18258	call the method gettext_module.translation with 5 arguments : domain set to string STR0 , localedir set to localedir ,	translation = gettext_module . translation ( domain = STR0 , localedir = localedir , languages = [ self . __locale ] , codeset = STR1 , fallback = use_null_fallback )
-18259	languages set to a list with an element self.__locale , codeset set to a string STR0 and fallback set to use_null_fallback , substitute the result for translation . if translation has an attribute STR1 ,	if not hasattr ( translation , STR0 ) :
+18258	call the method gettext_module.translation with 5 arguments : domain set to string STR0 , localedir set to localedir , languages set to a list with an element self.__locale , codeset set to a string STR1 and fallback set to use_null_fallback , substitute the result for translation .	translation = gettext_module . translation ( domain = STR0 , localedir = localedir , languages = [ self . __locale ] , codeset = STR1 , fallback = use_null_fallback )
+18259	if translation has an attribute STR0 ,	if not hasattr ( translation , STR0 ) :
 18260	translation._catalog is an empty dictionary .	translation . _catalog = { }
 18261	translation._info is an empty dictionary .	translation . _info = { }
 18262	return translation .	return translation
 18263	define the method _init_translation_catalog with an argument self .	def _init_translation_catalog ( self ) :
-18264	get the value under the settings.__module__ key of the sys.modules dictionary ,	settingsfile = upath ( sys . modules [ settings . __module__ ] . __file__ )
-18265	use its __file__ field as an argument for the call to the function upath , substitute the result for settingsfile . call the function os.path.dirname with an argument settingsfile , join the result an string STR0 into a file path ,	localedir = os . path . join ( os . path . dirname ( settingsfile ) , STR0 )
-18266	substitute it for localedir . use_null_fallback is boolean True .	use_null_fallback = True
+18264	get the value under the settings.__module__ key of the sys.modules dictionary , use its __file__ field as an argument for the call to the function upath , substitute the result for settingsfile .	settingsfile = upath ( sys . modules [ settings . __module__ ] . __file__ )
+18265	call the function os.path.dirname with an argument settingsfile , join the result an string STR0 into a file path , substitute it for localedir .	localedir = os . path . join ( os . path . dirname ( settingsfile ) , STR0 )
+18266	use_null_fallback is boolean True .	use_null_fallback = True
 18267	if self.__language equals settings.LANGUAGE_CODE ,	if self . __language == settings . LANGUAGE_CODE :
 18268	use_null_fallback is boolean False .	use_null_fallback = False
 18269	call the function self._new_gnu_trans with 2 arguments : localedir and use_null_fallback , substitute the result for translation .	translation = self . _new_gnu_trans ( localedir , use_null_fallback )
@@ -18271,8 +18271,8 @@
 18273	try ,	try :
 18274	call the method apps.get_app_configs , convert the result in a list , reverse the order of elements , substitute the result for app_configs .	app_configs = reversed ( list ( apps . get_app_configs ( ) ) )
 18275	if AppRegistryNotReady exception is caught ,	except AppRegistryNotReady :
-18276	rais an AppRegistryNotReady exception with an argument string STR0	raise AppRegistryNotReady ( STR0 STR1 STR2 )
-18277	STR0 . for every app_config in app_configs ,	for app_config in app_configs :
+18276	raise an AppRegistryNotReady exception with an argument string STR0 STR1 .	raise AppRegistryNotReady ( STR0 STR1 STR2 )
+18277	for every app_config in app_configs ,	for app_config in app_configs :
 18278	join app_config.path and string STR0 into a file path , substitute it for localedir .	localedir = os . path . join ( app_config . path , STR0 )
 18279	call the method self._new_gnu_trans with an argument localedir , substitute the result for translation .	translation = self . _new_gnu_trans ( localedir )
 18280	call the method self.merge with an argument translation .	self . merge ( translation )
@@ -18299,8 +18299,8 @@
 18301	define the function activate with an argument language .	def activate ( language ) :
 18302	if language is contained in _DJANGO_DEPRECATED_LOCALES ,	if language in _DJANGO_DEPRECATED_LOCALES :
 18303	msg is a string STR0 .	msg = ( STR0 STR1 )
-18304	call the method call the function warnings.warn with 3 arguments : msg formatted with language and value under the language key ,	warnings . warn ( msg % ( language , _DJANGO_DEPRECATED_LOCALES [ language ] ) , RemovedInDjango19Warning , stacklevel = 2 )
-18305	of the _DJANGO_DEPRECATED_LOCALES dictionary , RemovedInDjango19Warning and stacklevel set to integer 2. call the function translation with an argument language , substitute the result for _active.value .	_active . value = translation ( language )
+18304	call the method call the function warnings.warn with 3 arguments : msg formatted with language and value under the language key , of the _DJANGO_DEPRECATED_LOCALES dictionary , RemovedInDjango19Warning and stacklevel set to integer 2 .	warnings . warn ( msg % ( language , _DJANGO_DEPRECATED_LOCALES [ language ] ) , RemovedInDjango19Warning , stacklevel = 2 )
+18305	call the function translation with an argument language , substitute the result for _active.value .	_active . value = translation ( language )
 18306	define the function deactivate .	def deactivate ( ) :
 18307	if _active has an attribute STR0 ,	if hasattr ( _active , STR0 ) :
 18308	delete _active.value .	del _active . value
@@ -18327,8 +18327,8 @@
 18329	return _default .	return _default
 18330	define the function do_translate with 2 arguments : message and translation_function .	def do_translate ( message , translation_function ) :
 18331	use global variable _default .	global _default
-18332	replace every occurrence of string STR0 in message with STR1 , replace every occurrence of string STR2 ,	eol_message = message . replace ( str ( STR0 ) , str ( STR1 ) ) . replace ( str ( STR2 ) , str ( STR3 ) )
-18333	in the previous result for with string STR0 , substitute the result for eol_message . get STR1 attribute of the _active object , if it exists substitute it for t , if not t is None .	t = getattr ( _active , STR0 , None )
+18332	replace every occurrence of string STR0 in message with STR1 , replace every occurrence of string STR2 , in the previous result for with string STR3 , substitute the result for eol_message .	eol_message = message . replace ( str ( STR0 ) , str ( STR1 ) ) . replace ( str ( STR2 ) , str ( STR3 ) )
+18333	get STR0 attribute of the _active object , if it exists substitute it for t , if not t is None .	t = getattr ( _active , STR0 , None )
 18334	if t is not None ,	if t is not None :
 18335	get translation_function attribute of the object t , call the result with an argument eol_message , substitute the result for result .	result = getattr ( t , translation_function ) ( eol_message )
 18336	if not ,	else :
@@ -18369,14 +18369,14 @@
 18371	define the function ungettext with 3 arguments : singular , plural and number .	def ungettext ( singular , plural , number ) :
 18372	call the function do_ntranslate with 3 arguments : singular , plural , number and string STR0 , return the result .	return do_ntranslate ( singular , plural , number , STR0 )
 18373	define the function npgettext with 4 arguments : context , singular , plural and number .	def npgettext ( context , singular , plural , number ) :
-18374	msgs_with_ctxt is a tuple containing 2 elements : string created by concatenating context , CONTEXT_SEPARATOR and singular ,	msgs_with_ctxt = ( STR0 % ( context , CONTEXT_SEPARATOR , singular ) , STR1 % ( context , CONTEXT_SEPARATOR , plural ) , number )
-18375	string created by concatenating context , CONTEXT_SEPARATOR and plural and number . call the function ungettext with unpacked dictionary msgs_with_ctxt , substitute the result for result .	result = ungettext ( * msgs_with_ctxt )
+18374	msgs_with_ctxt is a tuple containing 2 elements : string created by concatenating context , CONTEXT_SEPARATOR and singular , string created by concatenating context , CONTEXT_SEPARATOR and plural and number .	msgs_with_ctxt = ( STR0 % ( context , CONTEXT_SEPARATOR , singular ) , STR1 % ( context , CONTEXT_SEPARATOR , plural ) , number )
+18375	call the function ungettext with unpacked dictionary msgs_with_ctxt , substitute the result for result .	result = ungettext ( * msgs_with_ctxt )
 18376	if CONTEXT_SEPARATOR is contained in result ,	if CONTEXT_SEPARATOR in result :
 18377	call the function ungettext with 3 arguments : singular , plural and number , substitute the result for result .	result = ungettext ( singular , plural , number )
 18378	return result .	return result
 18379	define the function all_locale_paths .	def all_locale_paths ( ) :
-18380	get the value under the settings.__module__ key of the sys.modules dictionary , use its __file__ field as an argument ,	globalpath = os . path . join ( os . path . dirname ( upath ( sys . modules [ settings . __module__ ] . __file__ ) ) , STR0 )
-18381	for the call to the function upath , get the directory name of the resulting system path , join the result and string STR0 , into a valid file path , substitute it for globalpath . append settings.LOCALE_PATHS converted into a list to a list containing an element globalpath , return it .	return [ globalpath ] + list ( settings . LOCALE_PATHS )
+18380	get the value under the settings.__module__ key of the sys.modules dictionary , use its __file__ field as an argument , for the call to the function upath , get the directory name of the resulting system path , join the result and string STR0 , into a valid file path , substitute it for globalpath .	globalpath = os . path . join ( os . path . dirname ( upath ( sys . modules [ settings . __module__ ] . __file__ ) ) , STR0 )
+18381	append settings.LOCALE_PATHS converted into a list to a list containing an element globalpath , return it .	return [ globalpath ] + list ( settings . LOCALE_PATHS )
 18382	decorator function lru_cache.lru_cache with an argument maxsize set to integer 1000 .	@ lru_cache . lru_cache ( maxsize = 1000 )
 18383	define the function check_for_language with an argument lang_code .	def check_for_language ( lang_code ) :
 18384	call the method language_code_re.search with an argument lang_code , if it evaluates to false ,	if not language_code_re . search ( lang_code ) :
@@ -18429,8 +18429,8 @@
 18431	call the function get_supported_language_variant with an argument lang_code , return the result .	return get_supported_language_variant ( lang_code )
 18432	if LookupError exception is caught ,	except LookupError :
 18433	do nothing .	pass
-18434	get the value under the STR0 key of the request.META dictionary , if it exists substitute it for accept ,	accept = request . META . get ( STR0 , STR )
-18435	if not accept is an empty string . call the function parse_accept_lang_header with an argument accept , for every accept_lang and unused in the result ,	for accept_lang , unused in parse_accept_lang_header ( accept ) :
+18434	get the value under the STR0 key of the request.META dictionary , if it exists substitute it for accept , if not accept is an empty string .	accept = request . META . get ( STR0 , STR )
+18435	call the function parse_accept_lang_header with an argument accept , for every accept_lang and unused in the result ,	for accept_lang , unused in parse_accept_lang_header ( accept ) :
 18436	if accept_lang equals STR0 ,	if accept_lang == STR0 :
 18437	break from the loop execution .	break
 18438	call the method language_code_re.search with an argument accept_lang , if it evaluates to false ,	if not language_code_re . search ( accept_lang ) :
@@ -18496,19 +18496,19 @@
 18498	if endbmatch is true ,	if endbmatch :
 18499	if inplural is true ,	if inplural :
 18500	if message_context is true ,	if message_context :
-18501	substitute STR0 in string STR1 with message_context , result of the function join_tokens ,	out . write ( STR0 % ( message_context , join_tokens ( singular , trimmed ) , join_tokens ( plural , trimmed ) ) )
-18502	called with 2 arguments : singular and trimmed and result of the function join_tokens called with 2 arguments : plural and trimmed , write the result to out . if not ,	else :
-18503	substitute STR0 in string STR1 with result of the function join_tokens , called with 2 arguments : singular ,	out . write ( STR0 % ( join_tokens ( singular , trimmed ) , join_tokens ( plural , trimmed ) ) )
-18504	and trimmed and result of the function join_tokens called with 2 arguments : plural and trimmed , write the result to out . for every part in singular ,	for part in singular :
+18501	substitute STR0 in string STR1 with message_context , result of the function join_tokens , called with 2 arguments : singular and trimmed and result of the function join_tokens called with 2 arguments : plural and trimmed , write the result to out .	out . write ( STR0 % ( message_context , join_tokens ( singular , trimmed ) , join_tokens ( plural , trimmed ) ) )
+18502	if not ,	else :
+18503	substitute STR0 in string STR1 with result of the function join_tokens , called with 2 arguments : singular , and trimmed and result of the function join_tokens called with 2 arguments : plural and trimmed , write the result to out .	out . write ( STR0 % ( join_tokens ( singular , trimmed ) , join_tokens ( plural , trimmed ) ) )
+18504	for every part in singular ,	for part in singular :
 18505	call the method blankout with 2 arguments : part and STR0 , write the result to out .	out . write ( blankout ( part , STR0 ) )
 18506	for every part in plural ,	for part in plural :
 18507	call the method blankout with 2 arguments : part and STR0 , write the result to out .	out . write ( blankout ( part , STR0 ) )
 18508	if not ,	else :
 18509	if message_context is true ,	if message_context :
-18510	substitute STR0 in string STR1 with message_context and result of the function join_tokens ,	out . write ( STR0 % ( message_context , join_tokens ( singular , trimmed ) ) )
-18511	called with 2 arguments : singular and trimmed , write the result to out . if not ,	else :
-18512	substitute STR0 in string STR1 with result of the function join_tokens , called with 2 arguments : singular ,	out . write ( STR0 % join_tokens ( singular , trimmed ) )
-18513	and trimmed , write the result to out . for every part in singular ,	for part in singular :
+18510	substitute STR0 in string STR1 with message_context and result of the function join_tokens , called with 2 arguments : singular and trimmed , write the result to out .	out . write ( STR0 % ( message_context , join_tokens ( singular , trimmed ) ) )
+18511	if not ,	else :
+18512	substitute STR0 in string STR1 with result of the function join_tokens , called with 2 arguments : singular , and trimmed , write the result to out .	out . write ( STR0 % join_tokens ( singular , trimmed ) )
+18513	for every part in singular ,	for part in singular :
 18514	call the method blankout with 2 arguments : part and STR0 , write the result to out .	out . write ( blankout ( part , STR0 ) )
 18515	message_context is None .	message_context = None
 18516	intrans is boolean False .	intrans = False
@@ -18521,8 +18521,8 @@
 18523	filemsg is an empty string .	filemsg = STR
 18524	if origin is true ,	if origin :
 18525	filemsg is a string STR0 , where STR1 is replaced with origin .	filemsg = STR0 % origin
-18526	raise an SyntaxError with an argument string STR0 ,	raise SyntaxError ( STR0 % ( t . contents , filemsg , t . lineno ) )
-18527	formated with t.contents , filemsg and t.lineno . otherwise if t.token_type equals TOKEN_VAR ,	elif t . token_type == TOKEN_VAR :
+18526	raise an SyntaxError with an argument string STR0 , formated with t.contents , filemsg and t.lineno .	raise SyntaxError ( STR0 % ( t . contents , filemsg , t . lineno ) )
+18527	otherwise if t.token_type equals TOKEN_VAR ,	elif t . token_type == TOKEN_VAR :
 18528	if inplural is true ,	if inplural :
 18529	append string STR0 to plural , where STR1 is replaced with t.contents .	plural . append ( STR0 % t . contents )
 18530	if not ,	else :
@@ -18542,12 +18542,12 @@
 18544	filemsg is an empty string .	filemsg = STR
 18545	if origin is true ,	if origin :
 18546	filemsg is a string STR0 , where STR1 is replaced with origin .	filemsg = STR0 % origin
-18547	warn_msg is a string STR0 ,	warn_msg = ( STR0 STR1 STR2 ) % ( c , filemsg , comment_lineno_cache )
-18548	formated with c , filemsg and comment_lineno_cache . call the function warnings.warn with 2 arguments : warn_msg and TranslatorCommentWarning .	warnings . warn ( warn_msg , TranslatorCommentWarning )
+18547	warn_msg is a string STR0 , formated with c , filemsg and comment_lineno_cache .	warn_msg = ( STR0 STR1 STR2 ) % ( c , filemsg , comment_lineno_cache )
+18548	call the function warnings.warn with 2 arguments : warn_msg and TranslatorCommentWarning .	warnings . warn ( warn_msg , TranslatorCommentWarning )
 18549	value under the comment_lineno_cache key of the lineno_comment_map dictionary is an empty string .	lineno_comment_map [ comment_lineno_cache ] = [ ]
 18550	if not ,	else :
-18551	join lineno_comment_map dictionary value under the comment_lineno_cache key into a string , separated with STR0 ,	out . write ( STR0 % STR1 . join ( lineno_comment_map [ comment_lineno_cache ] ) )
-18552	format with it a string STR0 , write it to out . comment_lineno_cache is None ,	comment_lineno_cache = None
+18551	join lineno_comment_map dictionary value under the comment_lineno_cache key into a string , separated with STR0 , format with it a string STR1 , write it to out .	out . write ( STR0 % STR1 . join ( lineno_comment_map [ comment_lineno_cache ] ) )
+18552	comment_lineno_cache is None ,	comment_lineno_cache = None
 18553	if t.token_type equals TOKEN_BLOCK ,	if t . token_type == TOKEN_BLOCK :
 18554	call the function inline_re.match with an argument t.contents , substitute the result for imatch .	imatch = inline_re . match ( t . contents )
 18555	call the function block_re.match with an argument t.contents , substitute the result for bmatch .	bmatch = block_re . match ( t . contents )
@@ -18560,8 +18560,8 @@
 18562	strip g of STR0 from both ends ,	g = g . strip ( STR0 )
 18563	call the method one_percent_re.sub with 2 arguments : string STR0 and g , substitute the result for .	g = one_percent_re . sub ( STR0 , g )
 18564	call the method imatch.group with an argument integer 1 , if it evaluates to true ,	if imatch . group ( 2 ) :
-18565	call the method imatch.group with an argument integer 2 , use the result as an argument for the call to the method context_re.match ,	context_match = context_re . match ( imatch . group ( 2 ) )
-18566	substitute the result for context_match . call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
+18565	call the method imatch.group with an argument integer 2 , use the result as an argument for the call to the method context_re.match , substitute the result for context_match .	context_match = context_re . match ( imatch . group ( 2 ) )
+18566	call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
 18567	if first element of message_context equals to character STR0 ,	if message_context [ 0 ] == STR0 :
 18568	strip message_context of STR0 characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR0 )
 18569	otherwise if , first element of message_context is equal to STR0 ,	elif message_context [ 0 ] == STR0 :
@@ -18574,8 +18574,8 @@
 18576	call the method constant_re.findall with an argument t.contents , for every fmatch in the result ,	for fmatch in constant_re . findall ( t . contents ) :
 18577	format string STR0 , with fmatch , write it to out .	out . write ( STR0 % fmatch )
 18578	call the method bmatch.group with an argument integer 1 , if it evaluates to true ,	if bmatch . group ( 1 ) :
-18579	call the method bmatch.group with an argument integer 1 , use the result as an argument for the call to the function context_re.match ,	context_match = context_re . match ( bmatch . group ( 1 ) )
-18580	substitute the result for context_match . call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
+18579	call the method bmatch.group with an argument integer 1 , use the result as an argument for the call to the function context_re.match , substitute the result for context_match .	context_match = context_re . match ( bmatch . group ( 1 ) )
+18580	call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
 18581	if first element of message_context equals to character STR0 ,	if message_context [ 0 ] == STR0 :
 18582	strip message_context of STR0 characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR0 )
 18583	otherwise if first element of message_context equals to character STR0 ,	elif message_context [ 0 ] == STR0 :
@@ -18642,9 +18642,9 @@
 18644	return obj .	return obj
 18645	define the method __str__ with an argument self .	def __str__ ( self ) :
 18646	if self.negated ,	if self . negated :
-18647	return string STR0 , formated with self.connector and string created by joining c into a string , separated by STR1 ,	return STR0 % ( self . connector , STR1 . join ( [ str ( c ) for c in self . children ] ) )
-18648	for every c in self.children . return string STR0 , formated with self.connector and string created by joining c into a string , separated by STR1 ,	return STR0 % ( self . connector , STR1 . join ( [ str ( c ) for c in self . children ] ) )
-18649	for every c in self.children . define the method __repr__ with an argument self .	def __repr__ ( self ) :
+18647	return string STR0 , formated with self.connector and string created by joining c into a string , separated by STR1 , for every c in self.children .	return STR0 % ( self . connector , STR1 . join ( [ str ( c ) for c in self . children ] ) )
+18648	return string STR0 , formated with self.connector and string created by joining c into a string , separated by STR1 , for every c in self.children .	return STR0 % ( self . connector , STR1 . join ( [ str ( c ) for c in self . children ] ) )
+18649	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 18650	return string STR0 , formated with self.__class__.__name__ and self .	return STR0 % ( self . __class__ . __name__ , self )
 18651	define the method __deepcopy__ with 2 arguments : self and memodict .	def __deepcopy__ ( self , memodict ) :
 18652	obj is an instance of Node class , created with 2 arguments : connector set to self.connector and negated set to self.negated .	obj = Node ( connector = self . connector , negated = self . negated )
@@ -18688,18 +18688,18 @@
 18690	import module warnings .	import warnings
 18691	from django.utils.deprecation import RemovedInDjango19Warning into default name space .	from django . utils . deprecation import RemovedInDjango19Warning
 18692	from django.utils.encoding import force_str , force_text and DEFAULT_LOCALE_ENCODING into default name space .	from django . utils . encoding import force_str , force_text , DEFAULT_LOCALE_ENCODING
-18693	call the function warnings.warn with 3 arguments : string STR0	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning , stacklevel = 2 )
-18694	STR0 , RemovedInDjango19Warning and stacklevel set to 2. derive the class FixedOffset from the tzinfo base class .	class FixedOffset ( tzinfo ) :
+18693	call the function warnings.warn with 3 arguments : string STR0 STR1 , RemovedInDjango19Warning and stacklevel set to 2 .	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning , stacklevel = 2 )
+18694	derive the class FixedOffset from the tzinfo base class .	class FixedOffset ( tzinfo ) :
 18695	define the method __init__ with 2 arguments : self and offset .	def __init__ ( self , offset ) :
-18696	call the function warnings.warn with 2 arguments : STR0	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning )
-18697	STR0 and RemovedInDjango19Warning . if offset is an instance of timedelta class ,	if isinstance ( offset , timedelta ) :
+18696	call the function warnings.warn with 2 arguments : STR0 STR1 and RemovedInDjango19Warning .	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning )
+18697	if offset is an instance of timedelta class ,	if isinstance ( offset , timedelta ) :
 18698	substitute offset for self.__offset .	self . __offset = offset
 18699	substitute self.__offset.seconds for offset .	offset = self . __offset . seconds // 60
 18700	if not ,	else :
 18701	call the function timedelta with an argument minutes set to offset , substitute the result for self.__offset .	self . __offset = timedelta ( minutes = offset )
 18702	if offset is lesser than integer 0 , sign is set to STR0 , otherwise sign is STR1 ,	sign = STR0 if offset < 0 else STR1
-18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 ,	self . __name = STR0 % ( sign , abs ( offset ) / 60. , abs ( offset ) % 60 )
-18704	and placed into 2 character spaces , and STR0 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces . define the method __repr__ with an argument self .	def __repr__ ( self ) :
+18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 , and placed into 2 character spaces , and STR3 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces .	self . __name = STR0 % ( sign , abs ( offset ) / 60. , abs ( offset ) % 60 )
+18704	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 18705	return self.__name .	return self . __name
 18706	define the method __getinitargs__ with an argument self .	def __getinitargs__ ( self ) :
 18707	return a tuple with an element self.__offset .	return self . __offset ,
@@ -18711,8 +18711,8 @@
 18713	call the function timedelta with an argument integer 0 , return the result .	return timedelta ( 0 )
 18714	derive the class LocalTimezone from the tzinfo base class .	class LocalTimezone ( tzinfo ) :
 18715	define the method __init__ with 2 arguments self and dt .	def __init__ ( self , dt ) :
-18716	call the function warnings.warn with 2 arguments : string STR0	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning )
-18717	STR0 and RemovedInDjango19Warning . call the method tzinfo.__init__ with an argument self .	tzinfo . __init__ ( self )
+18716	call the function warnings.warn with 2 arguments : string STR0 STR1 and RemovedInDjango19Warning .	warnings . warn ( STR0 STR1 , RemovedInDjango19Warning )
+18717	call the method tzinfo.__init__ with an argument self .	tzinfo . __init__ ( self )
 18718	substitute dt for self.__dt .	self . __dt = dt
 18719	call the method self.tzname with an argument dt , substitute the result for self._tzname .	self . _tzname = self . tzname ( dt )
 18720	define the method __repr__ with an argument self .	def __repr__ ( self ) :
@@ -18726,18 +18726,18 @@
 18728	call the function timedelta with an argument seconds as negative time.timezone , return the result .	return timedelta ( seconds = - time . timezone )
 18729	define the method dst with 2 arguments self and dt .	def dst ( self , dt ) :
 18730	call the nethod self._isdst with an argument dt , if it evaluates to true ,	if self . _isdst ( dt ) :
-18731	call the function timedelta with an argument seconds as negative time.timezone , subtract the result from the result of the call ,	return timedelta ( seconds = - time . altzone ) - timedelta ( seconds = - time . timezone )
-18732	to the function timedelta called with an argument seconds as negative time.altzone , return the result . if not ,	else :
+18731	call the function timedelta with an argument seconds as negative time.timezone , subtract the result from the result of the call , to the function timedelta called with an argument seconds as negative time.altzone , return the result .	return timedelta ( seconds = - time . altzone ) - timedelta ( seconds = - time . timezone )
+18732	if not ,	else :
 18733	call the function timedelta with an argument integer 0 , return the result .	return timedelta ( 0 )
 18734	define the method tzname with 2 arguments self and dt .	def tzname ( self , dt ) :
 18735	if dt is None is_dst is boolean False , otherwise call the method self._isdst with an argument dt , substitute the result for is_dst .	is_dst = False if dt is None else self . _isdst ( dt )
 18736	try ,	try :
-18737	call the function force_text with 2 arguments : value under the is_dst key of the time.tzname and DEFAULT_LOCALE_ENCODING ,	return force_text ( time . tzname [ is_dst ] , DEFAULT_LOCALE_ENCODING )
-18738	return the result . if UnicodeDecodeError exception is caught ,	except UnicodeDecodeError :
+18737	call the function force_text with 2 arguments : value under the is_dst key of the time.tzname and DEFAULT_LOCALE_ENCODING , return the result .	return force_text ( time . tzname [ is_dst ] , DEFAULT_LOCALE_ENCODING )
+18738	if UnicodeDecodeError exception is caught ,	except UnicodeDecodeError :
 18739	return None .	return None
 18740	define the method _isdst with 2 arguments self and dt .	def _isdst ( self , dt ) :
-18741	tt is an tuple with 9 elements : dt.year , dt.month , dt.day , dt.hour , dt.minute , dt.second , result of the function dt.weekday ,	tt = ( dt . year , dt . month , dt . day , dt . hour , dt . minute , dt . second , dt . weekday ( ) , 0 , 0 )
-18742	integer 0 and integer 0. try ,	try :
+18741	tt is an tuple with 9 elements : dt.year , dt.month , dt.day , dt.hour , dt.minute , dt.second , result of the function dt.weekday , integer 0 and integer 0 .	tt = ( dt . year , dt . month , dt . day , dt . hour , dt . minute , dt . second , dt . weekday ( ) , 0 , 0 )
+18742	try ,	try :
 18743	call the method time.mktime with an argument tt , substitute the result for stamp .	stamp = time . mktime ( tt )
 18744	if OverflowError or ValueError exceptions are caught ,	except ( OverflowError , ValueError ) :
 18745	create a tuple out a tuple with an element integer 2037 and a list tt elements without the first element , substitute the result for tt .	tt = ( 2037 , ) + tt [ 1 : ]
@@ -18747,8 +18747,8 @@
 18749	from __future__ import absolute_import into default name space .	from __future__ import absolute_import
 18750	import module warnings .	import warnings
 18751	from django.utils.deprecation import RemovedInDjango19Warning into default name space .	from django . utils . deprecation import RemovedInDjango19Warning
-18752	call the function warnings.warn with 3 arguments : string STR0 ,	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
-18753	RemovedInDjango19Warning and stacklevel as integer 2. try ,	try :
+18752	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel as integer 2 .	warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
+18753	try ,	try :
 18754	from unittest2 import everything .	from unittest2 import *
 18755	if ImportError exception is caught ,	except ImportError :
 18756	from unittest import import everything .	from unittest import *
@@ -18784,8 +18784,8 @@
 18786	if get_git_changeset has an attribute STR0 ,	if hasattr ( get_git_changeset , STR0 ) :
 18787	return get_git_changeset.cache .	return get_git_changeset . cache
 18788	get the absolute path of the __file__ , repo_dir is name of the directory two leveles above it .	repo_dir = os . path . dirname ( os . path . dirname ( os . path . abspath ( __file__ ) ) )
-18789	call the subprocess.Popen function with , STR0 , stdout set to subprocess.PIPE ,	git_log = subprocess . Popen ( STR0 , stdout = subprocess . PIPE , stderr = subprocess . PIPE , shell = True , cwd = repo_dir , universal_newlines = True )
-18790	stderr set to subprocess.PIPE , shell set to boolean True , cwd set to repo_dir and universal_newlines set to boolean True , as arguments , substitute the result for git_log . evaluate the method git_log.communicate , substitute first element of the result for timestamp .	timestamp = git_log . communicate ( ) [ 0 ]
+18789	call the subprocess.Popen function with , STR0 , stdout set to subprocess.PIPE , stderr set to subprocess.PIPE , shell set to boolean True , cwd set to repo_dir and universal_newlines set to boolean True , as arguments , substitute the result for git_log .	git_log = subprocess . Popen ( STR0 , stdout = subprocess . PIPE , stderr = subprocess . PIPE , shell = True , cwd = repo_dir , universal_newlines = True )
+18790	evaluate the method git_log.communicate , substitute first element of the result for timestamp .	timestamp = git_log . communicate ( ) [ 0 ]
 18791	try	try :
 18792	call the datetime.datetime.utcfromtimestamp with timestamp converted to an integer as argument , substitute result for timestamp .	timestamp = datetime . datetime . utcfromtimestamp ( int ( timestamp ) )
 18793	if ValueError exception is caught ,	except ValueError :

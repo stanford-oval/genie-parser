@@ -8877,7 +8877,7 @@ from __future__ import unicode_literals
      class ModelMultipleChoiceField ( ModelChoiceField ) :
  widget = SelectMultiple
  hidden_widget = MultipleHiddenInput
- default_error_messages = {  'list' : fun ( 'Enter a list of values.' ) ,  'invalid_choice' : fun ( 'Select a valid choice. %(value)s is not one of the'  ' available choices.' ) ,  'invalid_pk_value' : fun ( '"%(pk)s" is not a valid value for a primary key.' )  }
+ default_error_messages = {  'list' : _ ( 'Enter a list of values.' ) ,  'invalid_choice' : _ ( 'Select a valid choice. %(value)s is not one of the'  ' available choices.' ) ,  'invalid_pk_value' : _ ( '"%(pk)s" is not a valid value for a primary key.' )  }
   def __init__ ( self , queryset , cache_choices = None , required = True ,  widget = None , label = None , initial = None ,  help_text = '' , * args , ** kwargs ) :
           super ( ModelMultipleChoiceField , self ) . __init__ ( queryset , None ,  cache_choices , required , widget , label , initial , help_text ,  * args , ** kwargs )
    def to_python ( self , value ) :
