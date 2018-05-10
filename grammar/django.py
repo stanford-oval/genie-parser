@@ -68,35 +68,48 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$parameters': [('(', '$varargslist', ')'),
                             ('(', ')')],
 
-            #########################################
-            '$fpvar1': [('$fpdef',),
-                       ('$fpdef', '=', '$test')],
+            ##################################################################################
+            #
+            # '$fpvar1': [('$fpdef', ','),
+            #            ('$fpdef', '=', '$test', ',')],
+            #
+            # '$fpvar2': [('*', '$ident'),
+            #             ('*', '$ident', ',', '**', '$ident')],
+            #
+            # '$fpvar2_or': [('$fpvar2', ),
+            #                ('**', '$ident')],
+            #
+            # '$varargslist_tmp1': [('$fpvar2_or', ),
+            #                       ('$fpvar1', '$varargslist_tmp1')],
+            #
+            # '$fpvar3': [('$fpdef',),
+            #             ('$fpdef', '=', '$test')],
+            #
+            # '$fpvar4': [(',', '$fpdef'),
+            #             (',', '$fpdef', '=', '$test')],
+            #
+            # '$hala': [('$fpvar3', ),
+            #            ('$hala', '$fpvar4')],
+            #
+            # '$varargslist_tmp2': [('$hala',),
+            #                       ('$hala', ',')],
+            #
 
-            '$fpvar2': [('*', '$ident'),
-                        ('*', '$ident', ',', '**', '$ident')],
-
-            '$fpvar2_or': [('$fpvar2', ),
-                           ('**', '$ident')],
-
-            '$varargslist_tmp1': [('$fpvar2_or', ),
-                                  ('$fpvar1', '$varargslist_tmp1')],
-
-            '$fpvar3': [('$fpdef',),
-                        ('$fpdef', '=', '$test')],
-
-            '$fpvar4': [(',', '$fpdef'),
-                        (',', '$fpdef', '=', '$test')],
-
-            '$hala': [('$fpvar3', ),
-                       ('$hala', '$fpvar4')],
-            '$varargslist_tmp2': [('$hala',),
-                                  ('$hala', ',')],
-
-
-            '$varargslist': [('$varargslist_tmp1',),
-                             ('$varargslist_tmp2',)
-                             ], #fixme
-            ##########################################
+            # '$varargslist': [('$varargslist_tmp1',),
+            #                  ('$varargslist_tmp2',),
+            #                  ], #fixme
+            ###################################################################################
+            '$argument_list': [('$argument',),
+                            ('$argument_list', ',', '$argument')],
+            '$argument_list2': [('$argument_list',),
+                               ('$argument_list', ',', '*', '$ident'),
+                               ('$argument_list', ',', '*', '$ident', ',', '**', '$ident'),
+                               ('$argument_list', ',', '**', '$ident')],
+            '$varargslist': [('*', '$ident', ',', '**', '$ident'),
+                             ('*', '$ident',),
+                             ('**', '$ident'),
+                             ('$argument_list2',)],
+            ###################################################################################
 
             '$fpdef': [('$ident',),
                        ('(', '$fplist', ')')],
@@ -189,14 +202,11 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$with_item': [('$test',),
                            ('$test', 'as', '$expr')],
 
-            # '$except_clause_tmp': [('as', '$test'),
-            #                        (',', '$test')],
+            '$except_clause_tmp': [('as', '$test'),
+                                   (',', '$test')],
             '$except_clause': [('except', ':'),
-                               #('except', '$test'),
-                               #('except', '$test', '$except_clause_tmp'),
-                               ('except', '$ident', ':'),
-                               ('except', '$ident', 'as', '$ident', ':'),
-                               ('except', '(', '$arglist', ')', ':')], #hack #fixme
+                               ('except', '$test', ':'),
+                               ('except', '$test', '$except_clause_tmp', ':')],
 
             '$testlist_safe': [('$old_test',)],
             '$old_test': [('$or_test',),
@@ -397,9 +407,9 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.sort()
         self.num_functions = 0
         numbers = list(map(str, range(200)))
-        numbers.extend(['500', '989'])
-        strings = ['STR' + str(i) for i in range(156)]
-        strings.extend(['STR', 'STR180', 'STR190', 'STR200'])
+        numbers.extend(['300', '403', '500', '989', '100000', '1e200'])
+        strings = ['STR' + str(i) for i in range(200)]
+        strings.extend(['STR'])
         self.tokens += self.construct_parser(grammar=GRAMMAR,
                                              extensible_terminals={
                                                                    },

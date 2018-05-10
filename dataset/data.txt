@@ -786,7 +786,7 @@
 786	convert app and model._meta.object_name to strings , join them with separating STR0 character , substitute it for obj .	obj = STR0 % ( app , model . _meta . object_name )
 787	if not ,	else :
 788	call the function force_str with argument self.obj , substitute the result for obj .	obj = force_str ( self . obj )
-789	if self.id exists , convert self.id to a string , surround it with round brackets , substitute id for it , otherwise id is an empty string .	id = STR0 % self . id if self . id else ""
+789	if self.id exists , convert self.id to a string , surround it with round brackets , substitute id for it , otherwise id is an empty string .	id = STR0 % self . id if self . id else STR
 790	if self.hint exists , replace STR1 in a string STR0 with value of self.hint , substitute it for hint , otherwise hint is an empty string .	hint = STR0 % self . hint if self . hint else STR
 791	replace all STR1 from string STR0 with values of obj , id , self.msg and hint , respectively , return the result .	return STR0 % ( obj , id , self . msg , hint )
 792	define private method __repr__ with argument self .	def __repr__ ( self ) :
@@ -2510,7 +2510,7 @@
 2510	append name to the value of under the app key of the commands_dict .	commands_dict [ app ] . append ( name )
 2511	call the color_style function , substitute the result for style .	style = color_style ( )
 2512	for every app in sorted return value of the commands_dict.keys function ,	for app in sorted ( commands_dict . keys ( ) ) :
-2513	append an empty string to usage .	usage . append ( "" )
+2513	append an empty string to usage .	usage . append ( STR )
 2514	call the style.NOTICE method with an argument string STR0 , where STR1 is replaced with app , append the result to usage .	usage . append ( style . NOTICE ( STR0 % app ) )
 2515	for every name in sorted value under the app key of the commands_dict dictionary ,	for name in sorted ( commands_dict [ app ] ) :
 2516	append string STR0 , where STR1 is replaced by name to the usage .	usage . append ( STR0 % name )
@@ -2774,7 +2774,7 @@
 2774	call the method self.check with 2 arguments app_configs set to app_configs , display_num_errors set to display_num_errors , return the result .	return self . check ( app_configs = app_configs , display_num_errors = display_num_errors )
 2775	define the method check with 4 arguments : self , app_configs set to None , tags set to None , display_num_errors set to boolean False .	def check ( self , app_configs = None , tags = None , display_num_errors = False ) :
 2776	call the method checks.run_checks with 2 arguments : app_configs set to app_configs , tags set t tags , substitute the result for all_issues .	all_issues = checks . run_checks ( app_configs = app_configs , tags = tags )
-2777	msg is an empty string .	msg = ""
+2777	msg is an empty string .	msg = STR
 2778	visible_issue_count is an integer 0 .	visible_issue_count = 0
 2779	if all_issues is true ,	if all_issues :
 2780	append e to debugs list for every e in all_issues , if e.level is lesser than checks.INFO and result of the method e.is_silenced in false .	debugs = [ e for e in all_issues if e . level < checks . INFO and not e . is_silenced ( ) ]
@@ -3026,13 +3026,13 @@
 3026	substitute connection.ops.quote_name for qn .	qn = connection . ops . quote_name
 3027	for every f in fields ,	for f in fields :
 3028	field_output is an list containing 2 elements : return value of the function qn called with an argument f.name , and return value of the function f.db_type called with an argument connection set to connection .	field_output = [ qn ( f . name ) , f . db_type ( connection = connection ) ]
-3029	if f.null is false , append string append STR0 to field_output , otherwise append STR1 to field_output .	field_output . append ( STR0 % ( STR1 if not f . null else "" ) )
+3029	if f.null is false , append string append STR0 to field_output , otherwise append STR1 to field_output .	field_output . append ( STR0 % ( STR1 if not f . null else STR ) )
 3030	if f.primary_key is true ,	if f . primary_key :
 3031	append string STR0 to field_output .	field_output . append ( STR0 )
 3032	otherwise if f.unique is true ,	elif f . unique :
 3033	append string STR0 to field_output .	field_output . append ( STR0 )
 3034	if f.db_index is true ,	if f . db_index :
-3035	if f.unique is true , substitute STR0 for unique , otherwise unique is an empty string .	unique = STR0 if f . unique else ""
+3035	if f.unique is true , substitute STR0 for unique , otherwise unique is an empty string .	unique = STR0 if f . unique else STR
 3036	replace STR1 in string STR0 with : unique , return value of the function qn called with an argument :	index_output . append ( STR0 % ( unique , qn ( STR1 % ( tablename , f . name ) ) , qn ( tablename ) , qn ( f . name ) ) )
 3037	a string STR0 , where STR1 is replaced with tablename and f.name , respectively , return value of the function qn called with an argument tablename and return value of the function qn called with an argument f.name . join field_output elements into a string , separated by whitespaces , append it to table_output .	table_output . append ( STR0 . join ( field_output ) )
 3038	full_statement is a list containing : string STR0 , where % s is replaced by result of the function qn called with an argument tablename .	full_statement = [ STR0 % qn ( tablename ) ]
@@ -3933,7 +3933,7 @@
 3933	with the result renamed to fp , perform the following : read file fp and substitute the result for msgs .	msgs = fp . read ( )
 3934	if self.invoked_for_django is false ,	if not self . invoked_for_django :
 3935	call the method self.copy_plural_forms with arguments : msgs and locale , substitute it for msgs .	msgs = self . copy_plural_forms ( msgs , locale )
-3936	substitute STR1 in string STR0 with self.domain , replace all the occurrences of previous string in msgs for an empty string , substitute the result for msgs .	msgs = msgs . replace ( STR0 % self . domain , "" )
+3936	substitute STR1 in string STR0 with self.domain , replace all the occurrences of previous string in msgs for an empty string , substitute the result for msgs .	msgs = msgs . replace ( STR0 % self . domain , STR )
 3937	call the function io.open with 3 arguments : pofile , string STR0 and encoding set to string STR1 as arguments ,	with io . open ( pofile , STR0 , encoding = STR1 ) as fp :
 3938	with the result renamed to fp , perform the following : write msgs to fp .	fp . write ( msgs )
 3939	if self.no_obsolete is true ,	if self . no_obsolete :
@@ -4208,7 +4208,7 @@
 4208	define the method migration_progress_callback with self class instance , action , migration and fake set to boolean False as arguments .	def migration_progress_callback ( self , action , migration , fake = False ) :
 4209	if self.verbosity is greater or equal to integer 1 ,	if self . verbosity >= 1 :
 4210	if action equals to string STR0 ,	if action == STR0 :
-4211	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .	self . stdout . write ( STR0 % migration , ending = "" )
+4211	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .	self . stdout . write ( STR0 % migration , ending = STR )
 4212	flush the output buffer of the self.stdout object .	self . stdout . flush ( )
 4213	otherwise if action equals to string STR0 ,	elif action == STR0 :
 4214	if fake is true ,	if fake :
@@ -4216,7 +4216,7 @@
 4216	if not ,	else :
 4217	wrte to the standard output result of the call to the method self.style.MIGRATE_SUCCESS with string STR0 as a argument .	self . stdout . write ( self . style . MIGRATE_SUCCESS ( STR0 ) )
 4218	otherwise if action equals to string STR0 .	elif action == STR0 :
-4219	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .	self . stdout . write ( STR0 % migration , ending = "" )
+4219	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .	self . stdout . write ( STR0 % migration , ending = STR )
 4220	flush the output buffer of the self.stdout object .	self . stdout . flush ( )
 4221	otherwise if action equals to string STR0 .	elif action == STR0 :
 4222	if fake is true ,	if fake :
@@ -5940,7 +5940,7 @@
 5940	call the function getInnerText with an argument child , use the result as an argument for the call to the method inner_text.extend .	inner_text . extend ( getInnerText ( child ) )
 5941	if not ,	else :
 5942	do nothing .	pass
-5943	join inner_text elements into a string .	return "" . join ( inner_text )
+5943	join inner_text elements into a string .	return STR . join ( inner_text )
 5944	derive the class DefusedExpatParser from the _ExpatParser base class .	class DefusedExpatParser ( _ExpatParser ) :
 5945	define the method __init__ with arguments self , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , * args , ** kwargs ) :
 5946	call the method _ExpatParser.__init__ with arguments self , unpacked list args and unpacked dictionary kwargs .	_ExpatParser . __init__ ( self , * args , ** kwargs )
@@ -7568,14 +7568,14 @@
 7568	for every f in files ,	for f in files :
 7569	if self.match is None or call to the method self.match_re.search with an argument f , evaluated to true ,	if self . match is None or self . match_re . search ( f ) :
 7570	join root and f into a file , substitute it for f .	f = os . path . join ( root , f )
-7571	append a tuple with 2 elements : f and f with first occurrence of the path replaced with an empty string , to self.choices .	self . choices . append ( ( f , f . replace ( path , "" , 1 ) ) )
+7571	append a tuple with 2 elements : f and f with first occurrence of the path replaced with an empty string , to self.choices .	self . choices . append ( ( f , f . replace ( path , STR , 1 ) ) )
 7572	if self.allow_folders is true ,	if self . allow_folders :
 7573	for every f in files ,	for f in dirs :
 7574	if f equals to string STR0 ,	if f == STR0 :
 7575	skip this loop execution .	continue
 7576	if self.match is None or call to the method self.match_re.search with an argument f , evaluated to true ,	if self . match is None or self . match_re . search ( f ) :
 7577	join root and f in path , substitute the result for f .	f = os . path . join ( root , f )
-7578	append a tuple with 2 elements : f and f with first occurrence of the path replaced with an empty string , to self.choices .	self . choices . append ( ( f , f . replace ( path , "" , 1 ) ) )
+7578	append a tuple with 2 elements : f and f with first occurrence of the path replaced with an empty string , to self.choices .	self . choices . append ( ( f , f . replace ( path , STR , 1 ) ) )
 7579	if not ,	else :
 7580	try ,	try :
 7581	for f in sorted list of the files in the self.path directory ,	for f in sorted ( os . listdir ( self . path ) ) :
@@ -8805,7 +8805,7 @@
 8805	substitute field.queryset for self.queryset .	self . queryset = field . queryset
 8806	define the method __iter__ with an argument self .	def __iter__ ( self ) :
 8807	if self.field.empty_label is not None ,	if self . field . empty_label is not None :
-8808	yield a tuple with 2 elements : an empty string and self.field.empty_label .	yield ( "" , self . field . empty_label )
+8808	yield a tuple with 2 elements : an empty string and self.field.empty_label .	yield ( STR , self . field . empty_label )
 8809	if self.field.cache_choices is true ,	if self . field . cache_choices :
 8810	if self.field.choice_cache is None ,	if self . field . choice_cache is None :
 8811	self.field.choice_cache is a list containing results of the method self.choice called with an argument obj , for every obj in result of the method self.queryset.all .	self . field . choice_cache = [ self . choice ( obj ) for obj in self . queryset . all ( ) ]
@@ -10874,7 +10874,7 @@
 10874	substitute i for self.pointer .	self . pointer = i
 10875	return s .	return s
 10876	constant_string is a raw string STR0 , where STR4 is replaced with STR200 .	constant_string = STR0 % { STR6 : STR200 : re . escape ( STR5 ) , }
-10877	remove all occurrences of newline character from constant_string .	constant_string = constant_string . replace ( STR0 , "" )
+10877	remove all occurrences of newline character from constant_string .	constant_string = constant_string . replace ( STR0 , STR )
 10878	filter_raw_string is a raw string STR0 , where STR2 is replaced with constant_string , STR3 with raw string STR4 , STR5 with string STR1 , STR6 with result of the function re.escape called with an argument FILTER_SEPARATOR , anbd STR7 with result of the function re.escape called with an argument FILTER_ARGUMENT_SEPARATOR .	filter_raw_string = STR0 % { STR2 : constant_string , STR3 : STR4 , STR5 : STR1 , STR6 : re . escape ( FILTER_SEPARATOR ) , STR7 : re . escape ( FILTER_ARGUMENT_SEPARATOR ) , }
 10879	call the function re.compile with 2 arguments : filter_raw_string and result for bitwise OR on 2 operands re.UNICODE and re.VERBOSE , substitute the result for filter_re .	filter_re = re . compile ( filter_raw_string , re . UNICODE | re . VERBOSE )
 10880	derive the class FilterExpression form the base class object .	class FilterExpression ( object ) :
@@ -11692,7 +11692,7 @@
 11692	try ,	try :
 11693	call the function six.text_type with an argument arg , append the result to STR0 , format the previous with value , return the result .	return ( STR0 + six . text_type ( arg ) ) % value
 11694	if TypeError or ValueError exceptions are caught ,	except ( ValueError , TypeError ) :
-11695	return an empty string .	return ""
+11695	return an empty string .	return STR
 11696	decorator function register.filter with an argument is_safe set to boolean True .	@ register . filter ( is_safe = True )
 11697	decorator stringfilter ,	@ stringfilter
 11698	define the function title with an argument value .	def title ( value ) :
@@ -12111,7 +12111,7 @@
 12111	get the value under the STR0 key of the context dictionary , if it exists substitute the result for csrf_token , if not csrf_token is None .	csrf_token = context . get ( STR0 , None )
 12112	if csrf_token is true ,	if csrf_token :
 12113	if csrf_token equals string STR0 ,	if csrf_token == STR0 :
-12114	call the function format_html with an argument empty string , return the result .	return format_html ( "" )
+12114	call the function format_html with an argument empty string , return the result .	return format_html ( STR )
 12115	if not ,	else :
 12116	call the function format_html with 2 arguments : string STR0 , and csrf_token , return the result .	return format_html ( STR0 , csrf_token )
 12117	if not ,	else :
@@ -14456,13 +14456,13 @@
 14457	raise an NotImplementedError exception with an argument string STR0 .	raise NotImplementedError ( STR0 )
 14458	define the method e with an argument self .	def e ( self ) :
 14459	if self.timezone is false ,	if not self . timezone :
-14460	return an empty string .	return ""
+14460	return an empty string .	return STR
 14461	try ,	try :
 14462	is self.data has an attribute STR0 and self.data.tzinfo is true ,	if hasattr ( self . data , STR0 ) and self . data . tzinfo :
-14463	call the method self.data.tzinfo.tzname with an argument self.data , if it is true , return it , otherwise return an empty string .	return self . data . tzinfo . tzname ( self . data ) or ""
+14463	call the method self.data.tzinfo.tzname with an argument self.data , if it is true , return it , otherwise return an empty string .	return self . data . tzinfo . tzname ( self . data ) or STR
 14464	if NotImplementedError exception is caught ,	except NotImplementedError :
 14465	do nothing .	pass
-14466	return an empty string .	return ""
+14466	return an empty string .	return STR
 14467	define the method f with an argument self .	def f ( self ) :
 14468	if self.data.minute equals integer 0 ,	if self . data . minute == 0 :
 14469	call the method self.g , return the result .	return self . g ( )
@@ -14483,7 +14483,7 @@
 14484	return a string STR0 formated with self.data.minute .	return STR0 % self . data . minute
 14485	define the method O with an argument self .	def O ( self ) :
 14486	if self.timezone is false ,	if not self . timezone :
-14487	return an empty string .	return ""
+14487	return an empty string .	return STR
 14488	call the method self.Z , substitute the result for seconds .	seconds = self . Z ( )
 14489	if seconds smaller than integer 0 , sign is STR0 , otherwise sign is STR1 ,	sign = STR0 if seconds < 0 else STR1
 14490	substitute absolute seconds for seconds .	seconds = abs ( seconds )
@@ -14498,7 +14498,7 @@
 14499	return a string STR0 formated with self.data.second .	return STR0 % self . data . second
 14500	define the method T with an argument self .	def T ( self ) :
 14501	if self.timezone is false ,	if not self . timezone :
-14502	return an empty string .	return ""
+14502	return an empty string .	return STR
 14503	if self.timezone is true , call the method self.timezone.tzname with an argument self.data , substitute the result for name , otherwise name is None .	name = self . timezone . tzname ( self . data ) if self . timezone else None
 14504	if name is None ,	if name is None :
 14505	call the method self.format with an argument string STR0 , substitute the result for name .	name = self . format ( STR0 )
@@ -14507,7 +14507,7 @@
 14508	return a string STR0 formated with self.data.microsecond .	return STR0 % self . data . microsecond
 14509	define the method Z with an argument self .	def Z ( self ) :
 14510	if self.timezone is true ,	if not self . timezone :
-14511	return an empty string .	return ""
+14511	return an empty string .	return STR
 14512	call the method self.timezone.utcoffset with an argument self.data , substitute the result for offset .	offset = self . timezone . utcoffset ( self . data )
 14513	multiply offset.days with 86400 , add offset.seconds to the result , return the result .	return offset . days * 86400 + offset . seconds
 14514	derive the class DateFormat from the base class TimeFormat .	class DateFormat ( TimeFormat ) :

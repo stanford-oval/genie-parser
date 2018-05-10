@@ -86,7 +86,8 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
 
 
             line = re.sub(r'rSTR|bSTR', 'STR', line)
-            line = re.sub(r'\'\'', 'STR', line) #Empty string
+            line = re.sub(r'\'\'', 'STR', line) # Empty string
+            line = re.sub(r'\"\"', 'STR', line)  # Empty string
             line = re.sub(r'0x', '', line)
 
             tokens = line.strip().split(' ')

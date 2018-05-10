@@ -312,7 +312,12 @@ class Config(object):
                                        self._config['output']['grammar_input_file'],
                                        flatten=flatten_grammar,
                                        max_input_length=self.max_length)
-        
+        ##########
+        # import json
+        #
+        # with open('config.json', 'w') as f:
+        #     json.dump(self._grammar, f)
+        ##########
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
                                          grammar=self._grammar)
@@ -342,5 +347,7 @@ class Config(object):
         else:
             self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
         print("Output embed size", self.output_embed_size)
+
+
         
         return self

@@ -786,7 +786,7 @@ app = model . _meta . app_label
 obj = STR0 % ( app , model . _meta . object_name )
 else :
 obj = force_str ( self . obj )
-id = STR0 % self . id if self . id else ""
+id = STR0 % self . id if self . id else STR
 hint = STR0 % self . hint if self . hint else STR
 return STR0 % ( obj , id , self . msg , hint )
 def __repr__ ( self ) :
@@ -2510,7 +2510,7 @@ app = app . rpartition ( STR0 ) [ - 1 ]
 commands_dict [ app ] . append ( name )
 style = color_style ( )
 for app in sorted ( commands_dict . keys ( ) ) :
-usage . append ( "" )
+usage . append ( STR )
 usage . append ( style . NOTICE ( STR0 % app ) )
 for name in sorted ( commands_dict [ app ] ) :
 usage . append ( STR0 % name )
@@ -2774,7 +2774,7 @@ app_configs = [ app_config ]
 return self . check ( app_configs = app_configs , display_num_errors = display_num_errors )
 def check ( self , app_configs = None , tags = None , display_num_errors = False ) :
 all_issues = checks . run_checks ( app_configs = app_configs , tags = tags )
-msg = ""
+msg = STR
 visible_issue_count = 0
 if all_issues :
 debugs = [ e for e in all_issues if e . level < checks . INFO and not e . is_silenced ( ) ]
@@ -3026,13 +3026,13 @@ index_output = [ ]
 qn = connection . ops . quote_name
 for f in fields :
 field_output = [ qn ( f . name ) , f . db_type ( connection = connection ) ]
-field_output . append ( STR0 % ( STR1 if not f . null else "" ) )
+field_output . append ( STR0 % ( STR1 if not f . null else STR ) )
 if f . primary_key :
 field_output . append ( STR0 )
 elif f . unique :
 field_output . append ( STR0 )
 if f . db_index :
-unique = STR0 if f . unique else ""
+unique = STR0 if f . unique else STR
 index_output . append ( STR0 % ( unique , qn ( STR1 % ( tablename , f . name ) ) , qn ( tablename ) , qn ( f . name ) ) )
 table_output . append ( STR0 . join ( field_output ) )
 full_statement = [ STR0 % qn ( tablename ) ]
@@ -3933,7 +3933,7 @@ with io . open ( potfile , STR0 , encoding = STR1 ) as fp :
 msgs = fp . read ( )
 if not self . invoked_for_django :
 msgs = self . copy_plural_forms ( msgs , locale )
-msgs = msgs . replace ( STR0 % self . domain , "" )
+msgs = msgs . replace ( STR0 % self . domain , STR )
 with io . open ( pofile , STR0 , encoding = STR1 ) as fp :
 fp . write ( msgs )
 if self . no_obsolete :
@@ -4208,7 +4208,7 @@ emit_post_migrate_signal ( created_models , self . verbosity , self . interactiv
 def migration_progress_callback ( self , action , migration , fake = False ) :
 if self . verbosity >= 1 :
 if action == STR0 :
-self . stdout . write ( STR0 % migration , ending = "" )
+self . stdout . write ( STR0 % migration , ending = STR )
 self . stdout . flush ( )
 elif action == STR0 :
 if fake :
@@ -4216,7 +4216,7 @@ self . stdout . write ( self . style . MIGRATE_SUCCESS ( STR0 ) )
 else :
 self . stdout . write ( self . style . MIGRATE_SUCCESS ( STR0 ) )
 elif action == STR0 :
-self . stdout . write ( STR0 % migration , ending = "" )
+self . stdout . write ( STR0 % migration , ending = STR )
 self . stdout . flush ( )
 elif action == STR0 :
 if fake :
@@ -5940,7 +5940,7 @@ elif child . nodeType == child . ELEMENT_NODE :
 inner_text . extend ( getInnerText ( child ) )
 else :
 pass
-return "" . join ( inner_text )
+return STR . join ( inner_text )
 class DefusedExpatParser ( _ExpatParser ) :
 def __init__ ( self , * args , ** kwargs ) :
 _ExpatParser . __init__ ( self , * args , ** kwargs )
@@ -7568,14 +7568,14 @@ if self . allow_files :
 for f in files :
 if self . match is None or self . match_re . search ( f ) :
 f = os . path . join ( root , f )
-self . choices . append ( ( f , f . replace ( path , "" , 1 ) ) )
+self . choices . append ( ( f , f . replace ( path , STR , 1 ) ) )
 if self . allow_folders :
 for f in dirs :
 if f == STR0 :
 continue
 if self . match is None or self . match_re . search ( f ) :
 f = os . path . join ( root , f )
-self . choices . append ( ( f , f . replace ( path , "" , 1 ) ) )
+self . choices . append ( ( f , f . replace ( path , STR , 1 ) ) )
 else :
 try :
 for f in sorted ( os . listdir ( self . path ) ) :
@@ -8805,7 +8805,7 @@ self . field = field
 self . queryset = field . queryset
 def __iter__ ( self ) :
 if self . field . empty_label is not None :
-yield ( "" , self . field . empty_label )
+yield ( STR , self . field . empty_label )
 if self . field . cache_choices :
 if self . field . choice_cache is None :
 self . field . choice_cache = [ self . choice ( obj ) for obj in self . queryset . all ( ) ]
@@ -10874,7 +10874,7 @@ self . backout . append ( self . pointer )
 self . pointer = i
 return s
 constant_string = STR0 % { STR6 : STR200 : re . escape ( STR5 ) , }
-constant_string = constant_string . replace ( STR0 , "" )
+constant_string = constant_string . replace ( STR0 , STR )
 filter_raw_string = STR0 % { STR2 : constant_string , STR3 : STR4 , STR5 : STR1 , STR6 : re . escape ( FILTER_SEPARATOR ) , STR7 : re . escape ( FILTER_ARGUMENT_SEPARATOR ) , }
 filter_re = re . compile ( filter_raw_string , re . UNICODE | re . VERBOSE )
 class FilterExpression ( object ) :
@@ -11692,7 +11692,7 @@ def stringformat ( value , arg ) :
 try :
 return ( STR0 + six . text_type ( arg ) ) % value
 except ( ValueError , TypeError ) :
-return ""
+return STR
 @ register . filter ( is_safe = True )
 @ stringfilter
 def title ( value ) :
@@ -12111,7 +12111,7 @@ def render ( self , context ) :
 csrf_token = context . get ( STR0 , None )
 if csrf_token :
 if csrf_token == STR0 :
-return format_html ( "" )
+return format_html ( STR )
 else :
 return format_html ( STR0 , csrf_token )
 else :
@@ -14456,13 +14456,13 @@ def B ( self ) :
 raise NotImplementedError ( STR0 )
 def e ( self ) :
 if not self . timezone :
-return ""
+return STR
 try :
 if hasattr ( self . data , STR0 ) and self . data . tzinfo :
-return self . data . tzinfo . tzname ( self . data ) or ""
+return self . data . tzinfo . tzname ( self . data ) or STR
 except NotImplementedError :
 pass
-return ""
+return STR
 def f ( self ) :
 if self . data . minute == 0 :
 return self . g ( )
@@ -14483,7 +14483,7 @@ def i ( self ) :
 return STR0 % self . data . minute
 def O ( self ) :
 if not self . timezone :
-return ""
+return STR
 seconds = self . Z ( )
 sign = STR0 if seconds < 0 else STR1
 seconds = abs ( seconds )
@@ -14498,7 +14498,7 @@ def s ( self ) :
 return STR0 % self . data . second
 def T ( self ) :
 if not self . timezone :
-return ""
+return STR
 name = self . timezone . tzname ( self . data ) if self . timezone else None
 if name is None :
 name = self . format ( STR0 )
@@ -14507,7 +14507,7 @@ def u ( self ) :
 return STR0 % self . data . microsecond
 def Z ( self ) :
 if not self . timezone :
-return ""
+return STR
 offset = self . timezone . utcoffset ( self . data )
 return offset . days * 86400 + offset . seconds
 class DateFormat ( TimeFormat ) :

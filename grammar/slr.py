@@ -42,7 +42,7 @@ class ItemSet:
     def __eq__(self, other):
         return self.rules == other.rules
 
-DEBUG = False
+DEBUG = True
 
 ITEM_SET_SEP = ''
 
