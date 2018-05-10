@@ -1,60 +1,200 @@
-class IntegerField ( Field ) :
-return True
-continue
-collect = [ ]
-result [ i ] += piece
-self . address_family = socket . AF_INET6
-return data
-return new_class
-return _generate_cache_key ( request , request . method , [ ] , key_prefix )
-return self . dicts [ - 1 ] [ key ]
-self . __name = name
-else :
-if option_value in selected_choices :
-raise ViewDoesNotExist ( STR0 % ( mod_name , func_name ) )
-if self . isolated_context :
-elif ch == STR0 :
-return set ( x for x in ext_list if x . strip ( STR0 ) not in ignored )
-elif value in ( False , STR0 , STR1 ) :
-return
-@ stringfilter
-message . message ( )
-module = import_module ( module_path )
-errors . append ( Error ( STR0 STR1 STR2 % ( description , name , STR3 . join ( reference ) ) , obj = receiver . __module__ , hint = None , id = STR4 ) )
-etags = ETAG_MATCH . findall ( etag_str )
-connection = connections [ options [ STR0 ] ]
-elif disable_existing :
-class WithNode ( Node ) :
-def _sanitize_ipv4_mapping ( ip_str ) :
-parser . add_argument ( STR1 , STR2 , dest = STR3 , action = STR4 , default = [ STR5 ] , help = STR6 STR7 STR8 )
-return initial
-@ register . tag
-def dictvalue ( t ) :
-templatetags_modules_candidates = [ STR0 ]
-self . active_readers -= 1
-for bytes in stream :
-if construct :
-if value is None :
-self . base_fields [ MAX_NUM_FORM_COUNT ] = IntegerField ( required = False , widget = HiddenInput )
-six . reraise ( CommandError , CommandError ( new_msg ) , sys . exc_info ( ) [ 2 ] )
-defaults [ STR0 ] = True
-msg_count = 0
-def _construct_form ( self , i , ** kwargs ) :
-endblock_re = re . compile ( STR0^\s*endblocktrans$STR1 )
-consume_next = True
-filepath = parser . compile_filter ( bits [ 1 ] )
-self . help_texts = getattr ( options , STR0 , None )
-from importlib import import_module
-return retval
-template = STR0
-return obj
-def __init__ ( self , name , sysid , pubid ) :
-self . format_string = format_string
+fn = inotify_code_changed
+model , deps = model_dependencies . pop ( )
+self . name = name or func . __name__
+value . configurator = self
+use_workaround = ( ( current_version < ( 2 , 7 , 3 ) ) or ( current_version >= ( 3 , 0 ) and current_version < ( 3 , 2 , 3 ) ) )
+self . xgettext_options = self . xgettext_options [ : ] + [ STR0 ]
+return bool ( self . changed_data )
+date_re = re . compile ( STR0 )
+self . keyOrder . append ( key )
+_iterlists = STR0
+if csrf_token :
+def add_arguments ( self , parser ) :
 import sys
-return getattr ( instance , name ) ( )
+return fk
+plural_forms_re = re . compile ( STR1 , re . MULTILINE | re . DOTALL )
+widget_value = value [ i ]
+else :
+def escapejs ( value ) :
+tzinfo = get_fixed_timezone ( offset )
+if not strict :
+if STR0 in addr :
+expires = typecast_timestamp ( str ( expires ) )
+self . __dict__ . update ( state )
+_url_drive_re = re . compile ( STR0 , re . I )
+def ngettext ( singular , plural , number ) :
+logging . _handlers . clear ( )
+def __bool__ ( self ) :
+def _get_num_pages ( self ) :
+def popitem ( self ) :
+widget = SelectMultiple
+except ( ValueError , TypeError ) :
+return _ ( STR0 )
+if kwarg :
+return statements
+if var . startswith ( STR0 ) and var . endswith ( STR1 ) :
+class WindowsError ( Exception ) :
+class Token ( object ) :
+def _get_regex ( self ) :
+seen_data . add ( data )
+return False
+self . close ( )
+callback , param_dict = resolver . resolve_error_handler ( 500 )
+def restart_with_reloader ( ) :
+if self . _wrapped is empty :
+c = self . resolve ( c )
+from django . utils . text import ( smart_split , unescape_string_literal , get_text_list )
+numbers = [ MigrationAutodetector . parse_number ( migration . name ) for migration in merge_migrations ]
+if end_index is None and s_len > truncate_len :
+if html_message :
+name = self . split_leading_dir ( name ) [ 1 ]
+self . widgets = getattr ( options , STR0 , None )
+if pickled is not None :
+return result
+iter ( x )
+def accessed_time ( self , name ) :
+if isinstance ( attr , MovedModule ) :
+assert iterations > 0
+import stat
+def __init__ ( self , permitted_methods , * args , ** kwargs ) :
+def format ( self , formatstr ) :
+if len ( bits ) < 1 :
+def ifnotequal ( parser , token ) :
+if hasattr ( handler , STR0 ) :
+yield STR0
+lead , middle , trail = STR , word , STR
+return CsrfTokenNode ( )
+self . index = index
+self . empty_value = kwargs . pop ( STR0 , [ ] )
+@ deconstructible
+raise TypeError ( STR0 )
+return self . parent_instance
+msg [ STR0 ] = self . extra_headers . get ( STR1 , STR2 . join ( self . to ) )
+link = cache_get ( key )
+if isinstance ( node , Node ) :
+new_context . _reset_dicts ( values )
+if answer != STR0 :
+return obj
+else :
+def get_date_error_message ( self , date_check ) :
+os . makedirs ( directory , self . directory_permissions_mode )
+if not match or not match . group ( 1 ) :
+from django . utils import six
+validate_ipv46_address ( ip_address )
+context_extras [ STR0 ] = settings . LANGUAGES
+if initial is None :
+result [ i ] += piece
+new_ip = ip_str . split ( STR0 )
+create_bound_method = types . MethodType
+if six . PY2 :
+form . fields [ ORDERING_FIELD_NAME ] = IntegerField ( label = _ ( STR0 ) , initial = index + 1 , required = False )
+ret = LockFileEx ( hfile , flags , 0 , 0 , 0xFFFF0000 , byref ( overlapped ) )
+else :
+stream . close ( )
+if not func . is_usable :
+if ip_str . count ( STR0 ) != 3 :
+location = params . pop ( STR0 , STR )
+exp = self . _expire_info . get ( key , - 1 )
+def __new__ ( mcs , name , bases , attrs ) :
+match = date_re . match ( value )
+raise KeyError ( key )
+return input_val
+conf = settings . CACHES [ backend ]
+serializers . serialize ( format , get_objects ( ) , indent = indent , use_natural_foreign_keys = use_natural_foreign_keys , use_natural_primary_keys = use_natural_primary_keys , stream = stream or self . stdout )
+return self . _post , self . _files
+message = _ ( STR0 )
+class Command ( BaseCommand ) :
+def _import_module ( name ) :
+opts = instance . _meta
+def common_logger_config ( self , logger , config , incremental = False ) :
+if type ( s ) == bytes :
+def __init__ ( self , content_type = None , status = None , reason = None ) :
+subclass = type ( STR0 , ( migrations . Migration , ) , { STR1 : [ ] , STR2 : new_operations , STR3 : replaces , } )
+return result
+class NullDevice :
+self . add_fallback ( default_translation )
+return datetime . time ( ** kw )
+def model_to_dict ( instance , fields = None , exclude = None ) :
+self . error_dict = { }
+except :
+import django
+raise NotImplementedError ( STR0 )
+from django . utils . six . moves . urllib . parse import quote , unquote , urlsplit , urlunsplit
+warning = kwargs [ STR0 ]
+except KeyError :
+return d
+sio = BytesIO ( self . buffer )
+def add_arguments ( self , parser ) :
+file_field_list = [ ]
+self . keyOrder . remove ( k )
+try :
+def add_arguments ( self , parser ) :
+import sys
+self . number = number
+max_value = self . max_expr . resolve ( context )
+confirm = input ( STR0 % connection . settings_dict [ STR1 ] )
+select_html = s . render ( field % name , val , local_attrs )
+if self . max_length is not None and len ( file_name ) > self . max_length :
+if namespaces :
+class BaseForm ( object ) :
+assert not ( cls . _delegate_bytes and cls . _delegate_text ) , STR0
+fmt = get_format ( STR0 )
+args = hashlib . md5 ( force_bytes ( key ) )
+else :
+self . command_stack . pop ( )
+def _samefile ( src , dst ) :
+except ValueError :
+return self . check ( app_configs = app_configs , display_num_errors = display_num_errors )
+else :
+exec ( compile ( handle . read ( ) , pythonrc , STR0 ) , imported_objects )
+return dict_ . getlist ( key )
+try :
+return other_dict
+self . _post_parse_error = False
+@ property
+else :
+c . load ( cookie )
+from django . core . management . base import BaseCommand , CommandError
+return field . rel . to . _default_manager . db_manager ( db ) . get_by_natural_key ( * value ) . pk
+translation = self . _new_gnu_trans ( localedir , use_null_fallback )
+os . makedirs ( directory )
+models = set ( )
+return STR0 % force_text ( e , errors = STR1 )
+six . reraise ( os_err_exc_type , os_err_exc_type ( STR0 % ( args [ 0 ] , strerror ) ) , sys . exc_info ( ) [ 2 ] )
+else :
+return self . _cache . add ( key , value , self . get_backend_timeout ( timeout ) )
+internal_use_only = False
+arg = int ( arg )
+return True
+else :
+self . none_value = ( 0 , empty_label )
+else :
+value = list . pop ( self , idx )
+super ( Command , self ) . handle ( ** options )
+self . connection = connection_class ( self . host , self . port , ** connection_params )
+loggers = config . get ( STR0 , EMPTY_DICT )
+else :
+if not _cookie_allows_colon_in_names :
+os . chdir ( our_home_dir )
+return six . text_type ( s ) . encode ( encoding , errors )
+if self . can_order :
+final_attrs = self . build_attrs ( attrs , type = self . input_type , name = name )
+if as_ != STR0 :
+words = words [ : length ]
+if not self . recipients ( ) :
+def __eq__ ( self , other ) :
+def filter ( self , record ) :
+response = middleware_method ( request , callback , callback_args , callback_kwargs )
+return int ( calendar . timegm ( self . data . utctimetuple ( ) ) )
+return value
+from django . utils import six
+def _clean_form ( self ) :
 continue
-if self . feed [ STR0 ] is not None :
-has_old_option = hasattr ( self , STR0 )
-oldkey = root [ KEY ]
-return mark_safe ( _urlize ( value , nofollow = True , autoescape = autoescape ) )
-if bytes_read > rollback :
+self . ignore_patterns = list ( set ( ignore_patterns ) )
+if next_item and isinstance ( next_item , ( list , tuple ) ) :
+name = os . path . basename ( name )
+if not content_type :
+class MiddlewareNotUsed ( Exception ) :
+from __future__ import unicode_literals
+for field in self . fields . values ( ) :
+if missing_fields :

@@ -24,13 +24,13 @@ try :
 import_string ( backend )
 except ImportError as e :
 raise InvalidCacheBackendError ( STR0 % ( backend , e ) )
-location = kwargs . pop ( STR0 , )
+location = kwargs . pop ( STR0 , STR )
 params = kwargs
 else :
 params = conf . copy ( )
 params . update ( kwargs )
 backend = params . pop ( STR0 )
-location = params . pop ( STR0 , )
+location = params . pop ( STR0 , STR )
 backend_cls = import_string ( backend )
 except ImportError as e :
 raise InvalidCacheBackendError ( STR0 % ( backend , e ) )
@@ -111,7 +111,7 @@ try :
 self . _cull_frequency = int ( cull_frequency )
 except ( ValueError , TypeError ) :
 self . _cull_frequency = 3
-self . key_prefix = params . get ( STR0 , )
+self . key_prefix = params . get ( STR0 , STR )
 self . version = params . get ( STR0 , 1 )
 self . key_func = get_key_func ( params . get ( STR0 , None ) )
 def get_backend_timeout ( self , timeout = DEFAULT_TIMEOUT ) :
@@ -126,7 +126,7 @@ version = self . version
 new_key = self . key_func ( key , self . key_prefix , version )
 return new_key
 def add ( self , key , value , timeout = DEFAULT_TIMEOUT , version = None ) :
-STR0 Set a value in the cache if the key does not already exist. If timeout is given, that timeout will be used for the key; otherwise the default cache timeout will be used. Returns True if the value was stored, False otherwise. STR1
+STR0
 raise NotImplementedError ( STR0 )
 def get ( self , key , default = None , version = None ) :
 raise NotImplementedError ( STR0 )
@@ -180,7 +180,7 @@ return version + delta
 def decr_version ( self , key , delta = 1 , version = None ) :
 return self . incr_version ( key , - delta , version )
 def close ( self , ** kwargs ) :
-STR0Close the cache connectionSTR1
+STR0
 pass
 import base64
 from datetime import datetime
@@ -443,7 +443,7 @@ raise EnvironmentError ( STR0 STR1 % self . _dir )
 def _key_to_file ( self , key , version = None ) :
 key = self . make_key ( key , version = version )
 self . validate_key ( key )
-return os . path . join ( self . _dir , . join ( [ hashlib . md5 ( force_bytes ( key ) ) . hexdigest ( ) , self . cache_suffix ] ) )
+return os . path . join ( self . _dir , STR . join ( [ hashlib . md5 ( force_bytes ( key ) ) . hexdigest ( ) , self . cache_suffix ] ) )
 def clear ( self ) :
 if not os . path . exists ( self . _dir ) :
 return
@@ -787,7 +787,7 @@ obj = STR0 % ( app , model . _meta . object_name )
 else :
 obj = force_str ( self . obj )
 id = STR0 % self . id if self . id else ""
-hint = STR0 % self . hint if self . hint else
+hint = STR0 % self . hint if self . hint else STR
 return STR0 % ( obj , id , self . msg , hint )
 def __repr__ ( self ) :
 return STR0 % ( self . __class__ . __name__ , self . level , self . msg , self . hint , self . obj , self . id )
@@ -1021,7 +1021,7 @@ self . name = name
 if hasattr ( file , STR0 ) :
 self . mode = file . mode
 def __str__ ( self ) :
-return smart_text ( self . name or )
+return smart_text ( self . name or STR )
 def __repr__ ( self ) :
 return STR0 % ( self . __class__ . __name__ , self or STR1 )
 def __bool__ ( self ) :
@@ -1080,7 +1080,7 @@ for line in chunk_buffer :
 if buffer_ :
 line = buffer_ + line
 buffer_ = None
-if line [ - 1 : ] in ( bSTR0 , bSTR1 ) :
+if line [ - 1 : ] in ( STR0 , STR1 ) :
 yield line
 else :
 buffer_ = line
@@ -1262,7 +1262,7 @@ fd = os . open ( new_file_name , ( os . O_WRONLY | os . O_CREAT | getattr ( os ,
 try :
 locks . lock ( fd , locks . LOCK_EX )
 current_chunk = None
-while current_chunk != b :
+while current_chunk != STR :
 current_chunk = old_file . read ( chunk_size )
 os . write ( fd , current_chunk )
 finally :
@@ -1444,7 +1444,7 @@ from django . core . files . utils import FileProxyMixin
 __all__ = ( STR0 , STR1 , )
 if os . name == STR0 :
 class TemporaryFile ( FileProxyMixin ) :
-def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR1' , dir = None ) :
+def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR , prefix = STR , dir = None ) :
 fd , name = tempfile . mkstemp ( suffix = suffix , prefix = prefix , dir = dir )
 self . name = name
 self . file = os . fdopen ( fd , mode , bufsize )
@@ -1532,7 +1532,7 @@ def multiple_chunks ( self , chunk_size = None ) :
 return False
 class SimpleUploadedFile ( InMemoryUploadedFile ) :
 def __init__ ( self , name , content , content_type = STR0 ) :
-content = content or b
+content = content or STR
 super ( SimpleUploadedFile , self ) . __init__ ( BytesIO ( content ) , None , name , content_type , len ( content ) , None , None )
 @ classmethod
 def from_dict ( cls , file_dict ) :
@@ -1808,29 +1808,29 @@ class LimitedStream ( object ) :
 def __init__ ( self , stream , limit , buf_size = 64 * 1024 * 1024 ) :
 self . stream = stream
 self . remaining = limit
-self . buffer = b
+self . buffer = STR
 self . buf_size = buf_size
 def _read_limited ( self , size = None ) :
 if size is None or size > self . remaining :
 size = self . remaining
 if size == 0 :
-return b
+return STR
 result = self . stream . read ( size )
 self . remaining -= len ( result )
 return result
 def read ( self , size = None ) :
 if size is None :
 result = self . buffer + self . _read_limited ( )
-self . buffer = b
+self . buffer = STR
 elif size < len ( self . buffer ) :
 result = self . buffer [ : size ]
 self . buffer = self . buffer [ size : ]
 else :
 result = self . buffer + self . _read_limited ( size - len ( self . buffer ) )
-self . buffer = b
+self . buffer = STR
 return result
 def readline ( self , size = None ) :
-while bSTR0 not in self . buffer and ( size is None or len ( self . buffer ) < size ) :
+while STR0 not in self . buffer and ( size is None or len ( self . buffer ) < size ) :
 if size :
 chunk = self . _read_limited ( size - len ( self . buffer ) )
 else :
@@ -1853,12 +1853,12 @@ if not path_info :
 path_info = STR0
 self . environ = environ
 self . path_info = path_info
-self . path = STR0 % ( script_name . rstrip ( STR1 ) , path_info . replace ( STR2 , , 1 ) )
+self . path = STR0 % ( script_name . rstrip ( STR1 ) , path_info . replace ( STR2 , STR , 1 ) )
 self . META = environ
 self . META [ STR0 ] = path_info
 self . META [ STR0 ] = script_name
 self . method = environ [ STR0 ] . upper ( )
-_ , content_params = cgi . parse_header ( environ . get ( STR0 , ) )
+_ , content_params = cgi . parse_header ( environ . get ( STR0 , STR ) )
 if STR0 in content_params :
 try :
 codecs . lookup ( content_params [ STR0 ] )
@@ -1883,7 +1883,7 @@ self . _request = datastructures . MergeDict ( self . POST , self . GET )
 return self . _request
 @ cached_property
 def GET ( self ) :
-raw_query_string = get_bytes_from_wsgi ( self . environ , STR0 , )
+raw_query_string = get_bytes_from_wsgi ( self . environ , STR0 , STR )
 return http . QueryDict ( raw_query_string , encoding = self . _encoding )
 def _get_post ( self ) :
 if not hasattr ( self , STR0 ) :
@@ -1893,7 +1893,7 @@ def _set_post ( self , post ) :
 self . _post = post
 @ cached_property
 def COOKIES ( self ) :
-raw_cookie = get_str_from_wsgi ( self . environ , STR0 , )
+raw_cookie = get_str_from_wsgi ( self . environ , STR0 , STR )
 return http . parse_cookie ( raw_cookie )
 def _get_files ( self ) :
 if not hasattr ( self , STR0 ) :
@@ -1927,7 +1927,7 @@ response . _handler_class = self . __class__
 status = STR0 % ( response . status_code , response . reason_phrase )
 response_headers = [ ( str ( k ) , str ( v ) ) for k , v in response . items ( ) ]
 for c in response . cookies . values ( ) :
-response_headers . append ( ( str ( STR0 ) , str ( c . output ( header = ) ) ) )
+response_headers . append ( ( str ( STR0 ) , str ( c . output ( header = STR ) ) ) )
 start_response ( force_str ( status ) , response_headers )
 return response
 def get_path_info ( environ ) :
@@ -1936,14 +1936,14 @@ return path_info . decode ( UTF_8 )
 def get_script_name ( environ ) :
 if settings . FORCE_SCRIPT_NAME is not None :
 return force_text ( settings . FORCE_SCRIPT_NAME )
-script_url = get_bytes_from_wsgi ( environ , STR0 , )
+script_url = get_bytes_from_wsgi ( environ , STR0 , STR )
 if not script_url :
-script_url = get_bytes_from_wsgi ( environ , STR0 , )
+script_url = get_bytes_from_wsgi ( environ , STR0 , STR )
 if script_url :
-path_info = get_bytes_from_wsgi ( environ , STR0 , )
+path_info = get_bytes_from_wsgi ( environ , STR0 , STR )
 script_name = script_url [ : - len ( path_info ) ]
 else :
-script_name = get_bytes_from_wsgi ( environ , STR0 , )
+script_name = get_bytes_from_wsgi ( environ , STR0 , STR )
 return script_name . decode ( UTF_8 )
 def get_bytes_from_wsgi ( environ , key , default ) :
 value = environ . get ( str ( key ) , str ( default ) )
@@ -2065,9 +2065,9 @@ raise ImproperlyConfigured ( STR0 % self . file_path )
 kwargs [ STR0 ] = None
 super ( EmailBackend , self ) . __init__ ( * args , ** kwargs )
 def write_message ( self , message ) :
-self . stream . write ( message . message ( ) . as_bytes ( ) + bSTR0 )
-self . stream . write ( bSTR0 * 79 )
-self . stream . write ( bSTR0 )
+self . stream . write ( message . message ( ) . as_bytes ( ) + STR0 )
+self . stream . write ( STR0 * 79 )
+self . stream . write ( STR0 )
 def _get_filename ( self ) :
 if self . _fname is None :
 timestamp = datetime . datetime . now ( ) . strftime ( STR0 )
@@ -2213,7 +2213,7 @@ except AttributeError :
 pid = 1
 randint = random . randrange ( 100000 )
 if idstring is None :
-idstring =
+idstring = STR
 else :
 idstring = STR0 + idstring
 idhost = DNS_NAME
@@ -2302,19 +2302,19 @@ class EmailMessage ( object ) :
 content_subtype = STR0
 mixed_subtype = STR0
 encoding = None
-def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
+def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
 if to :
-assert not isinstance ( to , six . string_types ) , STR0
+assert not isinstance ( to , six . string_types ) , STR200
 self . to = list ( to )
 else :
 self . to = [ ]
 if cc :
-assert not isinstance ( cc , six . string_types ) , STR0
+assert not isinstance ( cc , six . string_types ) , STR200
 self . cc = list ( cc )
 else :
 self . cc = [ ]
 if bcc :
-assert not isinstance ( bcc , six . string_types ) , STR0
+assert not isinstance ( bcc , six . string_types ) , STR200
 self . bcc = list ( bcc )
 else :
 self . bcc = [ ]
@@ -2410,12 +2410,12 @@ filename . encode ( STR0 )
 except UnicodeEncodeError :
 if six . PY2 :
 filename = filename . encode ( STR0 )
-filename = ( STR0 , , filename )
+filename = ( STR0 , STR , filename )
 attachment . add_header ( STR0 , STR1 , filename = filename )
 return attachment
 class EmailMultiAlternatives ( EmailMessage ) :
 alternative_subtype = STR0
-def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
+def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
 super ( EmailMultiAlternatives , self ) . __init__ ( subject , body , from_email , to , bcc , connection , attachments , headers , cc )
 self . alternatives = alternatives or [ ]
 def attach_alternative ( self , content , mimetype ) :
@@ -2483,7 +2483,7 @@ if isinstance ( app_name , BaseCommand ) :
 command = app_name
 else :
 command = load_command_class ( app_name , name )
-parser = command . create_parser ( , name )
+parser = command . create_parser ( STR , name )
 if command . use_argparse :
 defaults = parser . parse_args ( args = args )
 defaults = dict ( defaults . _get_kwargs ( ) , ** options )
@@ -2538,7 +2538,7 @@ cword = int ( os . environ [ STR0 ] )
 try :
 curr = cwords [ cword - 1 ]
 except IndexError :
-curr =
+curr = STR
 subcommands = list ( get_commands ( ) ) + [ STR0 ]
 options = [ ( STR0 , None ) ]
 if cword == 1 :
@@ -2554,7 +2554,7 @@ app_configs = apps . get_app_configs ( )
 options += [ ( app_config . label , 0 ) for app_config in app_configs ]
 except ImportError :
 pass
-parser = subcommand_cls . create_parser ( , cwords [ 0 ] )
+parser = subcommand_cls . create_parser ( STR , cwords [ 0 ] )
 if subcommand_cls . use_argparse :
 options += [ ( sorted ( s_opt . option_strings ) [ 0 ] , s_opt . nargs != 0 ) for s_opt in parser . _actions if s_opt . option_strings ]
 else :
@@ -2657,8 +2657,8 @@ style_func = [ f for f in ( style_func , self . style_func , lambda x : x ) if f
 self . _out . write ( force_str ( style_func ( msg ) ) )
 class BaseCommand ( object ) :
 option_list = ( )
-help =
-args =
+help = STR
+args = STR
 _called_from_command_line = False
 can_import_settings = True
 output_transaction = False
@@ -2668,9 +2668,9 @@ self . style = color_style ( )
 has_old_option = hasattr ( self , STR0 )
 has_new_option = hasattr ( self , STR0 )
 if has_old_option :
-warnings . warn ( STR0 , RemovedInDjango19Warning )
+warnings . warn ( STR200 , RemovedInDjango19Warning )
 if has_old_option and has_new_option :
-raise ImproperlyConfigured ( STR3 STR4 STR0 % self . __class__ . __name__ )
+raise ImproperlyConfigured ( STR3 STR4 STR200 % self . __class__ . __name__ )
 self . requires_system_checks = ( self . requires_system_checks if has_new_option else self . requires_model_validation if has_old_option else True )
 @ property
 def use_argparse ( self ) :
@@ -2844,7 +2844,7 @@ return STR0 . join ( output )
 def handle_label ( self , label , ** options ) :
 raise NotImplementedError ( STR0 )
 class NoArgsCommand ( BaseCommand ) :
-args =
+args = STR
 def __init__ ( self ) :
 warnings . warn ( STR0 STR1 , RemovedInDjango20Warning )
 super ( NoArgsCommand , self ) . __init__ ( )
@@ -2868,7 +2868,7 @@ def color_style ( ) :
 if not supports_color ( ) :
 style = no_style ( )
 else :
-DJANGO_COLORS = os . environ . get ( STR0 , )
+DJANGO_COLORS = os . environ . get ( STR0 , STR )
 color_settings = termcolors . parse_color_setting ( DJANGO_COLORS )
 if color_settings :
 class dummy :
@@ -2921,7 +2921,7 @@ from django . utils . _os import npath , upath
 def has_bom ( fn ) :
 with open ( fn , STR0 ) as f :
 sample = f . read ( 4 )
-return sample [ : 3 ] == bSTR0 or sample . startswith ( codecs . BOM_UTF16_LE ) or sample . startswith ( codecs . BOM_UTF16_BE )
+return sample [ : 3 ] == STR0 or sample . startswith ( codecs . BOM_UTF16_LE ) or sample . startswith ( codecs . BOM_UTF16_BE )
 def is_writable ( path ) :
 try :
 with open ( path , STR0 ) :
@@ -3037,7 +3037,7 @@ index_output . append ( STR0 % ( unique , qn ( STR1 % ( tablename , f . name ) )
 table_output . append ( STR0 . join ( field_output ) )
 full_statement = [ STR0 % qn ( tablename ) ]
 for i , line in enumerate ( table_output ) :
-full_statement . append ( STR0 % ( line , STR1 if i < len ( table_output ) - 1 else ) )
+full_statement . append ( STR0 % ( line , STR1 if i < len ( table_output ) - 1 else STR ) )
 full_statement . append ( STR0 )
 with transaction . atomic ( using = database , savepoint = connection . features . can_rollback_ddl ) :
 with connection . cursor ( ) as curs :
@@ -3282,7 +3282,7 @@ except ImportError :
 pass
 sql_list = sql_flush ( self . style , connection , only_django = True , reset_sequences = reset_sequences , allow_cascade = allow_cascade )
 if interactive :
-confirm = input ( STR0You have requested a flush of the database. This will IRREVERSIBLY DESTROY all data currently in the %r database, and return each table to an empty state. Are you sure you want to do this? Type STR2 to continue, or STR3 to cancel: STR1 % connection . settings_dict [ STR4 ] )
+confirm = input ( STR0 % connection . settings_dict [ STR1 ] )
 else :
 confirm = STR0
 if confirm == STR0 :
@@ -3327,7 +3327,7 @@ raise CommandError ( STR0 )
 def handle_inspection ( self , options ) :
 connection = connections [ options [ STR0 ] ]
 table_name_filter = options . get ( STR0 )
-table2model = lambda table_name : re . sub ( STR0 , , table_name . title ( ) )
+table2model = lambda table_name : re . sub ( STR0 , STR , table_name . title ( ) )
 strip_prefix = lambda s : s [ 1 : ] if s . startswith ( STR0 ) else s
 with connection . cursor ( ) as cursor :
 yield STR0
@@ -3340,15 +3340,15 @@ yield STR0
 yield STR0
 yield STR0
 yield STR0
-yield
+yield STR
 yield STR0 % self . db_module
 known_models = [ ]
 for table_name in connection . introspection . table_names ( cursor ) :
 if table_name_filter is not None and callable ( table_name_filter ) :
 if not table_name_filter ( table_name ) :
 continue
-yield
-yield
+yield STR
+yield STR
 yield STR0 % table2model ( table_name )
 known_models . append ( table2model ( table_name ) )
 try :
@@ -3397,7 +3397,7 @@ else :
 extra_params [ STR0 ] = True
 if field_type not in ( STR0 , STR1 ) :
 extra_params [ STR0 ] = True
-field_desc = STR0 % ( att_name , STR1.STR2models.' , field_type , )
+field_desc = STR0 % ( att_name , STR if STR1 in field_type else STR2 , field_type , )
 if extra_params :
 if not field_desc . endswith ( STR0 ) :
 field_desc += STR0
@@ -3622,7 +3622,7 @@ app_dir = os . path . join ( app_config . path , STR0 )
 if os . path . isdir ( app_dir ) :
 dirs . append ( app_dir )
 dirs . extend ( list ( settings . FIXTURE_DIRS ) )
-dirs . append ( )
+dirs . append ( STR )
 dirs = [ upath ( os . path . abspath ( os . path . realpath ( d ) ) ) for d in dirs ]
 return dirs
 def parse_name ( self , fixture_name ) :
@@ -3637,7 +3637,7 @@ if parts [ - 1 ] in self . serialization_formats :
 ser_fmt = parts [ - 1 ]
 parts = parts [ : - 1 ]
 else :
-raise CommandError ( STR0 STR1 % ( . join ( parts [ : - 1 ] ) , parts [ - 1 ] ) )
+raise CommandError ( STR0 STR1 % ( STR . join ( parts [ : - 1 ] ) , parts [ - 1 ] ) )
 else :
 ser_fmt = None
 name = STR0 . join ( parts )
@@ -4366,7 +4366,7 @@ from django . db . migrations . executor import MigrationExecutor
 from django . utils import autoreload
 from django . utils import six
 from django . core . exceptions import ImproperlyConfigured
-naiveip_re = re . compile ( STR0^(?: (?P<addr> (?P<ipv4>\d{1,3}(?:\.\d{1,3}){3}) | # IPv4 address (?P<ipv6>\[[a-fA-F0-9:]+\]) | # IPv6 address (?P<fqdn>[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*) # FQDN ):)?(?P<port>\d+)$STR1 , re . X )
+naiveip_re = re . compile ( STR0 , re . X )
 DEFAULT_PORT = STR0
 class Command ( BaseCommand ) :
 help = STR0
@@ -4387,12 +4387,12 @@ if self . use_ipv6 and not socket . has_ipv6 :
 raise CommandError ( STR0 )
 self . _raw_ipv6 = False
 if not options . get ( STR0 ) :
-self . addr =
+self . addr = STR
 self . port = DEFAULT_PORT
 else :
 m = re . match ( naiveip_re , options [ STR0 ] )
 if m is None :
-raise CommandError ( STR0 ] )
+raise CommandError ( STR200 ] )
 self . addr , _ipv4 , _ipv6 , _fqdn , self . port = m . groups ( )
 if not self . port . isdigit ( ) :
 raise CommandError ( STR0 % self . port )
@@ -4402,7 +4402,7 @@ self . addr = self . addr [ 1 : - 1 ]
 self . use_ipv6 = True
 self . _raw_ipv6 = True
 elif self . use_ipv6 and not _fqdn :
-raise CommandError ( STR0 % self . addr )
+raise CommandError ( STR200 % self . addr )
 if not self . addr :
 self . addr = STR0 if self . use_ipv6 else STR1
 self . _raw_ipv6 = bool ( self . use_ipv6 )
@@ -4417,7 +4417,7 @@ def inner_run ( self , * args , ** options ) :
 from django . conf import settings
 from django . utils import translation
 threading = options . get ( STR0 )
-shutdown_message = options . get ( STR0 , )
+shutdown_message = options . get ( STR0 , STR )
 quit_command = STR0 if sys . platform == STR1 else STR2
 self . stdout . write ( STR0 )
 self . validate ( display_num_errors = True )
@@ -4532,7 +4532,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4548,7 +4548,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4564,7 +4564,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4580,7 +4580,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4596,7 +4596,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4612,7 +4612,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle ( self , ** options ) :
 return STR0 . join ( sql_flush ( self . style , connections [ options [ STR1 ] ] , only_django = True ) )
 from __future__ import unicode_literals
@@ -4624,7 +4624,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4641,7 +4641,7 @@ help = STR0
 def add_arguments ( self , parser ) :
 parser . add_argument ( STR0 , help = STR1 )
 parser . add_argument ( STR0 , help = STR1 )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 parser . add_argument ( STR0 , action = STR1 , dest = STR2 , default = False , help = STR3 )
 def handle ( self , * args , ** options ) :
 connection = connections [ options [ STR0 ] ]
@@ -4669,7 +4669,7 @@ help = STR0
 output_transaction = True
 def add_arguments ( self , parser ) :
 super ( Command , self ) . add_arguments ( parser )
-parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR0 )
+parser . add_argument ( STR1 , default = DEFAULT_DB_ALIAS , help = STR2 STR200 )
 def handle_app_config ( self , app_config , ** options ) :
 if app_config . models_module is None :
 return
@@ -4876,7 +4876,7 @@ requires_system_checks = False
 def add_arguments ( self , parser ) :
 parser . add_argument ( STR0 , metavar = STR1 , nargs = STR2 , help = STR3 )
 parser . add_argument ( STR0 , action = STR1 , dest = STR2 , default = True , help = STR3 )
-parser . add_argument ( STR0 , default = STR1Port number or ipaddr:port to run the server on.' )
+parser . add_argument ( STR0 , default = STR , help = STR1 )
 parser . add_argument ( STR0 , STR1 , action = STR2 , dest = STR3 , default = False , help = STR4 )
 def handle ( self , * fixture_labels , ** options ) :
 verbosity = options . get ( STR0 )
@@ -4893,7 +4893,7 @@ from django . utils . deprecation import RemovedInDjango19Warning
 class Command ( CheckCommand ) :
 help = STR1 + CheckCommand . help
 def handle ( self , ** options ) :
-warnings . warn ( STR0 , RemovedInDjango19Warning )
+warnings . warn ( STR200 , RemovedInDjango19Warning )
 super ( Command , self ) . handle ( ** options )
 from __future__ import unicode_literals
 import codecs
@@ -5271,21 +5271,21 @@ return ( output , force_text ( errors , DEFAULT_LOCALE_ENCODING , strings_only =
 def handle_extensions ( extensions = ( STR0 , ) , ignored = ( STR1 , ) ) :
 ext_list = [ ]
 for ext in extensions :
-ext_list . extend ( ext . replace ( STR0 , STR1,' ) )
+ext_list . extend ( ext . replace ( STR0 , STR ) . split ( STR1 ) )
 for i , ext in enumerate ( ext_list ) :
 if not ext . startswith ( STR0 ) :
 ext_list [ i ] = STR0 % ext_list [ i ]
 return set ( x for x in ext_list if x . strip ( STR0 ) not in ignored )
 def find_command ( cmd , path = None , pathext = None ) :
 if path is None :
-path = os . environ . get ( STR0 , ) . split ( os . pathsep )
+path = os . environ . get ( STR0 , STR ) . split ( os . pathsep )
 if isinstance ( path , six . string_types ) :
 path = [ path ]
 if pathext is None :
 pathext = os . environ . get ( STR0 , STR1 ) . split ( os . pathsep )
 for ext in pathext :
 if cmd . endswith ( ext ) :
-pathext = [ ]
+pathext = [ STR ]
 break
 for p in path :
 f = os . path . join ( p , cmd )
@@ -6159,16 +6159,16 @@ pass
 class SignatureExpired ( BadSignature ) :
 pass
 def b64_encode ( s ) :
-return base64 . urlsafe_b64encode ( s ) . strip ( bSTR0 )
+return base64 . urlsafe_b64encode ( s ) . strip ( STR0 )
 def b64_decode ( s ) :
-pad = bSTR0 * ( - len ( s ) % 4 )
+pad = STR0 * ( - len ( s ) % 4 )
 return base64 . urlsafe_b64decode ( s + pad )
 def base64_hmac ( salt , value , key ) :
 return b64_encode ( salted_hmac ( salt , value , key ) . digest ( ) )
 def get_cookie_signer ( salt = STR0 ) :
 Signer = import_string ( settings . SIGNING_BACKEND )
 key = force_bytes ( settings . SECRET_KEY )
-return Signer ( bSTR0 + key , salt = salt )
+return Signer ( STR0 + key , salt = salt )
 class JSONSerializer ( object ) :
 def dumps ( self , obj ) :
 return json . dumps ( obj , separators = ( STR0 , STR1 ) ) . encode ( STR2 )
@@ -6184,12 +6184,12 @@ data = compressed
 is_compressed = True
 base64d = b64_encode ( data )
 if is_compressed :
-base64d = bSTR0 + base64d
+base64d = STR0 + base64d
 return TimestampSigner ( key , salt = salt ) . sign ( base64d )
 def loads ( s , key = None , salt = STR0 , serializer = JSONSerializer , max_age = None ) :
 base64d = force_bytes ( TimestampSigner ( key , salt = salt ) . unsign ( s , max_age = max_age ) )
 decompress = False
-if base64d [ : 1 ] == bSTR0 :
+if base64d [ : 1 ] == STR0 :
 base64d = base64d [ 1 : ]
 decompress = True
 data = b64_decode ( base64d )
@@ -6323,7 +6323,7 @@ def get_mod_func ( callback ) :
 try :
 dot = callback . rindex ( STR0 )
 except ValueError :
-return callback ,
+return callback , STR
 return callback [ : dot ] , callback [ dot + 1 : ]
 class LocaleRegexProvider ( object ) :
 def __init__ ( self , regex ) :
@@ -6340,7 +6340,7 @@ regex = force_text ( self . _regex )
 try :
 compiled_regex = re . compile ( regex , re . UNICODE )
 except re . error as e :
-raise ImproperlyConfigured ( STR0 % ( regex , six . text_type ( e ) ) )
+raise ImproperlyConfigured ( STR200 % ( regex , six . text_type ( e ) ) )
 self . _regex_dict [ language_code ] = compiled_regex
 return self . _regex_dict [ language_code ]
 class RegexURLPattern ( LocaleRegexProvider ) :
@@ -6505,7 +6505,7 @@ from django . conf import urls
 callback = getattr ( urls , STR0 % view_type )
 return get_callable ( callback ) , { }
 def reverse ( self , lookup_view , * args , ** kwargs ) :
-return self . _reverse_with_prefix ( lookup_view , , * args , ** kwargs )
+return self . _reverse_with_prefix ( lookup_view , STR , * args , ** kwargs )
 def _reverse_with_prefix ( self , lookup_view , _prefix , * args , ** kwargs ) :
 if args and kwargs :
 raise ValueError ( STR0 )
@@ -6583,7 +6583,7 @@ parts . reverse ( )
 view = parts [ 0 ]
 path = parts [ 1 : ]
 resolved_path = [ ]
-ns_pattern =
+ns_pattern = STR
 while path :
 ns = path . pop ( )
 try :
@@ -6645,10 +6645,10 @@ from django . utils . encoding import force_text
 from django . utils . ipv6 import is_valid_ipv6_address
 from django . utils import six
 from django . utils . six . moves . urllib . parse import urlsplit , urlunsplit
-EMPTY_VALUES = ( None , , [ ] , ( ) , { } )
+EMPTY_VALUES = ( None , STR , [ ] , ( ) , { } )
 @ deconstructible
 class RegexValidator ( object ) :
-regex =
+regex = STR
 message = _ ( STR0 )
 code = STR0
 inverse_match = False
@@ -6976,7 +6976,7 @@ default_validators = [ ]
 default_error_messages = { STR0 : _ ( STR1 ) , }
 empty_values = list ( validators . EMPTY_VALUES )
 creation_counter = 0
-def __init__ ( self , required = True , widget = None , label = None , initial = None , help_text = , error_messages = None , show_hidden_initial = False , validators = [ ] , localize = False , label_suffix = None ) :
+def __init__ ( self , required = True , widget = None , label = None , initial = None , help_text = STR , error_messages = None , show_hidden_initial = False , validators = [ ] , localize = False , label_suffix = None ) :
 self . required , self . label , self . initial = required , label , initial
 self . show_hidden_initial = show_hidden_initial
 self . help_text = help_text
@@ -7035,14 +7035,14 @@ if callable ( self . limit_choices_to ) :
 return self . limit_choices_to ( )
 return self . limit_choices_to
 def _has_changed ( self , initial , data ) :
-initial_value = initial if initial is not None else
+initial_value = initial if initial is not None else STR
 try :
 data = self . to_python ( data )
 if hasattr ( self , STR0 ) :
 data = self . _coerce ( data )
 except ValidationError :
 return True
-data_value = data if data is not None else
+data_value = data if data is not None else STR
 return initial_value != data_value
 def __deepcopy__ ( self , memo ) :
 result = copy . copy ( self )
@@ -7060,7 +7060,7 @@ if max_length is not None :
 self . validators . append ( validators . MaxLengthValidator ( int ( max_length ) ) )
 def to_python ( self , value ) :
 if value in self . empty_values :
-return
+return STR
 return smart_text ( value )
 def widget_attrs ( self , widget ) :
 attrs = super ( CharField , self ) . widget_attrs ( widget )
@@ -7340,7 +7340,7 @@ if not url_fields [ 0 ] :
 url_fields [ 0 ] = STR0
 if not url_fields [ 1 ] :
 url_fields [ 1 ] = url_fields [ 2 ]
-url_fields [ 2 ] =
+url_fields [ 2 ] = STR
 url_fields = split_url ( urlunsplit ( url_fields ) )
 value = urlunsplit ( url_fields )
 return value
@@ -7382,7 +7382,7 @@ return initial != data
 class ChoiceField ( Field ) :
 widget = Select
 default_error_messages = { STR0 : _ ( STR1 ) , }
-def __init__ ( self , choices = ( ) , required = True , widget = None , label = None , initial = None , help_text = , * args , ** kwargs ) :
+def __init__ ( self , choices = ( ) , required = True , widget = None , label = None , initial = None , help_text = STR , * args , ** kwargs ) :
 super ( ChoiceField , self ) . __init__ ( required = required , widget = widget , label = label , initial = initial , help_text = help_text , * args , ** kwargs )
 self . choices = choices
 def __deepcopy__ ( self , memo ) :
@@ -7396,7 +7396,7 @@ self . _choices = self . widget . choices = list ( value )
 choices = property ( _get_choices , _set_choices )
 def to_python ( self , value ) :
 if value in self . empty_values :
-return
+return STR
 return smart_text ( value )
 def validate ( self , value ) :
 super ( ChoiceField , self ) . validate ( value )
@@ -7416,7 +7416,7 @@ return False
 class TypedChoiceField ( ChoiceField ) :
 def __init__ ( self , * args , ** kwargs ) :
 self . coerce = kwargs . pop ( STR0 , lambda val : val )
-self . empty_value = kwargs . pop ( STR0 , )
+self . empty_value = kwargs . pop ( STR0 , STR )
 super ( TypedChoiceField , self ) . __init__ ( * args , ** kwargs )
 def _coerce ( self , value ) :
 if value == self . empty_value or value in self . empty_values :
@@ -7543,7 +7543,7 @@ def compress ( self , data_list ) :
 raise NotImplementedError ( STR0 )
 def _has_changed ( self , initial , data ) :
 if initial is None :
-initial = [ for x in range ( 0 , len ( data ) ) ]
+initial = [ STR for x in range ( 0 , len ( data ) ) ]
 else :
 if not isinstance ( initial , list ) :
 initial = self . widget . decompress ( initial )
@@ -7552,7 +7552,7 @@ if field . _has_changed ( field . to_python ( initial ) , data ) :
 return True
 return False
 class FilePathField ( ChoiceField ) :
-def __init__ ( self , path , match = None , recursive = False , allow_files = True , allow_folders = False , required = True , widget = None , label = None , initial = None , help_text = , * args , ** kwargs ) :
+def __init__ ( self , path , match = None , recursive = False , allow_files = True , allow_folders = False , required = True , widget = None , label = None , initial = None , help_text = STR , * args , ** kwargs ) :
 self . path , self . match , self . recursive = path , match , recursive
 self . allow_files , self . allow_folders = allow_files , allow_folders
 super ( FilePathField , self ) . __init__ ( choices = ( ) , required = required , widget = widget , label = label , initial = initial , help_text = help_text , * args , ** kwargs )
@@ -7614,7 +7614,7 @@ warnings . warn ( STR0 , RemovedInDjango19Warning )
 super ( IPAddressField , self ) . __init__ ( * args , ** kwargs )
 def to_python ( self , value ) :
 if value in self . empty_values :
-return
+return STR
 return value . strip ( )
 class GenericIPAddressField ( CharField ) :
 def __init__ ( self , protocol = STR0 , unpack_ipv4 = False , * args , ** kwargs ) :
@@ -7623,7 +7623,7 @@ self . default_validators = validators . ip_address_validators ( protocol , unpa
 super ( GenericIPAddressField , self ) . __init__ ( * args , ** kwargs )
 def to_python ( self , value ) :
 if value in self . empty_values :
-return
+return STR
 value = value . strip ( )
 if value and STR0 in value :
 return clean_ipv6_address ( value , self . unpack_ipv4 )
@@ -7651,7 +7651,7 @@ from django . utils import six
 __all__ = ( STR0 , STR1 )
 def pretty_name ( name ) :
 if not name :
-return
+return STR
 return name . replace ( STR0 , STR1 ) . capitalize ( )
 def get_declared_fields ( bases , attrs , with_base_fields = True ) :
 warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 , )
@@ -7727,7 +7727,7 @@ def _html_output ( self , normal_row , error_row , row_ender , help_text_html , 
 top_errors = self . non_field_errors ( )
 output , hidden_fields = [ ] , [ ]
 for name , field in self . fields . items ( ) :
-html_class_attr =
+html_class_attr = STR
 bf = self [ name ]
 bf_errors = self . error_class ( [ conditional_escape ( error ) for error in bf . errors ] )
 if bf . is_hidden :
@@ -7742,22 +7742,22 @@ if errors_on_separate_row and bf_errors :
 output . append ( error_row % force_text ( bf_errors ) )
 if bf . label :
 label = conditional_escape ( force_text ( bf . label ) )
-label = bf . label_tag ( label ) or
+label = bf . label_tag ( label ) or STR
 else :
-label =
+label = STR
 if field . help_text :
 help_text = help_text_html % force_text ( field . help_text )
 else :
-help_text =
+help_text = STR
 output . append ( normal_row % { STR0 : force_text ( bf_errors ) , STR1 : force_text ( label ) , STR2 : six . text_type ( bf ) , STR3 : help_text , STR4 : html_class_attr , STR5 : bf . html_name , } )
 if top_errors :
 output . insert ( 0 , error_row % force_text ( top_errors ) )
 if hidden_fields :
-str_hidden = . join ( hidden_fields )
+str_hidden = STR . join ( hidden_fields )
 if output :
 last_row = output [ - 1 ]
 if not last_row . endswith ( row_ender ) :
-last_row = ( normal_row % { STR0 : STR1labelSTR2STR3fieldSTR4STR5help_textSTR6STR7html_class_attr' : html_class_attr } )
+last_row = ( normal_row % { STR0 : STR , STR1 : STR , STR2 : STR , STR3 : STR , STR4 : html_class_attr } )
 output . append ( last_row )
 output [ - 1 ] = last_row [ : - len ( row_ender ) ] + str_hidden + row_ender
 else :
@@ -7894,7 +7894,7 @@ if self . field . label is None :
 self . label = pretty_name ( name )
 else :
 self . label = self . field . label
-self . help_text = field . help_text or
+self . help_text = field . help_text or STR
 def __str__ ( self ) :
 if self . field . show_hidden_initial :
 return self . as_widget ( ) + self . as_hidden ( only_initial = True )
@@ -7965,7 +7965,7 @@ if STR0 in attrs :
 attrs [ STR0 ] += STR1 + self . form . required_css_class
 else :
 attrs [ STR0 ] = self . form . required_css_class
-attrs = flatatt ( attrs ) if attrs else
+attrs = flatatt ( attrs ) if attrs else STR
 contents = format_html ( STR0 , attrs , contents )
 else :
 contents = conditional_escape ( contents )
@@ -7989,7 +7989,7 @@ if auto_id and STR0 in smart_text ( auto_id ) :
 return smart_text ( auto_id ) % self . html_name
 elif auto_id :
 return self . html_name
-return
+return STR
 @ property
 def id_for_label ( self ) :
 widget = self . field . widget
@@ -8713,7 +8713,7 @@ return form
 @ classmethod
 def get_default_prefix ( cls ) :
 from django . db . models . fields . related import RelatedObject
-return RelatedObject ( cls . fk . rel . to , cls . model , cls . fk ) . get_accessor_name ( ) . replace ( STR0 , )
+return RelatedObject ( cls . fk . rel . to , cls . model , cls . fk ) . get_accessor_name ( ) . replace ( STR0 , STR )
 def save_new ( self , form , commit = True ) :
 obj = form . save ( commit = False )
 pk_value = getattr ( self . instance , self . fk . rel . field_name )
@@ -8820,7 +8820,7 @@ def choice ( self , obj ) :
 return ( self . field . prepare_value ( obj ) , self . field . label_from_instance ( obj ) )
 class ModelChoiceField ( ChoiceField ) :
 default_error_messages = { STR0 : _ ( STR1 STR2 ) , }
-def __init__ ( self , queryset , empty_label = STR0 , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = , to_field_name = None , limit_choices_to = None , * args , ** kwargs ) :
+def __init__ ( self , queryset , empty_label = STR0 , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = STR , to_field_name = None , limit_choices_to = None , * args , ** kwargs ) :
 if required and ( initial is not None ) :
 self . empty_label = None
 else :
@@ -8871,14 +8871,14 @@ return value
 def validate ( self , value ) :
 return Field . validate ( self , value )
 def _has_changed ( self , initial , data ) :
-initial_value = initial if initial is not None else
-data_value = data if data is not None else
+initial_value = initial if initial is not None else STR
+data_value = data if data is not None else STR
 return force_text ( self . prepare_value ( initial_value ) ) != force_text ( data_value )
 class ModelMultipleChoiceField ( ModelChoiceField ) :
 widget = SelectMultiple
 hidden_widget = MultipleHiddenInput
-default_error_messages = { STR1 : _ ( STR2 ) , STR3 : _ ( STR4 STR5 ) , STR6 : _ ( STR0 ) }
-def __init__ ( self , queryset , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = , * args , ** kwargs ) :
+default_error_messages = { STR1 : fun ( STR2 ) , STR3 : fun ( STR4 STR5 ) , STR6 : fun ( STR200 ) }
+def __init__ ( self , queryset , cache_choices = None , required = True , widget = None , label = None , initial = None , help_text = STR , * args , ** kwargs ) :
 super ( ModelMultipleChoiceField , self ) . __init__ ( queryset , None , cache_choices , required , widget , label , initial , help_text , * args , ** kwargs )
 def to_python ( self , value ) :
 if not value :
@@ -8947,7 +8947,7 @@ boolean_attrs . append ( ( attr , ) )
 del attrs [ attr ]
 elif value is False :
 del attrs [ attr ]
-return ( format_html_join ( STR1 {0}=STR0STR2STR3 {0}' , sorted ( boolean_attrs ) ) )
+return ( format_html_join ( STR , STR1 , sorted ( attrs . items ( ) ) ) + format_html_join ( STR , STR2 , sorted ( boolean_attrs ) ) )
 @ python_2_unicode_compatible
 class ErrorDict ( dict ) :
 def as_data ( self ) :
@@ -8956,8 +8956,8 @@ def as_json ( self , escape_html = False ) :
 return json . dumps ( { f : e . get_json_data ( escape_html ) for f , e in self . items ( ) } )
 def as_ul ( self ) :
 if not self :
-return
-return format_html ( STR1 , format_html_join ( STR2<li>{0}{1}</li>' , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
+return STR
+return format_html ( STR1 , format_html_join ( STR , STR2 , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
 def as_text ( self ) :
 output = [ ]
 for field , errors in self . items ( ) :
@@ -8980,14 +8980,14 @@ def get_json_data ( self , escape_html = False ) :
 errors = [ ]
 for error in self . as_data ( ) :
 message = list ( error ) [ 0 ]
-errors . append ( { STR0 : escape ( message ) if escape_html else message , STR1 : error . code or , } )
+errors . append ( { STR0 : escape ( message ) if escape_html else message , STR1 : error . code or STR , } )
 return errors
 def as_json ( self , escape_html = False ) :
 return json . dumps ( self . get_json_data ( escape_html ) )
 def as_ul ( self ) :
 if not self . data :
-return
-return format_html ( STR1 , self . error_class , format_html_join ( STR2<li>{0}</li>' , ( ( force_text ( e ) , ) for e in self ) ) )
+return STR
+return format_html ( STR1 , self . error_class , format_html_join ( STR , STR2 , ( ( force_text ( e ) , ) for e in self ) ) )
 def as_text ( self ) :
 return STR0 . join ( STR1 % e for e in self )
 def __str__ ( self ) :
@@ -9162,9 +9162,9 @@ return formats . localize_input ( value )
 return value
 def render ( self , name , value , attrs = None ) :
 if value is None :
-value =
+value = STR
 final_attrs = self . build_attrs ( attrs , type = self . input_type , name = name )
-if value != :
+if value != STR :
 final_attrs [ STR0 ] = force_text ( self . _format_value ( value ) )
 return format_html ( STR0 , flatatt ( final_attrs ) )
 class TextInput ( Input ) :
@@ -9230,7 +9230,7 @@ return name + STR0
 def clear_checkbox_id ( self , name ) :
 return name + STR0
 def render ( self , name , value , attrs = None ) :
-substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR3clear_checkbox_label' : self . clear_checkbox_label , }
+substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR , STR3 : self . clear_checkbox_label , }
 template = STR0
 substitutions [ STR0 ] = super ( ClearableFileInput , self ) . render ( name , value , attrs )
 if value and hasattr ( value , STR0 ) :
@@ -9259,11 +9259,11 @@ default_attrs . update ( attrs )
 super ( Textarea , self ) . __init__ ( default_attrs )
 def render ( self , name , value , attrs = None ) :
 if value is None :
-value =
+value = STR
 final_attrs = self . build_attrs ( attrs , name = name )
 return format_html ( STR0 , flatatt ( final_attrs ) , force_text ( value ) )
 class DateTimeBaseInput ( TextInput ) :
-format_key =
+format_key = STR
 supports_microseconds = False
 def __init__ ( self , attrs = None , format = None ) :
 super ( DateTimeBaseInput , self ) . __init__ ( attrs )
@@ -9277,7 +9277,7 @@ format_key = STR0
 class TimeInput ( DateTimeBaseInput ) :
 format_key = STR0
 def boolean_check ( v ) :
-return not ( v is False or v is None or v == )
+return not ( v is False or v is None or v == STR )
 class CheckboxInput ( Widget ) :
 def __init__ ( self , attrs = None , check_test = None ) :
 super ( CheckboxInput , self ) . __init__ ( attrs )
@@ -9286,7 +9286,7 @@ def render ( self , name , value , attrs = None ) :
 final_attrs = self . build_attrs ( attrs , type = STR0 , name = name )
 if self . check_test ( value ) :
 final_attrs [ STR0 ] = STR1
-if not ( value is True or value is False or value is None or value == ) :
+if not ( value is True or value is False or value is None or value == STR ) :
 final_attrs [ STR0 ] = force_text ( value )
 return format_html ( STR0 , flatatt ( final_attrs ) )
 def value_from_datadict ( self , data , files , name ) :
@@ -9304,7 +9304,7 @@ super ( Select , self ) . __init__ ( attrs )
 self . choices = list ( choices )
 def render ( self , name , value , attrs = None , choices = ( ) ) :
 if value is None :
-value =
+value = STR
 final_attrs = self . build_attrs ( attrs , name = name )
 output = [ format_html ( STR0 , flatatt ( final_attrs ) ) ]
 options = self . render_options ( choices , [ value ] )
@@ -9314,14 +9314,14 @@ output . append ( STR0 )
 return mark_safe ( STR0 . join ( output ) )
 def render_option ( self , selected_choices , option_value , option_label ) :
 if option_value is None :
-option_value =
+option_value = STR
 option_value = force_text ( option_value )
 if option_value in selected_choices :
 selected_html = mark_safe ( STR1 )
 if not self . allow_multiple_selected :
 selected_choices . remove ( option_value )
 else :
-selected_html =
+selected_html = STR
 return format_html ( STR1 , option_value , selected_html , force_text ( option_label ) )
 def render_options ( self , choices , selected_choices ) :
 selected_choices = set ( force_text ( v ) for v in selected_choices )
@@ -9382,7 +9382,7 @@ def render ( self , name = None , value = None , attrs = None , choices = ( ) ) 
 if self . id_for_label :
 label_for = format_html ( STR1 , self . id_for_label )
 else :
-label_for =
+label_for = STR
 return format_html ( STR0 , label_for , self . tag ( ) , self . choice_label )
 def is_checked ( self ) :
 return self . value == self . choice_value
@@ -9393,7 +9393,7 @@ final_attrs [ STR0 ] = STR1
 return format_html ( STR0 , flatatt ( final_attrs ) )
 @ property
 def id_for_label ( self ) :
-return self . attrs . get ( STR0 , )
+return self . attrs . get ( STR0 , STR )
 class RadioChoiceInput ( ChoiceInput ) :
 input_type = STR0
 def __init__ ( self , * args , ** kwargs ) :
@@ -9435,8 +9435,8 @@ sub_ul_renderer . choice_input_class = self . choice_input_class
 output . append ( format_html ( self . inner_html , choice_value = choice_value , sub_widgets = sub_ul_renderer . render ( ) ) )
 else :
 w = self . choice_input_class ( self . name , self . value , self . attrs . copy ( ) , choice , i )
-output . append ( format_html ( self . inner_html , choice_value = force_text ( w ) , sub_widgets = ) )
-return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR2\n' . join ( output ) ) )
+output . append ( format_html ( self . inner_html , choice_value = force_text ( w ) , sub_widgets = STR ) )
+return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR , content = mark_safe ( STR2 . join ( output ) ) )
 class RadioFieldRenderer ( ChoiceFieldRenderer ) :
 choice_input_class = RadioChoiceInput
 class CheckboxFieldRenderer ( ChoiceFieldRenderer ) :
@@ -9466,7 +9466,7 @@ id_ += STR0
 return id_
 class RadioSelect ( RendererMixin , Select ) :
 renderer = RadioFieldRenderer
-_empty_value =
+_empty_value = STR
 class CheckboxSelectMultiple ( RendererMixin , SelectMultiple ) :
 renderer = CheckboxFieldRenderer
 _empty_value = [ ]
@@ -9502,7 +9502,7 @@ return id_
 def value_from_datadict ( self , data , files , name ) :
 return [ widget . value_from_datadict ( data , files , name + STR0 % i ) for i , widget in enumerate ( self . widgets ) ]
 def format_output ( self , rendered_widgets ) :
-return . join ( rendered_widgets )
+return STR . join ( rendered_widgets )
 def decompress ( self , value ) :
 raise NotImplementedError ( STR0 )
 def _get_media ( self ) :
@@ -9542,7 +9542,7 @@ from __future__ import unicode_literals
 from django . utils . encoding import force_str
 from django . utils import six
 from django . utils . six . moves import http_cookies
-_cookie_encodes_correctly = http_cookies . SimpleCookie ( ) . value_encode ( STR1 ) == ( STR2 , STR0 )
+_cookie_encodes_correctly = http_cookies . SimpleCookie ( ) . value_encode ( STR1 ) == ( STR2 , STR200 )
 _tc = http_cookies . SimpleCookie ( )
 try :
 _tc . load ( str ( STR0 ) )
@@ -9559,7 +9559,7 @@ def value_encode ( self , val ) :
 val , encoded = super ( SimpleCookie , self ) . value_encode ( val )
 encoded = encoded . replace ( STR0 , STR1 ) . replace ( STR2 , STR3 )
 if STR0 in encoded and not encoded . startswith ( STR1 ) :
-encoded = STR0
+encoded = STR200
 return val , encoded
 if not _cookie_allows_colon_in_names :
 def load ( self , rawdata ) :
@@ -9581,7 +9581,7 @@ self . bad_cookies = set ( )
 self . bad_cookies . add ( key )
 dict . __setitem__ ( self , key , http_cookies . Morsel ( ) )
 def parse_cookie ( cookie ) :
-if cookie == :
+if cookie == STR :
 return { }
 if not isinstance ( cookie , http_cookies . BaseCookie ) :
 try :
@@ -9618,7 +9618,7 @@ FIELD = STR0
 _BASE64_DECODE_ERROR = TypeError if six . PY2 else binascii . Error
 class MultiPartParser ( object ) :
 def __init__ ( self , META , input_data , upload_handlers , encoding = None ) :
-content_type = META . get ( STR0 , META . get ( STR1 , ) )
+content_type = META . get ( STR0 , META . get ( STR1 , STR ) )
 if not content_type . startswith ( STR0 ) :
 raise MultiPartParserError ( STR0 % content_type )
 ctypes , opts = parse_header ( content_type . encode ( STR0 ) )
@@ -9646,12 +9646,12 @@ from django . http import QueryDict
 encoding = self . _encoding
 handlers = self . _upload_handlers
 if self . _content_length == 0 :
-return QueryDict ( , encoding = self . _encoding ) , MultiValueDict ( )
+return QueryDict ( STR , encoding = self . _encoding ) , MultiValueDict ( )
 for handler in handlers :
 result = handler . handle_raw_input ( self . _input_data , self . _meta , self . _content_length , self . _boundary , encoding )
 if result is not None :
 return result [ 0 ] , result [ 1 ]
-self . _post = QueryDict ( , mutable = True )
+self . _post = QueryDict ( STR , mutable = True )
 self . _files = MultiValueDict ( )
 stream = LazyStream ( ChunkIter ( self . _input_data , self . _chunk_size ) )
 old_field_name = None
@@ -9686,7 +9686,7 @@ if not file_name :
 continue
 file_name = force_text ( file_name , encoding , errors = STR0 )
 file_name = self . IE_sanitize ( unescape_entities ( file_name ) )
-content_type , content_type_extra = meta_data . get ( STR0 , ( , { } ) )
+content_type , content_type_extra = meta_data . get ( STR0 , ( STR , { } ) )
 content_type = content_type . strip ( )
 charset = content_type_extra . get ( STR0 )
 try :
@@ -9751,7 +9751,7 @@ class LazyStream ( six . Iterator ) :
 def __init__ ( self , producer , length = None ) :
 self . _producer = producer
 self . _empty = False
-self . _leftover = b
+self . _leftover = STR
 self . length = length
 self . position = 0
 self . _remaining = length
@@ -9762,7 +9762,7 @@ def read ( self , size = None ) :
 def parts ( ) :
 remaining = self . _remaining if size is None else size
 if remaining is None :
-yield b . join ( self )
+yield STR . join ( self )
 return
 while remaining != 0 :
 assert remaining > 0 , STR0
@@ -9771,12 +9771,12 @@ emitting = chunk [ : remaining ]
 self . unget ( chunk [ remaining : ] )
 remaining -= len ( emitting )
 yield emitting
-out = b . join ( parts ( ) )
+out = STR . join ( parts ( ) )
 return out
 def __next__ ( self ) :
 if self . _leftover :
 output = self . _leftover
-self . _leftover = b
+self . _leftover = STR
 else :
 output = next ( self . _producer )
 self . _unget_history = [ ]
@@ -9791,7 +9791,7 @@ if not bytes :
 return
 self . _update_unget_history ( len ( bytes ) )
 self . position -= len ( bytes )
-self . _leftover = b . join ( [ bytes , self . _leftover ] )
+self . _leftover = STR . join ( [ bytes , self . _leftover ] )
 def _update_unget_history ( self , num_bytes ) :
 self . _unget_history = [ num_bytes ] + self . _unget_history [ : 49 ]
 number_equal = len ( [ current_number for current_number in self . _unget_history if current_number == num_bytes ] )
@@ -9853,7 +9853,7 @@ else :
 self . _done = True
 if not chunks :
 raise StopIteration ( )
-chunk = b . join ( chunks )
+chunk = STR . join ( chunks )
 boundary = self . _find_boundary ( chunk , len ( chunk ) < self . _rollback )
 if boundary :
 end , next = boundary
@@ -9875,10 +9875,10 @@ else :
 end = index
 next = index + len ( self . _boundary )
 last = max ( 0 , end - 1 )
-if data [ last : last + 1 ] == bSTR0 :
+if data [ last : last + 1 ] == STR0 :
 end -= 1
 last = max ( 0 , end - 1 )
-if data [ last : last + 1 ] == bSTR0 :
+if data [ last : last + 1 ] == STR0 :
 end -= 1
 return end , next
 def exhaust ( stream_or_iterable ) :
@@ -9893,7 +9893,7 @@ for __ in iterator :
 pass
 def parse_boundary_stream ( stream , max_header_size ) :
 chunk = stream . read ( max_header_size )
-header_end = chunk . find ( bSTR0 )
+header_end = chunk . find ( STR0 )
 def _parse_header ( line ) :
 main_value_pair , params = parse_header ( line )
 try :
@@ -9908,7 +9908,7 @@ header = chunk [ : header_end ]
 stream . unget ( chunk [ header_end + 4 : ] )
 TYPE = RAW
 outdict = { }
-for line in header . split ( bSTR0 ) :
+for line in header . split ( STR0 ) :
 try :
 name , ( value , params ) = _parse_header ( line )
 except ValueError :
@@ -9924,32 +9924,32 @@ return ( TYPE , outdict , stream )
 class Parser ( object ) :
 def __init__ ( self , stream , boundary ) :
 self . _stream = stream
-self . _separator = bSTR0 + boundary
+self . _separator = STR0 + boundary
 def __iter__ ( self ) :
 boundarystream = InterBoundaryIter ( self . _stream , self . _separator )
 for sub_stream in boundarystream :
 yield parse_boundary_stream ( sub_stream , 1024 )
 def parse_header ( line ) :
-plist = _parse_header_params ( bSTR0 + line )
+plist = _parse_header_params ( STR0 + line )
 key = plist . pop ( 0 ) . lower ( ) . decode ( STR0 )
 pdict = { }
 for p in plist :
-i = p . find ( bSTR0 )
+i = p . find ( STR0 )
 if i >= 0 :
 name = p [ : i ] . strip ( ) . lower ( ) . decode ( STR0 )
 value = p [ i + 1 : ] . strip ( )
-if len ( value ) >= 2 and value [ : 1 ] == value [ - 1 : ] == bSTR0 :
+if len ( value ) >= 2 and value [ : 1 ] == value [ - 1 : ] == STR0 :
 value = value [ 1 : - 1 ]
-value = value . replace ( bSTR1 , bSTR2 ) . replace ( bSTR3 )
+value = value . replace ( STR1 , STR2 ) . replace ( STR3 )
 pdict [ name ] = value
 return key , pdict
 def _parse_header_params ( s ) :
 plist = [ ]
-while s [ : 1 ] == bSTR0 :
+while s [ : 1 ] == STR0 :
 s = s [ 1 : ]
-end = s . find ( bSTR0 )
-while end > 0 and s . count ( bSTR0 , 0 , end ) % 2 :
-end = s . find ( bSTR0 , end + 1 )
+end = s . find ( STR0 )
+while end > 0 and s . count ( STR0 , 0 , end ) % 2 :
+end = s . find ( STR0 , end + 1 )
 if end < 0 :
 end = len ( s )
 f = s [ : end ]
@@ -9989,8 +9989,8 @@ self . POST = QueryDict ( mutable = True )
 self . COOKIES = { }
 self . META = { }
 self . FILES = MultiValueDict ( )
-self . path =
-self . path_info =
+self . path = STR
+self . path_info = STR
 self . method = None
 self . resolver_match = None
 self . _post_parse_error = False
@@ -10019,8 +10019,8 @@ else :
 msg += STR0
 raise DisallowedHost ( msg )
 def get_full_path ( self ) :
-return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR3QUERY_STRINGSTR4STR5' )
-def get_signed_cookie ( self , key , default = RAISE_ERROR , salt = , max_age = None ) :
+return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR ) ) ) if self . META . get ( STR3 , STR ) else STR )
+def get_signed_cookie ( self , key , default = RAISE_ERROR , salt = STR , max_age = None ) :
 try :
 cookie_value = self . COOKIES [ key ]
 except KeyError :
@@ -10098,17 +10098,17 @@ six . reraise ( UnreadablePostError , UnreadablePostError ( * e . args ) , sys .
 self . _stream = BytesIO ( self . _body )
 return self . _body
 def _mark_post_parse_error ( self ) :
-self . _post = QueryDict ( )
+self . _post = QueryDict ( STR )
 self . _files = MultiValueDict ( )
 self . _post_parse_error = True
 def _load_post_and_files ( self ) :
 if self . method != STR0 :
-self . _post , self . _files = QueryDict ( , encoding = self . _encoding ) , MultiValueDict ( )
+self . _post , self . _files = QueryDict ( STR , encoding = self . _encoding ) , MultiValueDict ( )
 return
 if self . _read_started and not hasattr ( self , STR0 ) :
 self . _mark_post_parse_error ( )
 return
-if self . META . get ( STR0 , STR1multipart/form-data' ) :
+if self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
 if hasattr ( self , STR0 ) :
 data = BytesIO ( self . _body )
 else :
@@ -10118,10 +10118,10 @@ self . _post , self . _files = self . parse_file_upload ( self . META , data )
 except MultiPartParserError :
 self . _mark_post_parse_error ( )
 raise
-elif self . META . get ( STR0 , STR1application/x-www-form-urlencoded' ) :
+elif self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
 self . _post , self . _files = QueryDict ( self . body , encoding = self . _encoding ) , MultiValueDict ( )
 else :
-self . _post , self . _files = QueryDict ( , encoding = self . _encoding ) , MultiValueDict ( )
+self . _post , self . _files = QueryDict ( STR , encoding = self . _encoding ) , MultiValueDict ( )
 def close ( self ) :
 if hasattr ( self , STR0 ) :
 for f in chain . from_iterable ( l [ 1 ] for l in self . _files . lists ( ) ) :
@@ -10158,10 +10158,10 @@ self . encoding = encoding
 if six . PY3 :
 if isinstance ( query_string , bytes ) :
 query_string = query_string . decode ( )
-for key , value in parse_qsl ( query_string or , keep_blank_values = True , encoding = encoding ) :
+for key , value in parse_qsl ( query_string or STR , keep_blank_values = True , encoding = encoding ) :
 self . appendlist ( key , value )
 else :
-for key , value in parse_qsl ( query_string or , keep_blank_values = True ) :
+for key , value in parse_qsl ( query_string or STR , keep_blank_values = True ) :
 self . appendlist ( force_text ( key , encoding , errors = STR0 ) , force_text ( value , encoding , errors = STR1 ) )
 self . _mutable = mutable
 @ property
@@ -10184,12 +10184,12 @@ def __delitem__ ( self , key ) :
 self . _assert_mutable ( )
 super ( QueryDict , self ) . __delitem__ ( key )
 def __copy__ ( self ) :
-result = self . __class__ ( , mutable = True , encoding = self . encoding )
+result = self . __class__ ( STR , mutable = True , encoding = self . encoding )
 for key , value in six . iterlists ( self ) :
 result . setlist ( key , value )
 return result
 def __deepcopy__ ( self , memo ) :
-result = self . __class__ ( , mutable = True , encoding = self . encoding )
+result = self . __class__ ( STR , mutable = True , encoding = self . encoding )
 memo [ id ( self ) ] = result
 for key , value in six . iterlists ( self ) :
 result . setlist ( copy . deepcopy ( key , memo ) , copy . deepcopy ( value , memo ) )
@@ -10264,13 +10264,13 @@ return s
 def split_domain_port ( host ) :
 host = host . lower ( )
 if not host_validation_re . match ( host ) :
-return STR0'
+return STR , STR
 if host [ - 1 ] == STR0 :
-return host ,
+return host , STR
 bits = host . rsplit ( STR0 , 1 )
 if len ( bits ) == 2 :
 return tuple ( bits )
-return bits [ 0 ] ,
+return bits [ 0 ] , STR
 def validate_host ( host , allowed_hosts ) :
 host = host [ : - 1 ] if host . endswith ( STR0 ) else host
 for pattern in allowed_hosts :
@@ -10320,8 +10320,8 @@ self [ STR0 ] = content_type
 def serialize_headers ( self ) :
 def to_bytes ( val , encoding ) :
 return val if isinstance ( val , bytes ) else val . encode ( encoding )
-headers = [ ( bSTR0 . join ( [ to_bytes ( key , STR1 ) , to_bytes ( value , STR2 ) ] ) ) for key , value in self . _headers . values ( ) ]
-return bSTR0 . join ( headers )
+headers = [ ( STR0 . join ( [ to_bytes ( key , STR1 ) , to_bytes ( value , STR2 ) ] ) ) for key , value in self . _headers . values ( ) ]
+return STR0 . join ( headers )
 if six . PY3 :
 __bytes__ = serialize_headers
 else :
@@ -10374,7 +10374,7 @@ def items ( self ) :
 return self . _headers . values ( )
 def get ( self , header , alternate = None ) :
 return self . _headers . get ( header . lower ( ) , ( None , alternate ) ) [ 1 ]
-def set_cookie ( self , key , value = STR0/' , domain = None , secure = False , httponly = False ) :
+def set_cookie ( self , key , value = STR , max_age = None , expires = None , path = STR0 , domain = None , secure = False , httponly = False ) :
 self . cookies [ key ] = value
 if expires is not None :
 if isinstance ( expires , datetime . datetime ) :
@@ -10398,7 +10398,7 @@ if secure :
 self . cookies [ key ] [ STR0 ] = True
 if httponly :
 self . cookies [ key ] [ STR0 ] = True
-def set_signed_cookie ( self , key , value , salt = , ** kwargs ) :
+def set_signed_cookie ( self , key , value , salt = STR , ** kwargs ) :
 value = signing . get_cookie_signer ( salt = key + salt ) . sign ( value )
 return self . set_cookie ( key , value , ** kwargs )
 def delete_cookie ( self , key , path = STR0 , domain = None ) :
@@ -10426,24 +10426,24 @@ def tell ( self ) :
 raise Exception ( STR0 % self . __class__ . __name__ )
 class HttpResponse ( HttpResponseBase ) :
 streaming = False
-def __init__ ( self , content = b , * args , ** kwargs ) :
+def __init__ ( self , content = STR , * args , ** kwargs ) :
 super ( HttpResponse , self ) . __init__ ( * args , ** kwargs )
 self . content = content
 def serialize ( self ) :
-return self . serialize_headers ( ) + bSTR0 + self . content
+return self . serialize_headers ( ) + STR0 + self . content
 if six . PY3 :
 __bytes__ = serialize
 else :
 __str__ = serialize
 @ property
 def content ( self ) :
-return b . join ( self . _container )
+return STR . join ( self . _container )
 @ content . setter
 def content ( self , value ) :
 if hasattr ( value , STR0 ) and not isinstance ( value , ( bytes , six . string_types ) ) :
 if hasattr ( value , STR0 ) :
 self . _closable_objects . append ( value )
-value = b . join ( self . make_bytes ( chunk ) for chunk in value )
+value = STR . join ( self . make_bytes ( chunk ) for chunk in value )
 else :
 value = self . make_bytes ( value )
 self . _container = [ value ]
@@ -10527,13 +10527,13 @@ if 100 <= response . status_code < 200 or response . status_code in ( 204 , 304 
 if response . streaming :
 response . streaming_content = [ ]
 else :
-response . content = b
+response . content = STR
 response [ STR0 ] = STR1
 if request . method == STR0 :
 if response . streaming :
 response . streaming_content = [ ]
 else :
-response . content = b
+response . content = STR
 return response
 from django . template . base import ( ALLOWED_VARIABLE_CHARS , BLOCK_TAG_END , BLOCK_TAG_START , COMMENT_TAG_END , COMMENT_TAG_START , FILTER_ARGUMENT_SEPARATOR , FILTER_SEPARATOR , SINGLE_BRACE_END , SINGLE_BRACE_START , TOKEN_BLOCK , TOKEN_COMMENT , TOKEN_TEXT , TOKEN_VAR , TRANSLATOR_COMMENT_MARK , UNKNOWN_SOURCE , VARIABLE_ATTRIBUTE_SEPARATOR , VARIABLE_TAG_END , VARIABLE_TAG_START , filter_re , tag_re )
 from django . template . base import ( ContextPopException , InvalidTemplateLibrary , TemplateDoesNotExist , TemplateEncodingError , TemplateSyntaxError , VariableDoesNotExist )
@@ -10651,7 +10651,7 @@ self . token_type , self . contents = token_type , contents
 self . lineno = None
 def __str__ ( self ) :
 token_name = TOKEN_MAPPING [ self . token_type ]
-return ( STR1 % ( token_name , self . contents [ : 20 ] . replace ( STR2 , ) ) )
+return ( STR1 % ( token_name , self . contents [ : 20 ] . replace ( STR2 , STR ) ) )
 def split_contents ( self ) :
 split = [ ]
 bits = iter ( smart_split ( self . contents ) )
@@ -10692,7 +10692,7 @@ if block_content [ : 9 ] in ( STR0 , STR1 ) :
 self . verbatim = STR0 % block_content
 token = Token ( TOKEN_BLOCK , block_content )
 elif token_string . startswith ( COMMENT_TAG_START ) :
-content =
+content = STR
 if token_string . find ( TRANSLATOR_COMMENT_MARK ) :
 content = token_string [ 2 : - 2 ] . strip ( )
 token = Token ( TOKEN_COMMENT , content )
@@ -10838,7 +10838,7 @@ subject = self . subject
 i = self . pointer
 def next_space_index ( subject , i ) :
 while i < len ( subject ) and subject [ i ] not in ( STR0 , STR1 ) :
-if subject [ i ] in ( STR0" ) :
+if subject [ i ] in ( STR200" ) :
 c = subject [ i ]
 i += 1
 while i < len ( subject ) and subject [ i ] != c :
@@ -10849,7 +10849,7 @@ i += 1
 return i
 if i >= len ( subject ) :
 raise TemplateSyntaxError ( STR0 STR1 % subject )
-if subject [ i ] in ( STR0" ) :
+if subject [ i ] in ( STR200" ) :
 p = i
 i += 1
 while i < len ( subject ) and subject [ i ] != subject [ p ] :
@@ -10873,9 +10873,9 @@ i += 1
 self . backout . append ( self . pointer )
 self . pointer = i
 return s
-constant_string = STR0 (?:%(i18n_open)s%(strdq)s%(i18n_close)s| %(i18n_open)s%(strsq)s%(i18n_close)s| %(strdq)s| %(strsq)s) STR1 % { STR7 : STR0 : re . escape ( STR6 ) , }
+constant_string = STR0 % { STR6 : STR200 : re . escape ( STR5 ) , }
 constant_string = constant_string . replace ( STR0 , "" )
-filter_raw_string = STR0 ^(?P<constant>%(constant)s)| ^(?P<var>[%(var_chars)s]+|%(num)s)| (?:\s*%(filter_sep)s\s* (?P<filter_name>\w+) (?:%(arg_sep)s (?: (?P<constant_arg>%(constant)s)| (?P<var_arg>[%(var_chars)s]+|%(num)s) ) )? )STR1 % { STR3 : constant_string , STR4 : STR5 , STR6 : STR2 , STR7 : re . escape ( FILTER_SEPARATOR ) , STR8 : re . escape ( FILTER_ARGUMENT_SEPARATOR ) , }
+filter_raw_string = STR0 % { STR2 : constant_string , STR3 : STR4 , STR5 : STR1 , STR6 : re . escape ( FILTER_SEPARATOR ) , STR7 : re . escape ( FILTER_ARGUMENT_SEPARATOR ) , }
 filter_re = re . compile ( filter_raw_string , re . UNICODE | re . VERBOSE )
 class FilterExpression ( object ) :
 def __init__ ( self , token , parser ) :
@@ -11073,7 +11073,7 @@ bit = self . render_node ( node , context )
 else :
 bit = node
 bits . append ( force_text ( bit ) )
-return mark_safe ( . join ( bits ) )
+return mark_safe ( STR . join ( bits ) )
 def get_nodes_by_type ( self , nodetype ) :
 nodes = [ ]
 for node in self :
@@ -11105,7 +11105,7 @@ def render ( self , context ) :
 try :
 output = self . filter_expression . resolve ( context )
 except UnicodeDecodeError :
-return
+return STR
 return render_value_in_context ( output , context )
 kwarg_re = re . compile ( STR0 )
 def token_kwargs ( bits , parser , support_legacy = False ) :
@@ -11265,7 +11265,7 @@ self . target_var = target_var
 def render ( self , context ) :
 resolved_args , resolved_kwargs = self . get_resolved_arguments ( context )
 context [ self . target_var ] = func ( * resolved_args , ** resolved_kwargs )
-return
+return STR
 function_name = ( name or getattr ( func , STR0 , func ) . __name__ )
 def compile_func ( parser , token ) :
 bits = token . split_contents ( ) [ 1 : ]
@@ -11561,7 +11561,7 @@ output = template_localtime ( output , use_tz = context . use_tz )
 output = localize ( output , use_l10n = context . use_l10n )
 output = force_text ( output )
 except UnicodeDecodeError :
-return
+return STR
 except Exception as e :
 if not hasattr ( e , STR0 ) :
 e . django_template_source = self . source
@@ -11603,7 +11603,7 @@ return wraps ( func ) ( _dec )
 @ register . filter ( is_safe = True )
 @ stringfilter
 def addslashes ( value ) :
-return value . replace ( STR3 , STR4 ) . replace ( STR0 ) . replace ( STR1 , STR2 )
+return value . replace ( STR3 , STR4 ) . replace ( STR200 ) . replace ( STR1 , STR2 )
 @ register . filter ( is_safe = True )
 @ stringfilter
 def capfirst ( value ) :
@@ -11622,14 +11622,14 @@ try :
 input_val = force_text ( text )
 d = Decimal ( input_val )
 except UnicodeEncodeError :
-return
+return STR
 except InvalidOperation :
 if input_val in special_floats :
 return input_val
 try :
 d = Decimal ( force_text ( float ( text ) ) )
 except ( ValueError , InvalidOperation , TypeError , UnicodeEncodeError ) :
-return
+return STR
 try :
 p = int ( arg )
 except ValueError :
@@ -11655,7 +11655,7 @@ digits . append ( STR0 )
 digits . insert ( - exponent , STR0 )
 if sign :
 digits . append ( STR0 )
-number = . join ( reversed ( digits ) )
+number = STR . join ( reversed ( digits ) )
 return mark_safe ( formats . number_format ( number , abs ( p ) ) )
 except InvalidOperation :
 return input_val
@@ -11773,7 +11773,7 @@ return value . center ( int ( arg ) )
 @ stringfilter
 def cut ( value , arg ) :
 safe = isinstance ( value , SafeData )
-value = value . replace ( arg , )
+value = value . replace ( arg , STR )
 if safe and arg != STR0 :
 return mark_safe ( value )
 return value
@@ -11818,19 +11818,19 @@ def dictsort ( value , arg ) :
 try :
 return sorted ( value , key = Variable ( arg ) . resolve )
 except ( TypeError , VariableDoesNotExist ) :
-return
+return STR
 @ register . filter ( is_safe = False )
 def dictsortreversed ( value , arg ) :
 try :
 return sorted ( value , key = Variable ( arg ) . resolve , reverse = True )
 except ( TypeError , VariableDoesNotExist ) :
-return
+return STR
 @ register . filter ( is_safe = False )
 def first ( value ) :
 try :
 return value [ 0 ]
 except IndexError :
-return
+return STR
 @ register . filter ( is_safe = True , needs_autoescape = True )
 def join ( value , arg , autoescape = None ) :
 value = map ( force_text , value )
@@ -11846,7 +11846,7 @@ def last ( value ) :
 try :
 return value [ - 1 ]
 except IndexError :
-return
+return STR
 @ register . filter ( is_safe = False )
 def length ( value ) :
 try :
@@ -11858,7 +11858,7 @@ def length_is ( value , arg ) :
 try :
 return len ( value ) == int ( arg )
 except ( ValueError , TypeError ) :
-return
+return STR
 @ register . filter ( is_safe = True )
 def random ( value ) :
 return random_module . choice ( value )
@@ -11907,11 +11907,11 @@ list_length = len ( list_ )
 i = 0
 while i < list_length :
 title = list_ [ i ]
-sublist =
+sublist = STR
 sublist_item = None
 if isinstance ( title , ( list , tuple ) ) :
 sublist_item = title
-title =
+title = STR
 elif i < list_length - 1 :
 next_item = list_ [ i + 1 ]
 if next_item and isinstance ( next_item , ( list , tuple ) ) :
@@ -11933,7 +11933,7 @@ except ( ValueError , TypeError ) :
 try :
 return value + arg
 except Exception :
-return
+return STR
 @ register . filter ( is_safe = False )
 def get_digit ( value , arg ) :
 try :
@@ -11949,8 +11949,8 @@ except IndexError :
 return 0
 @ register . filter ( expects_localtime = True , is_safe = False )
 def date ( value , arg = None ) :
-if value in ( None , ) :
-return
+if value in ( None , STR ) :
+return STR
 if arg is None :
 arg = settings . DATE_FORMAT
 try :
@@ -11959,11 +11959,11 @@ except AttributeError :
 try :
 return format ( value , arg )
 except AttributeError :
-return
+return STR
 @ register . filter ( expects_localtime = True , is_safe = False )
 def time ( value , arg = None ) :
-if value in ( None , ) :
-return
+if value in ( None , STR ) :
+return STR
 if arg is None :
 arg = settings . TIME_FORMAT
 try :
@@ -11972,25 +11972,25 @@ except AttributeError :
 try :
 return time_format ( value , arg )
 except AttributeError :
-return
+return STR
 @ register . filter ( STR0 , is_safe = False )
 def timesince_filter ( value , arg = None ) :
 if not value :
-return
+return STR
 try :
 if arg :
 return timesince ( value , arg )
 return timesince ( value )
 except ( ValueError , TypeError ) :
-return
+return STR
 @ register . filter ( STR0 , is_safe = False )
 def timeuntil_filter ( value , arg = None ) :
 if not value :
-return
+return STR
 try :
 return timeuntil ( value , arg )
 except ( ValueError , TypeError ) :
-return
+return STR
 @ register . filter ( is_safe = False )
 def default ( value , arg ) :
 return value or arg
@@ -12050,7 +12050,7 @@ if STR0 not in arg :
 arg = STR0 + arg
 bits = arg . split ( STR0 )
 if len ( bits ) > 2 :
-return
+return STR
 singular_suffix , plural_suffix = bits [ : 2 ]
 try :
 if float ( value ) != 1 :
@@ -12105,7 +12105,7 @@ else :
 return output
 class CommentNode ( Node ) :
 def render ( self , context ) :
-return
+return STR
 class CsrfTokenNode ( Node ) :
 def render ( self , context ) :
 csrf_token = context . get ( STR0 , None )
@@ -12117,7 +12117,7 @@ return format_html ( STR0 , csrf_token )
 else :
 if settings . DEBUG :
 warnings . warn ( STR0 )
-return
+return STR
 class CycleNode ( Node ) :
 def __init__ ( self , cyclevars , variable_name = None , silent = False ) :
 self . cyclevars = cyclevars
@@ -12131,7 +12131,7 @@ value = next ( cycle_iter ) . resolve ( context )
 if self . variable_name :
 context [ self . variable_name ] = value
 if self . silent :
-return
+return STR
 return render_value_in_context ( value , context )
 class DebugNode ( Node ) :
 def render ( self , context ) :
@@ -12139,7 +12139,7 @@ from pprint import pformat
 output = [ pformat ( val ) for val in context ]
 output . append ( STR0 )
 output . append ( pformat ( sys . modules ) )
-return . join ( output )
+return STR . join ( output )
 class FilterNode ( Node ) :
 def __init__ ( self , filter_expr , nodelist ) :
 self . filter_expr , self . nodelist = filter_expr , nodelist
@@ -12155,7 +12155,7 @@ for var in self . vars :
 value = var . resolve ( context , True )
 if value :
 return render_value_in_context ( value , context )
-return
+return STR
 class ForNode ( Node ) :
 child_nodelists = ( STR0 , STR1 )
 def __init__ ( self , loopvars , sequence , is_reversed , nodelist_loop , nodelist_empty = None ) :
@@ -12167,7 +12167,7 @@ self . nodelist_empty = NodeList ( )
 else :
 self . nodelist_empty = nodelist_empty
 def __repr__ ( self ) :
-reversed_text = STR0 if self . is_reversed else
+reversed_text = STR0 if self . is_reversed else STR
 return STR0 % ( STR1 . join ( self . loopvars ) , self . sequence , len ( self . nodelist_loop ) , reversed_text )
 def __iter__ ( self ) :
 for node in self . nodelist_loop :
@@ -12234,7 +12234,7 @@ for node in self . nodelist_loop :
 nodelist . append ( node . render ( context ) )
 if pop_context :
 context . pop ( )
-return mark_safe ( . join ( force_text ( n ) for n in nodelist ) )
+return mark_safe ( STR . join ( force_text ( n ) for n in nodelist ) )
 class IfChangedNode ( Node ) :
 child_nodelists = ( STR0 , STR1 )
 def __init__ ( self , nodelist_true , nodelist_false , * varlist ) :
@@ -12257,7 +12257,7 @@ state_frame [ self ] = compare_to
 return nodelist_true_output or self . nodelist_true . render ( context )
 elif self . nodelist_false :
 return self . nodelist_false . render ( context )
-return
+return STR
 def _get_context_stack_frame ( self , context ) :
 if STR0 in context :
 return context [ STR0 ]
@@ -12300,7 +12300,7 @@ else :
 match = True
 if match :
 return nodelist . render ( context )
-return
+return STR
 class RegroupNode ( Node ) :
 def __init__ ( self , target , expression , var_name ) :
 self . target , self . expression = target , expression
@@ -12312,9 +12312,9 @@ def render ( self , context ) :
 obj_list = self . target . resolve ( context , True )
 if obj_list is None :
 context [ self . var_name ] = [ ]
-return
+return STR
 context [ self . var_name ] = [ { STR0 : key , STR1 : list ( val ) } for key , val in groupby ( obj_list , lambda obj : self . resolve_expression ( obj , context ) ) ]
-return
+return STR
 def include_is_allowed ( filepath ) :
 filepath = os . path . abspath ( filepath )
 for root in settings . ALLOWED_INCLUDE_ROOTS :
@@ -12331,12 +12331,12 @@ if not include_is_allowed ( filepath ) :
 if settings . DEBUG :
 return STR0
 else :
-return
+return STR
 try :
 with open ( filepath , STR0 ) as fp :
 output = fp . read ( )
 except IOError :
-output =
+output = STR
 if self . parsed :
 try :
 t = Template ( output , name = filepath )
@@ -12345,11 +12345,11 @@ except TemplateSyntaxError as e :
 if settings . DEBUG :
 return STR0 % e
 else :
-return
+return STR
 return output
 class LoadNode ( Node ) :
 def render ( self , context ) :
-return
+return STR
 class NowNode ( Node ) :
 def __init__ ( self , format_string ) :
 self . format_string = format_string
@@ -12367,7 +12367,7 @@ mapping = { STR0 : BLOCK_TAG_START , STR1 : BLOCK_TAG_END , STR2 : VARIABLE_TAG_
 def __init__ ( self , tagtype ) :
 self . tagtype = tagtype
 def render ( self , context ) :
-return self . mapping . get ( self . tagtype , )
+return self . mapping . get ( self . tagtype , STR )
 class URLNode ( Node ) :
 def __init__ ( self , view_name , args , kwargs , asvar ) :
 self . view_name = view_name
@@ -12379,7 +12379,7 @@ from django . core . urlresolvers import reverse , NoReverseMatch
 args = [ arg . resolve ( context ) for arg in self . args ]
 kwargs = dict ( ( smart_text ( k , STR0 ) , v . resolve ( context ) ) for k , v in self . kwargs . items ( ) )
 view_name = self . view_name . resolve ( context )
-url =
+url = STR
 try :
 url = reverse ( view_name , args = args , kwargs = kwargs , current_app = context . current_app )
 except NoReverseMatch :
@@ -12396,7 +12396,7 @@ if self . asvar is None :
 raise
 if self . asvar :
 context [ self . asvar ] = url
-return
+return STR
 else :
 return url
 class VerbatimNode ( Node ) :
@@ -12416,7 +12416,7 @@ value = self . val_expr . resolve ( context )
 max_value = self . max_expr . resolve ( context )
 max_width = int ( self . max_width . resolve ( context ) )
 except VariableDoesNotExist :
-return
+return STR
 except ( ValueError , TypeError ) :
 raise TemplateSyntaxError ( STR0 )
 try :
@@ -12427,10 +12427,10 @@ result = str ( int ( round ( ratio ) ) )
 except ZeroDivisionError :
 return STR0
 except ( ValueError , TypeError , OverflowError ) :
-return
+return STR
 if self . asvar :
 context [ self . asvar ] = result
-return
+return STR
 else :
 return result
 class WithNode ( Node ) :
@@ -12466,7 +12466,7 @@ args = token . split_contents ( )
 if len ( args ) < 2 :
 raise TemplateSyntaxError ( STR0 )
 if STR0 in args [ 1 ] :
-args [ 1 : 2 ] = [ STR0 % arg for arg in args [ 1 ] . split ( STR1 ) ]
+args [ 1 : 2 ] = [ STR200 % arg for arg in args [ 1 ] . split ( STR1 ) ]
 if len ( args ) == 2 :
 name = args [ 1 ]
 if not hasattr ( parser , STR0 ) :
@@ -12509,7 +12509,7 @@ filter_expr = parser . compile_filter ( STR0 % ( rest ) )
 for func , unused in filter_expr . filters :
 filter_name = getattr ( func , STR0 , None )
 if filter_name in ( STR0 , STR1 ) :
-raise TemplateSyntaxError ( STR0 % filter_name )
+raise TemplateSyntaxError ( STR200 % filter_name )
 nodelist = parser . parse ( ( STR0 , ) )
 parser . delete_first_token ( )
 return FilterNode ( filter_expr , nodelist )
@@ -12894,7 +12894,7 @@ def super ( self ) :
 render_context = self . context . render_context
 if ( BLOCK_CONTEXT_KEY in render_context and render_context [ BLOCK_CONTEXT_KEY ] . get_block ( self . name ) is not None ) :
 return mark_safe ( self . render ( self . context ) )
-return
+return STR
 class ExtendsNode ( Node ) :
 must_be_first = True
 def __init__ ( self , nodelist , parent_name , template_dirs = None ) :
@@ -12946,7 +12946,7 @@ return template . render ( context )
 except Exception :
 if settings . TEMPLATE_DEBUG :
 raise
-return
+return STR
 @ register . tag ( STR0 )
 def do_block ( parser , token ) :
 bits = token . contents . split ( )
@@ -12989,7 +12989,7 @@ raise TemplateSyntaxError ( STR0 STR1 % option )
 if option == STR0 :
 value = token_kwargs ( remaining_bits , parser , support_legacy = False )
 if not value :
-raise TemplateSyntaxError ( STR0 % bits [ 0 ] )
+raise TemplateSyntaxError ( STR200 % bits [ 0 ] )
 elif option == STR0 :
 value = True
 else :
@@ -13166,7 +13166,7 @@ def __init__ ( self , template , context = None , content_type = None , status =
 self . template_name = template
 self . context_data = context
 self . _post_render_callbacks = [ ]
-super ( SimpleTemplateResponse , self ) . __init__ ( , content_type , status )
+super ( SimpleTemplateResponse , self ) . __init__ ( STR , content_type , status )
 self . _is_rendered = False
 def __getstate__ ( self ) :
 obj_dict = super ( SimpleTemplateResponse , self ) . __getstate__ ( )
@@ -13347,7 +13347,7 @@ from lib2to3 . pgen2 import token
 from lib2to3 . pytree import Leaf , Node
 class FixUnicode ( fixer_base . BaseFix ) :
 BM_compatible = True
-PATTERN = STR0 classdef< STR2 any+ STR3 suite< any* funcdef< STR4 unifunc=STR5 parameters< STR6 NAME STR7 > any+ > any* > > STR1
+PATTERN = STR0
 def transform ( self , node , results ) :
 unifunc = results [ STR0 ]
 strfunc = Name ( STR0 , prefix = unifunc . prefix )
@@ -13426,7 +13426,7 @@ import zipfile
 from django . utils import six
 class ArchiveException ( Exception ) :
 class UnrecognizedArchiveFormat ( ArchiveException ) :
-def extract ( path , to_path = ) :
+def extract ( path , to_path = STR ) :
 with Archive ( path ) as archive :
 archive . extract ( to_path )
 class Archive ( object ) :
@@ -13454,7 +13454,7 @@ def __enter__ ( self ) :
 return self
 def __exit__ ( self , exc_type , exc_value , traceback ) :
 self . close ( )
-def extract ( self , to_path = ) :
+def extract ( self , to_path = STR ) :
 self . _archive . extract ( to_path )
 def list ( self ) :
 self . _archive . list ( )
@@ -13469,7 +13469,7 @@ return path . split ( STR0 , 1 )
 elif STR0 in path :
 return path . split ( STR0 , 1 )
 else :
-return path ,
+return path , STR
 def has_leading_dir ( self , paths ) :
 common_prefix = None
 for path in paths :
@@ -13711,7 +13711,7 @@ def restart_with_reloader ( ) :
 while True :
 args = [ sys . executable ] + [ STR0 % o for o in sys . warnoptions ] + sys . argv
 if sys . platform == STR0 :
-args = [ STR0 % arg for arg in args ]
+args = [ STR200 % arg for arg in args ]
 new_environ = os . environ . copy ( )
 new_environ [ STR0 ] = STR1
 exit_code = os . spawnve ( os . P_WAIT , sys . executable , args , new_environ )
@@ -13788,7 +13788,7 @@ x = x * len ( from_digits ) + from_digits . index ( digit )
 if x == 0 :
 res = to_digits [ 0 ]
 else :
-res =
+res = STR
 while x > 0 :
 digit = x % len ( to_digits )
 res = to_digits [ digit ] + res
@@ -13849,7 +13849,7 @@ except ( ValueError , TypeError ) :
 pass
 def _set_response_etag ( response ) :
 if not response . streaming :
-response [ STR1 ] = STR0 % hashlib . md5 ( response . content ) . hexdigest ( )
+response [ STR1 ] = STR200 % hashlib . md5 ( response . content ) . hexdigest ( )
 return response
 def patch_response_headers ( response , cache_timeout = None ) :
 if cache_timeout is None :
@@ -13869,7 +13869,7 @@ patch_cache_control ( response , max_age = cache_timeout )
 def add_never_cache_headers ( response ) :
 patch_response_headers ( response , cache_timeout = - 1 )
 def patch_vary_headers ( response , newheaders ) :
-STR0 Adds (or updates) the STR1 header in the given HttpResponse object. newheaders is a list of header names that should be in STR2. Existing headers in STR3 aren't removed. STR4
+STR0
 if response . has_header ( STR0 ) :
 vary_headers = cc_delim_re . split ( response [ STR0 ] )
 else :
@@ -13981,7 +13981,7 @@ return hmac . new ( key , msg = force_bytes ( value ) , digestmod = hashlib . sh
 def get_random_string ( length = 12 , allowed_chars = STR0 STR1 ) :
 if not using_sysrandom :
 random . seed ( hashlib . sha256 ( ( STR0 % ( random . getstate ( ) , time . time ( ) , settings . SECRET_KEY ) ) . encode ( STR1 ) ) . digest ( ) )
-return . join ( random . choice ( allowed_chars ) for i in range ( length ) )
+return STR . join ( random . choice ( allowed_chars ) for i in range ( length ) )
 if hasattr ( hmac , STR0 ) :
 def constant_time_compare ( val1 , val2 ) :
 return hmac . compare_digest ( force_bytes ( val1 ) , force_bytes ( val2 ) )
@@ -14028,11 +14028,11 @@ hex_format_string = STR0 % ( hlen * 2 )
 inner , outer = digest ( ) , digest ( )
 if len ( password ) > inner . block_size :
 password = digest ( password ) . digest ( )
-password += bSTR0 * ( inner . block_size - len ( password ) )
+password += STR0 * ( inner . block_size - len ( password ) )
 inner . update ( password . translate ( hmac . trans_36 ) )
 outer . update ( password . translate ( hmac . trans_5C ) )
 def F ( i ) :
-u = salt + struct . pack ( bSTR0 , i )
+u = salt + struct . pack ( STR0 , i )
 result = 0
 for j in xrange ( int ( iterations ) ) :
 dig1 , dig2 = inner . copy ( ) , outer . copy ( )
@@ -14042,7 +14042,7 @@ u = dig2 . digest ( )
 result ^= _bin_to_long ( u )
 return _long_to_bin ( result , hex_format_string )
 T = [ F ( x ) for x in range ( 1 , l ) ]
-return b . join ( T ) + F ( l ) [ : r ]
+return STR . join ( T ) + F ( l ) [ : r ]
 import os
 import sys
 from . import six
@@ -14434,7 +14434,7 @@ if i % 2 :
 pieces . append ( force_text ( getattr ( self , piece ) ( ) ) )
 elif piece :
 pieces . append ( re_escaped . sub ( STR0 , piece ) )
-return . join ( pieces )
+return STR . join ( pieces )
 class TimeFormat ( Formatter ) :
 def __init__ ( self , obj ) :
 self . data = obj
@@ -15126,7 +15126,7 @@ def configure_filter ( self , config ) :
 if STR0 in config :
 result = self . configure_custom ( config )
 else :
-name = config . get ( STR0 , )
+name = config . get ( STR0 , STR )
 result = logging . Filter ( name )
 return result
 def add_filters ( self , filterer , filters ) :
@@ -15284,7 +15284,7 @@ else :
 return bytes ( s )
 except UnicodeEncodeError :
 if isinstance ( s , Exception ) :
-return bSTR0 . join ( [ force_bytes ( arg , encoding , strings_only , errors ) for arg in s ] )
+return STR0 . join ( [ force_bytes ( arg , encoding , strings_only , errors ) for arg in s ] )
 return six . text_type ( s ) . encode ( encoding , errors )
 else :
 return s . encode ( encoding , errors )
@@ -15299,11 +15299,11 @@ force_unicode = force_text
 def iri_to_uri ( iri ) :
 if iri is None :
 return iri
-return quote ( force_bytes ( iri ) , safe = bSTR0 )
+return quote ( force_bytes ( iri ) , safe = STR0 )
 def filepath_to_uri ( path ) :
 if path is None :
 return path
-return quote ( force_bytes ( path ) . replace ( bSTR0 , bSTR1 ) , safe = bSTR2 )
+return quote ( force_bytes ( path ) . replace ( STR0 , STR1 ) , safe = STR2 )
 def get_system_encoding ( ) :
 try :
 encoding = locale . getdefaultlocale ( ) [ 1 ] or STR0
@@ -15351,7 +15351,7 @@ else :
 return time_str + STR0
 def get_tag_uri ( url , date ) :
 bits = urlparse ( url )
-d =
+d = STR
 if date is not None :
 d = STR0 % datetime_safe . new_datetime ( date ) . strftime ( STR1 )
 return STR0 % ( bits . hostname , d , bits . path , bits . fragment )
@@ -15471,7 +15471,7 @@ handler . addQuickElement ( STR0 , item [ STR1 ] , guid_attrs )
 if item [ STR0 ] is not None :
 handler . addQuickElement ( STR0 , item [ STR1 ] )
 if item [ STR0 ] is not None :
-handler . addQuickElement ( STR0 , STR4enclosureSTR5enclosureSTR6enclosure' ] . mime_type } )
+handler . addQuickElement ( STR0 , STR , { STR1 : item [ STR4 ] . url , STR2 : item [ STR5 ] . length , STR3 : item [ STR6 ] . mime_type } )
 for cat in item [ STR0 ] :
 handler . addQuickElement ( STR0 , cat )
 class Atom1Feed ( SyndicationFeed ) :
@@ -15538,7 +15538,7 @@ handler . addQuickElement ( STR0 , unique_id )
 if item [ STR0 ] is not None :
 handler . addQuickElement ( STR0 , item [ STR3 ] , { STR1 : STR2 } )
 if item [ STR0 ] is not None :
-handler . addQuickElement ( STR0 , STR6enclosureSTR7enclosureSTR8enclosure' ] . mime_type } )
+handler . addQuickElement ( STR0 , STR , { STR1 : STR2 , STR3 : item [ STR6 ] . url , STR4 : item [ STR7 ] . length , STR5 : item [ STR8 ] . mime_type } )
 for cat in item [ STR0 ] :
 handler . addQuickElement ( STR0 , STR1term" : cat } )
 if item [ STR0 ] is not None :
@@ -15668,7 +15668,7 @@ parts . append ( decimals )
 if settings . USE_THOUSAND_SEPARATOR :
 thousand_sep = get_format ( STR0 )
 for replacement in set ( [ thousand_sep , unicodedata . normalize ( STR0 , thousand_sep ) ] ) :
-value = value . replace ( replacement , )
+value = value . replace ( replacement , STR )
 parts . append ( value )
 value = STR0 . join ( reversed ( parts ) )
 return value
@@ -15930,8 +15930,8 @@ from django . utils import six
 from django . utils . six . moves . urllib . parse import quote , unquote , urlsplit , urlunsplit
 from django . utils . text import normalize_newlines
 from . html_parser import HTMLParser , HTMLParseError
-TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6' ]
-WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR0' ) ]
+TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , '\STR ]
+WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR200\STR ) ]
 DOTS = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 ]
 unencoded_ampersands_re = re . compile ( STR0 )
 word_split_re = re . compile ( STR0 )
@@ -15943,9 +15943,9 @@ html_gunk_re = re . compile ( STR1 , re . IGNORECASE )
 hard_coded_bullets_re = re . compile ( STR0 % STR1 . join ( re . escape ( x ) for x in DOTS ) , re . DOTALL )
 trailing_empty_content_re = re . compile ( STR0 )
 def escape ( text ) :
-return mark_safe ( force_text ( text ) . replace ( STR1 , STR2 ) . replace ( STR3 , STR4 ) . replace ( STR5 , STR6 ) . replace ( STR0 ) )
+return mark_safe ( force_text ( text ) . replace ( STR1 , STR2 ) . replace ( STR3 , STR4 ) . replace ( STR5 , STR6 ) . replace ( STR200 ) )
 escape = allow_lazy ( escape , six . text_type )
-_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2STR3\\u0027STR4"STR5\\u0022STR6>STR7\\u003ESTR8<STR9\\u003CSTR10&STR11\\u0026STR12=STR13\\u003DSTR14-STR15\\u002DSTR16;STR17\\u003BSTR18\u2028STR19\\u2028STR20\u2029STR21\\u2029' }
+_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2\\u0027STR3"STR4\\u0022STR5>STR6\\u003ESTR7<STR8\\u003CSTR9&STR10\\u0026STR11=STR12\\u003DSTR13-STR14\\u002DSTR15;STR16\\u003BSTR17\u2028STR18\\u2028STR19\u2029STR20\\u2029' }
 _js_escapes . update ( ( ord ( STR0 % z ) , STR1 % z ) for z in range ( 32 ) )
 def escapejs ( value ) :
 return mark_safe ( force_text ( value ) . translate ( _js_escapes ) )
@@ -15985,7 +15985,7 @@ self . fed . append ( STR0 % name )
 def handle_charref ( self , name ) :
 self . fed . append ( STR0 % name )
 def get_data ( self ) :
-return . join ( self . fed )
+return STR . join ( self . fed )
 def _strip_once ( value ) :
 s = MLStripper ( )
 try :
@@ -16011,15 +16011,15 @@ tags = [ re . escape ( tag ) for tag in tags . split ( ) ]
 tags_re = STR0 % STR1 . join ( tags )
 starttag_re = re . compile ( STR0 % tags_re , re . U )
 endtag_re = re . compile ( STR0 % tags_re )
-html = starttag_re . sub ( , html )
-html = endtag_re . sub ( , html )
+html = starttag_re . sub ( STR , html )
+html = endtag_re . sub ( STR , html )
 return html
 remove_tags = allow_lazy ( remove_tags , six . text_type )
 def strip_spaces_between_tags ( value ) :
 return re . sub ( STR0 , STR1 , force_text ( value ) )
 strip_spaces_between_tags = allow_lazy ( strip_spaces_between_tags , six . text_type )
 def strip_entities ( value ) :
-return re . sub ( STR0 , , force_text ( value ) )
+return re . sub ( STR0 , STR , force_text ( value ) )
 strip_entities = allow_lazy ( strip_entities , six . text_type )
 def smart_urlquote ( url ) :
 try :
@@ -16033,7 +16033,7 @@ url = urlunsplit ( ( scheme , netloc , path , query , fragment ) )
 except ValueError :
 pass
 url = unquote ( force_str ( url ) )
-url = quote ( url , safe = bSTR0();:@&=+$,/?#[]~' )
+url = quote ( url , safe = STR0();:@&=+$,/?#[]~' )
 return force_text ( url )
 def urlize ( text , trim_url_limit = None , nofollow = False , autoescape = False ) :
 def trim_url ( x , limit = trim_url_limit ) :
@@ -16044,7 +16044,7 @@ safe_input = isinstance ( text , SafeData )
 words = word_split_re . split ( force_text ( text ) )
 for i , word in enumerate ( words ) :
 if STR0 in word or STR1 in word or STR2 in word :
-lead , middle , trail = STR0'
+lead , middle , trail = STR , word , STR
 for punctuation in TRAILING_PUNCTUATION :
 if middle . endswith ( punctuation ) :
 middle = middle [ : - len ( punctuation ) ]
@@ -16057,7 +16057,7 @@ if ( middle . endswith ( closing ) and middle . count ( closing ) == middle . co
 middle = middle [ : - len ( closing ) ]
 trail = closing + trail
 url = None
-nofollow_attr = STR1 if nofollow else
+nofollow_attr = STR1 if nofollow else STR
 if simple_url_re . match ( middle ) :
 url = smart_urlquote ( middle )
 elif simple_url_2_re . match ( middle ) :
@@ -16069,7 +16069,7 @@ domain = domain . encode ( STR0 ) . decode ( STR1 )
 except UnicodeError :
 continue
 url = STR0 % ( local , domain )
-nofollow_attr =
+nofollow_attr = STR
 if url :
 trimmed = trim_url ( middle )
 if autoescape and not safe_input :
@@ -16086,7 +16086,7 @@ elif safe_input :
 words [ i ] = mark_safe ( word )
 elif autoescape :
 words [ i ] = escape ( word )
-return . join ( words )
+return STR . join ( words )
 urlize = allow_lazy ( urlize , six . text_type )
 def avoid_wrapping ( value ) :
 return value . replace ( STR0 , STR1 )
@@ -16137,7 +16137,7 @@ break
 attrname , rest , attrvalue = m . group ( 1 , 2 , 3 )
 if not rest :
 attrvalue = None
-elif ( attrvalue [ : 1 ] == STR0STR1"' == attrvalue [ - 1 : ] ) :
+elif ( attrvalue [ : 1 ] == STR0"' == attrvalue [ - 1 : ] ) :
 attrvalue = attrvalue [ 1 : - 1 ]
 if attrvalue :
 attrvalue = self . unescape ( attrvalue )
@@ -16207,7 +16207,7 @@ ASCTIME_DATE = re . compile ( STR0 % ( __M , __D2 , __T , __Y ) )
 def urlquote ( url , safe = STR0 ) :
 return force_text ( quote ( force_str ( url ) , force_str ( safe ) ) )
 urlquote = allow_lazy ( urlquote , six . text_type )
-def urlquote_plus ( url , safe = ) :
+def urlquote_plus ( url , safe = STR ) :
 return force_text ( quote_plus ( force_str ( url ) , force_str ( safe ) ) )
 urlquote_plus = allow_lazy ( urlquote_plus , six . text_type )
 def urlunquote ( quoted_url ) :
@@ -16283,13 +16283,13 @@ j = 36 ** factor
 base36 . append ( digits [ i // j ] )
 i = i % j
 factor -= 1
-return . join ( base36 )
+return STR . join ( base36 )
 def urlsafe_base64_encode ( s ) :
-return base64 . urlsafe_b64encode ( s ) . rstrip ( bSTR0 )
+return base64 . urlsafe_b64encode ( s ) . rstrip ( STR0 )
 def urlsafe_base64_decode ( s ) :
 s = s . encode ( STR0 )
 try :
-return base64 . urlsafe_b64decode ( s . ljust ( len ( s ) + len ( s ) % 4 , bSTR0 ) )
+return base64 . urlsafe_b64decode ( s . ljust ( len ( s ) + len ( s ) % 4 , STR0 ) )
 except ( LookupError , BinasciiError ) as e :
 raise ValueError ( e )
 def parse_etags ( etag_str ) :
@@ -16299,7 +16299,7 @@ return [ etag_str ]
 etags = [ e . encode ( STR0 ) . decode ( STR1 ) for e in etags ]
 return etags
 def quote_etag ( etag ) :
-return STR0 )
+return STR200 )
 def same_origin ( url1 , url2 ) :
 p1 , p2 = urlparse ( url1 ) , urlparse ( url2 )
 try :
@@ -16380,10 +16380,10 @@ doublecolon_start = - 1
 if best_doublecolon_len > 1 :
 best_doublecolon_end = ( best_doublecolon_start + best_doublecolon_len )
 if best_doublecolon_end == len ( hextets ) :
-hextets += [ ]
-hextets [ best_doublecolon_start : best_doublecolon_end ] = [ ]
+hextets += [ STR ]
+hextets [ best_doublecolon_start : best_doublecolon_end ] = [ STR ]
 if best_doublecolon_start == 0 :
-hextets = [ ] + hextets
+hextets = [ STR ] + hextets
 result = STR0 . join ( hextets )
 return result . lower ( )
 def _sanitize_ipv4_mapping ( ip_str ) :
@@ -16506,9 +16506,9 @@ state = tok . next
 break
 self . state = state
 class JsLexer ( Lexer ) :
-both_before = [ Tok ( STR0 , STR1 ) , Tok ( STR2 , STR3 ) , Tok ( STR4 , STR5 ) , Tok ( STR6 , literals ( STR7 break case catch class const continue debugger default delete do else enum export extends finally for function if import in instanceof new return super switch this throw try typeof var void while with STR8 , suffix = STR9 ) , next = STR35 ) , Tok ( STR10 , literals ( STR11 , suffix = STR12 ) , next = STR36 ) , Tok ( STR13 , STR14 ([a-zA-Z_$ ]|\\u[0-9a-fA-Z]{4}) # first char ([a-zA-Z_$0-9]|\\u[0-9a-fA-F]{4})* # rest chars STR15 , next = STR37 ) , Tok ( STR16 , STR17 , next = STR38 ) , Tok ( STR18 , STR19 ) , Tok ( STR20 , STR21 ( (0|[1-9][0-9]*) # DecimalIntegerLiteral \. # dot [0-9]* # DecimalDigits-opt ([eE][-+]?[0-9]+)? # ExponentPart-opt | \. # dot [0-9]+ # DecimalDigits ([eE][-+]?[0-9]+)? # ExponentPart-opt | (0|[1-9][0-9]*) # DecimalIntegerLiteral ([eE][-+]?[0-9]+)? # ExponentPart-opt ) STR22 , next = STR39 ) , Tok ( STR23 , literals ( STR24 >>>= === !== >>> <<= >>= <= >= == != << >> && || += -= *= %= &= |= ^= STR25 ) , next = STR26 ) , Tok ( STR27 , literals ( STR28 ) , next = STR40 ) , Tok ( STR29 , literals ( STR30 ) , next = STR41 ) , Tok ( STR31 , STR0 ) , ]
+both_before = [ Tok ( STR4 , STR5 ) , Tok ( STR6 , STR7 ) , Tok ( STR8 , STR9 ) , Tok ( STR10 , literals ( STR0 , suffix = STR11 ) , next = STR31 ) , Tok ( STR12 , literals ( STR13 , suffix = STR14 ) , next = STR32 ) , Tok ( STR15 , STR1 , next = STR33 ) , Tok ( STR16 , STR17 , next = STR34 ) , Tok ( STR18 , STR19 ) , Tok ( STR20 , STR2 , next = STR35 ) , Tok ( STR21 , literals ( STR3 ) , next = STR22 ) , Tok ( STR23 , literals ( STR24 ) , next = STR36 ) , Tok ( STR25 , literals ( STR26 ) , next = STR37 ) , Tok ( STR27 , STR200 ) , ]
 both_after = [ Tok ( STR0 , STR1 ) , ]
-states = { STR5 : both_before + [ Tok ( STR0 , literals ( STR1 ) , next = STR6 ) , ] + both_after , STR7 : both_before + [ Tok ( STR2 , STR3 / # opening slash # First character is.. ( [^*\\/[] # anything but * \ / or [ | \\. # or an escape sequence | \[ # or a class, which has ( [^\]\\] # anything but \ or ] | \\. # or an escape sequence )* # many times \] ) # Following characters are same, except for excluding a star ( [^\\/[] # anything but \ / or [ | \\. # or an escape sequence | \[ # or a class, which has ( [^\]\\] # anything but \ or ] | \\. # or an escape sequence )* # many times \] )* # many times / # closing slash [a-zA-Z0-9]* # trailing flags STR4 , next = STR8 ) , ] + both_after , }
+states = { STR4 : both_before + [ Tok ( STR1 , literals ( STR2 ) , next = STR5 ) , ] + both_after , STR6 : both_before + [ Tok ( STR3 , STR0 , next = STR7 ) , ] + both_after , }
 def __init__ ( self ) :
 super ( JsLexer , self ) . __init__ ( self . states , STR0 )
 def prepare_js_for_gettext ( js ) :
@@ -16522,15 +16522,15 @@ lexer = JsLexer ( )
 c = [ ]
 for name , tok in lexer . lex ( js ) :
 if name == STR0 :
-tok = STR0
+tok = STR200
 elif name == STR0 :
 if tok . startswith ( STR0 ) :
 guts = re . sub ( STR0 , escape_quotes , tok [ 1 : - 1 ] )
-tok = STR0
+tok = STR200
 elif name == STR0 :
 tok = tok . replace ( STR0 , STR1 )
 c . append ( tok )
-return . join ( c )
+return STR . join ( c )
 import logging
 import sys
 import warnings
@@ -16724,7 +16724,7 @@ return getattr ( module , class_name )
 except AttributeError :
 msg = STR2 % ( dotted_path , class_name )
 six . reraise ( ImportError , ImportError ( msg ) , sys . exc_info ( ) [ 2 ] )
-def import_by_path ( dotted_path , error_prefix = ) :
+def import_by_path ( dotted_path , error_prefix = STR ) :
 warnings . warn ( STR0 , RemovedInDjango19Warning , stacklevel = 2 )
 try :
 attr = import_string ( dotted_path )
@@ -16813,13 +16813,13 @@ return False
 from django . conf import settings
 from django . utils . safestring import mark_safe
 from django . utils import six
-def format ( number , decimal_sep , decimal_pos = None , grouping = 0 , thousand_sep = , force_grouping = False ) :
+def format ( number , decimal_sep , decimal_pos = None , grouping = 0 , thousand_sep = STR , force_grouping = False ) :
 use_grouping = settings . USE_L10N and settings . USE_THOUSAND_SEPARATOR
 use_grouping = use_grouping or force_grouping
 use_grouping = use_grouping and grouping > 0
 if isinstance ( number , int ) and not use_grouping and not decimal_pos :
 return mark_safe ( six . text_type ( number ) )
-sign =
+sign = STR
 str_number = six . text_type ( number )
 if str_number [ 0 ] == STR0 :
 sign = STR0
@@ -16829,13 +16829,13 @@ int_part , dec_part = str_number . split ( STR0 )
 if decimal_pos is not None :
 dec_part = dec_part [ : decimal_pos ]
 else :
-int_part , dec_part = str_number ,
+int_part , dec_part = str_number , STR
 if decimal_pos is not None :
 dec_part = dec_part + ( STR0 * ( decimal_pos - len ( dec_part ) ) )
 if dec_part :
 dec_part = decimal_sep + dec_part
 if use_grouping :
-int_part_gd =
+int_part_gd = STR
 for cnt , digit in enumerate ( int_part [ : : - 1 ] ) :
 if cnt and not cnt % grouping :
 int_part_gd += thousand_sep
@@ -16858,7 +16858,7 @@ num_args = 0
 try :
 ch , escaped = next ( pattern_iter )
 except StopIteration :
-return [ ( , [ ] ) ]
+return [ ( STR , [ ] ) ]
 try :
 while True :
 if escaped :
@@ -16909,7 +16909,7 @@ ch , escaped = next ( pattern_iter )
 while ch != terminal_char :
 name . append ( ch )
 ch , escaped = next ( pattern_iter )
-param = . join ( name )
+param = STR . join ( name )
 if terminal_char != STR0 :
 result . append ( Group ( ( ( STR0 % param ) , param ) ) )
 walk_to_end ( ch , pattern_iter )
@@ -16935,7 +16935,7 @@ consume_next = True
 except StopIteration :
 pass
 except NotImplementedError :
-return [ ( , [ ] ) ]
+return [ ( STR , [ ] ) ]
 return list ( zip ( * flatten_result ( result ) ) )
 def next_char ( input_iter ) :
 for ch in input_iter :
@@ -16977,7 +16977,7 @@ while ch != STR0 :
 ch , escaped = next ( input_iter )
 quant . append ( ch )
 quant = quant [ : - 1 ]
-values = STR0 . join ( quant ) . split ( STR1 )
+values = STR . join ( quant ) . split ( STR0 )
 try :
 ch , escaped = next ( input_iter )
 except StopIteration :
@@ -16995,20 +16995,20 @@ return True
 return False
 def flatten_result ( source ) :
 if source is None :
-return [ ] , [ [ ] ]
+return [ STR ] , [ [ ] ]
 if isinstance ( source , Group ) :
 if source [ 1 ] is None :
 params = [ ]
 else :
 params = [ source [ 1 ] ]
 return [ source [ 0 ] ] , [ params ]
-result = [ ]
+result = [ STR ]
 result_args = [ [ ] ]
 pos = last = 0
 for pos , elt in enumerate ( source ) :
 if isinstance ( elt , six . string_types ) :
 continue
-piece = . join ( source [ last : pos ] )
+piece = STR . join ( source [ last : pos ] )
 if isinstance ( elt , Group ) :
 piece += elt [ 0 ]
 param = elt [ 1 ]
@@ -17036,7 +17036,7 @@ new_args . append ( args [ : ] + i_args )
 result = new_result
 result_args = new_args
 if pos >= last :
-piece = . join ( source [ last : ] )
+piece = STR . join ( source [ last : ] )
 for i in range ( len ( result ) ) :
 result [ i ] += piece
 return result , result_args
@@ -17317,7 +17317,7 @@ class Iterator ( object ) :
 def next ( self ) :
 return type ( self ) . __next__ ( self )
 callable = callable
-_add_doc ( get_unbound_function , STR0Get the function out of a possibly unbound functionSTR1 )
+_add_doc ( get_unbound_function , STR0 )
 get_method_function = operator . attrgetter ( _meth_func )
 get_method_self = operator . attrgetter ( _meth_self )
 get_function_closure = operator . attrgetter ( _func_closure )
@@ -17364,8 +17364,8 @@ def iterbytes ( buf ) :
 return ( ord ( byte ) for byte in buf )
 import StringIO
 StringIO = BytesIO = StringIO . StringIO
-_add_doc ( b , STR0Byte literalSTR1 )
-_add_doc ( u , STR0Text literalSTR1 )
+_add_doc ( b , STR0 )
+_add_doc ( u , STR0 )
 if PY3 :
 exec_ = getattr ( moves . builtins , STR0 )
 def reraise ( tp , value , tb = None ) :
@@ -17382,8 +17382,8 @@ _locs_ = frame . f_locals
 del frame
 elif _locs_ is None :
 _locs_ = _globs_
-exec ( STR0exec _code_ in _globs_, _locs_STR1 )
-exec_ ( STR0def reraise(tp, value, tb=None): raise tp, value, tb STR1 )
+exec ( STR0 )
+exec_ ( STR0 )
 print_ = getattr ( moves . builtins , STR0 , None )
 if print_ is None :
 def print_ ( * args , ** kwargs ) :
@@ -17434,7 +17434,7 @@ if i :
 write ( sep )
 write ( arg )
 write ( end )
-_add_doc ( reraise , STR0Reraise an exception.STR1 )
+_add_doc ( reraise , STR0 )
 def with_metaclass ( meta , * bases ) :
 class metaclass ( meta ) :
 __call__ = type . __call__
@@ -17551,9 +17551,9 @@ foreground = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
 background = dict ( ( color_names [ x ] , STR0 % x ) for x in range ( 8 ) )
 RESET = STR0
 opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
-def colorize ( text = , opts = ( ) , ** kwargs ) :
+def colorize ( text = STR , opts = ( ) , ** kwargs ) :
 code_list = [ ]
-if text == STR0reset' :
+if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
 return STR0 % RESET
 for k , v in six . iteritems ( kwargs ) :
 if k == STR0 :
@@ -17564,8 +17564,8 @@ for o in opts :
 if o in opt_dict :
 code_list . append ( opt_dict [ o ] )
 if STR0 not in opts :
-text = STR0 % ( text or , RESET )
-return STR0 % ( ( STR1 % STR2 . join ( code_list ) ) , text or )
+text = STR0 % ( text or STR , RESET )
+return STR0 % ( ( STR1 % STR2 . join ( code_list ) ) , text or STR )
 def make_style ( opts = ( ) , ** kwargs ) :
 return lambda text : colorize ( text , opts , ** kwargs )
 NOCOLOR_PALETTE = STR0
@@ -17635,14 +17635,14 @@ if space == 0 :
 space = line . find ( STR0 ) + 1
 if space == 0 :
 yield line
-line =
+line = STR
 break
 yield STR0 % line [ : space - 1 ]
 line = line [ space : ]
 max_width = min ( ( line . endswith ( STR0 ) and width + 1 or width ) , width )
 if line :
 yield line
-return . join ( _generator ( ) )
+return STR . join ( _generator ( ) )
 wrap = allow_lazy ( wrap , six . text_type )
 class Truncator ( SimpleLazyObject ) :
 def __init__ ( self , text ) :
@@ -17660,7 +17660,7 @@ def chars ( self , num , truncate = None , html = False ) :
 length = int ( num )
 text = unicodedata . normalize ( STR0 , self . _wrapped )
 truncate_len = length
-for char in self . add_truncation_text ( , truncate ) :
+for char in self . add_truncation_text ( STR , truncate ) :
 if not unicodedata . combining ( char ) :
 truncate_len -= 1
 if truncate_len == 0 :
@@ -17695,7 +17695,7 @@ return self . add_truncation_text ( STR0 . join ( words ) , truncate )
 return STR0 . join ( words )
 def _truncate_html ( self , length , truncate , text , truncate_len , words ) :
 if words and length <= 0 :
-return
+return STR
 html4_singlets = ( STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 )
 pos = 0
 end_text_pos = 0
@@ -17731,7 +17731,7 @@ open_tags . insert ( 0 , tagname )
 if current_len <= length :
 return text
 out = text [ : end_text_pos ]
-truncate_text = self . add_truncation_text ( , truncate )
+truncate_text = self . add_truncation_text ( STR , truncate )
 if truncate_text :
 out += truncate_text
 for tag in open_tags :
@@ -17739,11 +17739,11 @@ out += STR0 % tag
 return out
 def get_valid_filename ( s ) :
 s = force_text ( s ) . strip ( ) . replace ( STR0 , STR1 )
-return re . sub ( STR0 , , s )
+return re . sub ( STR0 , STR , s )
 get_valid_filename = allow_lazy ( get_valid_filename , six . text_type )
 def get_text_list ( list_ , last_word = ugettext_lazy ( STR0 ) ) :
 if len ( list_ ) == 0 :
-return
+return STR
 if len ( list_ ) == 1 :
 return force_text ( list_ [ 0 ] )
 return STR0 % ( _ ( STR1 ) . join ( force_text ( i ) for i in list_ [ : - 1 ] ) , force_text ( last_word ) , force_text ( list_ [ - 1 ] ) )
@@ -17754,7 +17754,7 @@ return re_newlines . sub ( STR0 , text )
 normalize_newlines = allow_lazy ( normalize_newlines , six . text_type )
 def phone2numeric ( phone ) :
 char2number = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 , STR10 : STR11 , STR12 : STR13 , STR14 : STR15 , STR16 : STR17 , STR18 : STR19 , STR20 : STR21 , STR22 : STR23 , STR24 : STR25 , STR26 : STR27 , STR28 : STR29 , STR30 : STR31 , STR32 : STR33 , STR34 : STR35 , STR36 : STR37 , STR38 : STR39 , STR40 : STR41 , STR42 : STR43 , STR44 : STR45 , STR46 : STR47 , STR48 : STR49 , STR50 : STR51 }
-return . join ( char2number . get ( c , c ) for c in phone . lower ( ) )
+return STR . join ( char2number . get ( c , c ) for c in phone . lower ( ) )
 phone2numeric = allow_lazy ( phone2numeric )
 def compress_string ( s ) :
 zbuf = BytesIO ( )
@@ -17768,7 +17768,7 @@ self . vals = [ ]
 def write ( self , val ) :
 self . vals . append ( val )
 def read ( self ) :
-ret = b . join ( self . vals )
+ret = STR . join ( self . vals )
 self . vals = [ ]
 return ret
 def flush ( self ) :
@@ -17805,7 +17805,7 @@ if quote_double_quotes :
 s = s . replace ( STR0 , STR1 )
 return ustring_re . sub ( fix , s )
 javascript_quote = allow_lazy ( javascript_quote , six . text_type )
-smart_split_re = re . compile ( STR0 ((?: [^\s'STR1(?:[^STR2 | STR4\\]|\\.)*STR5STR3"" , re . VERBOSE )
+smart_split_re = re . compile ( STR0 , re . VERBOSE )
 def smart_split ( text ) :
 text = force_text ( text )
 for bit in smart_split_re . finditer ( text ) :
@@ -17839,7 +17839,7 @@ return s [ 1 : - 1 ] . replace ( STR0 % quote , quote ) . replace ( STR1 , STR2 
 unescape_string_literal = allow_lazy ( unescape_string_literal )
 def slugify ( value ) :
 value = unicodedata . normalize ( STR0 , value ) . encode ( STR1 , STR2 ) . decode ( STR3 )
-value = re . sub ( STR0 , , value ) . strip ( ) . lower ( )
+value = re . sub ( STR0 , STR , value ) . strip ( ) . lower ( )
 return mark_safe ( re . sub ( STR0 , STR1 , value ) )
 slugify = allow_lazy ( slugify , six . text_type )
 def camel_case_to_spaces ( value ) :
@@ -18132,7 +18132,7 @@ return _trans . templatize ( src , origin )
 def deactivate_all ( ) :
 return _trans . deactivate_all ( )
 def _string_concat ( * strings ) :
-return . join ( force_text ( s ) for s in strings )
+return STR . join ( force_text ( s ) for s in strings )
 string_concat = lazy ( _string_concat , six . text_type )
 def get_language_info ( lang_code ) :
 from django . conf . locale import LANG_INFO
@@ -18210,7 +18210,7 @@ _active = local ( )
 _default = None
 _supported = None
 CONTEXT_SEPARATOR = STR0
-accept_language_re = re . compile ( STR7 ([A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*|\*) # STR0, STR1, STR2, STR3, STR4 (?:\s*;\s*q=(0(?:\.\d{,3})?|1(?:.0{,3})?))? # Optional STR5, STR6 (?:\s*,\s*|$) # Multiple accepts per header. STR8 , re . VERBOSE )
+accept_language_re = re . compile ( STRSTR7 , re . VERBOSE )
 language_code_re = re . compile ( STR0 , re . IGNORECASE )
 language_code_prefix_re = re . compile ( STR0 )
 _BROWSERS_DEPRECATED_LOCALES = { STR0 : STR1 , STR2 : STR3 , }
@@ -18429,7 +18429,7 @@ try :
 return get_supported_language_variant ( lang_code )
 except LookupError :
 pass
-accept = request . META . get ( STR0 , )
+accept = request . META . get ( STR0 , STR )
 for accept_lang , unused in parse_accept_lang_header ( accept ) :
 if accept_lang == STR0 :
 break
@@ -18446,17 +18446,17 @@ return settings . LANGUAGE_CODE
 dot_re = re . compile ( STR0 )
 def blankout ( src , char ) :
 return dot_re . sub ( char , src )
-context_re = re . compile ( STR0^\s+.*context\s+((?:STR1]*?STR2"" )
-inline_re = re . compile ( STR0^\s*trans\s+((?:STR1]*?STR2[^STR3)|(?:STR5]*?')))?\s*STR4 )
-block_re = re . compile ( STR0^\s*blocktrans(\s+.*context\s+((?:STR1]*?STR2"" )
-endblock_re = re . compile ( STR0^\s*endblocktrans$STR1 )
-plural_re = re . compile ( STR0^\s*plural$STR1 )
-constant_re = re . compile ( STR0_\(((?:STR1)|(?:STR3))\)STR2 )
-one_percent_re = re . compile ( STR0(?<!%)%(?!%)STR1 )
+context_re = re . compile ( STR0 )
+inline_re = re . compile ( STR0 )
+block_re = re . compile ( STR0 )
+endblock_re = re . compile ( STR0 )
+plural_re = re . compile ( STR0 )
+constant_re = re . compile ( STR0 )
+one_percent_re = re . compile ( STR0 )
 def templatize ( src , origin = None ) :
 from django . template import ( Lexer , TOKEN_TEXT , TOKEN_VAR , TOKEN_BLOCK , TOKEN_COMMENT , TRANSLATOR_COMMENT_MARK )
 src = force_text ( src , settings . FILE_CHARSET )
-out = StringIO ( )
+out = StringIO ( STR )
 message_context = None
 intrans = False
 inplural = False
@@ -18468,14 +18468,14 @@ comment = [ ]
 lineno_comment_map = { }
 comment_lineno_cache = None
 def join_tokens ( tokens , trim = False ) :
-message = . join ( tokens )
+message = STR . join ( tokens )
 if trim :
 message = trim_whitespace ( message )
 return message
 for t in Lexer ( src , origin ) . tokenize ( ) :
 if incomment :
 if t . token_type == TOKEN_BLOCK and t . contents == STR0 :
-content = . join ( comment )
+content = STR . join ( comment )
 translators_comment_start = None
 for lineno , line in enumerate ( content . splitlines ( True ) ) :
 if line . lstrip ( ) . startswith ( TRANSLATOR_COMMENT_MARK ) :
@@ -18518,7 +18518,7 @@ plural = [ ]
 elif pluralmatch :
 inplural = True
 else :
-filemsg =
+filemsg = STR
 if origin :
 filemsg = STR0 % origin
 raise SyntaxError ( STR0 % ( t . contents , filemsg , t . lineno ) )
@@ -18539,7 +18539,7 @@ cur_lineno = t . lineno + t . contents . count ( STR0 )
 if comment_lineno_cache == cur_lineno :
 if t . token_type != TOKEN_COMMENT :
 for c in lineno_comment_map [ comment_lineno_cache ] :
-filemsg =
+filemsg = STR
 if origin :
 filemsg = STR0 % origin
 warn_msg = ( STR0 STR1 STR2 ) % ( c , filemsg , comment_lineno_cache )
@@ -18759,7 +18759,7 @@ import subprocess
 def get_version ( version = None ) :
 version = get_complete_version ( version )
 major = get_major_version ( version )
-sub =
+sub = STR
 if version [ 3 ] == STR0 and version [ 4 ] == 0 :
 git_changeset = get_git_changeset ( )
 if git_changeset :

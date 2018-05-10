@@ -6,6 +6,7 @@
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/best.index" afterPath="$PROJECT_DIR$/workdir/mymodel/best.index" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/best.meta" afterPath="$PROJECT_DIR$/workdir/mymodel/best.meta" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/all.anno" afterPath="$PROJECT_DIR$/dataset/all.anno" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/all.code" afterPath="$PROJECT_DIR$/dataset/all.code" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/anno_num++.txt" afterPath="$PROJECT_DIR$/dataset/anno_num++.txt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/anno_num.txt" afterPath="$PROJECT_DIR$/dataset/anno_num.txt" />
@@ -21,8 +22,6 @@
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/train.txt" afterPath="$PROJECT_DIR$/dataset/train.txt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/train_keep.txt" afterPath="$PROJECT_DIR$/dataset/train_keep.txt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/django.py" afterPath="$PROJECT_DIR$/grammar/django.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/slr.py" afterPath="$PROJECT_DIR$/grammar/slr.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/model.conf" afterPath="$PROJECT_DIR$/workdir/mymodel/model.conf" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" afterPath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -40,8 +39,8 @@
       <file leaf-file-name="django.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/grammar/django.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="328">
-              <caret line="65" column="52" lean-forward="false" selection-start-line="65" selection-start-column="52" selection-end-line="65" selection-end-column="52" />
+            <state relative-caret-position="229">
+              <caret line="141" column="24" lean-forward="false" selection-start-line="141" selection-start-column="24" selection-end-line="141" selection-end-column="24" />
               <folding>
                 <element signature="e#52#104#0" expanded="true" />
               </folding>
@@ -52,8 +51,8 @@
       <file leaf-file-name="tokenize_data.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="636">
-              <caret line="60" column="0" lean-forward="true" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+            <state relative-caret-position="588">
+              <caret line="87" column="29" lean-forward="false" selection-start-line="87" selection-start-column="29" selection-end-line="87" selection-end-column="29" />
               <folding />
             </state>
           </provider>
@@ -104,8 +103,8 @@
       <file leaf-file-name="slr.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/grammar/slr.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="293">
-              <caret line="499" column="25" lean-forward="true" selection-start-line="499" selection-start-column="25" selection-end-line="499" selection-end-column="25" />
+            <state relative-caret-position="-52">
+              <caret line="502" column="58" lean-forward="true" selection-start-line="502" selection-start-column="58" selection-end-line="502" selection-end-column="58" />
               <folding />
             </state>
           </provider>
@@ -115,36 +114,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>listmaker</find>
-      <find>list_iter</find>
-      <find>list_for</find>
-      <find>,im</find>
-      <find>except_clause</find>
-      <find>$elif_stmt</find>
-      <find>$flow_stmt</find>
-      <find>$break_stmt</find>
-      <find>$trailer_list</find>
-      <find>$dictorsetmaker</find>
-      <find>$testlist1</find>
-      <find>factor</find>
-      <find>comp_op</find>
-      <find>'$test'</find>
-      <find>except</find>
-      <find>$except_clause</find>
-      <find>from</find>
-      <find>$testlist</find>
-      <find>testlist</find>
-      <find>class</find>
-      <find>return</find>
-      <find>@</find>
-      <find>$dotted_name</find>
-      <find>$decorator</find>
-      <find>$decorators</find>
-      <find>varargslist</find>
-      <find>trailer</find>
-      <find>*</find>
       <find>'*</find>
+      <find>:</find>
+      <find>':</find>
+      <find>':'</find>
+      <find>$test'</find>
+      <find>'**'</find>
+      <find>ident</find>
+      <find>'{'</find>
+      <find>'$dictorsetmaker'</find>
+      <find>dictorsetmaker</find>
+      <find>'_'</find>
+      <find>dictorse</find>
+      <find>$test</find>
+      <find>test</find>
+      <find>'('</find>
+      <find>dictorset</find>
+      <find>argslist</find>
+      <find>arglist</find>
+      <find>$argument</find>
+      <find>'''</find>
+      <find>'def</find>
+      <find>$parameters</find>
+      <find>$varargslist</find>
+      <find>..</find>
+      <find>dictor</find>
+      <find>exec</find>
       <find>print</find>
+      <find>except</find>
+      <find>import</find>
+      <find>$arglist</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -270,14 +269,13 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2756953" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3361548" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22853687" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.4159613" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16738197" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -700,16 +698,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="288">
-          <caret line="161" column="66" lean-forward="false" selection-start-line="161" selection-start-column="66" selection-end-line="161" selection-end-column="66" />
-          <folding>
-            <element signature="e#825#843#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/preprocess.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="368">
@@ -736,26 +724,36 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="288">
+          <caret line="161" column="66" lean-forward="false" selection-start-line="161" selection-start-column="66" selection-end-line="161" selection-end-column="66" />
+          <folding>
+            <element signature="e#825#843#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/grammar/slr.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="293">
-          <caret line="499" column="25" lean-forward="true" selection-start-line="499" selection-start-column="25" selection-end-line="499" selection-end-column="25" />
+        <state relative-caret-position="-52">
+          <caret line="502" column="58" lean-forward="true" selection-start-line="502" selection-start-column="58" selection-end-line="502" selection-end-column="58" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="636">
-          <caret line="60" column="0" lean-forward="true" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+        <state relative-caret-position="588">
+          <caret line="87" column="29" lean-forward="false" selection-start-line="87" selection-start-column="29" selection-end-line="87" selection-end-column="29" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/grammar/django.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="328">
-          <caret line="65" column="52" lean-forward="false" selection-start-line="65" selection-start-column="52" selection-end-line="65" selection-end-column="52" />
+        <state relative-caret-position="229">
+          <caret line="141" column="24" lean-forward="false" selection-start-line="141" selection-start-column="24" selection-end-line="141" selection-end-column="24" />
           <folding>
             <element signature="e#52#104#0" expanded="true" />
           </folding>
