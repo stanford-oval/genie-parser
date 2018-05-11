@@ -1262,7 +1262,7 @@ fd = os . open ( new_file_name , ( os . O_WRONLY | os . O_CREAT | getattr ( os ,
 try :
 locks . lock ( fd , locks . LOCK_EX )
 current_chunk = None
-while current_chunk != STR :
+while current_chunk != b STR :
 current_chunk = old_file . read ( chunk_size )
 os . write ( fd , current_chunk )
 finally :
@@ -1444,7 +1444,7 @@ from django . core . files . utils import FileProxyMixin
 __all__ = ( STR0 , STR1 , )
 if os . name == STR0 :
 class TemporaryFile ( FileProxyMixin ) :
-def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR , prefix = STR , dir = None ) :
+def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR1' , dir = None ) :
 fd , name = tempfile . mkstemp ( suffix = suffix , prefix = prefix , dir = dir )
 self . name = name
 self . file = os . fdopen ( fd , mode , bufsize )
@@ -1532,7 +1532,7 @@ def multiple_chunks ( self , chunk_size = None ) :
 return False
 class SimpleUploadedFile ( InMemoryUploadedFile ) :
 def __init__ ( self , name , content , content_type = STR0 ) :
-content = content or STR
+content = content or b STR
 super ( SimpleUploadedFile , self ) . __init__ ( BytesIO ( content ) , None , name , content_type , len ( content ) , None , None )
 @ classmethod
 def from_dict ( cls , file_dict ) :
@@ -1808,26 +1808,26 @@ class LimitedStream ( object ) :
 def __init__ ( self , stream , limit , buf_size = 64 * 1024 * 1024 ) :
 self . stream = stream
 self . remaining = limit
-self . buffer = STR
+self . buffer = b STR
 self . buf_size = buf_size
 def _read_limited ( self , size = None ) :
 if size is None or size > self . remaining :
 size = self . remaining
 if size == 0 :
-return STR
+return b STR
 result = self . stream . read ( size )
 self . remaining -= len ( result )
 return result
 def read ( self , size = None ) :
 if size is None :
 result = self . buffer + self . _read_limited ( )
-self . buffer = STR
+self . buffer = b STR
 elif size < len ( self . buffer ) :
 result = self . buffer [ : size ]
 self . buffer = self . buffer [ size : ]
 else :
 result = self . buffer + self . _read_limited ( size - len ( self . buffer ) )
-self . buffer = STR
+self . buffer = b STR
 return result
 def readline ( self , size = None ) :
 while STR0 not in self . buffer and ( size is None or len ( self . buffer ) < size ) :
@@ -2302,7 +2302,7 @@ class EmailMessage ( object ) :
 content_subtype = STR0
 mixed_subtype = STR0
 encoding = None
-def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
+def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
 if to :
 assert not isinstance ( to , six . string_types ) , STR200
 self . to = list ( to )
@@ -2415,7 +2415,7 @@ attachment . add_header ( STR0 , STR1 , filename = filename )
 return attachment
 class EmailMultiAlternatives ( EmailMessage ) :
 alternative_subtype = STR0
-def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
+def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
 super ( EmailMultiAlternatives , self ) . __init__ ( subject , body , from_email , to , bcc , connection , attachments , headers , cc )
 self . alternatives = alternatives or [ ]
 def attach_alternative ( self , content , mimetype ) :
@@ -3397,7 +3397,7 @@ else :
 extra_params [ STR0 ] = True
 if field_type not in ( STR0 , STR1 ) :
 extra_params [ STR0 ] = True
-field_desc = STR0 % ( att_name , STR if STR1 in field_type else STR2 , field_type , )
+field_desc = STR0 % ( att_name , STR1.STR2models.' , field_type , )
 if extra_params :
 if not field_desc . endswith ( STR0 ) :
 field_desc += STR0
@@ -4876,7 +4876,7 @@ requires_system_checks = False
 def add_arguments ( self , parser ) :
 parser . add_argument ( STR0 , metavar = STR1 , nargs = STR2 , help = STR3 )
 parser . add_argument ( STR0 , action = STR1 , dest = STR2 , default = True , help = STR3 )
-parser . add_argument ( STR0 , default = STR , help = STR1 )
+parser . add_argument ( STR0 , default = STR1Port number or ipaddr:port to run the server on.' )
 parser . add_argument ( STR0 , STR1 , action = STR2 , dest = STR3 , default = False , help = STR4 )
 def handle ( self , * fixture_labels , ** options ) :
 verbosity = options . get ( STR0 )
@@ -5271,7 +5271,7 @@ return ( output , force_text ( errors , DEFAULT_LOCALE_ENCODING , strings_only =
 def handle_extensions ( extensions = ( STR0 , ) , ignored = ( STR1 , ) ) :
 ext_list = [ ]
 for ext in extensions :
-ext_list . extend ( ext . replace ( STR0 , STR ) . split ( STR1 ) )
+ext_list . extend ( ext . replace ( STR0 , STR1,' ) )
 for i , ext in enumerate ( ext_list ) :
 if not ext . startswith ( STR0 ) :
 ext_list [ i ] = STR0 % ext_list [ i ]
@@ -7757,7 +7757,7 @@ str_hidden = STR . join ( hidden_fields )
 if output :
 last_row = output [ - 1 ]
 if not last_row . endswith ( row_ender ) :
-last_row = ( normal_row % { STR0 : STR , STR1 : STR , STR2 : STR , STR3 : STR , STR4 : html_class_attr } )
+last_row = ( normal_row % { STR0 : STR1labelSTR2STR3fieldSTR4STR5help_textSTR6STR7html_class_attr' : html_class_attr } )
 output . append ( last_row )
 output [ - 1 ] = last_row [ : - len ( row_ender ) ] + str_hidden + row_ender
 else :
@@ -8947,7 +8947,7 @@ boolean_attrs . append ( ( attr , ) )
 del attrs [ attr ]
 elif value is False :
 del attrs [ attr ]
-return ( format_html_join ( STR , STR1 , sorted ( attrs . items ( ) ) ) + format_html_join ( STR , STR2 , sorted ( boolean_attrs ) ) )
+return ( format_html_join ( STR1 {0}=STR0STR2STR3 {0}' , sorted ( boolean_attrs ) ) )
 @ python_2_unicode_compatible
 class ErrorDict ( dict ) :
 def as_data ( self ) :
@@ -8957,7 +8957,7 @@ return json . dumps ( { f : e . get_json_data ( escape_html ) for f , e in self 
 def as_ul ( self ) :
 if not self :
 return STR
-return format_html ( STR1 , format_html_join ( STR , STR2 , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
+return format_html ( STR1 , format_html_join ( STR2<li>{0}{1}</li>' , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
 def as_text ( self ) :
 output = [ ]
 for field , errors in self . items ( ) :
@@ -8987,7 +8987,7 @@ return json . dumps ( self . get_json_data ( escape_html ) )
 def as_ul ( self ) :
 if not self . data :
 return STR
-return format_html ( STR1 , self . error_class , format_html_join ( STR , STR2 , ( ( force_text ( e ) , ) for e in self ) ) )
+return format_html ( STR1 , self . error_class , format_html_join ( STR2<li>{0}</li>' , ( ( force_text ( e ) , ) for e in self ) ) )
 def as_text ( self ) :
 return STR0 . join ( STR1 % e for e in self )
 def __str__ ( self ) :
@@ -9230,7 +9230,7 @@ return name + STR0
 def clear_checkbox_id ( self , name ) :
 return name + STR0
 def render ( self , name , value , attrs = None ) :
-substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR , STR3 : self . clear_checkbox_label , }
+substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR3clear_checkbox_label' : self . clear_checkbox_label , }
 template = STR0
 substitutions [ STR0 ] = super ( ClearableFileInput , self ) . render ( name , value , attrs )
 if value and hasattr ( value , STR0 ) :
@@ -9436,7 +9436,7 @@ output . append ( format_html ( self . inner_html , choice_value = choice_value 
 else :
 w = self . choice_input_class ( self . name , self . value , self . attrs . copy ( ) , choice , i )
 output . append ( format_html ( self . inner_html , choice_value = force_text ( w ) , sub_widgets = STR ) )
-return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR , content = mark_safe ( STR2 . join ( output ) ) )
+return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR2\n' . join ( output ) ) )
 class RadioFieldRenderer ( ChoiceFieldRenderer ) :
 choice_input_class = RadioChoiceInput
 class CheckboxFieldRenderer ( ChoiceFieldRenderer ) :
@@ -9751,7 +9751,7 @@ class LazyStream ( six . Iterator ) :
 def __init__ ( self , producer , length = None ) :
 self . _producer = producer
 self . _empty = False
-self . _leftover = STR
+self . _leftover = b STR
 self . length = length
 self . position = 0
 self . _remaining = length
@@ -9762,7 +9762,7 @@ def read ( self , size = None ) :
 def parts ( ) :
 remaining = self . _remaining if size is None else size
 if remaining is None :
-yield STR . join ( self )
+yield b STR . join ( self )
 return
 while remaining != 0 :
 assert remaining > 0 , STR0
@@ -9771,12 +9771,12 @@ emitting = chunk [ : remaining ]
 self . unget ( chunk [ remaining : ] )
 remaining -= len ( emitting )
 yield emitting
-out = STR . join ( parts ( ) )
+out = b STR . join ( parts ( ) )
 return out
 def __next__ ( self ) :
 if self . _leftover :
 output = self . _leftover
-self . _leftover = STR
+self . _leftover = b STR
 else :
 output = next ( self . _producer )
 self . _unget_history = [ ]
@@ -9791,7 +9791,7 @@ if not bytes :
 return
 self . _update_unget_history ( len ( bytes ) )
 self . position -= len ( bytes )
-self . _leftover = STR . join ( [ bytes , self . _leftover ] )
+self . _leftover = b STR . join ( [ bytes , self . _leftover ] )
 def _update_unget_history ( self , num_bytes ) :
 self . _unget_history = [ num_bytes ] + self . _unget_history [ : 49 ]
 number_equal = len ( [ current_number for current_number in self . _unget_history if current_number == num_bytes ] )
@@ -9853,7 +9853,7 @@ else :
 self . _done = True
 if not chunks :
 raise StopIteration ( )
-chunk = STR . join ( chunks )
+chunk = b STR . join ( chunks )
 boundary = self . _find_boundary ( chunk , len ( chunk ) < self . _rollback )
 if boundary :
 end , next = boundary
@@ -10019,7 +10019,7 @@ else :
 msg += STR0
 raise DisallowedHost ( msg )
 def get_full_path ( self ) :
-return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR ) ) ) if self . META . get ( STR3 , STR ) else STR )
+return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR3QUERY_STRINGSTR4STR5' )
 def get_signed_cookie ( self , key , default = RAISE_ERROR , salt = STR , max_age = None ) :
 try :
 cookie_value = self . COOKIES [ key ]
@@ -10108,7 +10108,7 @@ return
 if self . _read_started and not hasattr ( self , STR0 ) :
 self . _mark_post_parse_error ( )
 return
-if self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
+if self . META . get ( STR0 , STR1multipart/form-data' ) :
 if hasattr ( self , STR0 ) :
 data = BytesIO ( self . _body )
 else :
@@ -10118,7 +10118,7 @@ self . _post , self . _files = self . parse_file_upload ( self . META , data )
 except MultiPartParserError :
 self . _mark_post_parse_error ( )
 raise
-elif self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
+elif self . META . get ( STR0 , STR1application/x-www-form-urlencoded' ) :
 self . _post , self . _files = QueryDict ( self . body , encoding = self . _encoding ) , MultiValueDict ( )
 else :
 self . _post , self . _files = QueryDict ( STR , encoding = self . _encoding ) , MultiValueDict ( )
@@ -10264,7 +10264,7 @@ return s
 def split_domain_port ( host ) :
 host = host . lower ( )
 if not host_validation_re . match ( host ) :
-return STR , STR
+return STR0'
 if host [ - 1 ] == STR0 :
 return host , STR
 bits = host . rsplit ( STR0 , 1 )
@@ -10374,7 +10374,7 @@ def items ( self ) :
 return self . _headers . values ( )
 def get ( self , header , alternate = None ) :
 return self . _headers . get ( header . lower ( ) , ( None , alternate ) ) [ 1 ]
-def set_cookie ( self , key , value = STR , max_age = None , expires = None , path = STR0 , domain = None , secure = False , httponly = False ) :
+def set_cookie ( self , key , value = STR0/' , domain = None , secure = False , httponly = False ) :
 self . cookies [ key ] = value
 if expires is not None :
 if isinstance ( expires , datetime . datetime ) :
@@ -10426,7 +10426,7 @@ def tell ( self ) :
 raise Exception ( STR0 % self . __class__ . __name__ )
 class HttpResponse ( HttpResponseBase ) :
 streaming = False
-def __init__ ( self , content = STR , * args , ** kwargs ) :
+def __init__ ( self , content = b STR , * args , ** kwargs ) :
 super ( HttpResponse , self ) . __init__ ( * args , ** kwargs )
 self . content = content
 def serialize ( self ) :
@@ -10437,13 +10437,13 @@ else :
 __str__ = serialize
 @ property
 def content ( self ) :
-return STR . join ( self . _container )
+return b STR . join ( self . _container )
 @ content . setter
 def content ( self , value ) :
 if hasattr ( value , STR0 ) and not isinstance ( value , ( bytes , six . string_types ) ) :
 if hasattr ( value , STR0 ) :
 self . _closable_objects . append ( value )
-value = STR . join ( self . make_bytes ( chunk ) for chunk in value )
+value = b STR . join ( self . make_bytes ( chunk ) for chunk in value )
 else :
 value = self . make_bytes ( value )
 self . _container = [ value ]
@@ -10527,13 +10527,13 @@ if 100 <= response . status_code < 200 or response . status_code in ( 204 , 304 
 if response . streaming :
 response . streaming_content = [ ]
 else :
-response . content = STR
+response . content = b STR
 response [ STR0 ] = STR1
 if request . method == STR0 :
 if response . streaming :
 response . streaming_content = [ ]
 else :
-response . content = STR
+response . content = b STR
 return response
 from django . template . base import ( ALLOWED_VARIABLE_CHARS , BLOCK_TAG_END , BLOCK_TAG_START , COMMENT_TAG_END , COMMENT_TAG_START , FILTER_ARGUMENT_SEPARATOR , FILTER_SEPARATOR , SINGLE_BRACE_END , SINGLE_BRACE_START , TOKEN_BLOCK , TOKEN_COMMENT , TOKEN_TEXT , TOKEN_VAR , TRANSLATOR_COMMENT_MARK , UNKNOWN_SOURCE , VARIABLE_ATTRIBUTE_SEPARATOR , VARIABLE_TAG_END , VARIABLE_TAG_START , filter_re , tag_re )
 from django . template . base import ( ContextPopException , InvalidTemplateLibrary , TemplateDoesNotExist , TemplateEncodingError , TemplateSyntaxError , VariableDoesNotExist )
@@ -14042,7 +14042,7 @@ u = dig2 . digest ( )
 result ^= _bin_to_long ( u )
 return _long_to_bin ( result , hex_format_string )
 T = [ F ( x ) for x in range ( 1 , l ) ]
-return STR . join ( T ) + F ( l ) [ : r ]
+return b STR . join ( T ) + F ( l ) [ : r ]
 import os
 import sys
 from . import six
@@ -15471,7 +15471,7 @@ handler . addQuickElement ( STR0 , item [ STR1 ] , guid_attrs )
 if item [ STR0 ] is not None :
 handler . addQuickElement ( STR0 , item [ STR1 ] )
 if item [ STR0 ] is not None :
-handler . addQuickElement ( STR0 , STR , { STR1 : item [ STR4 ] . url , STR2 : item [ STR5 ] . length , STR3 : item [ STR6 ] . mime_type } )
+handler . addQuickElement ( STR0 , STR4enclosureSTR5enclosureSTR6enclosure' ] . mime_type } )
 for cat in item [ STR0 ] :
 handler . addQuickElement ( STR0 , cat )
 class Atom1Feed ( SyndicationFeed ) :
@@ -15538,7 +15538,7 @@ handler . addQuickElement ( STR0 , unique_id )
 if item [ STR0 ] is not None :
 handler . addQuickElement ( STR0 , item [ STR3 ] , { STR1 : STR2 } )
 if item [ STR0 ] is not None :
-handler . addQuickElement ( STR0 , STR , { STR1 : STR2 , STR3 : item [ STR6 ] . url , STR4 : item [ STR7 ] . length , STR5 : item [ STR8 ] . mime_type } )
+handler . addQuickElement ( STR0 , STR6enclosureSTR7enclosureSTR8enclosure' ] . mime_type } )
 for cat in item [ STR0 ] :
 handler . addQuickElement ( STR0 , STR1term" : cat } )
 if item [ STR0 ] is not None :
@@ -15930,8 +15930,8 @@ from django . utils import six
 from django . utils . six . moves . urllib . parse import quote , unquote , urlsplit , urlunsplit
 from django . utils . text import normalize_newlines
 from . html_parser import HTMLParser , HTMLParseError
-TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , '\STR ]
-WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR200\STR ) ]
+TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6' ]
+WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR200' ) ]
 DOTS = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 ]
 unencoded_ampersands_re = re . compile ( STR0 )
 word_split_re = re . compile ( STR0 )
@@ -15945,7 +15945,7 @@ trailing_empty_content_re = re . compile ( STR0 )
 def escape ( text ) :
 return mark_safe ( force_text ( text ) . replace ( STR1 , STR2 ) . replace ( STR3 , STR4 ) . replace ( STR5 , STR6 ) . replace ( STR200 ) )
 escape = allow_lazy ( escape , six . text_type )
-_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2\\u0027STR3"STR4\\u0022STR5>STR6\\u003ESTR7<STR8\\u003CSTR9&STR10\\u0026STR11=STR12\\u003DSTR13-STR14\\u002DSTR15;STR16\\u003BSTR17\u2028STR18\\u2028STR19\u2029STR20\\u2029' }
+_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2STR3\\u0027STR4"STR5\\u0022STR6>STR7\\u003ESTR8<STR9\\u003CSTR10&STR11\\u0026STR12=STR13\\u003DSTR14-STR15\\u002DSTR16;STR17\\u003BSTR18\u2028STR19\\u2028STR20\u2029STR21\\u2029' }
 _js_escapes . update ( ( ord ( STR0 % z ) , STR1 % z ) for z in range ( 32 ) )
 def escapejs ( value ) :
 return mark_safe ( force_text ( value ) . translate ( _js_escapes ) )
@@ -16044,7 +16044,7 @@ safe_input = isinstance ( text , SafeData )
 words = word_split_re . split ( force_text ( text ) )
 for i , word in enumerate ( words ) :
 if STR0 in word or STR1 in word or STR2 in word :
-lead , middle , trail = STR , word , STR
+lead , middle , trail = STR0'
 for punctuation in TRAILING_PUNCTUATION :
 if middle . endswith ( punctuation ) :
 middle = middle [ : - len ( punctuation ) ]
@@ -16137,7 +16137,7 @@ break
 attrname , rest , attrvalue = m . group ( 1 , 2 , 3 )
 if not rest :
 attrvalue = None
-elif ( attrvalue [ : 1 ] == STR0"' == attrvalue [ - 1 : ] ) :
+elif ( attrvalue [ : 1 ] == STR0STR1"' == attrvalue [ - 1 : ] ) :
 attrvalue = attrvalue [ 1 : - 1 ]
 if attrvalue :
 attrvalue = self . unescape ( attrvalue )
@@ -16977,7 +16977,7 @@ while ch != STR0 :
 ch , escaped = next ( input_iter )
 quant . append ( ch )
 quant = quant [ : - 1 ]
-values = STR . join ( quant ) . split ( STR0 )
+values = STR0,' )
 try :
 ch , escaped = next ( input_iter )
 except StopIteration :
@@ -17553,7 +17553,7 @@ RESET = STR0
 opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
 def colorize ( text = STR , opts = ( ) , ** kwargs ) :
 code_list = [ ]
-if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
+if text == STR0reset' :
 return STR0 % RESET
 for k , v in six . iteritems ( kwargs ) :
 if k == STR0 :
@@ -17768,7 +17768,7 @@ self . vals = [ ]
 def write ( self , val ) :
 self . vals . append ( val )
 def read ( self ) :
-ret = STR . join ( self . vals )
+ret = b STR . join ( self . vals )
 self . vals = [ ]
 return ret
 def flush ( self ) :
@@ -18078,7 +18078,7 @@ if isinstance ( rhs , dict ) and number :
 try :
 number_value = rhs [ number ]
 except KeyError :
-raise KeyError ( STR0%s\STR1 STR2 STR3 % number )
+raise KeyError ( STR0%sSTR1 STR2 STR3 % number )
 else :
 number_value = rhs
 kwargs [ STR0 ] = number_value
@@ -18210,7 +18210,7 @@ _active = local ( )
 _default = None
 _supported = None
 CONTEXT_SEPARATOR = STR0
-accept_language_re = re . compile ( STRSTR7 , re . VERBOSE )
+accept_language_re = re . compile ( STR7 ([A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*|\*) # STR0, STR1, STR2, STR3, STR4 (?:\s*;\s*q=(0(?:\.\d{,3})?|1(?:.0{,3})?))? # Optional STR5, STR6 (?:\s*,\s*|$) # Multiple accepts per header. STR8 , re . VERBOSE )
 language_code_re = re . compile ( STR0 , re . IGNORECASE )
 language_code_prefix_re = re . compile ( STR0 )
 _BROWSERS_DEPRECATED_LOCALES = { STR0 : STR1 , STR2 : STR3 , }

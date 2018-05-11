@@ -9011,7 +9011,7 @@
 9011	try ,
 9012	call the function timezone.make_aware with arguments value and current_timezone , return the result .
 9013	if Exception exception is caught ,
-9014	call the function _ with an argument string STR0t be interpreted in time zone % ( current_timezone ) s ; it STR1may be ambiguous or it may not exist . ' , substitute the result for message .
+9014	call the function _ with an argument string STR0 STR1 , substitute the result for message .
 9015	params is an dictionary containing 2 initial entries : value for STR0 and current_timezone for STR1 .
 9016	call the function six.reraise with 3 arguments : class ValidationError , class ValidationError , created with 3 arguments : message , code as a string STR0 and params as params , and third element of the return value of the function sys.exc_info .
 9017	return value .

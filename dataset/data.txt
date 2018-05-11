@@ -1262,7 +1262,7 @@
 1262	try ,	try :
 1263	call the function locks.lock with arguments fd and locks.LOCK_EX .	locks . lock ( fd , locks . LOCK_EX )
 1264	current_chunk is None .	current_chunk = None
-1265	as long as current_chunk is not an empty string ,	while current_chunk != STR :
+1265	as long as current_chunk is not an empty string ,	while current_chunk != b STR :
 1266	read chunk_size bytes from the old_file file , substitute the result for current_chunk .	current_chunk = old_file . read ( chunk_size )
 1267	write current_chunk to file fd .	os . write ( fd , current_chunk )
 1268	finally perform ,	finally :
@@ -1444,7 +1444,7 @@
 1444	__all__ is a tuple , containing strings STR0 and STR1 .	__all__ = ( STR0 , STR1 , )
 1445	if module os field name equals to string STR0 ,	if os . name == STR0 :
 1446	derive class TemporaryFile from the base class FileProxyMixin .	class TemporaryFile ( FileProxyMixin ) :
-1447	define method __init__ with self class instance , mode string STR0 , bufsize set to integer -1 , suffix and prefix set to empty strig , dir set to None as the arguments .	def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR , prefix = STR , dir = None ) :
+1447	define method __init__ with self class instance , mode string STR0 , bufsize set to integer -1 , suffix and prefix set to empty strig , dir set to None as the arguments .	def __init__ ( self , mode = STR0 , bufsize = - 1 , suffix = STR1' , dir = None ) :
 1448	call the method tmpfile.mkstemp with suffix set to suffix , prefix set to prefix and dir set to dir , store the result in the fd and name , respective .	fd , name = tempfile . mkstemp ( suffix = suffix , prefix = prefix , dir = dir )
 1449	substitute name for self.name .	self . name = name
 1450	call the os.fdopen function with fd , mode and bufsize as the arguments , assign the file handle object to self.file .	self . file = os . fdopen ( fd , mode , bufsize )
@@ -1532,7 +1532,7 @@
 1532	return boolean False .	return False
 1533	derive the SimpleUploadedFile class from the InMemoryUploadedFile base class .	class SimpleUploadedFile ( InMemoryUploadedFile ) :
 1534	define the method __init__ with 4 arguments : self , name , content and content_type defaulting to a string STR0 .	def __init__ ( self , name , content , content_type = STR0 ) :
-1535	if content is empty , substitute it for an empty string .	content = content or STR
+1535	if content is empty , substitute it for an empty string .	content = content or b STR
 1536	call the __init__ method from the base class of the SimpleUploadedFile class with 7 arguments : BytesIO ( content ) , None , name , content_type , length of content , None and None .	super ( SimpleUploadedFile , self ) . __init__ ( BytesIO ( content ) , None , name , content_type , len ( content ) , None , None )
 1537	decorator classmethod .	@ classmethod
 1538	define the method from_dict with argument cls and file_dict .	def from_dict ( cls , file_dict ) :
@@ -1808,26 +1808,26 @@
 1808	def initialization method __init__ with self class instance , stream , limit and buf_size set to integer value of the product 64*1024*1024 .	def __init__ ( self , stream , limit , buf_size = 64 * 1024 * 1024 ) :
 1809	substitute stream for self.stream .	self . stream = stream
 1810	substitute limit for self.remaining .	self . remaining = limit
-1811	substitute empty bytes string for self.buffer .	self . buffer = STR
+1811	substitute empty bytes string for self.buffer .	self . buffer = b STR
 1812	substitute buf_size for self.buf_size .	self . buf_size = buf_size
 1813	define the method _read_limited with self class instance and size set to None as arguments .	def _read_limited ( self , size = None ) :
 1814	if size is None or size is greater than self.remaining ,	if size is None or size > self . remaining :
 1815	substitute self.remaining for size .	size = self . remaining
 1816	if size equals to integer zero .	if size == 0 :
-1817	return empty bytes string .	return STR
+1817	return empty bytes string .	return b STR
 1818	read size number of bytes from self.stream stream , store the result in the result .	result = self . stream . read ( size )
 1819	decrement self.remaining by length of result .	self . remaining -= len ( result )
 1820	return result .	return result
 1821	define the method read with self class instance and size set to None as arguments .	def read ( self , size = None ) :
 1822	if size is None ,	if size is None :
 1823	add self.buffer and self._read_limited method return value together , store it in result .	result = self . buffer + self . _read_limited ( )
-1824	substitute empty bytes string for self.buffer .	self . buffer = STR
+1824	substitute empty bytes string for self.buffer .	self . buffer = b STR
 1825	otherwise if size is less than length of self.buffer ,	elif size < len ( self . buffer ) :
 1826	substitute first size elements of self.buffer for result .	result = self . buffer [ : size ]
 1827	truncate first size number of elements of self.buffer .	self . buffer = self . buffer [ size : ]
 1828	if not ,	else :
 1829	call the method self.read_limited with length of self.buffer subtracted from size as argument , add result to self.buffer , store it in result .	result = self . buffer + self . _read_limited ( size - len ( self . buffer ) )
-1830	substitute empty bytes string for self.buffer .	self . buffer = STR
+1830	substitute empty bytes string for self.buffer .	self . buffer = b STR
 1831	return result .	return result
 1832	define method readline with self class instance and size set to None .	def readline ( self , size = None ) :
 1833	while newline character is not contained in self.buffer and , size is None or length of self.buffer is less than size ,	while STR0 not in self . buffer and ( size is None or len ( self . buffer ) < size ) :
@@ -2302,7 +2302,7 @@
 2302	content_subtype is a string STR0 .	content_subtype = STR0
 2303	mixed_subtype is a string STR0 .	mixed_subtype = STR0
 2304	encoding is None .	encoding = None
-2305	define the method __init__ with 10 arguments : self , subject set to an empty string , body set to an empty string ,	def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
+2305	define the method __init__ with 10 arguments : self , subject set to an empty string , body set to an empty string ,	def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , cc = None ) :
 2306	if to is true ,	if to :
 2307	if to is not an six.string_types instance raise an error with message string STR200 .	assert not isinstance ( to , six . string_types ) , STR200
 2308	put to into a list , assign it to self.to .	self . to = list ( to )
@@ -2415,7 +2415,7 @@
 2415	return attachment .	return attachment
 2416	derive the class EmailMultiAlternatives from the EmailMessage base class .	class EmailMultiAlternatives ( EmailMessage ) :
 2417	alternative_subtype is a string STR0 .	alternative_subtype = STR0
-2418	define the method __init__ with 11 arguments : self , subject set to an empty string , body set to an empty string ,	def __init__ ( self , subject = STR , body = STR , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
+2418	define the method __init__ with 11 arguments : self , subject set to an empty string , body set to an empty string ,	def __init__ ( self , subject = STR0' , from_email = None , to = None , bcc = None , connection = None , attachments = None , headers = None , alternatives = None , cc = None ) :
 2419	call the method __init__ from the base class of the EmailMultiAlternatives class , with 9 arguments : subject , body , from_email , to , bcc , connection , attachments , headers and cc .	super ( EmailMultiAlternatives , self ) . __init__ ( subject , body , from_email , to , bcc , connection , attachments , headers , cc )
 2420	if alternatives exists substitute it for self.alternatives , if not self.alternatives is an empty list .	self . alternatives = alternatives or [ ]
 2421	define the method attach_alternative with arguments self , content and mimetype .	def attach_alternative ( self , content , mimetype ) :
@@ -3397,7 +3397,7 @@
 3397	value under the STR0 key of the extra_params dictionary is boolean True .	extra_params [ STR0 ] = True
 3398	if field_type is not equal to string STR0 or string STR1 ,	if field_type not in ( STR0 , STR1 ) :
 3399	value under the STR0 key of the extra_params dictionary is boolean True .	extra_params [ STR0 ] = True
-3400	field_desc is a string STR0 , where STR1 is replaced with : att_name , an empty string if STR2 is contained in field_type , or with string STR3 if it is not and field_type .	field_desc = STR0 % ( att_name , STR if STR1 in field_type else STR2 , field_type , )
+3400	field_desc is a string STR0 , where STR1 is replaced with : att_name , an empty string if STR2 is contained in field_type , or with string STR3 if it is not and field_type .	field_desc = STR0 % ( att_name , STR1.STR2models.' , field_type , )
 3401	if extra_params is true ,	if extra_params :
 3402	if field_desc doesnt end with STR0 ,	if not field_desc . endswith ( STR0 ) :
 3403	append string STR0 to field_desc .	field_desc += STR0
@@ -4876,7 +4876,7 @@
 4876	define the method with self class instance and parser as arguments .	def add_arguments ( self , parser ) :
 4877	call parser.add_argument method with STR0 , metavar set to string STR1 , nargs set to string STR2 and help set to string STR3 .	parser . add_argument ( STR0 , metavar = STR1 , nargs = STR2 , help = STR3 )
 4878	call parser.add_argument method with STR0 , action set to string STR1 , dest set to string STR2 , default set to boolean True and help set to string STR3 .	parser . add_argument ( STR0 , action = STR1 , dest = STR2 , default = True , help = STR3 )
-4879	call the parser.add_argument with string STR0 , default set to an empty string and help as string STR1 .	parser . add_argument ( STR0 , default = STR , help = STR1 )
+4879	call the parser.add_argument with string STR0 , default set to an empty string and help as string STR1 .	parser . add_argument ( STR0 , default = STR1Port number or ipaddr:port to run the server on.' )
 4880	call parser.add_argument method with STR0 , string STR1 , action set to string STR2 , dest set to string STR3 , default set to boolean False and help set to string STR4 .	parser . add_argument ( STR0 , STR1 , action = STR2 , dest = STR3 , default = False , help = STR4 )
 4881	define the method handle with self class instance , list of arguments fixture_labels and dictionary options as arguments .	def handle ( self , * fixture_labels , ** options ) :
 4882	get the value under the key STR0 of options dictionary , substitute it for verbosity .	verbosity = options . get ( STR0 )
@@ -5271,7 +5271,7 @@
 5271	define the function handle_extensions with 2 arguments : extensions set to tuple containing string STR0 and ignored set to tuple containing string STR1 .	def handle_extensions ( extensions = ( STR0 , ) , ignored = ( STR1 , ) ) :
 5272	ext_list is an empty list ,	ext_list = [ ]
 5273	for every ext in extensions ,	for ext in extensions :
-5274	delete all the whitespaces from ext , split it by STR0 character , extend ext_list with the result .	ext_list . extend ( ext . replace ( STR0 , STR ) . split ( STR1 ) )
+5274	delete all the whitespaces from ext , split it by STR0 character , extend ext_list with the result .	ext_list . extend ( ext . replace ( STR0 , STR1,' ) )
 5275	for every i and ext in enumerated iterable ext_list ,	for i , ext in enumerate ( ext_list ) :
 5276	if ext doesnt start with STR0 character ,	if not ext . startswith ( STR0 ) :
 5277	prepend STR0 to the i-th element of the ext_list .	ext_list [ i ] = STR0 % ext_list [ i ]
@@ -7757,7 +7757,7 @@
 7757	if output is true ,	if output :
 7758	substitute last element of output for last_row .	last_row = output [ - 1 ]
 7759	if last_row doesnt ends with row_ender ,	if not last_row . endswith ( row_ender ) :
-7760	format string normal_row with an dictionary containing 5 entries : an empty string for STR0 , empty string for STR1 , empty string for STR2 , empty string for STR3 and html_class_attr for html_class_attr .	last_row = ( normal_row % { STR0 : STR , STR1 : STR , STR2 : STR , STR3 : STR , STR4 : html_class_attr } )
+7760	format string normal_row with an dictionary containing 5 entries : an empty string for STR0 , empty string for STR1 , empty string for STR2 , empty string for STR3 and html_class_attr for html_class_attr .	last_row = ( normal_row % { STR0 : STR1labelSTR2STR3fieldSTR4STR5help_textSTR6STR7html_class_attr' : html_class_attr } )
 7761	append last_row to output .	output . append ( last_row )
 7762	create list out of last_row elements from the start to the last length of row_ender element , append str_hidden and row_ender to it , substitute the result for last element of output .	output [ - 1 ] = last_row [ : - len ( row_ender ) ] + str_hidden + row_ender
 7763	if not ,	else :
@@ -8947,7 +8947,7 @@
 8947	delete entry under the attr key of the attrs dictionary .	del attrs [ attr ]
 8948	otherwise if value is boolean False ,	elif value is False :
 8949	delete entry under the attr key of the attrs dictionary .	del attrs [ attr ]
-8950	call the function format_html_join twice , first time with 3 elements : an empty string , string STR1 and sorted return value of the items of the attrs dictionary , and second time with 3 arguments : an empty string , string STR2 , and sorted list of boolean_attrs elements , concatenate the results and return the resulting list .	return ( format_html_join ( STR , STR1 , sorted ( attrs . items ( ) ) ) + format_html_join ( STR , STR2 , sorted ( boolean_attrs ) ) )
+8950	call the function format_html_join twice , first time with 3 elements : an empty string , string STR1 and sorted return value of the items of the attrs dictionary , and second time with 3 arguments : an empty string , string STR2 , and sorted list of boolean_attrs elements , concatenate the results and return the resulting list .	return ( format_html_join ( STR1 {0}=STR0STR2STR3 {0}' , sorted ( boolean_attrs ) ) )
 8951	python_2_unicode_compatible decorator ,	@ python_2_unicode_compatible
 8952	derive the class ErrorDict from the dict base class .	class ErrorDict ( dict ) :
 8953	define the method as_data with an argument self .	def as_data ( self ) :
@@ -8957,7 +8957,7 @@
 8957	define the method as_ul with an argument self .	def as_ul ( self ) :
 8958	if self is false ,	if not self :
 8959	return an empty string .	return STR
-8960	call the function format_html with 2 arguments : string STR1 , and return value of the function , format_html_join , called with 3 arguments : empty string , string STR2 , tuple containing tuples with 2 elements : k and result of the function force_text with an argument v , for every k and v in items of the dictionary self , return the result .	return format_html ( STR1 , format_html_join ( STR , STR2 , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
+8960	call the function format_html with 2 arguments : string STR1 , and return value of the function , format_html_join , called with 3 arguments : empty string , string STR2 , tuple containing tuples with 2 elements : k and result of the function force_text with an argument v , for every k and v in items of the dictionary self , return the result .	return format_html ( STR1 , format_html_join ( STR2<li>{0}{1}</li>' , ( ( k , force_text ( v ) ) for k , v in self . items ( ) ) ) )
 8961	define the method as_text with an argument self .	def as_text ( self ) :
 8962	output is an empty list .	output = [ ]
 8963	call the method self.items , for every field and errors in the result .	for field , errors in self . items ( ) :
@@ -8987,7 +8987,7 @@
 8987	define the method as_text with an argument self .	def as_ul ( self ) :
 8988	if self.data is false ,	if not self . data :
 8989	return an empty string .	return STR
-8990	call the function format_html with 3 arguments : string STR1 , self.error_class and return value of the function , format_html_join , called with 3 arguments : empty string , string STR2 , tuple containing results of the function , force_text with an argument e , for every e in self , return the result .	return format_html ( STR1 , self . error_class , format_html_join ( STR , STR2 , ( ( force_text ( e ) , ) for e in self ) ) )
+8990	call the function format_html with 3 arguments : string STR1 , self.error_class and return value of the function , format_html_join , called with 3 arguments : empty string , string STR2 , tuple containing results of the function , force_text with an argument e , for every e in self , return the result .	return format_html ( STR1 , self . error_class , format_html_join ( STR2<li>{0}</li>' , ( ( force_text ( e ) , ) for e in self ) ) )
 8991	define the method as_text with an argument self .	def as_text ( self ) :
 8992	for every e in self , append convert e to an string and append it to string STR0 , join all of the results into a string separated by newline character , return the result .	return STR0 . join ( STR1 % e for e in self )
 8993	define the method __str__ with an argument self .	def __str__ ( self ) :
@@ -9011,7 +9011,7 @@
 9011	try ,	try :
 9012	call the function timezone.make_aware with arguments value and current_timezone , return the result .	return timezone . make_aware ( value , current_timezone )
 9013	if Exception exception is caught ,	except Exception :
-9014	call the function _ with an argument string STR0t be interpreted in time zone % ( current_timezone ) s ; it STR1may be ambiguous or it may not exist . ' , substitute the result for message .	message = _ ( STR0t be interpreted STR1in time zone %(current_timezone)s; it STR2may be ambiguous or it may not exist.' )
+9014	call the function _ with an argument string STR0 STR1 , substitute the result for message .	message = _ ( STR0t be interpreted STR1in time zone %(current_timezone)s; it STR2may be ambiguous or it may not exist.' )
 9015	params is an dictionary containing 2 initial entries : value for STR0 and current_timezone for STR1 .	params = { STR0 : value , STR1 : current_timezone }
 9016	call the function six.reraise with 3 arguments : class ValidationError , class ValidationError , created with 3 arguments : message , code as a string STR0 and params as params , and third element of the return value of the function sys.exc_info .	six . reraise ( ValidationError , ValidationError ( message , code = STR0 , params = params , ) , sys . exc_info ( ) [ 2 ] )
 9017	return value .	return value
@@ -9230,7 +9230,7 @@
 9230	define the method clear_checkbox_id with 2 arguments : self and name .	def clear_checkbox_id ( self , name ) :
 9231	concatenate name and string STR0 , return it .	return name + STR0
 9232	define the method render with 4 arguments : self , name , value and attrs set to None .	def render ( self , name , value , attrs = None ) :
-9233	substitutions is a dictionary with 4 initial entries : self.initial_text for STR0 , self.input_text for STR1 , an empty string for STR2 and self.clear_checkbox_label for STR3 .	substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR , STR3 : self . clear_checkbox_label , }
+9233	substitutions is a dictionary with 4 initial entries : self.initial_text for STR0 , self.input_text for STR1 , an empty string for STR2 and self.clear_checkbox_label for STR3 .	substitutions = { STR0 : self . initial_text , STR1 : self . input_text , STR2 : STR3clear_checkbox_label' : self . clear_checkbox_label , }
 9234	template is a string STR0 .	template = STR0
 9235	call the method render from the base class of the class ClearableFileInput , called with 3 arguments : name , value and attrs , substitute the result for value under the STR0 key of the substitutions dictionary .	substitutions [ STR0 ] = super ( ClearableFileInput , self ) . render ( name , value , attrs )
 9236	if value is true and value has an attribute STR0 ,	if value and hasattr ( value , STR0 ) :
@@ -9436,7 +9436,7 @@
 9436	if not ,	else :
 9437	call the method self.choice_input_class with 5 arguments : self.name , self.value , return value of the method self.attrs.copy , choice and i , substitute the result for w .	w = self . choice_input_class ( self . name , self . value , self . attrs . copy ( ) , choice , i )
 9438	call the function format_html with 3 arguments : self.inner_html , choice_value set to result of the function force_text , called with an argument w , and sub_widgets as an empty string , append the result to output .	output . append ( format_html ( self . inner_html , choice_value = force_text ( w ) , sub_widgets = STR ) )
-9439	call the function format_html with 3 arguments : self.outer_html , if id_ is true id_attr set to return value of the function format_html , if not id_attr set to an empty string , content set to result of the function mark_safe with an argument : string created by joining elements of outputs , with STR0 separator , return the result .	return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR , content = mark_safe ( STR2 . join ( output ) ) )
+9439	call the function format_html with 3 arguments : self.outer_html , if id_ is true id_attr set to return value of the function format_html , if not id_attr set to an empty string , content set to result of the function mark_safe with an argument : string created by joining elements of outputs , with STR0 separator , return the result .	return format_html ( self . outer_html , id_attr = format_html ( STR1 , id_ ) if id_ else STR2\n' . join ( output ) ) )
 9440	derive the class RadioFieldRenderer from the ChoiceFieldRenderer base class .	class RadioFieldRenderer ( ChoiceFieldRenderer ) :
 9441	substitute RadioChoiceInput for choice_input_class .	choice_input_class = RadioChoiceInput
 9442	derive the class CheckboxFieldRenderer from the ChoiceFieldRenderer base class .	class CheckboxFieldRenderer ( ChoiceFieldRenderer ) :
@@ -9751,7 +9751,7 @@
 9751	define the method __init__ with 3 arguments : self , producer and length set to None .	def __init__ ( self , producer , length = None ) :
 9752	substitute producer for self._producer .	self . _producer = producer
 9753	self._empty is boolean False .	self . _empty = False
-9754	self._leftover is an empty string .	self . _leftover = STR
+9754	self._leftover is an empty string .	self . _leftover = b STR
 9755	substitute length for self._length .	self . length = length
 9756	self.position is an integer 0 .	self . position = 0
 9757	substitute length for self._remaining .	self . _remaining = length
@@ -9762,7 +9762,7 @@
 9762	define the function parts .	def parts ( ) :
 9763	if size is None substitute self._remaining for remaining , if not , substitute size for remaining .	remaining = self . _remaining if size is None else size
 9764	if remaining is None ,	if remaining is None :
-9765	join self into a bytes string , yield the result as the return value of the generator .	yield STR . join ( self )
+9765	join self into a bytes string , yield the result as the return value of the generator .	yield b STR . join ( self )
 9766	return nothing .	return
 9767	while remaining is not equal to integer 0 ,	while remaining != 0 :
 9768	if remaining is not greater than 0 , assert an error with the message string STR0 .	assert remaining > 0 , STR0
@@ -9771,12 +9771,12 @@
 9771	call the method self.unget with list containing first remaining elements of chunk as an argument .	self . unget ( chunk [ remaining : ] )
 9772	decrement remaining by length of emitting .	remaining -= len ( emitting )
 9773	yield emitting as result of the generator .	yield emitting
-9774	join result of the parts function into a bytes string , substitute it for out .	out = STR . join ( parts ( ) )
+9774	join result of the parts function into a bytes string , substitute it for out .	out = b STR . join ( parts ( ) )
 9775	return out .	return out
 9776	define the method __next__ with an argument self .	def __next__ ( self ) :
 9777	if self._leftover is true ,	if self . _leftover :
 9778	substitute self._leftover for output .	output = self . _leftover
-9779	self._leftover is an empty string .	self . _leftover = STR
+9779	self._leftover is an empty string .	self . _leftover = b STR
 9780	if not ,	else :
 9781	get the next element of the self._producer iterable , substitute it for output .	output = next ( self . _producer )
 9782	self._unget_history is an empty list .	self . _unget_history = [ ]
@@ -9791,7 +9791,7 @@
 9791	return nothing .	return
 9792	call the method self._update_unget_history with length of bytes as an argument .	self . _update_unget_history ( len ( bytes ) )
 9793	decrement self.position by length of bytes .	self . position -= len ( bytes )
-9794	join bytes and self._leftover into a bytes string , substitute it for self._leftover .	self . _leftover = STR . join ( [ bytes , self . _leftover ] )
+9794	join bytes and self._leftover into a bytes string , substitute it for self._leftover .	self . _leftover = b STR . join ( [ bytes , self . _leftover ] )
 9795	define the method _update_unget_history with arguments self and num_bytes .	def _update_unget_history ( self , num_bytes ) :
 9796	append first 49 elements of self._unget_history to list containing num_bytes , substitute the result for self._unget_history .	self . _unget_history = [ num_bytes ] + self . _unget_history [ : 49 ]
 9797	append current_number to a list for current_number in self._unget_history , if current_number is equal to num_bytes , substitute the length of the resulting list for number_equal .	number_equal = len ( [ current_number for current_number in self . _unget_history if current_number == num_bytes ] )
@@ -9853,7 +9853,7 @@
 9853	self._done is boolean True .	self . _done = True
 9854	if chunks is false ,	if not chunks :
 9855	raise an StopIteration exception .	raise StopIteration ( )
-9856	join chunks into bytes string , substitute it for chunk .	chunk = STR . join ( chunks )
+9856	join chunks into bytes string , substitute it for chunk .	chunk = b STR . join ( chunks )
 9857	call the method self._find_boundary with 2 arguments : chunk and boolean if length of chunks is lesser than self._rollback , or boolean False if not , substitute the result for boundary .	boundary = self . _find_boundary ( chunk , len ( chunk ) < self . _rollback )
 9858	if boundary is true ,	if boundary :
 9859	substitute elements of tuple boundary to end and next , respectively .	end , next = boundary
@@ -10019,7 +10019,7 @@
 10019	append string STR0 to msg .	msg += STR0
 10020	raise an DisallowedHost exception with an argument msg .	raise DisallowedHost ( msg )
 10021	define the method get_full_path with an argument self .	def get_full_path ( self ) :
-10022	if the value under the STR0 key of the self.META dictionary is true , call the function iri_to_uri , called with value under the STR1 key of the self.META dictionary and append it to string STR2 , append the result th the self.path converted into a string and return it , if the value under the STR3 key of the self.META dictionary is false , return self.path converted into a string .	return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR ) ) ) if self . META . get ( STR3 , STR ) else STR )
+10022	if the value under the STR0 key of the self.META dictionary is true , call the function iri_to_uri , called with value under the STR1 key of the self.META dictionary and append it to string STR2 , append the result th the self.path converted into a string and return it , if the value under the STR3 key of the self.META dictionary is false , return self.path converted into a string .	return STR0 % ( self . path , ( STR1 + iri_to_uri ( self . META . get ( STR2 , STR3QUERY_STRINGSTR4STR5' )
 10023	def the method get_signed_cookie with 5 arguments : self , key , default set to RAISE_ERROR , salt as an empty string ,	def get_signed_cookie ( self , key , default = RAISE_ERROR , salt = STR , max_age = None ) :
 10024	try ,	try :
 10025	substitute value under the key key of the self.COOKIES dictionary , substitute it for cookie_value .	cookie_value = self . COOKIES [ key ]
@@ -10108,7 +10108,7 @@
 10108	if self._read_started is true and self doesnt have an STR0 attribute .	if self . _read_started and not hasattr ( self , STR0 ) :
 10109	call the method self._mark_post_parse_error .	self . _mark_post_parse_error ( )
 10110	return nothing .	return
-10111	get the value under the STR0 key of the self.META dictionary , if it starts with a string STR1 ,	if self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
+10111	get the value under the STR0 key of the self.META dictionary , if it starts with a string STR1 ,	if self . META . get ( STR0 , STR1multipart/form-data' ) :
 10112	if self has an attribute STR0 ,	if hasattr ( self , STR0 ) :
 10113	data is an instance of BytesIO class , created with an argument : self._body .	data = BytesIO ( self . _body )
 10114	if not ,	else :
@@ -10118,7 +10118,7 @@
 10118	if MultiPartParserError exception is caught ,	except MultiPartParserError :
 10119	call the method self._mark_post_parse_error .	self . _mark_post_parse_error ( )
 10120	raise an exception .	raise
-10121	otherwise if value under the STR0 key of hte self.META dictionary starts with STR1 ,	elif self . META . get ( STR0 , STR ) . startswith ( STR1 ) :
+10121	otherwise if value under the STR0 key of hte self.META dictionary starts with STR1 ,	elif self . META . get ( STR0 , STR1application/x-www-form-urlencoded' ) :
 10122	self._post is an instance of QueryDict created with arguments : self.body and encoding set to self._encoding , self._files is an instance of class MultiValueDict .	self . _post , self . _files = QueryDict ( self . body , encoding = self . _encoding ) , MultiValueDict ( )
 10123	if not ,	else :
 10124	self._post is an instance of QueryDict created with arguments : an empty string and encoding set to self._encoding , self._files is an instance of class MultiValueDict .	self . _post , self . _files = QueryDict ( STR , encoding = self . _encoding ) , MultiValueDict ( )
@@ -10264,7 +10264,7 @@
 10264	define the function split_domain_port with an argument host .	def split_domain_port ( host ) :
 10265	convert host to lowercase .	host = host . lower ( )
 10266	call the method host_validation_re.match with an argument host .	if not host_validation_re . match ( host ) :
-10267	return an empty string and an empty string .	return STR , STR
+10267	return an empty string and an empty string .	return STR0'
 10268	if last element of host equals character STR0 ,	if host [ - 1 ] == STR0 :
 10269	return host and an empty string .	return host , STR
 10270	split host from the right side into 2 parts at the STR0 , substitute the result for bits .	bits = host . rsplit ( STR0 , 1 )
@@ -10374,7 +10374,7 @@
 10374	call the method self._headers.values , return the result ,	return self . _headers . values ( )
 10375	define the method get with 3 arguments : self , header and alternate set to None .	def get ( self , header , alternate = None ) :
 10376	convert header to lowercase , use it to as a key to get the value of the self._headers dictionary , if it exists return the second element of the result , if not , return alternate .	return self . _headers . get ( header . lower ( ) , ( None , alternate ) ) [ 1 ]
-10377	define the method set_cookie with 9 arguments : self , key , value set to an empty string , max_age set to None , expires set to None ,	def set_cookie ( self , key , value = STR , max_age = None , expires = None , path = STR0 , domain = None , secure = False , httponly = False ) :
+10377	define the method set_cookie with 9 arguments : self , key , value set to an empty string , max_age set to None , expires set to None ,	def set_cookie ( self , key , value = STR0/' , domain = None , secure = False , httponly = False ) :
 10378	substitute value for self.cookies dictionary value under the key key .	self . cookies [ key ] = value
 10379	if expires is not None ,	if expires is not None :
 10380	if expires is an instance of datetime.datetime class ,	if isinstance ( expires , datetime . datetime ) :
@@ -10426,7 +10426,7 @@
 10426	raise an Exception exception with an argument string STR0 , where STR1 is replaced with self.__class__.__name__ .	raise Exception ( STR0 % self . __class__ . __name__ )
 10427	derive the class HttpResponse from the HttpResponseBase base class .	class HttpResponse ( HttpResponseBase ) :
 10428	streaming is boolean False .	streaming = False
-10429	define the method __init__ with 4 arguments : self , content set to an empty list , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , content = STR , * args , ** kwargs ) :
+10429	define the method __init__ with 4 arguments : self , content set to an empty list , unpacked list args and unpacked dictionary kwargs .	def __init__ ( self , content = b STR , * args , ** kwargs ) :
 10430	call the __init__ method from the base class of the HttpResponse class , with the arguments : unpacked list args and unpacked dictionary kwargs .	super ( HttpResponse , self ) . __init__ ( * args , ** kwargs )
 10431	substitute content for self.content .	self . content = content
 10432	define the serialize content with an argument self .	def serialize ( self ) :
@@ -10437,13 +10437,13 @@
 10437	substitute serialize for __str__ .	__str__ = serialize
 10438	property decorator ,	@ property
 10439	define the method content with an argument self .	def content ( self ) :
-10440	join self._container elements into a string , return it .	return STR . join ( self . _container )
+10440	join self._container elements into a string , return it .	return b STR . join ( self . _container )
 10441	content.setter decorator ,	@ content . setter
 10442	define the method content with 2 arguments : self and value .	def content ( self , value ) :
 10443	if value has an STR0 attribute and value is not an instance of bytes or six.string_types class .	if hasattr ( value , STR0 ) and not isinstance ( value , ( bytes , six . string_types ) ) :
 10444	if value has an STR0 attribute ,	if hasattr ( value , STR0 ) :
 10445	append value to the self._closable_objects list .	self . _closable_objects . append ( value )
-10446	call the self.make_bytes method with an argument chunk , for every chunk in value join the result to a bytes string , substitute the result for value .	value = STR . join ( self . make_bytes ( chunk ) for chunk in value )
+10446	call the self.make_bytes method with an argument chunk , for every chunk in value join the result to a bytes string , substitute the result for value .	value = b STR . join ( self . make_bytes ( chunk ) for chunk in value )
 10447	if not ,	else :
 10448	call the method self.make_bytes with an argument value , substitute the result for value .	value = self . make_bytes ( value )
 10449	self._container is a list containing element value .	self . _container = [ value ]
@@ -10527,13 +10527,13 @@
 10527	if response.streaming is True ,	if response . streaming :
 10528	response.streaming_content is an empty list .	response . streaming_content = [ ]
 10529	if not ,	else :
-10530	response.content is bytes empty string .	response . content = STR
+10530	response.content is bytes empty string .	response . content = b STR
 10531	substitute char STR0 for the value under the STR1 key of the response dictionary .	response [ STR0 ] = STR1
 10532	if request.method equals to string STR0 ,	if request . method == STR0 :
 10533	if response.streaming is true ,	if response . streaming :
 10534	response.streaming_content is an empty list .	response . streaming_content = [ ]
 10535	if not ,	else :
-10536	response.content is bytes empty string .	response . content = STR
+10536	response.content is bytes empty string .	response . content = b STR
 10537	return response .	return response
 10538	from django.template.base import ALLOWED_VARIABLE_CHARS , BLOCK_TAG_END , BLOCK_TAG_START , COMMENT_TAG_END , COMMENT_TAG_START , FILTER_ARGUMENT_SEPARATOR , FILTER_SEPARATOR , SINGLE_BRACE_END , SINGLE_BRACE_START , TOKEN_BLOCK , TOKEN_COMMENT , TOKEN_TEXT , TOKEN_VAR , TRANSLATOR_COMMENT_MARK , UNKNOWN_SOURCE , VARIABLE_ATTRIBUTE_SEPARATOR , VARIABLE_TAG_END , VARIABLE_TAG_START , filter_re and tag_re .	from django . template . base import ( ALLOWED_VARIABLE_CHARS , BLOCK_TAG_END , BLOCK_TAG_START , COMMENT_TAG_END , COMMENT_TAG_START , FILTER_ARGUMENT_SEPARATOR , FILTER_SEPARATOR , SINGLE_BRACE_END , SINGLE_BRACE_START , TOKEN_BLOCK , TOKEN_COMMENT , TOKEN_TEXT , TOKEN_VAR , TRANSLATOR_COMMENT_MARK , UNKNOWN_SOURCE , VARIABLE_ATTRIBUTE_SEPARATOR , VARIABLE_TAG_END , VARIABLE_TAG_START , filter_re , tag_re )
 10539	from django.template.base import ContextPopException , InvalidTemplateLibrary , TemplateDoesNotExist , TemplateEncodingError , TemplateSyntaxError and VariableDoesNotExist .	from django . template . base import ( ContextPopException , InvalidTemplateLibrary , TemplateDoesNotExist , TemplateEncodingError , TemplateSyntaxError , VariableDoesNotExist )
@@ -14042,7 +14042,7 @@
 14043	call the function _bin_to_long with an argument u perform bitwise exclusive OR with 2 operands , previous result an result , substitute the result for result .	result ^= _bin_to_long ( u )
 14044	call the function _long_to_bin with 2 arguments : result and hex_format_string , return the result .	return _long_to_bin ( result , hex_format_string )
 14045	call the function F with an argument x , for every x in sequence of integers from 1 to l , not included , substitute the results in a list for T .	T = [ F ( x ) for x in range ( 1 , l ) ]
-14046	join elements of T in a bytes string , append first r elements of result of the call to the function F with an argument l to it ,	return STR . join ( T ) + F ( l ) [ : r ]
+14046	join elements of T in a bytes string , append first r elements of result of the call to the function F with an argument l to it ,	return b STR . join ( T ) + F ( l ) [ : r ]
 14047	import module os .	import os
 14048	import module sys .	import sys
 14049	from . import six into default name space .	from . import six
@@ -15471,7 +15471,7 @@
 15472	if value under the STR0 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
 15473	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .	handler . addQuickElement ( STR0 , item [ STR1 ] )
 15474	if value under the STR0 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
-15475	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with 3 entries : field url of the value under the STR1 key of the item dictionary for STR2 , field length of the value under the STR3 key of the item dictionary for STR4 , and field mime_type of the value under the STR5 key of the item dictionary for STR6 .	handler . addQuickElement ( STR0 , STR , { STR1 : item [ STR4 ] . url , STR2 : item [ STR5 ] . length , STR3 : item [ STR6 ] . mime_type } )
+15475	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with 3 entries : field url of the value under the STR1 key of the item dictionary for STR2 , field length of the value under the STR3 key of the item dictionary for STR4 , and field mime_type of the value under the STR5 key of the item dictionary for STR6 .	handler . addQuickElement ( STR0 , STR4enclosureSTR5enclosureSTR6enclosure' ] . mime_type } )
 15476	for every cat in value under the STR0 key of the item dictionary ,	for cat in item [ STR0 ] :
 15477	call the method handler.addQuickElement with 2 arguments : string STR0 and cat .	handler . addQuickElement ( STR0 , cat )
 15478	derive the class Atom1Feed from the SyndicationFeed base class .	class Atom1Feed ( SyndicationFeed ) :
@@ -15538,7 +15538,7 @@
 15539	if value under the STR0 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
 15540	call the method handler.addQuickElement with 3 arguments : string STR0 , value under the STR1 key of item dictionary , and dictionary with an entry : STR2 for STR3 .	handler . addQuickElement ( STR0 , item [ STR3 ] , { STR1 : STR2 } )
 15541	if value under the STR0 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
-15542	call the method handler.addQuickElement with 3 arguments : string STR4 , an empty string and a dictionary with 4 entries : STR0 for STR5 , field url of value under the STR1 key of item dictionary for STR6 , field length of value under the STR2 key of item dictionary for STR7 , and field mime_type of value under the STR3 key of item dictionary for STR8 .	handler . addQuickElement ( STR0 , STR , { STR1 : STR2 , STR3 : item [ STR6 ] . url , STR4 : item [ STR7 ] . length , STR5 : item [ STR8 ] . mime_type } )
+15542	call the method handler.addQuickElement with 3 arguments : string STR4 , an empty string and a dictionary with 4 entries : STR0 for STR5 , field url of value under the STR1 key of item dictionary for STR6 , field length of value under the STR2 key of item dictionary for STR7 , and field mime_type of value under the STR3 key of item dictionary for STR8 .	handler . addQuickElement ( STR0 , STR6enclosureSTR7enclosureSTR8enclosure' ] . mime_type } )
 15543	for every cat in value under STR0 key of item dictionary ,	for cat in item [ STR0 ] :
 15544	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with an entry : cat for STR1 .	handler . addQuickElement ( STR0 , STR1term" : cat } )
 15545	if value under the STR0 key of the item dictionary is not None ,	if item [ STR0 ] is not None :
@@ -15930,8 +15930,8 @@
 15932	from django.utils.six.moves.urllib.parse import quote , unquote , urlsplit and urlunsplit into default name space .	from django . utils . six . moves . urllib . parse import quote , unquote , urlsplit , urlunsplit
 15933	from django.utils.text import normalize_newlines into default name space .	from django . utils . text import normalize_newlines
 15934	from .html_parser import HTMLParser and HTMLParseError into default name space .	from . html_parser import HTMLParser , HTMLParseError
-15935	TRAILING_PUNCTUATION is a list with 7 elements : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 and STR6 ' .	TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , '\STR ]
-15936	WRAPPING_PUNCTUATION is a list with 6 elements : tuple with 2 elements : STR1 and STR2 , tuple with 2 elements : STR3 and STR4 , tuple with 2 elements : STR5 and STR6 , tuple with 2 elements : STR7 and STR8 , tuple with 2 elements : STR200 ' .	WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR200\STR ) ]
+15935	TRAILING_PUNCTUATION is a list with 7 elements : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 and STR6 ' .	TRAILING_PUNCTUATION = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6' ]
+15936	WRAPPING_PUNCTUATION is a list with 6 elements : tuple with 2 elements : STR1 and STR2 , tuple with 2 elements : STR3 and STR4 , tuple with 2 elements : STR5 and STR6 , tuple with 2 elements : STR7 and STR8 , tuple with 2 elements : STR200 ' .	WRAPPING_PUNCTUATION = [ ( STR1 , STR2 ) , ( STR3 , STR4 ) , ( STR5 , STR6 ) , ( STR7 , STR8 ) , ( STR200' ) ]
 15937	DOTS is a list with 6 elements : strings STR0 , STR1 , STR2 , STR3 , STR4 and STR5 .	DOTS = [ STR0 , STR1 , STR2 , STR3 , STR4 , STR5 ]
 15938	call the function re.compile with raw string STR0 , substitute the result for unencoded_ampersands_re .	unencoded_ampersands_re = re . compile ( STR0 )
 15939	call the function re.compile with raw string STR0 , substitute the result for word_split_re .	word_split_re = re . compile ( STR0 )
@@ -15945,7 +15945,7 @@
 15947	define the function escape with an argument text .	def escape ( text ) :
 15948	call the function force_text with an argument text , replace every occurrence of STR1 in the result with STR2 , every occurrence of STR3 with STR4 , every occurrence of STR5 with STR6 , every occurrence of STR200 , call the function mark_safe with the previous result as an argument , return the result .	return mark_safe ( force_text ( text ) . replace ( STR1 , STR2 ) . replace ( STR3 , STR4 ) . replace ( STR5 , STR6 ) . replace ( STR200 ) )
 15949	call the function allow_lazy with 2 arguments : escape , six.text_type , substitute the result for escape .	escape = allow_lazy ( escape , six . text_type )
-15950	_js_escapes is a dictionary with 11 initial entries : STR0 for integer representation of string STR1 , STR2 for integer representation of string STR3 , STR4 for integer representation of string STR5 , STR6 for integer representation of string STR7 , STR8 for integer representation of string STR9 , STR10 for integer representation of string STR11 , STR12 for integer representation of string STR13 , STR14 for integer representation of string STR15 , STR16 for integer representation of string STR17 , STR18 for integer representation of string STR19 and STR20 for integer representation of string STR21 .	_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2\\u0027STR3"STR4\\u0022STR5>STR6\\u003ESTR7<STR8\\u003CSTR9&STR10\\u0026STR11=STR12\\u003DSTR13-STR14\\u002DSTR15;STR16\\u003BSTR17\u2028STR18\\u2028STR19\u2029STR20\\u2029' }
+15950	_js_escapes is a dictionary with 11 initial entries : STR0 for integer representation of string STR1 , STR2 for integer representation of string STR3 , STR4 for integer representation of string STR5 , STR6 for integer representation of string STR7 , STR8 for integer representation of string STR9 , STR10 for integer representation of string STR11 , STR12 for integer representation of string STR13 , STR14 for integer representation of string STR15 , STR16 for integer representation of string STR17 , STR18 for integer representation of string STR19 and STR20 for integer representation of string STR21 .	_js_escapes = { ord ( STR0 ) : STR1 , ord ( STR2STR3\\u0027STR4"STR5\\u0022STR6>STR7\\u003ESTR8<STR9\\u003CSTR10&STR11\\u0026STR12=STR13\\u003DSTR14-STR15\\u002DSTR16;STR17\\u003BSTR18\u2028STR19\\u2028STR20\u2029STR21\\u2029' }
 15951	for every z in range of integers from 0 to 31 , update _js_escapes dictionary with STR0 formated with z , or integer representation of z converted into a string .	_js_escapes . update ( ( ord ( STR0 % z ) , STR1 % z ) for z in range ( 32 ) )
 15952	define the function escapejs with an argument value .	def escapejs ( value ) :
 15953	call the function force_text with an argument value , call the method translate on the result , with an argument _js_escapes , use the result as an argument for the call to the mark_safe function , return the result .	return mark_safe ( force_text ( value ) . translate ( _js_escapes ) )
@@ -16044,7 +16044,7 @@
 16046	call the function force_text with an argument text , split by it word_split_re , substitute it for words .	words = word_split_re . split ( force_text ( text ) )
 16047	for every i and word in enumerated iterable words ,	for i , word in enumerate ( words ) :
 16048	if STR0 is contained in words or STR1 is contained in word or STR2 is contained in word ,	if STR0 in word or STR1 in word or STR2 in word :
-16049	substitute empty string , word an empty string for lead , middle and trail , respectively .	lead , middle , trail = STR , word , STR
+16049	substitute empty string , word an empty string for lead , middle and trail , respectively .	lead , middle , trail = STR0'
 16050	for every punctuation in TRAILING_PUNCTUATION ,	for punctuation in TRAILING_PUNCTUATION :
 16051	if middle ends with punctuation ,	if middle . endswith ( punctuation ) :
 16052	substitute elements of middle from the beginning to the negative length of punctuation , for middle .	middle = middle [ : - len ( punctuation ) ]
@@ -16137,7 +16137,7 @@
 16139	find the first , second and third subgroup of the m regular expression match , assign the result to the attrname , rest and attrvalue , respectively .	attrname , rest , attrvalue = m . group ( 1 , 2 , 3 )
 16140	if rest is not False , None is considered False ,	if not rest :
 16141	set attrvalue to None .	attrvalue = None
-16142	otherwise , if first and the last character of attrvalue are STR0 charter or first and last character of attrvalue are STR1 character ,	elif ( attrvalue [ : 1 ] == STR0"' == attrvalue [ - 1 : ] ) :
+16142	otherwise , if first and the last character of attrvalue are STR0 charter or first and last character of attrvalue are STR1 character ,	elif ( attrvalue [ : 1 ] == STR0STR1"' == attrvalue [ - 1 : ] ) :
 16143	remove first and last character from the attrvalue , substitute it for attrvalue .	attrvalue = attrvalue [ 1 : - 1 ]
 16144	if attrvalue is not an empty string ,	if attrvalue :
 16145	call the method unescape with attrvalue as the argument on the self class instance , substitute the result for attrvalue .	attrvalue = self . unescape ( attrvalue )
@@ -16977,7 +16977,7 @@
 16979	get the next element of the iterable pattern_iter , assign the result for ch and escaped , respectively .	ch , escaped = next ( input_iter )
 16980	append ch to quant .	quant . append ( ch )
 16981	remove last element for quant .	quant = quant [ : - 1 ]
-16982	join elements of quant into a string , split it by string STR0 , substitute the result for values .	values = STR . join ( quant ) . split ( STR0 )
+16982	join elements of quant into a string , split it by string STR0 , substitute the result for values .	values = STR0,' )
 16983	try ,	try :
 16984	get the next element of the iterable pattern_iter , assign the result for ch and escaped , respectively .	ch , escaped = next ( input_iter )
 16985	if StopIteration exception ,	except StopIteration :
@@ -17553,7 +17553,7 @@
 17555	opt_dict is an dictionary with 5 elements : STR0 for STR1 , STR2 for STR3 , STR4 for STR5 , STR6 for STR7 , and STR8 for STR9 .	opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
 17556	define the method colorize with 3 arguments : text set to an empty string , opts set to an empty tuple and unpacked dictionary kwargs .	def colorize ( text = STR , opts = ( ) , ** kwargs ) :
 17557	code_list is an empty list .	code_list = [ ]
-17558	if text is an empty string and length of opts equals integer 1 and first element of opts equals string STR0 ,	if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
+17558	if text is an empty string and length of opts equals integer 1 and first element of opts equals string STR0 ,	if text == STR0reset' :
 17559	format string STR0 with RESET , return the result .	return STR0 % RESET
 17560	call the function six.iteritems with an argument kwargs , for every k and v in the result ,	for k , v in six . iteritems ( kwargs ) :
 17561	if k equals a string STR0 ,	if k == STR0 :
@@ -17768,7 +17768,7 @@
 17770	define the method write with 2 arguments : self and val .	def write ( self , val ) :
 17771	append val to self.vals .	self . vals . append ( val )
 17772	define the method read with an argument self .	def read ( self ) :
-17773	join elements of self.vals into a bytes string , substitute the result for ret .	ret = STR . join ( self . vals )
+17773	join elements of self.vals into a bytes string , substitute the result for ret .	ret = b STR . join ( self . vals )
 17774	self.vals is an empty list .	self . vals = [ ]
 17775	return ret .	return ret
 17776	define the method flush with an argument self .	def flush ( self ) :
@@ -18078,7 +18078,7 @@
 18080	try ,	try :
 18081	substitute value under the number key of the rhs dictionary for number_value .	number_value = rhs [ number ]
 18082	if KeyError exception is caught ,	except KeyError :
-18083	raise an KeyError with an argument string STR0 % s\STR1 STR2 , where STR3 is replaced with number .	raise KeyError ( STR0%s\STR1 STR2 STR3 % number )
+18083	raise an KeyError with an argument string STR0 % s\STR1 STR2 , where STR3 is replaced with number .	raise KeyError ( STR0%sSTR1 STR2 STR3 % number )
 18084	if not ,	else :
 18085	substitute rhs for number_value .	number_value = rhs
 18086	substitute number_value for kwargs dictionary value under the STR0 key .	kwargs [ STR0 ] = number_value
@@ -18210,7 +18210,7 @@
 18212	_default is None .	_default = None
 18213	_supported is None .	_supported = None
 18214	CONTEXT_SEPARATOR is a string STR0 .	CONTEXT_SEPARATOR = STR0
-18215	call the function re.compile with 2 arguments : raw string STR0 , and re.VERBOSE , substitute the result for accept_language_re .	accept_language_re = re . compile ( STRSTR7 , re . VERBOSE )
+18215	call the function re.compile with 2 arguments : raw string STR0 , and re.VERBOSE , substitute the result for accept_language_re .	accept_language_re = re . compile ( STR7 ([A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*|\*) # STR0, STR1, STR2, STR3, STR4 (?:\s*;\s*q=(0(?:\.\d{,3})?|1(?:.0{,3})?))? # Optional STR5, STR6 (?:\s*,\s*|$) # Multiple accepts per header. STR8 , re . VERBOSE )
 18216	call the function re.compile with 2 arguments : raw string STR0 and re.IGNORECASE , substitute the result for language_code_re .	language_code_re = re . compile ( STR0 , re . IGNORECASE )
 18217	call the function re.compile with an argument raw string STR0 , substitute the result for language_code_prefix_re .	language_code_prefix_re = re . compile ( STR0 )
 18218	_BROWSERS_DEPRECATED_LOCALES is an dictionary with 2 initial entries : STR0 for STR1 and STR2 for STR3 .	_BROWSERS_DEPRECATED_LOCALES = { STR0 : STR1 , STR2 : STR3 , }

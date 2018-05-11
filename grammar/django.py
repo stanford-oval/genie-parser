@@ -58,6 +58,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                 ('$classdef',),
                 ('$decorated',)],
 
+
             '$decorator': [('@', '$dotted_name', '<<EOF>>'),
                            ('@', '$dotted_name', '(', '$arglist', ')', '<<EOF>>')], #fixme
             '$decorators': [('$decorator',),
@@ -69,7 +70,7 @@ class DjangoGrammar(ShiftReduceGrammar):
                             ('(', ')')],
 
             ##################################################################################
-            #
+
             # '$fpvar1': [('$fpdef', ','),
             #            ('$fpdef', '=', '$test', ',')],
             #
@@ -82,25 +83,25 @@ class DjangoGrammar(ShiftReduceGrammar):
             # '$varargslist_tmp1': [('$fpvar2_or', ),
             #                       ('$fpvar1', '$varargslist_tmp1')],
             #
-            # '$fpvar3': [('$fpdef',),
+            # '$fpvar3': [('$fpdef', ),
             #             ('$fpdef', '=', '$test')],
             #
             # '$fpvar4': [(',', '$fpdef'),
             #             (',', '$fpdef', '=', '$test')],
             #
-            # '$hala': [('$fpvar3', ),
-            #            ('$hala', '$fpvar4')],
+            # '$zed': [('$fpvar3', ),
+            #            ('$zed', '$fpvar4')],
             #
-            # '$varargslist_tmp2': [('$hala',),
-            #                       ('$hala', ',')],
+            # '$varargslist_tmp2': [('$zed',),
+            #                       ('$zed', ',')],
             #
-
+            #
             # '$varargslist': [('$varargslist_tmp1',),
-            #                  ('$varargslist_tmp2',),
+            #                  ('$varargslist_tmp2',)
             #                  ], #fixme
             ###################################################################################
             '$argument_list': [('$argument',),
-                            ('$argument_list', ',', '$argument')],
+                               ('$argument_list', ',', '$argument')],
             '$argument_list2': [('$argument_list',),
                                ('$argument_list', ',', '*', '$ident'),
                                ('$argument_list', ',', '*', '$ident', ',', '**', '$ident'),
@@ -118,11 +119,14 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$fplist': [('$fplist_tmp',),
                         ('$fplist_tmp', ',')],
 
+            '$assign_expr_stmt': [('$testlist',),
+                                  ('$assign_expr_stmt', '=', '$yield_expr'),
+                                  ('$assign_expr_stmt', '=', '$testlist')],
+
             '$expr_stmt': [('$testlist', '$augassign', '$yield_expr'),
                            ('$testlist', '$augassign', '$testlist'),
-                           ('$testlist',),
-                           ('$testlist', '=', '$yield_expr'),
-                           ('$testlist', '=', '$testlist')],
+                           ('$assign_expr_stmt',)],
+
 
             '$augassign': [('+=',),
                            ('-=',),
@@ -333,7 +337,9 @@ class DjangoGrammar(ShiftReduceGrammar):
             '$dictorsetmaker': [('$dictorsetmaker_tmp1',),
                                 ('$dictorsetmaker_tmp2',),
                                 ('$dictorsetmaker_tmp1', ','),
-                                ('$dictorsetmaker_tmp2', ',')],
+                                ('$dictorsetmaker_tmp2', ','),
+                                ('$test', ':', '$test', '$comp_for'),
+                                ('$test', '$comp_for')], #fixme
 
             '$classdef': [('class', '$ident', ':',),
                           ('class', '$ident', '(', '$testlist', ')', ':',)],
@@ -406,9 +412,9 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents = list(idents)
         idents.sort()
         self.num_functions = 0
-        numbers = list(map(str, range(200)))
-        numbers.extend(['300', '403', '500', '989', '100000', '1e200'])
-        strings = ['STR' + str(i) for i in range(200)]
+        numbers = list(map(str, range(1001)))
+        numbers.extend(['1024', '2000', '2048', '100000', '1e200'])
+        strings = ['STR' + str(i) for i in range(201)]
         strings.extend(['STR'])
         self.tokens += self.construct_parser(grammar=GRAMMAR,
                                              extensible_terminals={

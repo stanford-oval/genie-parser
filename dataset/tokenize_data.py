@@ -24,8 +24,10 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
 
     for line in fin:
 
-        if os.path.basename(inputfile) == 'all.code':
-            line = re.sub(r'\'\'', 'STR', line)  # Empty string
+        # if os.path.basename(inputfile) == 'all.code':
+        #     line = re.sub(r'\'\'', ' STR ', line)  # Empty string
+        #     line = re.sub(r'\"\"', ' STR ', line)  # Empty string
+
 
         length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
         for i in range(length1):
@@ -85,10 +87,10 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
         elif os.path.basename(inputfile) == 'all.code':
 
 
-            line = re.sub(r'rSTR|bSTR', 'STR', line)
-            line = re.sub(r'\'\'', 'STR', line) # Empty string
-            line = re.sub(r'\"\"', 'STR', line)  # Empty string
-            line = re.sub(r'0x', '', line)
+            line = re.sub(r'rSTR|bSTR|\\STR', 'STR', line)
+            line = re.sub(r'\'\'', ' STR ', line)  # Empty string
+            line = re.sub(r'\"\"', ' STR ', line)  # Empty string
+            line = re.sub(r'0x|0d', '', line)
 
             tokens = line.strip().split(' ')
             tokens = [token for token in tokens if token != '']

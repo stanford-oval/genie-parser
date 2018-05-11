@@ -9011,7 +9011,7 @@
   try,
   call the function timezone.make_aware with arguments value and current_timezone, return the result.
   if Exception exception is caught,
-  call the function _ with an argument string '%(datetime)s couldn\'t be interpreted in time zone %(current_timezone)s; it ' 'may be ambiguous or it may not exist.', substitute the result for message.   
+  call the function _ with an argument string '%(datetime)s couldnt be interpreted in time zone %(current_timezone)s; it ' 'may be ambiguous or it may not exist.', substitute the result for message.   
   params is an dictionary containing 2 initial entries: value for 'datetime' and current_timezone for 'current_timezone'.
   call the function six.reraise with 3 arguments: class ValidationError, class ValidationError, created with 3 arguments: message, code as a string 'ambiguous_timezone' and params as params,   and third element of the return value of the function sys.exc_info.   
   return value.
