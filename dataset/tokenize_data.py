@@ -24,56 +24,85 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
 
     for line in fin:
 
-        # if os.path.basename(inputfile) == 'all.code':
-        #     line = re.sub(r'\'\'', ' STR ', line)  # Empty string
-        #     line = re.sub(r'\"\"', ' STR ', line)  # Empty string
+
+
+        # exceptions = [('''if bit starts with '_("' ot bit starts with "_('",'''), ('''if bit . startswith ( '_("' ) or bit . startswith ( "_('" ) :''')]
+        #
+        # if line in exceptions:
+        #
+        #     line = re.sub(r'\'_\(\"\'', 'STR' + str(0), line, count=1)
+        #     line = re.sub(r'\"_\(\'\"', 'STR' + str(1), line, count=1)
+        #
+        #
+
+
+        # else:
+
+        #line = re.sub(r'\"|\'\'\'', '\'', line)
+
+        #line = re.sub(r'rSTR|bSTR|\\STR|b\'\'|r\'\'', 'STR', line)
+        line = re.sub(r'\'t', 'ot', line)  # Empty string
+
+        line = re.sub(r'b\"\"|b\'\'', ' STR ', line)  # Empty string
+        line = re.sub(r'r\"\"|r\'\'', ' STR ', line)  # Empty string
+
+        line = re.sub(r'r(\"(?!\"{2})(.+?)\")', r'\1', line)
+        line = re.sub(r'r(\'(?!\'{2})(.+?)\')', r'\1', line)
+        line = re.sub(r'b(\"(?!\"{2})(.+?)\")', r'\1', line)
+        line = re.sub(r'b(\'(?!\'{2})(.+?)\')', r'\1', line)
+
+        line = re.sub(r'\'(?!\'{2})\s*\'', ' STR ', line)  # Empty string
+        line = re.sub(r'\"(?!\"{2})\s*\"', ' STR ', line)  # Empty string
+        line = re.sub(r'\'_\(\"\'', ' STR' + 'special', line)
+        line = re.sub(r'\"_\(\'\"', ' STR' + 'special', line)
+        line = re.sub(r'0x|0d', '', line)
 
 
         length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
         for i in range(length1):
-            line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', 'STR' + str(i), line, count=1)
+            line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', ' STR' + str(i), line, count=1)
 
         length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
         for i in range(length1, length2):
-            line = re.sub(r'\"(?!STR)(.+?)\"', 'STR' + str(i), line, count=1)
+            line = re.sub(r'\"(?!STR)(.+?)\"', ' STR' + str(i), line, count=1)
 
         length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
         for i in range(length2, length3):
-            line = re.sub(r'\'(?!STR)(.+?)\'', 'STR' + str(i), line, count=1)
-
+            line = re.sub(r'\'(?!STR)(.+?)\'', ' STR' + str(i), line, count=1)
 
 
         length1, length2, length3 = (0, 0, 0)
 
         length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
         for i in range(length1):
-            line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', 'STR' + str(i), line, count=1)
+            line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', ' STR' + str(i), line, count=1)
 
 
         length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
         for i in range(length1, length2):
-            line = re.sub(r'\"(?!STR)(.+?)\"', 'STR' + str(i), line, count=1)
+            line = re.sub(r'\"(?!STR)(.+?)\"', ' STR' + str(i), line, count=1)
 
         length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
         for i in range(length2, length3):
-            line = re.sub(r'\'(?!STR)(.+?)\'', 'STR' + str(i), line, count=1)
+            line = re.sub(r'\'(?!STR)(.+?)\'', ' STR' + str(i), line, count=1)
 
 
 
+        # cases like 'STR .... '
         length1, length2, length3 = (0, 0, 0)
 
         length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
         for i in range(length1):
-            line = re.sub(r'\"\"\"(.+?)\"\"\"', 'STR' + str(180), line, count=1)
+            line = re.sub(r'\"\"\"(.+?)\"\"\"', ' STR' + 'special', line, count=1)
 
 
         length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
         for i in range(length1, length2):
-            line = re.sub(r'\"(.+?)\"', 'STR' + str(190), line, count=1)
+            line = re.sub(r'\"(.+?)\"', ' STR' + 'special', line, count=1)
 
         length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
         for i in range(length2, length3):
-            line = re.sub(r'\'(.+?)\'', 'STR' + str(200), line, count=1)
+            line = re.sub(r'\'(.+?)\'', ' STR' + 'special', line, count=1)
 
 
 
@@ -87,10 +116,10 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
         elif os.path.basename(inputfile) == 'all.code':
 
 
-            line = re.sub(r'rSTR|bSTR|\\STR', 'STR', line)
-            line = re.sub(r'\'\'', ' STR ', line)  # Empty string
-            line = re.sub(r'\"\"', ' STR ', line)  # Empty string
-            line = re.sub(r'0x|0d', '', line)
+            # line = re.sub(r'rSTR|bSTR|\\STR|b\'\'|r\'\'', 'STR', line)
+            # line = re.sub(r'\'\s*\'', ' STR ', line)  # Empty string
+            # line = re.sub(r'\"\s*\"', ' STR ', line)  # Empty string
+
 
             tokens = line.strip().split(' ')
             tokens = [token for token in tokens if token != '']

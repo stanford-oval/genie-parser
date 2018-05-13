@@ -399,14 +399,14 @@ class SLRParserGenerator():
                                 lhs, _ = self.rules[loop_rule_id]
                                 print(loop_rule_id, lhs, '->', rhs)
                             print()
-                            if self.action_table[item_set.info.id][term][0] == 'shift':
-                                jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
-                                print("Item Set", jump_set.info.id, jump_set.info.intransitions)
-                                for rule in jump_set.rules:
-                                    loop_rule_id, rhs = rule
-                                    lhs, _ = self.rules[loop_rule_id]
-                                    print(loop_rule_id, lhs, '->', rhs)
-                                print()
+                            #if self.action_table[item_set.info.id][term][0] == 'shift':
+                            #    jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
+                            #    print("Item Set", jump_set.info.id, jump_set.info.intransitions)
+                            #    for rule in jump_set.rules:
+                            #        loop_rule_id, rhs = rule
+                            #        lhs, _ = self.rules[loop_rule_id]
+                            #        print(loop_rule_id, lhs, '->', rhs)
+                            #    print()
                             
                             raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
                         self.action_table[item_set.info.id][term] = ('reduce', rule_id)
@@ -504,10 +504,10 @@ class ShiftReduceParser:
             action, param = self._action_table[state][terminal]
             if action == 'accept':
                 return result
-            if action == 'shift':
-                print('shift', param, token)
-            else:
-                print('reduce', param, self.rules[param])
+            #if action == 'shift':
+            #    print('shift', param, token)
+            #else:
+            #    print('reduce', param, self.rules[param])
             if action == 'shift':
                 state = param
                 result.append(('shift', (terminal, tokenidx)))

@@ -399,13 +399,17 @@ class DjangoGrammar(ShiftReduceGrammar):
 
         #HACK
         #idents.add('Exception')
+        idents.add('TEMPLATE_STRING_IF_INVALID')
+
+        kwlist2 = set(kwlist)
+        kwlist2.add('exec')
+        kwlist2.add('print')
 
         with open(filename, 'r') as fp:
             for line in fp:
                 for token in line.strip().split(' '):
                     if token:
-                        if (token[0].isalpha() or token.startswith('_')) and (
-                                not token in kwlist and token != 'exec'):
+                        if (token[0].isalpha() or token.startswith('_')) and token not in kwlist2:
                             if token.find('$') == -1 and token.find('STR') == -1:
                                 idents.add(token)
 
@@ -413,13 +417,13 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.sort()
         self.num_functions = 0
         numbers = list(map(str, range(1001)))
-        numbers.extend(['1024', '2000', '2048', '100000', '1e200'])
+        numbers.extend(['1024', '1900', '2000', '2048', '100000', '1e200', '1.0'])
         strings = ['STR' + str(i) for i in range(201)]
-        strings.extend(['STR'])
+        strings.extend(['STR', 'STRspecial'])
         self.tokens += self.construct_parser(grammar=GRAMMAR,
-                                             extensible_terminals={
+                                             extensible_terminals={'IDENT': idents
                                                                    },
-                                             copy_terminals={'IDENT': idents,
+                                             copy_terminals={
                                                              'NUMBER': numbers,
                                                              'STRING': strings
                                                              })
