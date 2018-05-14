@@ -36,6 +36,8 @@ import matplotlib.pyplot as plt
 from models import Config, create_model
 from util.loader import vectorize
 
+from tensorflow.python import debug as tf_debug
+
 #plt.rc('font', size=20)
 
 def show_heatmap(x, y, attention):
@@ -95,6 +97,9 @@ def run():
             # Create a session for running Ops in the Graph
             with tf.Session() as sess:
                 loader.restore(sess, os.path.join(model_dir, 'best'))
+
+                #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+                #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
                 
                 try:
                     while True:
@@ -110,28 +115,36 @@ def run():
                         feed = model.create_feed_dict([sentence, fake_input],
                                                       [sentence_length, fake_length],
                                                       [fake_parse, fake_parse])
-                        predictions, attention_scores = sess.run((model.pred, model.attention_scores), feed_dict=feed)
-                        
-                        assert len(predictions) == 2
-                        assert len(attention_scores) == 2
-                        
-                        prediction = predictions[0,0]
-                        index, = np.where(prediction == config.grammar.end)
+                        predictions, raw_predictions, attention_scores = sess.run((model.preds, model.raw_preds, model.attention_scores), feed_dict=feed)
+
+                        prediction = dict()
+                        raw_prediction = dict()
+                        for key in predictions:
+                            prediction[key] = predictions[key][0,0]
+                            raw_prediction[key] = raw_predictions.rnn_output[key][0]
+                        primary_prediction = prediction[config.grammar.primary_output]
+                        index, = np.where(primary_prediction == config.grammar.end)
                         if len(index):
-                            prediction = prediction[:index[0]+1]
-                        config.grammar.print_prediction(prediction)
-                        if len(predictions[0]) == 1:
+                            for key in predictions:
+                                prediction[key] = prediction[key][:index[0]+1]
+                                raw_prediction[key] = raw_prediction[key][:index[0]+1]
+                            primary_prediction = primary_prediction[:index[0]+1]
+                        for key in prediction:
+                            #print(key, '=', raw_prediction[key])
+                            print(key, '=>', prediction[key])
+                        config.grammar.print_prediction(sentence, prediction)
+                        if len(predictions[config.grammar.primary_output][0]) == 1:
                             try:
-                                print('predicted', ' '.join(config.grammar.reconstruct_program(prediction)))
+                                print('predicted', ' '.join(config.grammar.reconstruct_program(sentence, prediction)))
                             except (KeyError, TypeError, IndexError, ValueError):
                                 print('failed to predict')
                         else:
                             for i, beam in enumerate(predictions[0]):
                                 try:
-                                    print('beam', i, ' '.join(config.grammar.reconstruct_program(beam)))
+                                    print('beam', i, ' '.join(config.grammar.reconstruct_program(sentence, beam)))
                                 except (KeyError, TypeError, IndexError, ValueError):
                                     print('beam', i, 'failed to predict')
-                        
+
                         sentence = list(config.reverse_dictionary[x] for x in sentence[:sentence_length])
                         show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
                 except EOFError:

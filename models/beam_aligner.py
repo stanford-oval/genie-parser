@@ -548,7 +548,6 @@ class BeamAligner(BaseAligner):
 
     def add_decoder_op(self, enc_final_state, enc_hidden_states, training):
         cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
-                                              self.config.output_embed_size,
                                               self.config.decoder_hidden_size,
                                               self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
@@ -576,13 +575,16 @@ class BeamAligner(BaseAligner):
         
         print('enc_final_state', enc_final_state)
         
+
+        output_embed_matrix = self.output_embed_matrices[self.config.grammar.primary_output]
         output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
+        
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
-        decoder = BeamSearchOptimizationDecoder(training, cell_dec, self.output_embed_matrix, go_vector, self.config.grammar.end,
+        decoder = BeamSearchOptimizationDecoder(training, cell_dec, output_embed_matrix, go_vector, self.config.grammar.end,
                                                 enc_final_state,
                                                 beam_width=beam_width,
                                                 output_layer=output_layer,
-                                                gold_sequence=self.output_placeholder if training else None,
+                                                gold_sequence=self.primary_output_placeholder if training else None,
                                                 gold_sequence_length=(self.output_length_placeholder+1) if training else None)
 
         final_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder,

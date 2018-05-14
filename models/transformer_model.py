@@ -1,6 +1,6 @@
 # Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
 #
-# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
+# Author: sawyerb <sawyerb@cs.stanford.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 '''
-Created on Jul 20, 2017
+Created on May 2, 2017
 
-@author: gcampagn
+@author: sawyerb
 '''
 
-import re
 import tensorflow as tf
 import numpy as np
 from tensorflow.python.util import nest
@@ -59,9 +58,8 @@ class BaseAligner(BaseModel):
             self.action_counts = None
 
         # the training decoder
-        with tf.name_scope('train_decoder'):
-            with tf.variable_scope('decoder', initializer=xavier):
-                train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
+        with tf.variable_scope('decoder', initializer=xavier):
+            train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
 
         if self.config.decoder_action_count_loss > 0:
             with tf.name_scope('action_count_loss'):
@@ -89,15 +87,9 @@ class BaseAligner(BaseModel):
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
-        with tf.name_scope('inference_decoder'):
-            with tf.variable_scope('decoder', initializer=xavier, reuse=True):
-                eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
-        self.raw_preds = eval_preds
-        self.preds = self.finalize_predictions(eval_preds)
-        if not isinstance(self.preds, dict):
-            self.preds = {
-                self.config.grammar.primary_output: self.preds
-            }
+        with tf.variable_scope('decoder', initializer=xavier, reuse=True):
+            eval_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=False)
+        self.pred = self.finalize_predictions(eval_preds)
         
         if self.config.decoder_sequence_loss > 0:
             with tf.name_scope('eval_sequence_loss'):
@@ -135,30 +127,24 @@ class BaseAligner(BaseModel):
         self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1), name='input_constituency_parse')
         
     def add_output_placeholders(self):
-        self.output_placeholders = dict()
-        for key in self.config.grammar.output_size:
-            self.output_placeholders[key] = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='output_sequence')
-        self.primary_output_placeholder = self.output_placeholders[self.config.grammar.primary_output]
+        self.output_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='output_sequence')
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='output_length')
-
-        action_count_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-        self.output_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, action_count_size), name='output_action_counts')
-
+        self.output_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, self.config.grammar.output_size), name='output_action_counts')
+        
     def add_extra_placeholders(self):
         self.batch_number_placeholder = tf.placeholder(tf.int32, shape=(), name='batch_number')
         self.epoch_placeholder = tf.placeholder(tf.int32, shape=(), name='epoch_number')
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name='dropout_probability')
 
     def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch,
-                         label_sequence_batch=None, labels_batch=None, label_length_batch=None,
+                         labels_batch=None, label_length_batch=None,
                          dropout=1, batch_number=0, epoch=0):
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
         feed_dict[self.input_length_placeholder] = input_length_batch
         feed_dict[self.constituency_parse_placeholder] = parses_batch
         if labels_batch is not None:
-            for key, batch in labels_batch.items():
-                feed_dict[self.output_placeholders[key]] = batch
+            feed_dict[self.output_placeholder] = labels_batch
         if label_length_batch is not None:
             feed_dict[self.output_length_placeholder] = label_length_batch
         feed_dict[self.dropout_placeholder] = dropout
@@ -172,15 +158,19 @@ class BaseAligner(BaseModel):
                                                     minlength=self.config.grammar.output_size)
             feed_dict[self.output_action_counts] = action_count_batch
         return feed_dict
+        
+        return feed_dict
 
     def add_encoder_op(self, inputs):
         if self.config.encoder_type == "rnn":
             encoder = RNNEncoder(cell_type=self.config.rnn_cell_type,
+                                 input_size=self.config.input_projection,
                                  output_size=self.config.encoder_hidden_size,
                                  dropout=self.dropout_placeholder,
                                  num_layers=self.config.rnn_layers)
         elif self.config.encoder_type == 'birnn':
             encoder = BiRNNEncoder(cell_type=self.config.rnn_cell_type,
+                                   input_size=self.config.input_projection,
                                    output_size=self.config.encoder_hidden_size,
                                    dropout=self.dropout_placeholder,
                                    num_layers=self.config.rnn_layers)
@@ -190,6 +180,7 @@ class BaseAligner(BaseModel):
                                         dropout=self.dropout_placeholder)
         elif self.config.encoder_type == "tree":
             encoder = TreeEncoder(cell_type=self.config.rnn_cell_type,
+                                  input_size=self.config.input_projection,
                                   output_size=self.config.encoder_hidden_size,
                                   dropout=self.dropout_placeholder,
                                   num_layers=self.config.rnn_layers,
@@ -222,18 +213,14 @@ class BaseAligner(BaseModel):
 
             # now embed the output
             with tf.variable_scope('output'):
-                self.output_embed_matrices = dict()
-                
-                pretrained_output_embed_matrices = self.config.output_embedding_matrix
-                for key, size in self.config.grammar.output_size.items():
-                    if self.config.grammar.is_copy_type(key):
-                        continue
-                    if key == self.config.grammar.primary_output and self.config.train_output_embeddings:
-                        self.output_embed_matrices[key] = tf.get_variable('embedding_' + key,
-                                                                          shape=(size, self.config.output_embed_size))
-                    else:
-                        self.output_embed_matrices[key] = tf.constant(pretrained_output_embed_matrices[key], name='embedding_' + key)
-                    
+                if self.config.train_output_embeddings:
+                    self.output_embed_matrix = tf.get_variable('embedding',
+                                                               shape=(self.config.output_size, self.config.output_embed_size))
+                else:
+                    self.output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
+    
+                assert self.output_embed_matrix.get_shape() == (self.config.output_size, self.config.output_embed_size)
+
         inputs = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
         # batch size x max length x embed_size
         assert inputs.get_shape()[1:] == (self.config.max_length, self.config.input_embed_size)
@@ -248,22 +235,20 @@ class BaseAligner(BaseModel):
         raise NotImplementedError()
 
     def _add_l2_helper(self, where, amount):
-        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if re.search(where, w.name)]
+        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.endswith(where)]
         regularizer = tf.contrib.layers.l2_regularizer(amount)
         return tf.contrib.layers.apply_regularization(regularizer, weights)
 
     def _add_l1_helper(self, where, amount):
-        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if re.search(where, w.name)]
-        if not weights:
-            return 0
+        weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if w.name.endswith(where)]
         regularizer = tf.contrib.layers.l1_regularizer(amount)
         return tf.contrib.layers.apply_regularization(regularizer, weights)
 
     def add_regularization_loss(self):
-
-        return self._add_l2_helper('/kernel:0$', self.config.l2_regularization) + \
-            self._add_l2_helper('/embedding(_[a-z]+)?:0$', self.config.embedding_l2_regularization) + \
-            self._add_l1_helper('/kernel:0$', self.config.l1_regularization)
+        return self._add_l2_helper('/kernel:0', self.config.l2_regularization) + \
+            self._add_l2_helper('/embedding:0', self.config.embedding_l2_regularization) + \
+            self._add_l1_helper('/kernel:0', self.config.l1_regularization) + \
+            self._add_l2_helper('/decoder/dense/kernel:0', self.config.embedding_l2_regularization)
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()
