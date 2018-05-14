@@ -27,18 +27,29 @@ from .beam_aligner import BeamAligner
 from .rpag_aligner import RPAGAligner
 from .beamdecode_aligner import BeamDecodeAligner
 
+import importlib 
+
 from .config import Config
     
 def create_model(config):
+    pkg = None
+    class_name = None
+
+    # for compat with existing configuration files
     if config.model_type == 'seq2seq':
-        model = Seq2SeqAligner(config)
+        pkg = 'seq2seq_aligner'
+        class_name = 'Seq2SeqAligner'
     elif config.model_type == 'beamsearch':
-        model = BeamAligner(config)
-    elif config.model_type == 'beamdecode':
-        model = BeamDecodeAligner(config)
+        pkg = 'beamsearch'
+        class_name = 'BeamAligner'
     elif config.model_type == 'rpag':
-        model = RPAGAligner(config)
+        pkg = 'rpag_aligner'
+        class_name = 'RPAGAligner'
+    elif config.model_type == 'extensible':
+        pkg = 'extensible_aligner'
+        class_name = 'ExtensibleGrammarAligner'
     else:
         raise ValueError("Invalid model type %s" % (config.model_type,))
     
-    return model
+    module = importlib.import_module('models.' + pkg)
+    return getattr(module, class_name)(config)

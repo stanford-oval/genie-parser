@@ -181,9 +181,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
             self._process_entities(json.load(res)['data'])
     
-    def vectorize_program(self, program, max_length=60):
+    def vectorize_program(self, sentence, program, max_length=60):
         if not self._split_device:
-            return super().vectorize_program(program, max_length=max_length)
+            return super().vectorize_program(sentence, program, max_length=max_length)
         
         if isinstance(program, str):
             program = program.split(' ')
@@ -193,10 +193,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     device = tok[:tok.rindex('.')]
                     yield '@' + device
                 yield tok
-        return super().vectorize_program(program_with_device(), max_length=max_length)
+        return super().vectorize_program(sentence, program_with_device(), max_length=max_length)
     
-    def reconstruct_program(self, sequence, ignore_errors=False):
-        reconstructed = super().reconstruct_program(sequence, ignore_errors=ignore_errors)
+    def reconstruct_program(self, input_vector, sequences, ignore_errors=False):
+        reconstructed = super().reconstruct_program(input_vector, sequences, ignore_errors=ignore_errors)
         if not self._split_device:
             return reconstructed
         else:
