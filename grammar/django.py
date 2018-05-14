@@ -342,7 +342,8 @@ class DjangoGrammar(ShiftReduceGrammar):
                                 ('$test', '$comp_for')], #fixme
 
             '$classdef': [('class', '$ident', ':',),
-                          ('class', '$ident', '(', '$testlist', ')', ':',)],
+                          ('class', '$ident', '(', '$testlist', ')', ':'),
+                          ('class', '$ident', '(', ')', ':')],
 
 
 
@@ -400,6 +401,9 @@ class DjangoGrammar(ShiftReduceGrammar):
         #HACK
         #idents.add('Exception')
         idents.add('TEMPLATE_STRING_IF_INVALID')
+        idents.add('great15914')
+        idents.add('y13277')
+        idents.add('__all__')
 
         kwlist2 = set(kwlist)
         kwlist2.add('exec')
@@ -417,7 +421,7 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.sort()
         self.num_functions = 0
         numbers = list(map(str, range(1001)))
-        numbers.extend(['1024', '1900', '2000', '2048', '100000', '1e200', '1.0'])
+        numbers.extend(['022', '1024', '1900', '2000', '2037', '2048', '3600', '15936', '16384', '86400', '100000', '1e200', '1.0', '2592000'])
         strings = ['STR' + str(i) for i in range(201)]
         strings.extend(['STR', 'STRspecial'])
         self.tokens += self.construct_parser(grammar=GRAMMAR,

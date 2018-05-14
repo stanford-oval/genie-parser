@@ -93,7 +93,7 @@
    93	return default_key_func .
    94	derive the class BaseCache from the object base class .
    95	define the initialization function __init__ with self class instance and params as arguments .
-   96	call the params.get method with string STR0 and integer 300 as arguments , use the string otimeout ' and previous result as the arguments for the call to the params.get method , substitute the result for timeout .
+   96	call the params.get method with string STR0 and integer 300 as arguments , use the string STR1 and previous result as the arguments for the call to the params.get method , substitute the result for timeout .
    97	if timeout is not None ,
    98	try ,
    99	convert timeout into an integer .
@@ -436,7 +436,7 @@
   436	define the method _createdir with argument self .
   437	if self._dir path doesnt exists ,
   438	try ,
-  439	call os.makedirs function with self._dir and hexadecimal 0o700 as arguments .
+  439	call os.makedirs function with self._dir and hexadecimal 700 as arguments .
   440	if OSError , renamed to e , exception is caught ,
   441	if e.errno is not equal to errno.EEXIST ,
   442	raise an EnvironmentError exception with string STR0 as argument , substitute STR1 with self._dir converted to a string .
@@ -691,7 +691,7 @@
   691	import module hashlib .
   692	from django.utils.encoding import force_bytes into default name space .
   693	from django.utils.http import urlquote into default name space .
-  694	TEMPLATE_FRAGMENT_KEY_TEMPLATE is a string otemplate.cache. % s. % s ' .
+  694	TEMPLATE_FRAGMENT_KEY_TEMPLATE is a string STR0 .
   695	define the function make_template_fragment_key with fragment_name and vary_on defaulting to None as arguments .
   696	if vary_on is None ,
   697	vary_on is an empty tuple .
@@ -856,7 +856,7 @@
   856	define the method run_checks with self class instance , app_configs defaulting to None , tags defaulting to None as argument .
   857	errors is an empty list .
   858	if tags is not None .
-  859	append check to checks list , for every check in self.register_checks , if check has an attribute otags ' and check.tags and tags set intersection is a non empty set .
+  859	append check to checks list , for every check in self.register_checks , if check has an attribute STR0 and check.tags and tags set intersection is a non empty set .
   860	if not .
   861	substitute self.registered_checks for checks .
   862	for every check in checks ,
@@ -867,7 +867,7 @@
   867	define the method tag_exists with self class instance and tag as arguments .
   868	return boolean True if tag is contained in self.tags_available method return value , return False otherwise .
   869	define the method tags_available with argument self .
-  870	append check.tags into a list for every check in self.registered_checks if check has otags ' attribute , put the elements into a set and return it .
+  870	append check.tags into a list for every check in self.registered_checks if check has STR0 attribute , put the elements into a set and return it .
   871	call the function CheckRegistry , substitute the result for registry .
   872	substitute registry.register for register .
   873	substitute registry.run_checks for run_checks .
@@ -1038,7 +1038,7 @@
  1038	call the os.path.getsize function with argument self.file.name , return the result .
  1039	if OSError or TypeError errors occurred .
  1040	do nothing .
- 1041	if self.file has an attribute otell STR0seek ' ,
+ 1041	if self.file has an attribute STR0 and an attribute STR1 ,
  1042	get the position of the self.file file pointer , substitute it for pos .
  1043	position the file self.file pointer at the end .
  1044	get the position of the file self.file pointer , substitute it for size .
@@ -1300,7 +1300,7 @@
  1300	content is a File object instance created with content argument .
  1301	call the method self.get_available_name with argument name , substitute it for name .
  1302	call the method self._save with arguments name and content , substitute it for name .
- 1303	replace all the strings STR0 with STR1 in the string name , use it as an argument for the call to the force_text function , return the result .
+ 1303	replace all the strings STRspecial with STR0 in the string name , use it as an argument for the call to the force_text function , return the result .
  1304	define the method det_valid_name with arguments self and name .
  1305	call the get_valid_filename with argument name , return the result .
  1306	define the method get_available_name with arguments self and name .
@@ -1364,11 +1364,11 @@
  1364	raise an IOError exception with argument string STR0 , where STR1 is replaced by directory .
  1365	endless loop ,
  1366	try ,
- 1367	if content has an attribute otemporary_file_path ' ,
+ 1367	if content has an attribute STR0 ,
  1368	call the function file_move_safe with content.temporary_file_path function result and full_path .
  1369	if not ,
  1370	evaluate binary expression with 4 operands : os.O_WRONLY , binary or os.O_CREAT , binary or os.O_EXCL , binary or STR0 attribute of the os object , or integer 0 if it doesnt exists .
- 1371	call the os.open function with full_path , flags and octal number 0o666 as arguments , substitute the result for fd .
+ 1371	call the os.open function with full_path , flags and octal number 666 as arguments , substitute the result for fd .
  1372	_file is None .
  1373	try ,
  1374	call the function locks.lock with fd and locks.LOCK_EX as arguments .
@@ -1531,7 +1531,7 @@
  1531	define the method multiple_chunks with arguments self and hunk_size set to None .
  1532	return boolean False .
  1533	derive the SimpleUploadedFile class from the InMemoryUploadedFile base class .
- 1534	define the method __init__ with 4 arguments : self , name , content and content_type defaulting to a string otext/plain ' .
+ 1534	define the method __init__ with 4 arguments : self , name , content and content_type defaulting to a string STR0 .
  1535	if content is empty , substitute it for an empty string .
  1536	call the __init__ method from the base class of the SimpleUploadedFile class with 7 arguments : BytesIO ( content ) , None , name , content_type , length of content , None and None .
  1537	decorator classmethod .
@@ -1927,7 +1927,7 @@
  1927	replace STR0 in the string STR1 with response.status_code and response.reason_phrase , respectively , substitute it for status .
  1928	convert to k and v to strings for every k and v in return value of the response.item method , response_headers is a list containing all the above iteration elements .
  1929	for every c in return value of the method response.cookies.values ,
- 1930	convert STR0 to a string and convert the return value of method c.output ( header= '' ) call to a string , format the previous in a tuple , append the tuple to the response_headers .
+ 1930	convert STR0 to a string and convert the return value of method c.output ( header= STR ) call to a string , format the previous in a tuple , append the tuple to the response_headers .
  1931	call the start_response function with force_str ( status ) method return value and response_headers as arguments .
  1932	return response .
  1933	define the get_path_info function with environ as the argument .
@@ -1964,7 +1964,7 @@
  1964	if connection exists dont modify it , if not call get_connection function with username set to auth_user , password set to auth_password , fail_silently set to fail_silently as arguments , assign it to connection .
  1965	call the EmailMultiAlternatives function with , subject , message , from_email , recipient_list and connection set to connection , as arguments , assign the result to mail .
  1966	if html_message is True ,
- 1967	call the mail.attach_alternative method with html_message and string otext/html ' as arguments .
+ 1967	call the mail.attach_alternative method with html_message and string STR0 as arguments .
  1968	return the evaluated result of the mail.send method .
  1969	define the function send_mass_mail with , datatuple , fail_silently set to False , auth_user set to None , auth_password set to None ,
  1970	if connection exists dont change it , if not call the get_connection function with username set to auth_user , password set to auth_password , fail_silently set to fail_silently as arguments , assign the result to connection .
@@ -1975,14 +1975,14 @@
  1975	return nothing .
  1976	call the function EmailMultiAlternatives with settings.EMAIL_SUBJECT_PREFIX and subject converted to strings and concatenated , message , settings.SERVER_EMAIL , list of second elements of a for every a in settings.Managers and connection set to connection , as arguments , assign the result to mail .
  1977	if html_message is true ,
- 1978	call method mail.attach_alternative as html_message and string otext/hmtl ' as arguments .
+ 1978	call method mail.attach_alternative as html_message and string STR0 as arguments .
  1979	call the mail.send method with fail_silently=fail_silently as argument .
  1980	define the function mail_managers with subject , message , fails_silently set to boolean False , connection set to None ,
  1981	if settings.MANAGERS does not exist ,
  1982	return nothing .
  1983	call the function EmailMultiAlternatives with settings.EMAIL_SUBJECT_PREFIX and subject converted to strings and concatenated , message , settings.SERVER_EMAIL , list of second elements of a for every a in settings.Managers and connection set to connection , as arguments , assign the result to mail .
  1984	if html_message is true ,
- 1985	call the mail.attach_alternative method with html_message and string otext/html ' as arguments .
+ 1985	call the mail.attach_alternative method with html_message and string STR0 as arguments .
  1986	call the mail.send method with fail_silently set to fail_silently as argument .
  1987	derive the class BaseEmailBackend from the object base class .
  1988	define the method __init__ with arguments : self , fail_silently set to boolean False and unpacked dictionary kwargs .
@@ -2126,7 +2126,7 @@
  2126	substitute smtplib.SMTP_SSL for connection_class if self.use_ssl is true , if not substitute smtplib.SMTP for connection_class .
  2127	connection_params is a dictionary with 1 initial entry : return value of the function DNS_NAME.get_fqdn for STR0 .
  2128	if self.timeout is not None ,
- 2129	set value under the otimeout ' key of the connection_params to self.timeout .
+ 2129	set value under the STR0 key of the connection_params to self.timeout .
  2130	try ,
  2131	self.connection is a instance of a class contained in connection_class , instantiated with arguments : self.host , self.port , and unpacked dictionary connection_params .
  2132	if self.use_ssl and self.use_tls are false ,
@@ -2219,7 +2219,7 @@
  2219	substitute DNS_NAME for idhost .
  2220	msgid is a string STR0 , replace STR1 with utcdate , pid , randint , idstring and idhost , respectively .
  2221	return msgid .
- 2222	ADDRESS_HEADERS is a set containing strings : STR0 , STR1 , STR2 , oto STR3cc STR4bcc STR5resent-from STR6resent-sende STR7resent-to STR8resent-cc STR9resent-bcc ' .
+ 2222	ADDRESS_HEADERS is a set containing strings : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 and STR10 .
  2223	define the function forbid_multi_line_headers with arguments : name , val and encoding .
  2224	if encoding does not exists substitute it for settings.DEFAULT_CHARSET .
  2225	call the function force_text with argument val , substitute it for val .
@@ -2285,7 +2285,7 @@
  2285	call the method self.set_charset with utf8_charset as an argument .
  2286	if not ,
  2287	call the method payload.decode with 2 arguments : text and utf8_charset , substitute the result for self._payload .
- 2288	call the method self.replace_header with argument string STR1 , otext/ % s ; charset= STR0 STR2 % s ' symbols are replaced by : subtype and charset , respectively .
+ 2288	call the method self.replace_header with argument string STR1 , STR2 , where STR3 symbols are replaced by : subtype and charset , respectively .
  2289	if not ,
  2290	call the method MIMEText.__init__ with 4 arguments : self , text , subtype and charset .
  2291	define the method __setitem__ with arguments self , name and val .
@@ -2344,7 +2344,7 @@
  2344	if message-id ' is not in header_names ,
  2345	call the make_msgid function , substitute it for value under the STR0 key of msg dictionary .
  2346	for every name and value in return value of the method self.extra_headers.items ,
- 2347	convert name to lower case if it equals to string STR0 or oto ,
+ 2347	convert name to lower case if it equals to string STR0 or 'to ,
  2348	skip this loop execution ,
  2349	substitute value for value under name key of msg dictionary .
  2350	return msg .
@@ -2384,7 +2384,7 @@
  2384	return msg .
  2385	define the method _create_mime_attachment with arguments self , content and mimetype .
  2386	call the method mimetype.split with arguments : character STR0 and integer 1 , substitute the result for basetype and subtype , respectively .
- 2387	if basetype equals a string otext ' ,
+ 2387	if basetype equals a string STR0 ,
  2388	if self.encoding exists substitute it for encoding , if not substitute settings.DEFAULT_CHARSET for encoding .
  2389	attachment is an instance of a class SafeMIMEText , created with arguments : content , subtype and encoding .
  2390	otherwise if basetype equals a string STR0 and subtype equals a string STR1 ,
@@ -2668,7 +2668,7 @@
  2668	if self has an STR0 attribute , has_old_option is boolean True , otherwise it is boolean False .
  2669	if self has an STR0 attribute , has_new_option is boolean True , otherwise it is boolean False .
  2670	if has_old_option is true ,
- 2671	call the function warnings.warn with 2 arguments : string STR2 STR3 and RemovedInDjango19Warning .
+ 2671	call the function warnings.warn with 2 arguments : string STR2 and RemovedInDjango19Warning .
  2672	if has_old_option and has_new_option are both true ,
  2673	raise an ImproperlyConfigured exception wiht an argument string STR1
  2674	STR2 , replace STR3 for self.__class__.__name__ . call the method self.requires_system_checks with an argument : self.requires_system_checks if has_new_option is true , or if it is false , but has_old_option is true use self.requires_model_validation , if they are both false use boolean True as an argument .
@@ -2685,10 +2685,10 @@
  2685	return usage .
  2686	define the method create_parser with 3 arguments : self , prog_name and subcommand .
  2687	if self.use_argparse is false ,
- 2688	call the function warnings.warn with 2 arguments : string STR0 STR1 and RemovedInDjango20Warning .
+ 2688	call the function warnings.warn with 2 arguments : string STR0 and RemovedInDjango20Warning .
  2689	parser is an instance of the object OptionParser , created with arguments : prog set to prog_name , usage set to return value of the method self.usage called with an argument subcommand , version set to return value of the method self.get_version .
  2690	call the method parser.add_option with 8 arguments : string STR0 , string STR1 , action set to string STR2 , dest set to string STR3 , default set to string STR4 , type set to string STR5 , choices is a list containing elements : STR6 , STR7 , STR8 , STR9 , and help as a string STR10 .
- 2691	call the method parser.add_option with 2 arguments : string STR1 and help as a string 'The Python path to a settings module , e.g . STR0 . If this isn\ot provided , the DJANGO_SETTINGS_MODULE environment variable will be used .
+ 2691	call the method parser.add_option with 2 arguments : string STR1 and help as a string 'The Python path to a settings module , e.g . STR0 . If this isnSTRt provided , the DJANGO_SETTINGS_MODULE environment variable will be used .
  2692	call the method parser.add_option with 2 arguments : string STR1 and help set to string STR2 .
  2693	call the method parser.add_option with 3 arguments : string STR0 , action set to a string STR1 , and help= STR2 .
  2694	call the method parser.add_option with 5 arguments : string STR1 , action set to a string STR2 , dest set to string STR3 default set to boolean False and help set to a string STR0 .
@@ -2746,7 +2746,7 @@
  2746	saved_locale is None .
  2747	if self.leave_locale_alone is false ,
  2748	if self.can_import_settings is false ,
- 2749	raise an CommandError exception with an argument string , STR0 STR1 , replace STR2 with self.leave_locale_alone and self.can_import_settings .
+ 2749	raise an CommandError exception with an argument string , STR0 , replace STR1 with self.leave_locale_alone and self.can_import_settings .
  2750	from django.utils import translation into default namespace .
  2751	call the method translation.get_language , substitute th result for saved_locale .
  2752	call the method translation.activate with an argument string STR0 .
@@ -2846,7 +2846,7 @@
  2846	derive the NoArgsCommand class from the BaseCommand base class .
  2847	args is an empty string .
  2848	define the method __init__ with an argument self .
- 2849	call the function warnings.warn with 2 arguments : string STR0 STR1 and RemovedInDjango20Warning .
+ 2849	call the function warnings.warn with 2 arguments : string STR0 and RemovedInDjango20Warning .
  2850	call the __init__ method from the base class of the NoArgsCommand class .
  2851	define the method handle with 3 arguments : self , unpacked list args and unpacked dictionary options .
  2852	if args is true ,
@@ -2896,7 +2896,7 @@
  2896	requires_system_checks is boolean False .
  2897	define the method add_arguments with arguments self and parser .
  2898	call the method parser.add_argument with 3 arguments : string STR0 , metavar set to string STR1 and nargs set to STR2 .
- 2899	call the method parser.add_argument with 5 arguments : string STR0 , string STR1 , action set to string STR2 , dest set to string otags STR3Run only checks labeled with given tag . ' .
+ 2899	call the method parser.add_argument with 5 arguments : string STR0 , string STR1 , action set to string STR2 , dest set to string STR3 and help set to string STR4 .
  2900	call the method parser.add_argument with 4 arguments : string STR0 , action set to string STR1 , dest set to string STR2 and help set to string STR3 .
  2901	define method handle with arguments self , unapcked list app_labels and unpacked dictionary options .
  2902	if value under the STR0 key of options dictionay is true ,
@@ -2906,7 +2906,7 @@
  2906	call the method apps.get_app_config with an argument app_label , for every app_label in app_labels , append the results to a list , substitute the resulting list for app_config .
  2907	if not ,
  2908	app_configs is None .
- 2909	get the value under the otags ' key of the options dictionary , if it exists substitute it for tags , if not , tags is None .
+ 2909	get the value under the STR0 key of the options dictionary , if it exists substitute it for tags , if not , tags is None .
  2910	if tags exists and if all elements in the return value of the method checks.tag_exists called with an argument tag ,
  2911	for every tag in tags , are false , for every tag in tags , if return value of the method checks.tag_exists called with an argument tag , evaluates to false , use tag as an argument to call the iterator method next , substitute the result for invalid_tag .
  2912	raise an CommandError exception with an argument string STR1 , where STR2 is replaced with invalid_tag .
@@ -2921,7 +2921,7 @@
  2921	define the function has_bom with fn as argument .
  2922	open the file fn in read mode , with file descriptor as f ,
  2923	read 4 bytes from file f and store it in sample .
- 2924	evaluate the boolean expression , if first three characters of sample equals to string of bytes STR0 , of if sample starts with codecs.BOM_UTF16_LE or sample starts with codecs.BOM_UTF16_BE , return the evaluated boolean expression .
+ 2924	evaluate the boolean expression , if first three characters of sample equals to string of bytes '\xef\xbb\xbfSTR , of if sample starts with codecs.BOM_UTF16_LE or sample starts with codecs.BOM_UTF16_BE , return the evaluated boolean expression .
  2925	define the function is_writable with path as argument ,
  2926	try ,
  2927	with open file path in append mode ,
@@ -2998,7 +2998,7 @@
  2998	help is an string STR0 .
  2999	requires_system_checks is boolean False .
  3000	define the method add_arguments with arguments self and parser .
- 3001	call the method parser.add_argument with 4 arguments : string STR0 , metavar set to string otable_name STR1* STR2Optional table names .
+ 3001	call the method parser.add_argument with 4 arguments : string STR0 , metavar set to string STR1 , nargs set to STR2 character , and help set to a string 'Optional table names .
  3002	Otherwise , settings.CACHES is used to find cache tables . STR0 -- database STR1store STR2database STR3Nominates a database onto which the cache tables will be installed .
  3003	Defaults to the STR0 database . ' define the method handle with arguments self , unpacked list tablenames and unpacked dictionary options .
  3004	get value under the STR0 key of the options dictionary , substitute it for db .
@@ -3091,7 +3091,7 @@
  3091	from django.db import router and DEFAULT_DB_ALIAS into default name space .
  3092	from django.utils.deprecation import RemovedInDjango19Warning into default name space .
  3093	derive the class Command from the BaseCommand base class .
- 3094	help is a tuple containing a string STR0 STR1 .
+ 3094	help is a tuple containing a string STR0 .
  3095	define the method add_arguments with arguments self and parser .
  3096	call the method parser.add_argument with 4 arguments : string STR0 , metavar set to string STR1 , nargs set to STR2 and help is a string STR3 .
  3097	call the method parser.add_argument with 4 arguments : string STR0 , default set to string STR1 , dest set to STR2 and help is a string STR3 .
@@ -3102,7 +3102,7 @@
  3102	call the method parser.add_argument with 5 arguments : string STR0 , action set to string STR1 , dest is string STR2 , default is boolean False and help is a string STR3 .
  3103	call the method parser.add_argument with 5 arguments : string STR0 , action set to STR1 , dest is STR2 , default is boolean False and help is a string STR3 .
  3104	call the method parser.add_argument with 6 arguments : string STR0 , string STR1 , action set to STR2 , dest is STR3 , default is boolean False and help is a string STR4 .
- 3105	call the method parser.add_argument with 3 arguments : string STR2 , dest set to string STR3 , and help is a string STR0 STR1 .
+ 3105	call the method parser.add_argument with 3 arguments : string STR1 , dest set to string STR2 , and help is a string STR0 .
  3106	call the method parser.add_argument with 5 arguments : string STR0 , string STR1 , default is None , dest set to string STR2 , and help is a string STR3 .
  3107	define the method handle with arguments self , unpacked list app_labels and unpacked dictionary options .
  3108	get the value under the STR0 key of the options dictionary , substitute the result for format .
@@ -3110,7 +3110,7 @@
  3110	get the value under the STR0 key of the options dictionary , substitute the result for database .
  3111	get the value under the STR0 key of the options dictionary , substitute the result for exclude .
  3112	get the value under the STR0 key of the options dictionary , substitute the result for output .
- 3113	get the value under the otraceback ' key of the options dictionary , substitute the result for traceback .
+ 3113	get the value under the STR0 key of the options dictionary , substitute the result for traceback .
  3114	get the value under the STR0 key of the options dictionary , substitute the result for use_natural_keys .
  3115	if use_natural_keys is true ,
  3116	call the function warnings.warn with an argument string STR0 , and RemovedInDjango19Warning .
@@ -3220,7 +3220,7 @@
  3220	if not ,
  3221	deps is an empty list .
  3222	for every field in model._meta.fields ,
- 3223	if field.rel has an oto ' attribute ,
+ 3223	if field.rel has an STR0 attribute ,
  3224	substitute field.rel.to with rel_model .
  3225	if rel_model has an attribute STR0 and rel_model is not equal to model ,
  3226	append rel_model to deps .
@@ -3261,7 +3261,7 @@
  3261	from django.utils.six.moves import input into default name space .
  3262	from django.utils import six into default name space .
  3263	derive the class Command from the BaseCommand base class .
- 3264	help is a tuple containing a string : STR1 STR2
+ 3264	help is a tuple containing a string : STR1
  3265	define the add_arguments with arguments self and parser .
  3266	call the method parser.add_argument with 5 arguments : string STR0 , action set to string STR1 , dest set to string STR2 , default set to boolean True , help as a string STR3 .
  3267	call the method parser.add_argument with 5 arguments : string STR1 , action set to string STR2 , dest as a string STR3 , default set to DEFAULT_DB_ALIAS and help as a string STR4 .
@@ -3282,7 +3282,7 @@
  3282	do nothing .
  3283	call the method sql_flush with 5 arguments : self.style , connection , only_django set to boolean True , reset_sequences set to reset_sequences , allow_cascade set to allow_cascade , substitute the result for sql_list .
  3284	if interactive is true ,
- 3285	request user input from the standard input , assign it o confirm , with the query string : STR0 STR1 STR2Type STR3 to continue , or STR4 to cancel : `` , where STR5 is replaced with value under the STR6 key of the connection.settings_dict dictionary .
+ 3285	request user input from the standard input , assign it o confirm , with the query string : STR0Type STR1 to continue , or STR2 to cancel : `` , where STR3 is replaced with value under the STR4 key of the connection.settings_dict dictionary .
  3286	if not ,
  3287	confirm is a string STR0 .
  3288	if confirm equals a string STR0 ,
@@ -3293,7 +3293,7 @@
  3293	call the method cursor.execute with an argument sql .
  3294	if Exception , renamed to e , exception is caught , new_msg is a tuple containing a string : `` Database % s couldnot be flushed .
  3295	Possible reasons : \n ''
- 3296	STR0 STR1 STR2 , where STR3 is replaced by value under the STR4 key of the connection.settings_dict dictionary and e. call the function six.reraise with 3 arguments : CommandError , CommandError created with argument new_msg , and third element of the return value of the function sys.exc_info .
+ 3296	STR0 , where STR1 is replaced by value under the STR2 key of the connection.settings_dict dictionary and e. call the function six.reraise with 3 arguments : CommandError , CommandError created with argument new_msg , and third element of the return value of the function sys.exc_info .
  3297	if inhibit_post_migrate is false ,
  3298	call the method self.emit_post_migrate with arguments verbosity , interactive and database .
  3299	if value under the STR0 key of the options dictionary is true ,
@@ -3326,9 +3326,9 @@
  3326	raise an CommandError exception with an argument STR0 .
  3327	define the method handle_inspection with 2 argument : self and options .
  3328	get value under the STR0 key of the options dictionary , use it as a key to get the value from the connections dictionary , substitute the result for connection .
- 3329	get the value under the otable_name_filter ' key of the options dictionary , substitute it for table_name_filter .
+ 3329	get the value under the STR0 key of the options dictionary , substitute it for table_name_filter .
  3330	table2model is a lambda function with an argument table_name , return value is the return value of the re.sub method , called with 3 arguments : raw string STR0 , empty string and result of the method table_name.title .
- 3331	strip_prefix is a lambda function with an argument s , return value is s without the first element if s starts with string STR0 ' , otherwise returns s .
+ 3331	strip_prefix is a lambda function with an argument s , return value is s without the first element if s starts with string 'u STR , otherwise returns s .
  3332	call the method connection.cursor , with the result as cursor ,
  3333	yield string STR0 as the result .
  3334	yield string STR0 as the result .
@@ -3379,7 +3379,7 @@
  3379	if rel_to is contained in known_models ,
  3380	append rel_to to string 'ForeignKey ( , substitute the result for field_type .
  3381	if not ,
- 3382	append rel_to to string 'ForeignKey ( , append character STR0 to it , substitute the result for field_type .
+ 3382	append rel_to to string 'ForeignKey ( , append character STR to it , substitute the result for field_type .
  3383	if not ,
  3384	call the method self.get_field_type with 3 arguments connection , table_name and row , assign the result to field_type , field_params , field_notes , respectively .
  3385	add field_params to extra_params dictionary .
@@ -3519,9 +3519,9 @@
  3519	self.fixture_object_count is integer 0 .
  3520	self.models is an empty set .
  3521	call the method serializers.get_public_serializer_formats , substitute the result for self.serialization_formats .
- 3522	self.compression_formats is an dictionary with 3 initial entries : tuple containing 2 elements : open and string STR0 for None , tuple with 2 arguments : gzip.GzipFile and string STR1 for STR2 , tuple with 2 arguments : SingleZipReader and string STR3gzip ' .
+ 3522	self.compression_formats is an dictionary with 3 initial entries : tuple containing 2 elements : open and string STR0 for None , tuple with 2 arguments : gzip.GzipFile and string STR1 for STR2 , tuple with 2 arguments : SingleZipReader and string STR for STR3 .
  3523	if has_bz2 is true ,
- 3524	substitute tuple with 2 elements : bz2.BZ2File and string STR0bz2 ' key of the self.compression_formats dictionary .
+ 3524	substitute tuple with 2 elements : bz2.BZ2File and string STR for value under the STR0 key of the self.compression_formats dictionary .
  3525	call the method connection.constraint_checks_disabled , with the result perform ,
  3526	for every fixture_label in fixture_labels ,
  3527	call the method self.load_label with an argument fixture_label .
@@ -3753,7 +3753,7 @@
  3753	call the function io.open with 3 arguments : potfile , string STR0 and encoding set to string STR1 as arguments , with the result renamed to fp , perform the following :
  3754	call the method fp.write with an argument msgs .
  3755	derive the class Command from the BaseCommands base class .
- 3756	help is a string STR0 STR1 STR2 STR3 STR4 .
+ 3756	help is a string STR0 .
  3757	requires_system_checks is boolean False .
  3758	leave_locale_alone is boolean True
  3759	msgmerge_options is an list with elements : strings STR0 and STR1 .
@@ -3765,8 +3765,8 @@
  3765	call the method parser.add_argument with 5 arguments : string STR0 , string STR1 , default as a empty list , dest as a string STR2 , action as a string STR3 and help as a string STR4 .
  3766	call the method parser.add_argument with 5 arguments : string STR1 , string STR2 , default as a string STR3 , dest set to string STR4 and help as a string STR5 .
  3767	call the method parser.add_argument with 6 arguments : string STR0 , string STR1 , action as a string STR2 , dest as a string STR3 default as boolean False and help as a string STR4 .
- 3768	call the method parser.add_argument with 5 arguments : string STR3 , string STR4 , dest set to string STR5 , help set to a string STR6 STR7 and action as a string STR8 .
- 3769	call the method parser.add_argument with 6 arguments : string STR0 , string STR1 , action as a string STR2 , dest as a string STR3 , default as boolean False and help as a string STR4 STR5 .
+ 3768	call the method parser.add_argument with 5 arguments : string STR3 , string STR4 , dest set to string STR5 , help set to a string STR6 and action as a string STR7 .
+ 3769	call the method parser.add_argument with 6 arguments : string STR0 , string STR1 , action as a string STR2 , dest as a string STR3 , default as boolean False and help as a string STR4 .
  3770	call the method parser.add_argument with 7 arguments : string STR0 , string STR1 , action as a string STR2 , dest as a string STR3 , default as an empty list , metavar as a string STR4 , and help as a string STR5 .
  3771	call the method parser.add_argument with 5 arguments : string STR1 , action as a string STR2 , dest as a string STR3 , default set to boolean True , and help as a string STR0 .
  3772	call the method parser.add_argument with 5 arguments : string STR1 , action as a string STR2 , dest as a string STR3 , default as boolean False and help as a string STR0 .
@@ -3802,7 +3802,7 @@
  3802	if self.domain equals to string STR0 ,
  3803	if extensions is false , substitute it for exts , otherwise exts is a list containing string STR0 .
  3804	if not ,
- 3805	if extensions is false , substitute it for exts , otherwise exts is a list containing 2 elements : string STR0 and string otxt ' .
+ 3805	if extensions is false , substitute it for exts , otherwise exts is a list containing 2 elements : string STR0 and string STR1 .
  3806	call the function handle_extensions exts , substitute self.extensions .
  3807	evaluate the boolean expression : locale is None and exclude is false and process_all is false ,
  3808	if the result is true or self.domain is not None , raise an CommandError exception with an argument string STR0 , where STR1 are replaced by : return value of the function os.path.basename called with first element of sys.argv as an argument , and second element of sys.argv .
@@ -3929,7 +3929,7 @@
  3929	otherwise if self.verbosity is greater than integer 0 ,
  3930	write errors to self.stdout .
  3931	if not ,
- 3932	call the function io.open with 3 arguments : potfile , string STR0utf-8 ' as arguments ,
+ 3932	call the function io.open with 3 arguments : potfile , string STR and encoding set to string STR0 as arguments ,
  3933	with the result renamed to fp , perform the following : read file fp and substitute the result for msgs .
  3934	if self.invoked_for_django is false ,
  3935	call the method self.copy_plural_forms with arguments : msgs and locale , substitute it for msgs .
@@ -3953,7 +3953,7 @@
  3953	for every domain in domains ,
  3954	join into a file path : django_dir , STR0 , STR1 , locale , STR2 and string STR3 appended to domain , substitute the result for django_po .
  3955	if django_po file path exists ,
- 3956	call the function io.open with 3 arguments : django_po , string STR0utf-8 ' as arguments ,
+ 3956	call the function io.open with 3 arguments : django_po , string STR and encoding set to string STR0 as arguments ,
  3957	with the result renamed to fp , perform the following : read data from file fp , use the result as an argument for the call to the function plural_forms_re.search , substitute it for m .
  3958	if m is true ,
  3959	call the method m.group with an argument string STR0 , use the result as an argument for the call to the force_str , substitute the result for plural_form_line .
@@ -4132,9 +4132,9 @@
  4132	define the method handle with self instance of a class , list args , dictionary options as arguments .
  4133	get the value from the options dictionary under the key STR0 , substitute it for self.verbosity .
  4134	get the value from the options dictionary under the key STR0 , substitute it for self.interactive .
- 4135	get the value from the options dictionary under the key otraceback ' , substitute it for self.show_traceback .
+ 4135	get the value from the options dictionary under the key STR0 , substitute it for self.show_traceback .
  4136	get the value from the options dictionary under the key STR0 , substitute it for self.load_initial_data .
- 4137	get the value from the options dictionary under the key otest_database ' , or False if the key dont exists , substitute it for self.test_database .
+ 4137	get the value from the options dictionary under the key STR0 , or False if the key dont exists , substitute it for self.test_database .
  4138	for every app_config in return value of the call to the function apps.get_app_configs ,
  4139	if call to the function module_has_submodule with app_config.module and STR0 evaluates to True .
  4140	import module STR0 from the package app_config.name .
@@ -4190,7 +4190,7 @@
  4190	call the self.sync_apps method with connection and executor.loader.unmigrated_apps as arguments , substitute it for created_models .
  4191	if not ,
  4192	create_models is an empty list .
- 4193	if the value under the otest_flush ' key of the options dictionary exists ,
+ 4193	if the value under the STR0 key of the options dictionary exists ,
  4194	call the function call_command with string STR0 , verbosity set to greater element , self.verbosity decremented by 1 or integer 0 , interactive set to boolean False , database set to db , reset_sequences set to boolean False , inhibit_post_migrate set to boolean True .
  4195	if self.verbosity is greater or equal to integer 1 ,
  4196	call the self.style.MIGRATE_HEADING method with string STR0 as an argument , use the result as an argument for the call to the self.stdout.write method .
@@ -4208,7 +4208,7 @@
  4208	define the method migration_progress_callback with self class instance , action , migration and fake set to boolean False as arguments .
  4209	if self.verbosity is greater or equal to integer 1 ,
  4210	if action equals to string STR0 ,
- 4211	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .
+ 4211	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to STR , as arguments .
  4212	flush the output buffer of the self.stdout object .
  4213	otherwise if action equals to string STR0 ,
  4214	if fake is true ,
@@ -4216,7 +4216,7 @@
  4216	if not ,
  4217	wrte to the standard output result of the call to the method self.style.MIGRATE_SUCCESS with string STR0 as a argument .
  4218	otherwise if action equals to string STR0 .
- 4219	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to '' , as arguments .
+ 4219	call the self.stdout.write method , with string STR0 with STR1 replaced with migration and ending set to STR , as arguments .
  4220	flush the output buffer of the self.stdout object .
  4221	otherwise if action equals to string STR0 .
  4222	if fake is true ,
@@ -4428,7 +4428,7 @@
  4428	call the function datetime.now , on the result call the method strftime with an argument string STR0 , substitute the result for now .
  4429	if six.PY2 is true ,
  4430	call the method now.decode with an argument string STR0 , substitute the result for now .
- 4431	call the method self.stdout.write with an argument : string STR0 STR1 , where STR2 is replaced with now , STR3 is replaced with return value of the method self.get_version , STR4 is replaced with settings.SETTINGS_MODULE , STR5 is replaced with self.addr if self._raw_ipv6 is true , or with self.addr if it is false , STR6 is replaced with self.port and STR7 is replaced with quit_command .
+ 4431	call the method self.stdout.write with an argument : string STR0 , where STR1 is replaced with now , STR2 is replaced with return value of the method self.get_version , STR3 is replaced with settings.SETTINGS_MODULE , STR4 is replaced with self.addr if self._raw_ipv6 is true , or with self.addr if it is false , STR5 is replaced with self.port and STR6 is replaced with quit_command .
  4432	call the method translation.activate with an argument settings.LANGUAGE_CODE .
  4433	try ,
  4434	call the method self.get_handler with 2 arguments unpacked list args and unpacked dictionary options , substitute the result for handler .
@@ -4764,14 +4764,14 @@
  4764	if ImportError exception is caught ,
  4765	do nothing .
  4766	in not ,
- 4767	raise an CommandError exception with an argument string STR0 STR1 , where STR2 is replaced with app_name .
+ 4767	raise an CommandError exception with an argument string STR0 , where STR1 is replaced with app_name .
  4768	call the method handle from the base class of Command class , with 4 arguments : string STR0 , app_name , target and unpacked dictionary options .
  4769	from importlib import import_module into default name space .
  4770	from django.core.management.base import CommandError into default name space .
  4771	from django.core.management.templates import TemplateCommand into default name space .
  4772	from django.utils.crypto import get_random_string into default name space .
  4773	derive class Command from the TemplateCommand base class .
- 4774	help is a tuple containing string STR0 STR1 .
+ 4774	help is a tuple containing string STR0 .
  4775	missing_args_message is a string STR0 .
  4776	define the method handle with arguments self and unpacked dictionary options .
  4777	remove the elements from the STR0 and STR1 keys of the options dictionary , substitute them for project_name and target , respectively .
@@ -4837,11 +4837,11 @@
  4837	break the loop execution .
  4838	call the run_from_argv function from the base class of the Command class with argv as a argument , .
  4839	define the method add_arguments with arguments self and parser .
- 4840	call the method parser.add_argument with 4 arguments : string STR0 , metavar set to string otest_label STR1* STR2Module paths to test ; can be modulename , modulename.TestCase or modulename.TestCase.test_method ' .
+ 4840	call the method parser.add_argument with 4 arguments : string STR0 , metavar set to string STR1 , nargs set to string STR2 , and help is a string STR3 .
  4841	call the method parser.add_argument with 5 arguments : string STR0 , action set to STR1 , dest set to STR2 , default set to boolean True , help set to string STR3 .
  4842	call the method parser.add_argument with 5 arguments : string STR0 , action set to string STR1 , dest set to STR2 , default set to boolean False and help set to string STR3 .
- 4843	call the method parser.add_argument with 4 arguments : string STR0 , action set to string STR1 , dest set to otestrunne STR2Tells Django to use specified test runner class instead of the one specified by the TEST_RUNNER setting . ' .
- 4844	call the method parser.add_argument with 5 arguments : string STR0 , action set to string STR1 , dest set to STR2 , default set to None and help set to string STR3 STR4
+ 4843	call the method parser.add_argument with 4 arguments : string STR0 , action set to string STR1 , dest set to STR2 , and help set to a string STR3 .
+ 4844	call the method parser.add_argument with 5 arguments : string STR0 , action set to string STR1 , dest set to STR2 , default set to None and help set to string STR3
  4845	call the function get_runner with arguments settings and self.test_runner , substitute the result for test_runner_class .
  4846	if test_runner_class has an STR0 attribute ,
  4847	raise an RuntimeError exception with an argument string STR0
@@ -4858,7 +4858,7 @@
  4858	define the method handle with 3 arguments : self , unpacked list test_labels and unpacked dictionary options .
  4859	from django.conf import settings into default namespace .
  4860	from django.test.utils import get_runner into default namespace .
- 4861	call the method get_runner with 2 arguments : settings and value under the otestrunner ' key of the options dictionary , substitute it for the TestRunner .
+ 4861	call the method get_runner with 2 arguments : settings and value under the STR0 key of the options dictionary , substitute it for the TestRunner .
  4862	if value under the STR0 key of the options dictionary is not None ,
  4863	substitute value under the STR0 key of the options dictionary for value under the STR1 key of the os.environ dictionary .
  4864	delete the value under the STR0 key of the options dictionary .
@@ -5118,7 +5118,7 @@
  5118	from django.conf import settings into a default name space ,
  5119	if settings.configured is false ,
  5120	call the method settings.configure .
- 5121	call the method self.handle_template with 2 arguments : value under the otemplate ' key of the options dictionary and base_subdir .
+ 5121	call the method self.handle_template with 2 arguments : value under the STR0 key of the options dictionary and base_subdir .
  5122	increment length of template_dir by one and substitute it for prefix_length .
  5123	for every root , dirs and files in subdirectory tree starting from the base dir template_dir ,
  5124	slice root starting from the prefix_length index to the end , substitute it for path_rest .
@@ -5744,7 +5744,7 @@
  5744	from yaml import SafeLoader , SafeDumper into default name space .
  5745	derive the class DjangoSafeDumper from the SafeDumper base class .
  5746	define the method represent_decimal with arguments self and data .
- 5747	call the method self.represent_scalar with 2 arguments : string otag : yaml.org,2002 : str ' and data converted into a string , return the result .
+ 5747	call the method self.represent_scalar with 2 arguments : string STR0 and data converted into a string , return the result .
  5748	call the method DjangoSafeDumper.add_representer with arguments decimal.Decimal and DjangoSafeDumper.represent_decimal .
  5749	derive the class Serializer from the PythonSerializer base class .
  5750	internal_use_only is a boolean False .
@@ -5808,7 +5808,7 @@
  5808	call the method self.xml.endElement with an argument string STR0 .
  5809	define the method handle_field with arguments self , obj and field .
  5810	call the method self.indent with argument integer 2 .
- 5811	call the method self.xml.startElement with 2 arguments : string STR0 and a dictionary containing 2 entries : field.name for STR1 , and return value of the field.get_internal_type method for otype ' .
+ 5811	call the method self.xml.startElement with 2 arguments : string STR0 and a dictionary containing 2 entries : field.name for STR1 , and return value of the field.get_internal_type method for STR2 .
  5812	if field.name attribute of obj is not None ,
  5813	call the method field.value_to_string with an argument obj , use the result as an argument for the call the method self.xml.characters .
  5814	if not ,
@@ -5851,7 +5851,7 @@
  5851	define the method _start_relational_field with arguments self and field .
  5852	call the method self.indent with argument integer 2 .
  5853	call the method self.xml.startElement with 2 arguments : string STR0 and dictionary containing 3 entries : field.name for STR1 ,
- 5854	field.rel.__class__.__name__ for STR0 and return value of the function smart_text with an argument field.rel.to._meta for oto ' . derive the class Deserializer from the base.Deserializer base class .
+ 5854	field.rel.__class__.__name__ for STR0 and return value of the function smart_text with an argument field.rel.to._meta for STR1 . derive the class Deserializer from the base.Deserializer base class .
  5855	define the method __init__ with 3 arguments : self , stream_or_string and unpacked dictionary options .
  5856	call the method __init__ from the base class of the Deserializer class with arguments stream_or_string and unpacked dictionary options .
  5857	call the method pulldom.parse with arguments : self.stream and return value of the method self._make_parser ,
@@ -6095,7 +6095,7 @@
  6095	if value under the STR0 key of the options dictionary equals to string STR1 or STR2 ,
  6096	wsgi_opts is a dictionary with 4 initial entries : value under the key STR0 of options dictionary converted to an integer , for STR1 , value under the key STR2 of options dictionary converted to an integer for STR3 , value under the key STR4 of options dictionary converted to an integer , for STR5 , and value under the key STR6 of options dictionary converted to an integer , for STR7 .
  6097	append string STR0 to flup_module .
- 6098	otherwise if value under the STR0 key of optins dictionary equals to string othread STR1 ,
+ 6098	otherwise if value under the STR0 key of optins dictionary equals to string STR1 or STR2 ,
  6099	wsgi_opts is a dictionary with 4 initial entries : value under the key STR0 of options dictionary converted to an integer , for STR1 , value under the key STR2 of options dictionary converted to an integer for STR3 , and value under the key STR4 of options dictionary converted to an integer , for STR5 .
  6100	if not ,
  6101	call the function fastcgi_help with an argument string STR0 , return the result .
@@ -6118,7 +6118,7 @@
  6118	if value under the STR0 of options dictionary is None ,
  6119	if the value under the STR0 key of the wsgi_opts dictionary is not None , set daemonize to boolean True , if not , set it to boolean False .
  6120	if not ,
- 6121	convert the value under the STR0 key of options dictionary to lowercase , if it equals to string otrue STR1yes STR2 ,
+ 6121	convert the value under the STR0 key of options dictionary to lowercase , if it equals to string STR1 , STR2 or STR3 ,
  6122	daemonize is boolean True .
  6123	convert the value under the STR0 key of options dictionary to lowercase , if it equals to string STR1 , STR2 or STR3 ,
  6124	daemonize is boolean False .
@@ -6469,7 +6469,7 @@
  6469	try ,
  6470	call the method pattern.resolve with an argument new_path , substitute the result for sub_match .
  6471	if Resolver404 , renamed to e , exception is caught ,
- 6472	call the get method with an argument string otried ' on the first element of the e.args , substitute the result for sub_tried .
+ 6472	call the get method with an argument string STR0 on the first element of the e.args , substitute the result for sub_tried .
  6473	if sub_tried is not None ,
  6474	call the method tried.extend with an argument : t added to a list containing element pattern , for every t in sub_tried .
  6475	if not ,
@@ -6480,7 +6480,7 @@
  6480	call the method sub_match_dict.update with an argument sub_match.kwargs .
  6481	return an instance of a class ResolverMatch created with 6 arguments : sub_match.func , sub_match.args , sub_match_dict , sub_match.url_name , self.app_name if it exists or if not sub_match.app_name and sub_match.namespaces list appended to self.name .
  6482	append pattern to tried list .
- 6483	raise an Resolver404 exception with an argument dictionary containing 2 entries : new_path for STR0 and tried for otried ' .
+ 6483	raise an Resolver404 exception with an argument dictionary containing 2 entries : new_path for STR0 and tried for STR1 .
  6484	raise an Resolver404 exception with an argument dictionary containing 1 entry : path for STR0 .
  6485	property decorator ,
  6486	define the method urlconf_module with an argument self .
@@ -6495,7 +6495,7 @@
  6495	try ,
  6496	call the function iter with an argument patterns .
  6497	if TypeError exception is caught ,
- 6498	msg is a string `` '' The included urlconf STR0 does not appear to have any patterns in it .
+ 6498	msg is a string STR The included urlconf STR0 does not appear to have any patterns in it .
  6499	If you see valid patterns in the file then the issue is probably caused by a circular import . '' raise an ImproperlyConfigured exception with an argument : return value of the method msg.format , called with an argument name set to self.urlconf_name .
  6500	return patterns .
  6501	define the method resolve_error_handler with arguments self and view_type .
@@ -6848,7 +6848,7 @@
  6848	for every char in fmt ,
  6849	if escaped is true ,
  6850	escaped is boolean False .
- 6851	otherwise if cahr equals a string STR0 ,
+ 6851	otherwise if cahr equals a string '\STR ,
  6852	escaped is boolean True .
  6853	otherwis if char is contained in string STR0 ,
  6854	yield string STR0 as an return value of the generator .
@@ -7226,7 +7226,7 @@
  7226	call the function datetime.datetime with 3 arguments : value.year , value.month and value.day , substitute the result for result .
  7227	call the function from_current_timezone with an argument result , return the result .
  7228	if value is an instance of list type ,
- 7229	call the function warnings.warn with 3 arguments : string STR0 STR1 , RemovedInDjango19Warning and stacklevel set to integer 2 .
+ 7229	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel set to integer 2 .
  7230	if length of value is not equal to integer 2 ,
  7231	raise an ValidationError with 2 arguments : value under the STR0 key of the self.error_messages dictionary and code set to STR1 .
  7232	if first and second elements of value are contained in self.empty_values ,
@@ -7241,7 +7241,7 @@
  7241	if error_message is not None ,
  7242	get the value under the STR0 key of the kwargs dictionary , if it exists substitute it for error_messages , if not , error_messages is an empty dictionary .
  7243	substitute error_message for value under the STR0 key of the error_messages dictionary .
- 7244	substitute error_messages for value under the STR0 key of the kwargs dictionary .
+ 7244	substitute error_messages for value under the STR error_messages ' key of the kwargs dictionary .
  7245	call the method __init__ from the base class of the class RegexField , with 4 arguments : max_length , min_length , unpacked list args , unpacked dictionary kwargs .
  7246	call the method self._set_regex with an argument regex .
  7247	define the method _get_regex an argument self .
@@ -7309,7 +7309,7 @@
  7309	if f is None ,
  7310	return None .
  7311	from PIL import Image into default namespace .
- 7312	if data has an otemporary_file_path ' attribute ,
+ 7312	if data has an STR0 attribute ,
  7313	substitute the result of the function data.temporary_file_path for file .
  7314	if not ,
  7315	if data has an attribute STR0 ,
@@ -8179,9 +8179,9 @@
  8179	append form.errors to self._errors .
  8180	try ,
  8181	if self.validate_max is true , and length of self.deleted_forms subtracted from the return value of the method self.total_form_count , is greater than self.max_num , or if value under the TOTAL_FORM_COUNT key of the self.management_form.cleaned_data dictionary , is grater than self.absolute_max ,
- 8182	raise an ValidationError with 2 arguments : return value of the function ungettext with 3 arguments : strings STR0 , STR1 and self.max_num , where STR2 is replaced with self.max_num , and code as a string otoo_many_forms ' .
+ 8182	raise an ValidationError with 2 arguments : return value of the function ungettext with 3 arguments : strings STR0 , STR1 and self.max_num , where STR2 is replaced with self.max_num , and code as a string STR3 .
  8183	if self.validate_min is true , and length of self.deleted_forms subtracted from the return value of the method self.total_form_count , is smaller than self.min_num ,
- 8184	raise an ValidationError with 2 arguments : return value of the function ungettext with 3 arguments : strings STR0 , STR1 and self.min_num , where STR2 is replaced with self.min_num , and code as a string otoo_few_forms ' .
+ 8184	raise an ValidationError with 2 arguments : return value of the function ungettext with 3 arguments : strings STR0 , STR1 and self.min_num , where STR2 is replaced with self.min_num , and code as a string STR3 .
  8185	call the method self.clean .
  8186	if ValidationError , renamed to e , exception is caught ,
  8187	call the method self.error_class with an argument e.error_list , substitute the result for self._non_form_errors .
@@ -8732,7 +8732,7 @@
  8732	substitute self.fk.name for name .
  8733	kwargs is a dictionary with an entry : attribute STR0 of the object under the name key of the form.fields dictionary for STR1 , if it doesnt exists return value of the function capfirst with an argument self.fk.verbose_name for STR2 .
  8734	if self.fk.rel.field_name is not equal to self.fk.rel.to._meta.pk.name ,
- 8735	substitute self.fk.rel.field_name for value under the oto_field ' key of the kwargs dictionary .
+ 8735	substitute self.fk.rel.field_name for value under the STR0 key of the kwargs dictionary .
  8736	value under the name key of the form.fields dictionary is an instance of InlineForeignKeyField created with 2 arguments : self.instance and unpacked dictionary kwargs .
  8737	if form._meta.fields is true ,
  8738	if form._meta.fields is an instance of tuple type ,
@@ -8777,7 +8777,7 @@
  8777	define the method __init__ with 4 arguments : self , parent_instance , unpacked list args and unpacked dictionary kwargs .
  8778	substitute parent_instance for self.parent_instance .
  8779	remove element from kwargs dictionary under the key STR0 , substitute it for self.pk_field if it exists , if not self.pk_field is boolean False .
- 8780	remove element from kwargs dictionary under the key oto_field ' , substitute it for self.to_field if it exists , if not self.to_field is None .
+ 8780	remove element from kwargs dictionary under the key STR0 , substitute it for self.to_field if it exists , if not self.to_field is None .
  8781	if self.parent_instance is not None ,
  8782	if self.to_field is true ,
  8783	get self.to_field attribute of self.parent_instance object , substitute it for value under the STR0 key of the kwargs dictionary .
@@ -8923,7 +8923,7 @@
  8923	only if form_class is not None , and if form_class has an attribute STR0 and form_class._meta.fields is not None ,
  8924	import module warnings .
  8925	from django.utils.deprecation import RemovedInDjango19Warning into default name space .
- 8926	call the function warnings.warn with 3 arguments : string STR0 STR1 , RemovedInDjango19Warning and stacklevel set to an integer 2 .
+ 8926	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel set to an integer 2 .
  8927	from django.forms.utils import everything into default name space .
  8928	from __future__ import unicode_literals into default name space .
  8929	import module json .
@@ -9011,7 +9011,7 @@
  9011	try ,
  9012	call the function timezone.make_aware with arguments value and current_timezone , return the result .
  9013	if Exception exception is caught ,
- 9014	call the function _ with an argument string STR0 STR1 , substitute the result for message .
+ 9014	call the function _ with an argument string STR0 , substitute the result for message .
  9015	params is an dictionary containing 2 initial entries : value for STR0 and current_timezone for STR1 .
  9016	call the function six.reraise with 3 arguments : class ValidationError , class ValidationError , created with 3 arguments : message , code as a string STR0 and params as params , and third element of the return value of the function sys.exc_info .
  9017	return value .
@@ -9168,10 +9168,10 @@
  9168	call the method self._format_value with an argument value , use the result as an argument for the call to the function force_text , substitute the result for final_attrs dictionary value under the STR0 key .
  9169	call the function format_html with 2 arguments : string STR0 , result of the function flatatt called with an argument final_attrs , return the result .
  9170	derive the class TextInput from the Input base class .
- 9171	input_type is a string otext ' .
+ 9171	input_type is a string STR0 .
  9172	define the method __init__ with 2 arguments : self and attrs set to None .
  9173	if attrs is not None ,
- 9174	remover the entry under the otype ' key of the attrs dictionary , substitute it for self.input_type , if the key doesnt exists , substitute self.input_type for self.input_type .
+ 9174	remover the entry under the STR0 key of the attrs dictionary , substitute it for self.input_type , if the key doesnt exists , substitute self.input_type for self.input_type .
  9175	call the method __init__ from the base class of the class TextInput , called with an argument attrs .
  9176	derive the class NumberInput from the TextInput base class .
  9177	input_type is a string STR0 .
@@ -9293,7 +9293,7 @@
  9293	if name is not contained in data ,
  9294	return boolean False .
  9295	get the name key of the data dictionary , substitute it for value .
- 9296	values is an dictionary with 2 arguments : boolean False for STR0 and boolean True for otrue ' .
+ 9296	values is an dictionary with 2 arguments : boolean False for STR0 and boolean True for STR1 .
  9297	if value is an instance of six.string_types class ,
  9298	get the value of the values dictionary under the value converted to lowercase key , substitute it for value , if the key doesnt exists , substitute value for value .
  9299	return value converted into a boolean .
@@ -9742,7 +9742,7 @@
  9742	call the function force_text with 3 arguments : old_field_name , self._encoding and errors as a string STR0 , use the result and file_obj as arguments for the call to the method self._files.appendlist .
  9743	break the loop execution .
  9744	define the method IE_sanitize with arguments self and filename .
- 9745	call the method filename.rfind with an argument string STR0 , increment the result by one , slice the filename from the previous result as start index to the end , strip it of white spaces from both ends , if the result is not an empty string and filename is not an empty string , return boolean True , otherwise return boolean False .
+ 9745	call the method filename.rfind with an argument string `` \STR , increment the result by one , slice the filename from the previous result as start index to the end , strip it of white spaces from both ends , if the result is not an empty string and filename is not an empty string , return boolean True , otherwise return boolean False .
  9746	define the method _close_files with an argument self .
  9747	for every handler in self._upload_handlers ,
  9748	if handler has an attribute STR0 ,
@@ -9796,7 +9796,7 @@
  9796	append first 49 elements of self._unget_history to list containing num_bytes , substitute the result for self._unget_history .
  9797	append current_number to a list for current_number in self._unget_history , if current_number is equal to num_bytes , substitute the length of the resulting list for number_equal .
  9798	if number_equal is greater than integer 40 ,
- 9799	raise SuspiciousMultipartForm exception with an argument string , STR0 STR1 .
+ 9799	raise SuspiciousMultipartForm exception with an argument string , STR0 .
  9800	derive the class ChunkIter from the six.Iterator base class .
  9801	define the method __init__ with arguments self , flo and chunk_size set to integer 64 multiplied by integer 1024 .
  9802	substitute flo for self.flo .
@@ -9940,7 +9940,7 @@
  9940	take elements of p from index i incremented by 1 to the end , strip the result of the whitespaces , substitute it for value .
  9941	if length of value is greater or equal to integer 2 and first and last elements of value are an empty string ,
  9942	strip value of the first and last element .
- 9943	replace all the occurrences of STR1 in string value with STR2 and all occurrences of STR3 , substitute the result for value .
+ 9943	replace all the occurrences of STR0 in string value with STRspecial and all occurrences of STR1 for STR , substitute the result for value .
  9944	substitute value for the vale under the name key of the pdict dictionary .
  9945	return key and pdict .
  9946	define the function _parse_header_params with an argument s .
@@ -10656,7 +10656,7 @@
 10656	split is an empty list .
 10657	call the function smart_split with an argument self.contents , substitute the result converted to an iterable for bits .
 10658	for every bit in bits ,
-10659	if bit starts with STRspecial ot bit starts with STRspecial ,
+10659	if bit starts with STR0 ot bit starts with STRspecial ,
 10660	append STR0 to third element of bit , substitute it for sentinal .
 10661	trans_bit is a list with an element bit .
 10662	while bit doesnt end with sential ,
@@ -10838,7 +10838,7 @@
 10838	substitute self.pointer for i .
 10839	define the next_space_index with 2 arguments : subject and i .
 10840	while i is lesser than length of subject and i-th element of subject is not an empty space or tab character ,
-10841	if i-th element of subject is STR1 '' character ,
+10841	if i-th element of subject is STR character or STR character ,
 10842	substitute i-th element of subject for c .
 10843	increment i by integer 1 .
 10844	while i is lesser than length of subject and i-th element of subject is not equal to c ,
@@ -10849,7 +10849,7 @@
 10849	return i .
 10850	if i is greater than or equal to length of subject ,
 10851	raise an TemplateSyntaxError exception with an argument STR0 , where STR1 is replaced with subject .
-10852	if i-th element of subject is STR1 '' character ,
+10852	if i-th element of subject is STR character or STR character ,
 10853	substitute i for p .
 10854	increment i by integer 1 ,
 10855	while i is lesser than length of subject and i-th element of subject is not equal to p-th element of subject ,
@@ -11603,7 +11603,7 @@
 11603	decorator function register.filter with an argument is_safe set to boolean True .
 11604	decorator stringfilter ,
 11605	define the function addslashes with an argument value .
-11606	replace all occurrences of STR3 with STR4 in value , replace all occurrences of STR5 in the previous result , replace all occurrences of STR1 with STR2 in the previous result , return the result .
+11606	replace all occurrences of STRspecial with STR1 in value , replace all occurrences of STR with STR2 in the previous result , replace all occurrences of STR with STR0 in the previous result , return the result .
 11607	decorator function register.filter with an argument is_safe set to boolean True .
 11608	decorator stringfilter ,
 11609	define the function capfirst with an argument value .
@@ -13013,7 +13013,7 @@
 13013	call the function apps.get_app_configs , for every app_config in result ,
 13014	if app_config.path is true ,
 13015	skip this loop iteration .
-13016	join app_config.path and string otemplates ' into file path , substitute it for template_dir .
+13016	join app_config.path and string STR0 into file path , substitute it for template_dir .
 13017	if template_dir is directory ,
 13018	if six.PY2 is true ,
 13019	call the function template_dir.decode with an argument fs_encoding , substitute the result for template_dir .
@@ -13115,7 +13115,7 @@
 13115	if resource_string is not None , is_usable is boolean True , otherwise is_usable is boolean False .
 13116	define the method load_template_source with 3 arguments : self , template_name , template_dirs set to None .
 13117	if resource_string is not None ,
-13118	concatenate string otemplates/ ' and template_name , substitute the result for pkg_name .
+13118	concatenate string STR0 and template_name , substitute the result for pkg_name .
 13119	call the method apps.get_app_configs , for app_config in the result ,
 13120	try ,
 13121	call the function resource_string with 2 arguments app_config.name and pkg_name , substitute the result for resource .
@@ -13161,7 +13161,7 @@
 13161	derive the class ContentNotRenderedError from the Exception base class .
 13162	do nothing .
 13163	derive the class SimpleTemplateResponse from the HttpResponse base class .
-13164	rendering_attrs is a list containing 3 strings : otemplate_name STR0context_data STR1_post_render_callbacks ' .
+13164	rendering_attrs is a list containing 3 strings : STR0 , STR1 and STR2 .
 13165	define the method __init__ with 5 arguments : self , template , context set to None , content_type set to None and status set to None .
 13166	substitute template for self.template_name .
 13167	substitute context for self.context_data .
@@ -13327,7 +13327,7 @@
 13328	define the method parse with an argument self .
 13329	call the method self.expression , substitute the result for retval .
 13330	if self.current_token is not EndToken ,
-13331	raise an exception self.error_class with an argument string STR0 , where STR1 is replaced with result of the method self.current_token.display .
+13331	raise an exception self.error_class with an argument string STR Unused STR0 at end of if expression '' , where STR1 is replaced with result of the method self.current_token.display .
 13332	return retval .
 13333	define the method expression with 2 arguments : self and rbp set to integer 0 .
 13334	substitute self.current_token for t .
@@ -13463,11 +13463,11 @@
 13464	derive the class BaseArchive from the object base class .
 13465	define the method split_leading_dir with 2 arguments self and path .
 13466	convert path to a string , substitute the result for path .
-13467	strip path of all leading STR0 and STR1 characters , substitute the result for path .
-13468	if STR0 is contained in path , and only if STR1 is contained in path and index of the first occurrence of STR2 in path is lesser than ,
-13469	index of the first occurrence of STR0 in path , or alternatively if STR1 is not contained in path , split path in two parts by STR2 character , return the result .
-13470	otherwise if STR0 is contained in path ,
-13471	split path in two parts by STR0 string , return the result .
+13467	strip path of all leading STR0 and STRspecial characters , substitute the result for path .
+13468	if STR0 is contained in path , and only if STRspecial is contained in path and index of the first occurrence of STR1 in path is lesser than ,
+13469	index of the first occurrence of STRspecial in path , or alternatively if STRspecial is not contained in path , split path in two parts by STR0 character , return the result .
+13470	otherwise if STRspecial is contained in path ,
+13471	split path in two parts by STRspecial string , return the result .
 13472	if not ,
 13473	return path an an empty string .
 13474	define the method has_leading_dir with 2 arguments self and paths .
@@ -13533,7 +13533,7 @@
 13534	get the directory name of filename , substitute the result for dirname .
 13535	if dirname is true and dirname path doesnt exists ,
 13536	create directories from the elements in filename .
-13537	if filename ends with STR0 or with STR1 ,
+13537	if filename ends with STR0 or with '\STR ,
 13538	if filename path doesnt exists ,
 13539	create directories from the elements in filename .
 13540	if not ,
@@ -13713,7 +13713,7 @@
 13714	if sys.platform equals to string STR0 ,
 13715	args is a list containing arg surrounded by double quotes for every arg in args .
 13716	call the method os.environ.copy , substitute the result for new_environ .
-13717	value under the STR0 key of new_environ dictionary is a string otrue ' .
+13717	value under the STR0 key of new_environ dictionary is a string STR1 .
 13718	call the function os.spawnve with os.P_WAIT , sys.executable , args and new_environ as arguments , substitute the result for exit_code .
 13719	if exit_code is not equal to integer 3 .
 13720	return exit_code .
@@ -13888,7 +13888,7 @@
 13889	call the function getattr with request , string STR0 and function get_language as arguments , append the result at the end of string STR1 , append it all at the end of string cache_key .
 13890	if settings.USE_TZ is True ,
 13891	call the function force_text , with the function get_current_timezone_name and errors set to string STR0 as arguments , replace the result for tz_name .
-13892	call the method tz_name.encode with the arguments STR0 and STR1 , call the method decode on the result with STR2 as argument , in the resulting string replace all occurrences of STR3 with STR4 and append it to the end of cache_key .
+13892	call the method tz_name.encode with the arguments STR0 and STR1 , call the method decode on the result with STR2 as argument , in the resulting string replace all occurrences of STR with STR3 and append it to the end of cache_key .
 13893	return cache_key .
 13894	define function _generate_cache_key , with request , method , headerlist and key_prefix as arguments .
 13895	ctx is an hashlib object , for calculating hash function with md5 algorithm .
@@ -14458,7 +14458,7 @@
 14459	if self.timezone is false ,
 14460	return an empty string .
 14461	try ,
-14462	is self.data has an attribute otzinfo ' and self.data.tzinfo is true ,
+14462	is self.data has an attribute STR0 and self.data.tzinfo is true ,
 14463	call the method self.data.tzinfo.tzname with an argument self.data , if it is true , return it , otherwise return an empty string .
 14464	if NotImplementedError exception is caught ,
 14465	do nothing .
@@ -14549,7 +14549,7 @@
 14550	call the method return self.format with an argument string STR0 , return the result .
 14551	define the method S with an argument self .
 14552	if self.data.day equals integer 11 , 12 or 13 ,
-14553	return string oth ' .
+14553	return string STR0 .
 14554	divide self.data.day by 10 , substitute reminder of the result for last .
 14555	if las equals integer 1 ,
 14556	return string STR0 .
@@ -14557,7 +14557,7 @@
 14558	return string STR0 .
 14559	if las equals integer 3 ,
 14560	return string STR0 .
-14561	return string oth ' .
+14561	return string STR0 .
 14562	define the method t with an argument self .
 14563	call the method calendar.monthrange with 2 arguments : self.data.year and self.data.month , format string STR0 with the second element of the result , return it .
 14564	define the method U with an argument self .
@@ -14611,7 +14611,7 @@
 14612	from django.utils.timezone import utc and get_fixed_timezone into default name space .
 14613	compile regex from raw string STR0 , substitute it for date_re .
 14614	compile regex from raw string STR0 , substitute it for time_re .
-14615	compile regex from raw string STR0 STR1 , substitute it for datetime_re .
+14615	compile regex from raw string STR0 , substitute it for datetime_re .
 14616	define the function parse_date with an argument value .
 14617	match regex date_re with value , substitute the result for match .
 14618	if match is true ,
@@ -14631,7 +14631,7 @@
 14632	call the method match.groupdict , substitute the result for kw .
 14633	if value under the STR0 key of the kw dictionary is true ,
 14634	left justify value under the STR0 key of the kw dictionary , in the field of width 6 , fill the rest with STR1 , substitute the result for value under the STR2 key of the kw dictionary .
-14635	remove entry under the otzinfo ' key of the kw dictionary , substitute it for tzinfo .
+14635	remove entry under the STR0 key of the kw dictionary , substitute it for tzinfo .
 14636	if tzinfo equals a string STR0 ,
 14637	substitute utc for tzinfo .
 14638	otherwise if tzinfo is not None ,
@@ -14641,12 +14641,12 @@
 14642	multiply offset by integer -1 .
 14643	call the function get_fixed_timezone with an argument offset , substitute the result for tzinfo .
 14644	update a dictionary with an entry v converted to an integer for k , for every k and v in result of the function six.iteritems , called with an argument kw , only if v is not None , substitute the result for kw .
-14645	substitute tzinfo for value under the otzinfo ' key of the kw dictionary .
+14645	substitute tzinfo for value under the STR0 key of the kw dictionary .
 14646	call the method datetime.datetime with an argument unpacked dictionary kw , return the result .
 14647	from django.utils.translation import ugettext_lazy as _ and pgettext_lazy into default name space .
 14648	WEEKDAYS is an dictionary with 7 entries : result of the call to the function _ with an argument string STR0 for 0 , result of the call to the function _ with an argument string STR1 for 1 , result of the call to the function _ with an argument string STR2 for 2 , result of the call to the function _ with an argument string STR3 for 3 , result of the call to the function _ with an argument string STR4 for 4 , result of the call to the function _ with an argument string STR5 for 5 , and result of the call to the function _ with an argument string STR6 for 6 .
 14649	WEEKDAYS_ABBR is an dictionary with 7 entries : result of the call to the function _ with an argument string STR0 for 0 , result of the call to the function _ with an argument string STR1 for 1 , result of the call to the function _ with an argument string STR2 for 2 , result of the call to the function _ with an argument string STR3 for 3 , result of the call to the function _ with an argument string STR4 for 4 , result of the call to the function _ with an argument string STR5 for 5 , and result of the call to the function _ with an argument string STR6 for 6 .
-14650	WEEKDAYS_REV is an dictionary with 7 entries : 0 for STR0 , 1 for otuesday STR1wednesday STR2 , 4 for STR3 , 5 for STR4 and 6 for STR5 .
+14650	WEEKDAYS_REV is an dictionary with 7 entries : 0 for STR0 , 1 for STR1 , 2 for STR2 , 3 for STR3 , 4 for STR4 , 5 for STR5 and 6 for STR6 .
 14651	MONTHS is an dictionary with 12 entries : result of the call to the function _ with an argument string STR0 for 1 , result of the call to the function _ with an argument string STR1 for 2 , result of the call to the function _ with an argument string STR2 for 3 , result of the call to the function _ with an argument string STR3 for 4 , result of the call to the function _ with an argument string STR4 for 5 , result of the call to the function _ with an argument string STR5 for 6 , result of the call to the function _ with an argument string STR6 for 7 , result of the call to the function _ with an argument string STR7 for 8 , result of the call to the function _ with an argument string STR8 for 9 , result of the call to the function _ with an argument string STR9 for 10 , result of the call to the function _ with an argument string STR10 for 11 , and result of the call to the function _ with an argument string STR11 for 12 .
 14652	MONTHS_3 is an dictionary with 12 entries : result of the call to the function _ with an argument string STR0 for 1 , result of the call to the function _ with an argument string STR1 for 2 , result of the call to the function _ with an argument string STR2 for 3 , result of the call to the function _ with an argument string STR3 for 4 , result of the call to the function _ with an argument string STR4 for 5 , result of the call to the function _ with an argument string STR5 for 6 , result of the call to the function _ with an argument string STR6 for 7 , result of the call to the function _ with an argument string STR7 for 8 , result of the call to the function _ with an argument string STR8 for 9 , result of the call to the function _ with an argument string STR9 for 10 , result of the call to the function _ with an argument string STR10 for 11 , result of the call to the function _ with an argument string STR11 for 12 .
 14653	MONTHS_3_REV is an dictionary with 12 entries : 1 for STR0 , 2 for STR1 , 3 for STR2 , 4 for STR3 , 5 for STR4 , 6 for STR5 , 7 for STR6 , 8 for STR7 , 9 for STR8 , 10 for STR9 , 11 for STR10 and 12 for STR11 .
@@ -15103,7 +15103,7 @@
 15104	try ,
 15105	call the method self.configure_root with an argument root .
 15106	if StandardError , renamed to e , exception is caught ,
-15107	raise an ValueError exception with an argument string STR0 formated with e .
+15107	raise an ValueError exception with an argument string STR Unable to configure root logger : % s ' formated with e .
 15108	finally perform ,
 15109	call the method logging._releaseLock .
 15110	define the method configure_formatter with 2 arguments : self and config .
@@ -15151,11 +15151,11 @@
 15152	substitute c for factory .
 15153	if not ,
 15154	remove config dictionary element under STR0 key , use it as an argument for the call to the method self.resolve , substitute the result for klass .
-15155	if klass is a subclass of logging.handlers.MemoryHandler base class and string otarget ' is contained in config ,
+15155	if klass is a subclass of logging.handlers.MemoryHandler base class and string STR0 is contained in config ,
 15156	try ,
-15157	get value under otarget STR0handlers STR1 key of config dictioanry .
+15157	get value under STR0 key of config dictionary , use it as a key to get the value from the dictionary , under the STR1 key of self.config dictionary , substitute the result for value under STR2 key of config dictioanry .
 15158	if StandardError , renamed to e , exception is caught ,
-15159	raise an ValueError exception with an argument string STR0 , formated with value under otarget ' key of config dictionary and e .
+15159	raise an ValueError exception with an argument string STR0 , formated with value under STR1 key of config dictionary and e .
 15160	otherwise if klass is a subclass of logging.handlers.SMTPHandler and string STR0 is contained in config ,
 15161	call the method self.as_tuple with an argument value under STR0 key of config dictionary , substitute the result for value under STR1 key of config dictionary .
 15162	otherwise if klass is subclass of logging.handlers.SysLogHandler class , and string STR0 is contained in config ,
@@ -15354,7 +15354,7 @@
 15355	d is an empty string .
 15356	if date is not None ,
 15357	call the function datetime_safe.new_datetime with an argument date , on the result call the method strftime with an argument , string STR0 , convert the result into a string and append it to STR1 , substitute the result for d .
-15358	format string otag : % s % s : % s/ % s ' with bits.hostname , d , bits.path and bits.fragment , return it .
+15358	format string STR0 with bits.hostname , d , bits.path and bits.fragment , return it .
 15359	derive the class SyndicationFeed from the object base class .
 15360	define the method __init__ with 15 elements : self , title , link , description , language set to None , author_email set to None , author_name set to None , author_link set to None , subtitle set to None , categories set to None , feed_url set to None , feed_copyright set to None , feed_guid set to None , ttl set to None and unpacked dictionary kwargs .
 15361	to_unicode is an lambda function with an argument s , result is the result of the function force_text , called with 2 arguments : s and string_only as boolean True .
@@ -15362,7 +15362,7 @@
 15363	categories is a list containing the results of the function force_text , called with an argument c , for every c in categories .
 15364	if ttl is not None ,
 15365	call the function force_text with an argument ttl , substitute the result for ttl .
-15366	self.feed is an dictionary with 13 initial entries , result of the function to_unicode called with an argument title for otitle STR0link STR1description STR2language STR3author_email STR4author_name STR5author_link STR6subtitle STR7categories STR8categories STR9feed_url STR10feed_copyright STR11id STR12id STR13 . update self.feed dictionary with kwargs .
+15366	self.feed is an dictionary with 13 initial entries , result of the function to_unicode called with an argument title for STR0 , result of the function iri_to_uri called with an argument link for STR1 , result of the function to_unicode called with an argument description for STR2 , result of the function to_unicode called with an argument language for STR3 , result of the function to_unicode called with an author_email description for STR4 , result of the function to_unicode called with an argument author_name for STR5 , result of the function iri_to_uri called with an argument author_link for STR6 , result of the function to_unicode called with an argument subtitle for STR7 , if true , categories is value for STR8 key , if not , empty tuple is value for STR9 key , result of the function iri_to_uri called with an argument feed_url for STR10 , result of the function to_unicode called with an argument feed_copyright for STR11 , if true , feed_guid is value for STR12 key , if not , lik is value for STR13 key and ttl for STR14 . update self.feed dictionary with kwargs .
 15367	self.items is an empty list .
 15368	define the method add_item with 17 arguments : self , title , link , description , author_email set to None , author_name set to None ,
 15369	to_unicode is an lambda function with an argument s , result is the result of the function force_text ,
@@ -15370,8 +15370,8 @@
 15371	categories is a list containing the results of the function to_unicode , called with an argument c , for every c in categories .
 15372	if ttl is not None ,
 15373	call the function force_text with an argument ttl , substitute the result for ttl .
-15374	item is a dictionary with 15 initial entries : result of the function to_unicode called with an argument title for otitle ' ,
-15375	result of the function iri_to_uri called with an argument link for STR0 , result of the function to_unicode called with an argument description for STR1 , result of the function to_unicode called with an argument author_email for STR2 , result of the function to_unicode called with an argument author_name for STR3 , result of the function iri_to_uri called with an author_link link for STR4 , pubdate for STR5 , updateddate for STR6 , result of the function to_unicode called with an comments author_name for STR7 , result of the function to_unicode called with an argument unique_id ) for STR8 , unique_id_is_permalink for STR9 , enclosure for STR10 , if true , categories is value for STR11 key , if not , empty tuple is value for STR12 key , result of the function to_unicode called with an argument item_copyright for STR13 , ttl for ottl ' .
+15374	item is a dictionary with 15 initial entries : result of the function to_unicode called with an argument title for STR0 ,
+15375	result of the function iri_to_uri called with an argument link for STR0 , result of the function to_unicode called with an argument description for STR1 , result of the function to_unicode called with an argument author_email for STR2 , result of the function to_unicode called with an argument author_name for STR3 , result of the function iri_to_uri called with an author_link link for STR4 , pubdate for STR5 , updateddate for STR6 , result of the function to_unicode called with an comments author_name for STR7 , result of the function to_unicode called with an argument unique_id ) for STR8 , unique_id_is_permalink for STR9 , enclosure for STR10 , if true , categories is value for STR11 key , if not , empty tuple is value for STR12 key , result of the function to_unicode called with an argument item_copyright for STR13 , ttl for STR14 .
 15376	update dictionary item with an argument kwargs .
 15377	append item to self.items .
 15378	define the method num_items with an argument self .
@@ -15423,7 +15423,7 @@
 15424	call the method self.add_item_elements with 2 arguments : handler and item .
 15425	call the method handler.endElement with an argument string STR0 .
 15426	define the method add_root_elements with 2 arguments : self and handler .
-15427	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the self.feed dictionary .
+15427	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15428	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15429	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15430	if value under the STR0 key of the self.feed dictionary is not None ,
@@ -15435,21 +15435,21 @@
 15436	if value under the STR0 key of the self.feed dictionary is not None ,
 15437	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15438	call the method handler.addQuickElement with 2 arguments : string STR0 and result of the function rfc2822_date , called with an argument result of the method self.latest_post_date .
-15439	if value under the ottl ' key of the self.feed dictionary is not None ,
-15440	call the method handler.addQuickElement with 2 arguments : string ottl STR0 key of the self.feed dictionary .
+15439	if value under the STR0 key of the self.feed dictionary is not None ,
+15440	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15441	define the method endChannelElement with 2 arguments : self and handler .
 15442	call the method handler.endElement with an argument string STR0 .
 15443	derive the class RssUserland091Feed from the RssFeed base class .
 15444	_version is a string STR0 .
 15445	define the method add_item_elements with 3 arguments : self , handler and item .
-15446	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the item dictionary .
+15446	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15447	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15448	if value under the STR0 key of the item dictionary is not None ,
 15449	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of item dictionary .
 15450	derive the class Rss201rev2Feed from the RssFeed base class .
 15451	_version is a string STR0 .
 15452	define the method add_item_elements with 3 arguments : self , handler and item .
-15453	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the item dictionary .
+15453	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15454	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15455	if value under the STR0 key of the item dictionary is not None ,
 15456	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
@@ -15468,10 +15468,10 @@
 15469	if value object the STR0 key of the item dictionary is an instance of bool type ,
 15470	covert to string value under the STR0 key of the item dictionary , convert it to lowercase , substitute the result for value under the STR1 key of the guid_attrs dictionary .
 15471	call the method handler.addQuickElement with 3 arguments : string STR0 , value under the STR1 key of the item dictionary , and guid_attrs .
-15472	if value under the ottl ' key of the item dictionary is not None ,
-15473	call the method handler.addQuickElement with 2 arguments : string ottl STR0 key of the item dictionary .
+15472	if value under the STR0 key of the item dictionary is not None ,
+15473	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15474	if value under the STR0 key of the item dictionary is not None ,
-15475	call the method handler.addQuickElement with 3 arguments : string otitle STR0enclosure STR1url STR2enclosure STR3length STR4enclosure STR5 .
+15475	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with 3 entries : field url of the value under the STR1 key of the item dictionary for STR2 , field length of the value under the STR3 key of the item dictionary for STR4 , and field mime_type of the value under the STR5 key of the item dictionary for STR6 .
 15476	for every cat in value under the STR0 key of the item dictionary ,
 15477	call the method handler.addQuickElement with 2 arguments : string STR0 and cat .
 15478	derive the class Atom1Feed from the SyndicationFeed base class .
@@ -15490,11 +15490,11 @@
 15491	if not ,
 15492	return a dictionary with an entry : self.ns for STR0 .
 15493	define the method add_root_elements with 2 arguments : self and handler .
-15494	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the self.feed dictionary .
+15494	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15495	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with 2 entries : STR1 for STR2 and value under the STR3 key of self.feed dictionary for STR4 .
 15496	if value under the STR0 key of the self.feed dictionary is not None ,
 15497	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with 2 entries : STR1 for STR2 and value under the STR3 key of self.feed dictionary for STR4 .
-15498	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the self.feed dictionary .
+15498	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15499	call the method handler.addQuickElement with 2 arguments : string STR0 and result of the function rfc3339_date , called with an argument result of the method self.latest_post_date .
 15500	if value under the STR0 key of the self.feed dictionary is not None ,
 15501	call the method handler.startElement with 2 arguments : string STR0 and an empty dictionary .
@@ -15507,7 +15507,7 @@
 15508	if value under the STR0 key of the self.feed dictionary is not None ,
 15509	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15510	for every cat in value under the STR0 key of the self.feed dictionary .
-15511	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with an entry : cat for oterm ' .
+15511	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with an entry : cat for STR1 .
 15512	if value under the STR0 key of the self.feed dictionary is not None ,
 15513	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the self.feed dictionary .
 15514	define the method write_items with 2 arguments : self and handler .
@@ -15516,7 +15516,7 @@
 15517	call the method self.add_item_elements with 2 arguments : handler and item .
 15518	call the method handler.endElement with an argument string STR0 .
 15519	define the method add_item_elements with 3 arguments : self , handler and item .
-15520	call the method handler.addQuickElement with 2 arguments : string otitle STR0 key of the item dictionary .
+15520	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15521	call the method handler.addQuickElement with 3 arguments : string STR2 , an empty string and a dictionary with 2 entries : value under the STR3 key of item dictionary for STR4 and STR0 for STR1 .
 15522	if value under the STR0 key of the item dictionary is not None ,
 15523	call the method handler.addQuickElement with 2 arguments : string STR0 and result of the function rfc3339_date , called with an argument value under the STR1 key of the item dictionary .
@@ -15536,11 +15536,11 @@
 15537	call the function get_tag_uri with 2 arguments : values under STR0 and STR1 keys of item dictionary , substitute the result for unique_id .
 15538	call the method handler.addQuickElement with 2 arguments : string STR0 and unique_id .
 15539	if value under the STR0 key of the item dictionary is not None ,
-15540	call the method handler.addQuickElement with 3 arguments : string STR0 , value under the STR1 key of item dictionary , and dictionary with an entry : STR2 for otype ' .
+15540	call the method handler.addQuickElement with 3 arguments : string STR0 , value under the STR1 key of item dictionary , and dictionary with an entry : STR2 for STR3 .
 15541	if value under the STR0 key of the item dictionary is not None ,
-15542	call the method handler.addQuickElement with 3 arguments : string STR4 , an empty string and a dictionary with 4 entries : STR0 for STR5 , field url of value under the STR1 key of item dictionary for STR6 , field length of value under the STR2 key of item dictionary for STR7 , and field mime_type of value under the STR3 key of item dictionary for otype ' .
+15542	call the method handler.addQuickElement with 3 arguments : string STR4 , an empty string and a dictionary with 4 entries : STR0 for STR5 , field url of value under the STR1 key of item dictionary for STR6 , field length of value under the STR2 key of item dictionary for STR7 , and field mime_type of value under the STR3 key of item dictionary for STR8 .
 15543	for every cat in value under STR0 key of item dictionary ,
-15544	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with an entry : cat for oterm ' .
+15544	call the method handler.addQuickElement with 3 arguments : string STR0 , an empty string and a dictionary with an entry : cat for STR1 .
 15545	if value under the STR0 key of the item dictionary is not None ,
 15546	call the method handler.addQuickElement with 2 arguments : string STR0 and value under the STR1 key of the item dictionary .
 15547	substitute Rss201rev2Feed for DefaultFeed .
@@ -15930,8 +15930,8 @@
 15932	from django.utils.six.moves.urllib.parse import quote , unquote , urlsplit and urlunsplit into default name space .
 15933	from django.utils.text import normalize_newlines into default name space .
 15934	from .html_parser import HTMLParser and HTMLParseError into default name space .
-15935	TRAILING_PUNCTUATION is a list with 7 elements : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 and STR6 ' .
-15936	WRAPPING_PUNCTUATION is a list with 6 elements : tuple with 2 elements : STR1 and STR2 , tuple with 2 elements : STR3 and STR4 , tuple with 2 elements : STR5 and STR6 , tuple with 2 elements : STR7 and STR8 , tuple with 2 elements : STR9 , and tuple with 2 elements : STR10 STR11\ '' .
+15935	TRAILING_PUNCTUATION is a list with 7 elements : STR0 , STR1 , STR2 , STR3 , STR4 , STR and 'STR ' .
+15936	WRAPPING_PUNCTUATION is a list with 6 elements : tuple with 2 elements : STR0 and STR1 , tuple with 2 elements : STR2 and STR3 , tuple with 2 elements : STR4 and STR5 , tuple with 2 elements : STR6 and STR7 , tuple with 2 elements : STR and STR , and tuple with 2 elements : 'STR STR8STR ' .
 15937	DOTS is a list with 6 elements : strings STR0 , STR1 , STR2 , STR3 , STR4 and STR5 .
 15938	call the function re.compile with raw string STR0 , substitute the result for unencoded_ampersands_re .
 15939	call the function re.compile with raw string STR0 , substitute the result for word_split_re .
@@ -15943,9 +15943,9 @@
 15945	call the function re.compile with 2 arguments : raw string STR0 , formated with string created by joining elements of result of the function re.escape with an argument x , with separator STR1 , for every x in DOTS , and re.DOTALL , substitute the result for hard_coded_bullets_re .
 15946	call the function re.compile with raw string STR0 , substitute the result for trailing_empty_content_re .
 15947	define the function escape with an argument text .
-15948	call the function force_text with an argument text , replace every occurrence of STR1 in the result with STR2 , every occurrence of STR3 with STR4 , every occurrence of STR5 with STR6 , every occurrence of STR7 '' with STR8 , call the function mark_safe with the previous result as an argument , return the result .
+15948	call the function force_text with an argument text , replace every occurrence of STR0 in the result with STR1 , every occurrence of STR2 with STR3 , every occurrence of STR4 with STR5 , every occurrence of STR with STR6 , and every occurrence of STR with STR7 , call the function mark_safe with the previous result as an argument , return the result .
 15949	call the function allow_lazy with 2 arguments : escape , six.text_type , substitute the result for escape .
-15950	_js_escapes is a dictionary with 11 initial entries : STR0 for integer representation of string STR1 , STR2 for integer representation of string STR3 , STR4 for integer representation of string STR5 , STR6 for integer representation of string STR7 , STR8 for integer representation of string STR9 , STR10 for integer representation of string STR11 , STR12 for integer representation of string STR13 , STR14 for integer representation of string STR15 , STR16 for integer representation of string STR17 , STR18 for integer representation of string STR19 and STR20 for integer representation of string STR21 .
+15950	_js_escapes is a dictionary with 11 initial entries : STR0 for integer representation of string STR1\\u0027 STR2STR , STR3 for integer representation of string STR , STR4 for integer representation of string STR5 , STR6 for integer representation of string STR7 , STR8 for integer representation of string STR9 , STR10 for integer representation of string STR11 , STR12 for integer representation of string STR13 , STR14 for integer representation of string STR15 , STR16 for integer representation of string STR17 and STR18 for integer representation of string STR19 .
 15951	for every z in range of integers from 0 to 31 , update _js_escapes dictionary with STR0 formated with z , or integer representation of z converted into a string .
 15952	define the function escapejs with an argument value .
 15953	call the function force_text with an argument value , call the method translate on the result , with an argument _js_escapes , use the result as an argument for the call to the mark_safe function , return the result .
@@ -16033,7 +16033,7 @@
 16035	if ValueError exception is caught ,
 16036	do nothing .
 16037	call the function force_str with an argument url , use the result as an argument for the call to the function unquote , substitute the result for url .
-16038	call the function quote with 2 arguments : url and safe as bytes string STR0 ( ) ; : @ & =+ $ , / ? # [ ] ~ ' , substitute the result for url .
+16038	call the function quote with 2 arguments : url and safe as bytes string STR0 , substitute the result for url .
 16039	call the function force_text with an argument url , return the result .
 16040	define the function urlize with 4 arguments : text , trim_url_limit set to None , nofollow set to boolean False ,
 16041	define the function trim_url with 2 arguments : x and limit set to trim_url_limit .
@@ -16089,7 +16089,7 @@
 16091	join elements of words into a string , return it .
 16092	call the function allow_lazy with 2 arguments : urlize , six.text_type , substitute the result for urlize .
 16093	define the function avoid_wrapping with an argument value .
-16094	replace every occurrence of STR0 in value for STR1 , return the result .
+16094	replace every occurrence of STR in value for STR0 , return the result .
 16095	from django.utils.six.moves import html_parser as _html_parse into default name space .
 16096	import module re .
 16097	import module sys .
@@ -16137,7 +16137,7 @@
 16139	find the first , second and third subgroup of the m regular expression match , assign the result to the attrname , rest and attrvalue , respectively .
 16140	if rest is not False , None is considered False ,
 16141	set attrvalue to None .
-16142	otherwise , if first and the last character of attrvalue are STR0 charter or first and last character of attrvalue are STR1 character ,
+16142	otherwise , if first and the last character of attrvalue are STRspecial charter or first and last character of attrvalue are STR character ,
 16143	remove first and last character from the attrvalue , substitute it for attrvalue .
 16144	if attrvalue is not an empty string ,
 16145	call the method unescape with attrvalue as the argument on the self class instance , substitute the result for attrvalue .
@@ -16299,7 +16299,7 @@
 16301	for every e in etags call the method e.encode with an argument string STR0 , call the method decode on the result with an argument , string STR1 , substitute the list of results for etags .
 16302	return etags .
 16303	define the function quote_etag with an argument etag .
-16304	return a string STR2 formated with etag , in which every occurrence of STR3 is replaced with STR4 and every occurrence of STR5 .
+16304	return a string STR1 formated with etag , in which every occurrence of STRspecial is replaced with STR2 and every occurrence of STR , is replaced with STR3 .
 16305	define the function same_origin with 2 arguments url1 and url2 .
 16306	substitute result of the function urlparse with an argument ur1 for p1 and result of the function urlparse with an argument ur2 for p2 .
 16307	try ,
@@ -16309,7 +16309,7 @@
 16311	define the function is_safe_url with 2 arguments url and host set to None .
 16312	if url is false ,
 16313	return boolean False .
-16314	replace every occurrence of STR0 in url with STR1 .
+16314	replace every occurrence of STRspecial in url with STR0 .
 16315	if url starts with STR0 ,
 16316	return boolean False .
 16317	call the function urlparse with an argument url , substitute the result for url_info .
@@ -16514,8 +16514,8 @@
 16516	define the function prepare_js_for_gettext with an argument js .
 16517	define the function escape_quotes with an argument m .
 16518	call the method m.group with an argument integer 0 , substitute the result for s .
-16519	if s equals a string STR0 ,
-16520	return an raw string STR0 .
+16519	if s equals a string STR ,
+16520	return an raw string 'STR ' .
 16521	if not ,
 16522	return s .
 16523	lexer is an instance of JsLexer class .
@@ -16524,11 +16524,11 @@
 16526	if name equals a string STR0 ,
 16527	tok is a string STR1 ,
 16528	otherwise if name starts with a string STR0 ,
-16529	if tok starts with STR0 ,
+16529	if tok starts with STR ,
 16530	call the function re.sub with 3 arguments : raw string STR0 , escape_quotes and tok without the first and last element , substitute the result for guts .
-16531	concatenate string STR1 , substitute the result for tok .
+16531	concatenate string STR , guts and string STR , substitute the result for tok .
 16532	otherwise if name equals a string STR0 .
-16533	replace every occurrence of STR0 in tok with STR1 , substitute the result for tok .
+16533	replace every occurrence of STRspecial in tok with STR0 , substitute the result for tok .
 16534	append tok to c .
 16535	join elements of c into a string , return it .
 16536	import module logging .
@@ -16580,7 +16580,7 @@
 16582	define the connection with an argument self .
 16583	call the function get_connection with 2 arguments : backend set to self.email_backend and fail_silently set to boolean True .
 16584	define the method format_subject with 2 arguments : self and subject .
-16585	replace every occurrence of STR0 in subject with STR1 and replace every occurrence of STR2 in subject with STR3 , substitute the result for formatted_subject .
+16585	replace every occurrence of STR0 in subject with STR1 and replace every occurrence of STRspecial in subject with STR2 , substitute the result for formatted_subject .
 16586	return first 989 elements of formatted_subject .
 16587	derive the class CallbackFilter from logging.Filter base class .
 16588	define the method __init__ with 2 arguments : self and callback .
@@ -16845,7 +16845,7 @@
 16847	from __future__ import unicode_literals into default name space .
 16848	from django.utils import six into default name space .
 16849	from django.utils.six.moves import zip into default name space .
-16850	ESCAPE_MAPPINGS is an dictionary with 10 initial entries : None for STR0 , None for STR1B STR20 STR3d STR4x STR5D STR6 STR7s STR8x STR9S STR10x STR11W STR12 ! STR13W STR14Z ' .
+16850	ESCAPE_MAPPINGS is an dictionary with 10 initial entries : None for STR0 , None for STR , None for STR1 , STR2 for STR3 , STR4 for STR5 , STR for STR6 , STR7 for STR8 , STR9 for STR10 , STR11 for STR12 and None for STR13 .
 16851	derive the class Choice from list base class .
 16852	derive the class Group from list base class .
 16853	derive the class NonCapture from list base class .
@@ -16939,7 +16939,7 @@
 16941	call the function flatten_result with an argument result , unpack the resulting list and zip it in the list of tuples , return the result .
 16942	define the function next_char with an argument input_iter .
 16943	for every ch in input_iter ,
-16944	if ch is not equal to string STR0 .
+16944	if ch is not equal to string '\STR .
 16945	yield ch and boolean False .
 16946	skip this loop iteration .
 16947	get the next element of the iterable pattern_iter , assign the result for ch .
@@ -17342,7 +17342,7 @@
 17344	define the function int2byte with an argument i .
 17345	call the function bytes with an argument tuple with an element i , return the result .
 17346	if not ,
-17347	call the method operator.methodcaller with 3 arguments : string oto_bytes STR0big ' , substitute the result for int2byte .
+17347	call the method operator.methodcaller with 3 arguments : string STR0 , integer 1 and string STR1 , substitute the result for int2byte .
 17348	call te method operator.itemgetter with an argument integer 0 , substitute the result for byte2int .
 17349	substitute operator.getitem for indexbytes .
 17350	substitute iter for iterbytes .
@@ -17353,7 +17353,7 @@
 17355	define the function b with an argument s .
 17356	return s .
 17357	define the function u with an argument s .
-17358	replace every occurrence of raw string STR1 in s with a raw string STR2 , use the result and string STR0 , as arguments for the call to the unicode function , return the result .
+17358	replace every occurrence of raw string STRspecial in s with a raw string '\\\STR , use the result and string STR0 , as arguments for the call to the unicode function , return the result .
 17359	substitute unichr for unichr .
 17360	substitute chr for int2byte .
 17361	define the function byte2int with an argument bs .
@@ -17383,7 +17383,7 @@
 17385	otherwise if _locs_ is None ,
 17386	substitute _globs_ with an argument _locs_ .
 17387	execute code statement STR0 .
-17388	call the function exec_ with an argument string STR0def reraise ( tp , value , tb=None ) : raise tp , value , t STR `` .
+17388	call the function exec_ with an argument string STR0 .
 17389	get attribute STR0 from the moves.builtins object , if it exists substitute it for print_ , if not print_ is None .
 17390	if print_ is None ,
 17391	define the function print_ with 2 arguments : unpacked list args and unpacked dictionary kwargs .
@@ -17424,7 +17424,7 @@
 17426	convert whitespace character to unicode and substitute the result for space .
 17427	if not ,
 17428	substitute newline character for newline .
-17429	substitute string STR0 for space .
+17429	substitute string STR for space .
 17430	if sep is None ,
 17431	substitute space for sep .
 17432	if end is None
@@ -17443,7 +17443,7 @@
 17445	if this_bases is None ,
 17446	call the method type.__new__ with 4 arguments : cls , name , empty tuple and d , return the result .
 17447	call the function meta with 3 arguments : name , base and d .
-17448	return an instance of metaclass class , created with 3 arguments : string otemporary_class ' , None and an empty dictionary .
+17448	return an instance of metaclass class , created with 3 arguments : string STR0 , None and an empty dictionary .
 17449	define the function add_metaclass with an argument metaclass .
 17450	define the function wrapper with an argument cls .
 17451	call the method cls.__dict__.copy substitute the result for orig_vars .
@@ -17652,7 +17652,7 @@
 17654	call the function pgettext with an argument STR0 , STR1 , substitute the result for truncate .
 17655	call the function force_text with an argument truncate , substitute the result for truncate .
 17656	if string STR0 is contained in truncate ,
-17657	format truncate with a dictionary with an element : text for otruncated_text ' , return the result .
+17657	format truncate with a dictionary with an element : text for STR0 , return the result .
 17658	if text ends with truncate ,
 17659	return text .
 17660	append truncate to text , return the result .
@@ -17696,7 +17696,7 @@
 17698	define the method _truncate_html with 6 arguments : self , length , truncate , text , truncate_len and words .
 17699	if words is not empty and length is smaller than or equal to integer 0 ,
 17700	return an empty string .
-17701	html4_singlets is a tuple with 9 elements : strings STR0col STR1link STR2base STR3img STR4param STR5area STR6h STR7input ' .
+17701	html4_singlets is a tuple with 9 elements : strings STR , STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 and STR7 .
 17702	pos is equal to integer 0 .
 17703	end_text_pos is equal to integer 0 .
 17704	current_len is equal to integer 0 .
@@ -17753,7 +17753,7 @@
 17755	call the method re_newlines.sub with 2 arguments : STR0 and text , return the result .
 17756	call the function allow_lazy with 2 arguments : normalize_newlines and six.text_type , substitute the result for normalize_newlines .
 17757	define the function phone2numeric with an argument phone .
-17758	char2number is an dictionary , with 26 elements : 2 for STR0 , 2 for STR1c STR2d STR3e STR4f STR5g STR6h STR7i STR8j STR9k STR10l STR11m STR12n STR13o STR14p STR15q STR16 STR17 STR18s STR19 , 8 for ot STR20u STR21v STR22w STR23x STR24y STR25z ' .
+17758	char2number is an dictionary , with 26 elements : 2 for STR0 , 2 for STR , 2 for STR1 , 3 for STR2 , 3 for STR3 , 3 for STR4 , 4 for STR5 , 4 for STR6 , 4 for STR7 , 4 for STR8 , 5 for STR9 , 5 for STR10 , 5 for STR11 , 6 for STR12 , 6 for STR13 , 6 for STR14 , 7 for STR15 , 7 for STR , 7 for STR , 7 for STR16 , 7 for STR17 , 8 for STR18 , 8 for STR19 , 8 for STR20 , 9 for STR21 , 9 for STR22 , 9 for STR23 and 9 for STR24 .
 17759	for every c in phone converted to lowercase , join the value under the c key of the char2number dictionary into a string , return it .
 17760	call the function allow_lazy with an argument phone2numeric , substitute the result for phone2numeric .
 17761	define the function compress_string with an argument s .
@@ -17795,14 +17795,14 @@
 17797	call the method s.decode with an argument string STR0 , substitute the result for s .
 17798	otherwise if , type of s doesnt equal to six.text_type ,
 17799	raise an TypeError with an argument s .
-17800	replace every occurrence of STR0 in s with STR1 .
-17801	replace every occurrence of STR0 in s with STR1 .
+17800	replace every occurrence of STRspecial in s with '\\\STR .
+17801	replace every occurrence of STRspecial in s with STR0 .
 17802	replace every occurrence of STR0 in s with STR1 .
 17803	replace every occurrence of STR0 in s with STR1 .
-17804	replace every occurrence of STR0 in s with STR1 .
+17804	replace every occurrence of STR in s with STR0 .
 17805	replace every occurrence of STR0 in s with STR1 .
 17806	if quote_double_quotes is true ,
-17807	replace every occurrence of STR0 in s with STR1 .
+17807	replace every occurrence of STR in s with STR0 .
 17808	call the method ustring_re.sub with 2 arguments : fix and s , return the result .
 17809	call the function allow_lazy with 2 arguments : javascript_quote and six.text_type , substitute the result for javascript_quote .
 17810	call the function re.compile with 2 arguments : raw string STR0 ] * ( ? : ( ? : STR1\\ ] |\\ . ) * STR2 ] * ) + ) | \+ ) '' , and re.VERBOSE , substitute the result for smart_split_re .
@@ -17832,10 +17832,10 @@
 17834	call the method _entity_re.sub with 2 arguments : _replace_entity and text , return the result .
 17835	call the function allow_lazy with 2 arguments : unescape_entities and six.text_type , substitute the result for unescape_entities .
 17836	define the function unescape_string_literal with an argument s .
-17837	if first element of s is not contained in STR0 ' '' or last element of s is not equal to first element of s ,
+17837	if first element of s is not contained in `` STR '' or last element of s is not equal to first element of s ,
 17838	raise an ValueError exception wit an argument string STR0 , where STR1 is replaced with s .
 17839	substitute first element of s for quote .
-17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote , replace every occurrence of raw string STR1 in the result with string STR2 , return the result .
+17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote , replace every occurrence of raw string STRspecial in the result with string '\STR , return the result .
 17841	call the function allow_lazy with an argument unescape_string_literal , substitute the result for unescape_string_literal .
 17842	define the function slugify with an argument value .
 17843	call the method unicodedata.normalize with 2 arguments : string STR0 and value , encode the result with 2 arguments : string STR1 , and string STR2 , call the method decode on the result with an argument string STR3 , substitute the result for value .
@@ -18034,7 +18034,7 @@
 18036	from django.utils.encoding import force_text into default name space .
 18037	from django.utils.functional import lazy into default name space .
 18038	from django.utils import six into default name space .
-18039	__all__ is an list containing strings : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , oto_locale STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 , STR21 , STR22 , STR23 , STR24 and STR25 .
+18039	__all__ is an list containing strings : STR0 , STR1 , STR2 , STR3 , STR4 , STR5 , STR6 , STR7 , STR8 , STR9 , STR10 , STR11 , STR12 , STR13 , STR14 , STR15 , STR16 , STR17 , STR18 , STR19 , STR20 , STR21 , STR22 , STR23 , STR24 , STR25 and STR26 .
 18040	LANGUAGE_SESSION_KEY is an string STR0 .
 18041	derive the class TranslatorCommentWarning from the SyntaxWarning base class .
 18042	do nothing .
@@ -18078,7 +18078,7 @@
 18080	try ,
 18081	substitute value under the number key of the rhs dictionary for number_value .
 18082	if KeyError exception is caught ,
-18083	raise an KeyError with an argument string STR0 % s\ STR1 STR2 , where STR3 is replaced with number .
+18083	raise an KeyError with an argument string STR0 , where STR1 is replaced with number .
 18084	if not ,
 18085	substitute rhs for number_value .
 18086	substitute number_value for kwargs dictionary value under the STR0 key .
@@ -18271,7 +18271,7 @@
 18273	try ,
 18274	call the method apps.get_app_configs , convert the result in a list , reverse the order of elements , substitute the result for app_configs .
 18275	if AppRegistryNotReady exception is caught ,
-18276	raise an AppRegistryNotReady exception with an argument string STR0 STR1 .
+18276	raise an AppRegistryNotReady exception with an argument string STR0 .
 18277	for every app_config in app_configs ,
 18278	join app_config.path and string STR0 into a file path , substitute it for localedir .
 18279	call the method self._new_gnu_trans with an argument localedir , substitute the result for translation .
@@ -18327,7 +18327,7 @@
 18329	return _default .
 18330	define the function do_translate with 2 arguments : message and translation_function .
 18331	use global variable _default .
-18332	replace every occurrence of string STR0 in message with STR1 , replace every occurrence of string STR2 , in the previous result for with string STR3 , substitute the result for eol_message .
+18332	replace every occurrence of string STR0 in message with STR1 , replace every occurrence of string STRspecial , in the previous result for with string STR2 , substitute the result for eol_message .
 18333	get STR0 attribute of the _active object , if it exists substitute it for t , if not t is None .
 18334	if t is not None ,
 18335	get translation_function attribute of the object t , call the result with an argument eol_message , substitute the result for result .
@@ -18554,18 +18554,18 @@
 18556	call the function constant_re.findall with an argument t.contents , substitute the result for cmatches .
 18557	if imatch is true ,
 18558	call the method imatch.group with an argument integer 1 , substitute the result for g .
-18559	if first element of g equals a string STR0 ,
-18560	strip g of STR0 from both ends ,
-18561	otherwise if first element of g equals a string STR0 ,
-18562	strip g of STR0 from both ends ,
+18559	if first element of g equals a string STR ,
+18560	strip g of STR from both ends ,
+18561	otherwise if first element of g equals a string STR ,
+18562	strip g of STR from both ends ,
 18563	call the method one_percent_re.sub with 2 arguments : string STR0 and g , substitute the result for .
 18564	call the method imatch.group with an argument integer 1 , if it evaluates to true ,
 18565	call the method imatch.group with an argument integer 2 , use the result as an argument for the call to the method context_re.match , substitute the result for context_match .
 18566	call the method context_match.group with an argument integer 1 , substitute the result for message_context .
-18567	if first element of message_context equals to character STR0 ,
-18568	strip message_context of STR0 characters from both ends , substitute the result for message_context .
-18569	otherwise if , first element of message_context is equal to STR0 ,
-18570	strip message_context of STR0 characters from both ends , substitute the result for message_context .
+18567	if first element of message_context equals to character STR ,
+18568	strip message_context of STR characters from both ends , substitute the result for message_context .
+18569	otherwise if , first element of message_context is equal to STR ,
+18570	strip message_context of STR characters from both ends , substitute the result for message_context .
 18571	format string STR0 with message_context and g , write it to out .
 18572	message_context is None .
 18573	if not ,
@@ -18576,13 +18576,13 @@
 18578	call the method bmatch.group with an argument integer 1 , if it evaluates to true ,
 18579	call the method bmatch.group with an argument integer 1 , use the result as an argument for the call to the function context_re.match , substitute the result for context_match .
 18580	call the method context_match.group with an argument integer 1 , substitute the result for message_context .
-18581	if first element of message_context equals to character STR0 ,
-18582	strip message_context of STR0 characters from both ends , substitute the result for message_context .
-18583	otherwise if first element of message_context equals to character STR0 ,
-18584	strip message_context of STR0 characters from both ends , substitute the result for message_context .
+18581	if first element of message_context equals to character STR ,
+18582	strip message_context of STR characters from both ends , substitute the result for message_context .
+18583	otherwise if first element of message_context equals to character STR ,
+18584	strip message_context of STR characters from both ends , substitute the result for message_context .
 18585	intrans is boolean True .
 18586	inplural is boolean False .
-18587	if string otrimmed ' is contained in result of the method t.split_contents , trimmed is boolean True , otherwise is boolean False .
+18587	if string STR0 is contained in result of the method t.split_contents , trimmed is boolean True , otherwise is boolean False .
 18588	singular is an empty list .
 18589	plural is an empty list .
 18590	otherwise if cmatches is true ,
@@ -18688,10 +18688,10 @@
 18690	import module warnings .
 18691	from django.utils.deprecation import RemovedInDjango19Warning into default name space .
 18692	from django.utils.encoding import force_str , force_text and DEFAULT_LOCALE_ENCODING into default name space .
-18693	call the function warnings.warn with 3 arguments : string STR0 STR1 , RemovedInDjango19Warning and stacklevel set to 2 .
+18693	call the function warnings.warn with 3 arguments : string STR0 , RemovedInDjango19Warning and stacklevel set to 2 .
 18694	derive the class FixedOffset from the tzinfo base class .
 18695	define the method __init__ with 2 arguments : self and offset .
-18696	call the function warnings.warn with 2 arguments : STR0 STR1 and RemovedInDjango19Warning .
+18696	call the function warnings.warn with 2 arguments : STR0 and RemovedInDjango19Warning .
 18697	if offset is an instance of timedelta class ,
 18698	substitute offset for self.__offset .
 18699	substitute self.__offset.seconds for offset .
@@ -18711,7 +18711,7 @@
 18713	call the function timedelta with an argument integer 0 , return the result .
 18714	derive the class LocalTimezone from the tzinfo base class .
 18715	define the method __init__ with 2 arguments self and dt .
-18716	call the function warnings.warn with 2 arguments : string STR0 STR1 and RemovedInDjango19Warning .
+18716	call the function warnings.warn with 2 arguments : string STR0 and RemovedInDjango19Warning .
 18717	call the method tzinfo.__init__ with an argument self .
 18718	substitute dt for self.__dt .
 18719	call the method self.tzname with an argument dt , substitute the result for self._tzname .
@@ -18765,7 +18765,7 @@
 18767	if git_changeset is true ,
 18768	convert git_changeset to string , append it to the string STR0 , replace it for sub .
 18769	otherwise if fourth element of version does not equals to STR0 ,
-18770	mapping is a dictionary with 3 initial entries : STR0 for STR1 , STR2beta STR3c STR4rc ' .
+18770	mapping is a dictionary with 3 initial entries : STR0 for STR1 , STR for STR2 and STR3 for STR4 .
 18771	use fourth element of version as a key to get the value from mapping dictionary , append to it fourth element of version converted to string , substitute it for sub .
 18772	sum major and sub , return the result converted to string .
 18773	define the function get_major_version with an argument version defaulting to None .

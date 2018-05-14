@@ -22,9 +22,12 @@ Created on Jul 20, 2017
 
 import configparser
 import importlib
+import pickle
 
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
+
+LOAD_GRAMMAR = False
 
 def create_grammar(grammar_type, *args, **kw):
     pkg = None
@@ -308,16 +311,25 @@ class Config(object):
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         flatten_grammar = self.model_type != 'extensible'
-        self._grammar = create_grammar(self._config['output']['grammar'],
-                                       self._config['output']['grammar_input_file'],
-                                       flatten=flatten_grammar,
-                                       max_input_length=self.max_length)
+
+
+        if LOAD_GRAMMAR:
+            with open('config.pkl', 'rb') as input:
+                self._grammar = pickle.load(input)
+        else:
+            self._grammar = create_grammar(self._config['output']['grammar'],
+                                           self._config['output']['grammar_input_file'],
+                                           flatten=flatten_grammar,
+                                           max_input_length=self.max_length)
+            with open('config.pkl', 'wb') as output:
+                pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
+
+
         ##########
-        # import json
         #
-        # with open('config.json', 'w') as f:
-        #     json.dump(self._grammar, f)
+        #
         ##########
+
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
                                          grammar=self._grammar)

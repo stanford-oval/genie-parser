@@ -24,85 +24,141 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
 
     for line in fin:
 
+        #hack
+        list = [('''r"\'([^\'\\]|(\\(.|\n)))*?\'"'''), ('''r"\'([^\'\\]||(\\(.|\n)))*?\'"''')]
+        for grep in list:
+            if line.find(grep) != -1:
+                line = line.replace(grep, 'STR')
+
+        #if any(s in line for s in list):
+
+        # if line.find('''r"\'([^\'\\]|(\\(.|\n)))*?\'"''') != -1:
+        #     line = line.replace('''r"\'([^\'\\]|(\\(.|\n)))*?\'"''', 'STR')
 
 
-        # exceptions = [('''if bit starts with '_("' ot bit starts with "_('",'''), ('''if bit . startswith ( '_("' ) or bit . startswith ( "_('" ) :''')]
-        #
-        # if line in exceptions:
-        #
-        #     line = re.sub(r'\'_\(\"\'', 'STR' + str(0), line, count=1)
-        #     line = re.sub(r'\"_\(\'\"', 'STR' + str(1), line, count=1)
-        #
-        #
+        line = re.sub(r'\'\"\'', '\'\'', line)
+        line = re.sub(r'\"\'\"', '\"\"', line)
+
+        line = re.sub(r'\\\"(?!\s)', 'STR', line)
+        line = re.sub(r'\\\'(?!\s)', 'STR', line)
+
+        line = re.sub(r'n\'t', 'not', line)  # Empty string
 
 
-        # else:
 
-        #line = re.sub(r'\"|\'\'\'', '\'', line)
+        line = re.sub(r'b\"\"(?!\")|b\'\'(?!\')', ' STR ', line)  # Empty string
+        line = re.sub(r'r\"\"(?!\")|r\'\'(?!\')', ' STR ', line)  # Empty string
 
-        #line = re.sub(r'rSTR|bSTR|\\STR|b\'\'|r\'\'', 'STR', line)
-        line = re.sub(r'\'t', 'ot', line)  # Empty string
 
-        line = re.sub(r'b\"\"|b\'\'', ' STR ', line)  # Empty string
-        line = re.sub(r'r\"\"|r\'\'', ' STR ', line)  # Empty string
+        line = re.sub(r'r(\'{3}(.+?)\'{3})', r'\1', line)
+        line = re.sub(r'r(\"{3}(.+?)\"{3})', r'\1', line)
 
         line = re.sub(r'r(\"(?!\"{2})(.+?)\")', r'\1', line)
         line = re.sub(r'r(\'(?!\'{2})(.+?)\')', r'\1', line)
         line = re.sub(r'b(\"(?!\"{2})(.+?)\")', r'\1', line)
         line = re.sub(r'b(\'(?!\'{2})(.+?)\')', r'\1', line)
 
-        line = re.sub(r'\'(?!\'{2})\s*\'', ' STR ', line)  # Empty string
-        line = re.sub(r'\"(?!\"{2})\s*\"', ' STR ', line)  # Empty string
-        line = re.sub(r'\'_\(\"\'', ' STR' + 'special', line)
+
+
+
+
+        line = re.sub(r'\'{3}\s*\'{3}', ' STR ', line)  # Empty string
+        line = re.sub(r'\"{3}\s*\"{3}', ' STR ', line)  # Empty string
+        # line = re.sub(r'\'(?!\'{2})\s*\'(?!\'{2})', ' STR ', line)  # Empty string
+        # line = re.sub(r'\"\s*\"', ' STR ', line)  # Empty string
+
+
+
+        # line = re.sub(r'\'(?!\'{2})\s*\'', ' STR ', line)  # Empty string
+        # line = re.sub(r'\"(?!\"{2})\s*\"', ' STR ', line)  # Empty string
+
+
+
+        line = re.sub(r'\'\\\\\'', ' STR' + 'special', line)
+        line = re.sub(r'\'\\\'', ' STR' + 'special', line)
         line = re.sub(r'\"_\(\'\"', ' STR' + 'special', line)
-        line = re.sub(r'0x|0d', '', line)
+        line = re.sub(r'\"_\(\'\"', ' STR' + 'special', line)
+        line = re.sub(r'\"_\(\'\"', ' STR' + 'special', line)
+        line = re.sub(r'\"_\(\'\"', ' STR' + 'special', line)
+
+        line = re.sub(r'0x|0d|0o', '', line)
 
 
-        length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
+
+        length1, length2, length3, length4 = (0, 0, 0, 0)
+
+        length1 = len(re.findall(r'\'{3}(.+?)\'{3}', line))
         for i in range(length1):
+            line = re.sub(r'\'{3}(.+?)\'{3}', ' STR' + str(i), line, count=1)
+
+        length2 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line)) + length1
+        for i in range(length1, length2):
             line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', ' STR' + str(i), line, count=1)
 
-        length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
-        for i in range(length1, length2):
+
+        line = re.sub(r'\"\s*\"', ' STR ', line)  # Empty string
+
+
+
+        length3 = len(re.findall(r'\"(.+?)\"', line)) + length2
+        for i in range(length2, length3):
             line = re.sub(r'\"(?!STR)(.+?)\"', ' STR' + str(i), line, count=1)
 
-        length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
-        for i in range(length2, length3):
+        line = re.sub(r'\'\s*\'', ' STR ', line)  # Empty string
+
+        length4 = len(re.findall(r'\'(.+?)\'', line)) + length3
+        for i in range(length3, length4):
             line = re.sub(r'\'(?!STR)(.+?)\'', ' STR' + str(i), line, count=1)
 
 
-        length1, length2, length3 = (0, 0, 0)
+        length1, length2, length3, length4 = (0, 0, 0, 0)
 
-        length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
+        length1 = len(re.findall(r'\'{3}(.+?)\'{3}', line))
         for i in range(length1):
+            line = re.sub(r'\'{3}(.+?)\'{3}', ' STR' + str(i), line, count=1)
+
+        length2 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line)) + length1
+        for i in range(length1, length2):
             line = re.sub(r'\"\"\"(?!STR)(.+?)\"\"\"', ' STR' + str(i), line, count=1)
 
-
-        length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
-        for i in range(length1, length2):
+        length3 = len(re.findall(r'\"(.+?)\"', line)) + length2
+        for i in range(length2, length3):
             line = re.sub(r'\"(?!STR)(.+?)\"', ' STR' + str(i), line, count=1)
 
-        length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
-        for i in range(length2, length3):
+        length4 = len(re.findall(r'\'(.+?)\'', line)) + length3
+        for i in range(length3, length4):
             line = re.sub(r'\'(?!STR)(.+?)\'', ' STR' + str(i), line, count=1)
 
 
 
         # cases like 'STR .... '
-        length1, length2, length3 = (0, 0, 0)
+        length1, length2, length3, length4 = (0, 0, 0, 0)
 
-        length1 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line))
+        length1 = len(re.findall(r'\'{3}(.+?)\'{3}', line))
+        for i in range(length1):
+            line = re.sub(r'\'{3}(.+?)\'{3}', ' STR' + 'special', line, count=1)
+
+        length2 = len(re.findall(r'\"\"\"(.+?)\"\"\"', line)) + length1
         for i in range(length1):
             line = re.sub(r'\"\"\"(.+?)\"\"\"', ' STR' + 'special', line, count=1)
 
-
-        length2 = len(re.findall(r'\"(.+?)\"', line)) + length1
+        length3 = len(re.findall(r'\"(.+?)\"', line)) + length2
         for i in range(length1, length2):
             line = re.sub(r'\"(.+?)\"', ' STR' + 'special', line, count=1)
 
-        length3 = len(re.findall(r'\'(.+?)\'', line)) + length2
+        length4 = len(re.findall(r'\'(.+?)\'', line)) + length3
         for i in range(length2, length3):
             line = re.sub(r'\'(.+?)\'', ' STR' + 'special', line, count=1)
+
+
+        #hack
+        line.replace("'STR'", "STR")
+        line.replace("'STR '", "STR")
+        line.replace("'STR STR8STR'", "STR, STR8")
+        line.replace("'STR STR8STR '", "STR, STR8")
+
+        line = re.sub(r'\'STR(.+?)\'', ' STR' + 'special', line)
+        line.replace("_js_escapes = { ord ( STRspecial ) : STR0 , ord ( STRspecial", "_js_escapes = { ord ( STRspecial ) : STR0 , ord ( STRspecial )")
 
 
 

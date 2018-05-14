@@ -194,6 +194,7 @@ def load_data(from_file, input_words, grammar, max_length):
 
     with open(from_file, 'r') as data:
         for line in data:
+            #print(line)
             split = line.strip().split('\t')
             if len(split) == 4:
                 _, sentence, canonical, parse = split

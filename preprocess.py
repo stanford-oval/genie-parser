@@ -2,6 +2,13 @@ import sys
 import numpy as np
 import os
 import re
+import tempfile
+import urllib.request
+import shutil
+import zipfile
+
+
+
 
 
 def download_glove(glove):
@@ -26,8 +33,6 @@ def add_words(input_words, canonical):
         if word:
             input_words.add(word)
 
-        # if not word:
-        #     raise ValueError('Invalid canonical "%s"' % (canonical,))
 
 def save_dictionary(input_words, workdir):
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
@@ -36,7 +41,7 @@ def save_dictionary(input_words, workdir):
 
 def create_dictionary(input_words, dataset):
     for filename in os.listdir(dataset):
-        if not filename != 'train.txt' or filename != 'test.txt':
+        if filename != 'train.txt' and filename != 'dev.txt' and filename != 'test.txt':
             continue
 
         with open(os.path.join(dataset, filename), 'r') as fp:
@@ -94,16 +99,18 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
                 print(word, *vector, file=outfp)
 
             else:
+
                 if not word[0].isupper():
                     print("WARNING: missing word", word)
+
                 print(word, *np.random.normal(0, 0.9, (embed_size,)), file=outfp)
 
 
 def main():
     np.random.seed(1234)
 
-    if len(sys.argv) != 4:
-        print("** Usage: python3 " + "/path/to/preprocess.py" + "current working dir" + "Django dataset dir" + "GloVe embeddings dir **")
+    if len(sys.argv) < 4:
+        print("** Usage: python3 " + " /path/to/preprocess.py " + " current working dir " + " Django dataset dir " + " GloVe embeddings dir **" + " extra dict")
         sys.exit(1)
     else:
         workdir, dataset, glove = sys.argv[1:4]
