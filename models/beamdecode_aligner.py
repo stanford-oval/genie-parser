@@ -34,18 +34,12 @@ class BeamDecodeAligner(Seq2SeqAligner):
             return super().add_decoder_op(enc_final_state, enc_hidden_states, training)
 
         cell_dec = common.make_multi_rnn_cell(self.config.rnn_layers, self.config.rnn_cell_type,
-                                              self.config.output_embed_size,
-#                                              + self.config.encoder_hidden_size,
                                               self.config.decoder_hidden_size,
                                               self.dropout_placeholder)
         enc_hidden_states, enc_final_state = common.unify_encoder_decoder(cell_dec,
                                                                           enc_hidden_states,
                                                                           enc_final_state)
         
-        #if self.config.connect_output_decoder:
-        #    cell_dec = common.ParentFeedingCellWrapper(cell_dec, enc_final_state)
-        #else:
-        #    cell_dec = common.InputIgnoringCellWrapper(cell_dec, enc_final_state)
         if self.config.apply_attention:
             enc_hidden_states = tf.contrib.seq2seq.tile_batch(enc_hidden_states, multiplier=self.config.beam_size)
             tiled_enc_final_state = tf.contrib.seq2seq.tile_batch(enc_final_state, multiplier=self.config.beam_size)
@@ -65,9 +59,10 @@ class BeamDecodeAligner(Seq2SeqAligner):
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         
-        output_layer = tf.layers.Dense(self.config.grammar.output_size, use_bias=False)
-        
-        decoder = BeamSearchDecoder(cell_dec, self.output_embed_matrix,
+        output_layer = tf.layers.Dense(self.config.grammar.output_size[self.config.grammar.primary_output], use_bias=False)
+
+        output_embed_matrix = self.output_embed_matrices[self.config.grammar.primary_output]        
+        decoder = BeamSearchDecoder(cell_dec, output_embed_matrix,
                                     start_tokens=go_vector,
                                     end_token=self.config.grammar.end, 
                                     initial_state=enc_final_state,

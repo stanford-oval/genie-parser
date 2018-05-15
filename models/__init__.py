@@ -39,6 +39,9 @@ def create_model(config):
     if config.model_type == 'seq2seq':
         pkg = 'seq2seq_aligner'
         class_name = 'Seq2SeqAligner'
+    elif config.model_type == 'beamdecode':
+        pkg = 'beamdecode_aligner'
+        class_name = 'BeamDecodeAligner'
     elif config.model_type == 'beamsearch':
         pkg = 'beamsearch'
         class_name = 'BeamAligner'
