@@ -163,7 +163,9 @@ class ShiftReduceGrammar(AbstractGrammar):
             assert action_vector[i] < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
             i += 1
             if i >= max_length-1:
-                raise ValueError("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
+                print ("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
+                action_vector[max_length - 1] = self.end
+                return vectors, max_length - 1
         action_vector[i] = self.end # eos
         i += 1
         

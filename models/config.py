@@ -27,7 +27,6 @@ import pickle
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
 
-LOAD_GRAMMAR = False
 
 def create_grammar(grammar_type, *args, **kw):
     pkg = None
@@ -304,7 +303,7 @@ class Config(object):
             self._config.write(fp)
         
     @staticmethod
-    def load(filenames):
+    def load(filenames, load_grammar):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
@@ -312,11 +311,18 @@ class Config(object):
         
         flatten_grammar = self.model_type != 'extensible'
 
+        if load_grammar != '0':
+            print('********')
+            print ('load grammar')
+            print('********')
 
-        if LOAD_GRAMMAR:
             with open('config.pkl', 'rb') as input:
                 self._grammar = pickle.load(input)
         else:
+            print('********')
+            print ('build grammar')
+            print('********')
+
             self._grammar = create_grammar(self._config['output']['grammar'],
                                            self._config['output']['grammar_input_file'],
                                            flatten=flatten_grammar,

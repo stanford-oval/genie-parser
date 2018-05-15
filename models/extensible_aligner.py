@@ -211,7 +211,8 @@ class ExtensibleGrammarAligner(BaseAligner):
                                                                enc_final_state,
                                                                self.input_length_placeholder,
                                                                self.batch_size,
-                                                               self.config.attention_probability_fn)
+                                                               self.config.attention_probability_fn,
+                                                               dropout=self.dropout_placeholder)
         
         
         go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start

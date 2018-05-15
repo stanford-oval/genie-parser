@@ -2,32 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dfecfe07-1afa-41c9-a0f8-cfa88ff6d1ce" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/dataset/check_regex.py" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/dataset/regex.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/workdir/config.json" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/best.data-00000-of-00001" afterPath="$PROJECT_DIR$/workdir/mymodel/best.data-00000-of-00001" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/best.index" afterPath="$PROJECT_DIR$/workdir/mymodel/best.index" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/best.meta" afterPath="$PROJECT_DIR$/workdir/mymodel/best.meta" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/anno_num++.txt" afterPath="$PROJECT_DIR$/dataset/anno_num++.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/anno_num.txt" afterPath="$PROJECT_DIR$/dataset/anno_num.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/code++.txt" afterPath="$PROJECT_DIR$/dataset/code++.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/code_keep.txt" afterPath="$PROJECT_DIR$/dataset/code_keep.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/data.txt" afterPath="$PROJECT_DIR$/dataset/data.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/data_shuffled.txt" afterPath="$PROJECT_DIR$/dataset/data_shuffled.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/test.txt" afterPath="$PROJECT_DIR$/dataset/test.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/test_keep.txt" afterPath="$PROJECT_DIR$/dataset/test_keep.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/tokenize_data.py" afterPath="$PROJECT_DIR$/dataset/tokenize_data.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/tokens_all.anno.txt" afterPath="$PROJECT_DIR$/dataset/tokens_all.anno.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/tokens_all.code.txt" afterPath="$PROJECT_DIR$/dataset/tokens_all.code.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/train.txt" afterPath="$PROJECT_DIR$/dataset/train.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/train_keep.txt" afterPath="$PROJECT_DIR$/dataset/train_keep.txt" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/workdir/config.pkl.json" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/workdir/extra_word_file.tsv" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/config.pkl" afterPath="$PROJECT_DIR$/workdir/config.pkl" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/train.txt" afterPath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/train.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/valid.txt" afterPath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/valid.txt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/django.py" afterPath="$PROJECT_DIR$/grammar/django.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" afterPath="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/common.py" afterPath="$PROJECT_DIR$/models/common.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/config.py" afterPath="$PROJECT_DIR$/models/config.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/preprocess.py" afterPath="$PROJECT_DIR$/preprocess.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util/loader.py" afterPath="$PROJECT_DIR$/util/loader.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/embeddings-300.txt" afterPath="$PROJECT_DIR$/workdir/embeddings-300.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/input_words.txt" afterPath="$PROJECT_DIR$/workdir/input_words.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/extensible_aligner.py" afterPath="$PROJECT_DIR$/models/extensible_aligner.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/run_train.py" afterPath="$PROJECT_DIR$/run_train.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/model.conf" afterPath="$PROJECT_DIR$/workdir/mymodel/model.conf" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" afterPath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" />
     </list>
@@ -43,14 +28,12 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="django.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/grammar/django.py">
+      <file leaf-file-name="common.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/models/common.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="304">
-              <caret line="420" column="21" lean-forward="true" selection-start-line="420" selection-start-column="21" selection-end-line="420" selection-end-column="21" />
-              <folding>
-                <element signature="e#52#104#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="-1925">
+              <caret line="214" column="29" lean-forward="false" selection-start-line="214" selection-start-column="29" selection-end-line="214" selection-end-column="29" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -58,53 +41,11 @@
       <file leaf-file-name="tokenize_data.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="148">
-              <caret line="163" column="0" lean-forward="true" selection-start-line="163" selection-start-column="0" selection-end-line="163" selection-end-column="0" />
+            <state relative-caret-position="1856">
+              <caret line="116" column="32" lean-forward="true" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="preprocess.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/preprocess.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="316">
-              <caret line="53" column="62" lean-forward="true" selection-start-line="53" selection-start-column="62" selection-end-line="53" selection-end-column="62" />
-              <folding>
-                <element signature="e#0#10#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="prepare.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/prepare.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1648">
-              <caret line="112" column="0" lean-forward="true" selection-start-line="112" selection-start-column="0" selection-end-line="112" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="abstract.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/grammar/abstract.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="310">
-              <caret line="48" column="18" lean-forward="false" selection-start-line="48" selection-start-column="18" selection-end-line="48" selection-end-column="18" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="check_regex.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/dataset/check_regex.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="301" lean-forward="false" selection-start-line="0" selection-start-column="301" selection-end-line="0" selection-end-column="301" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -112,8 +53,8 @@
       <file leaf-file-name="run_train.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/run_train.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="121">
-              <caret line="34" column="94" lean-forward="true" selection-start-line="34" selection-start-column="94" selection-end-line="34" selection-end-column="94" />
+            <state relative-caret-position="120">
+              <caret line="34" column="13" lean-forward="false" selection-start-line="34" selection-start-column="8" selection-end-line="34" selection-end-column="13" />
               <folding>
                 <element signature="e#795#804#0" expanded="true" />
               </folding>
@@ -121,11 +62,31 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="shift_reduce_grammar.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="168">
+              <caret line="206" column="48" lean-forward="true" selection-start-line="206" selection-start-column="48" selection-end-line="206" selection-end-column="48" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="slr.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/grammar/slr.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="168">
+              <caret line="158" column="21" lean-forward="false" selection-start-line="158" selection-start-column="16" selection-end-line="158" selection-end-column="21" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models/config.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="314">
-              <caret line="328" column="9" lean-forward="true" selection-start-line="328" selection-start-column="9" selection-end-line="328" selection-end-column="9" />
+            <state relative-caret-position="-166">
+              <caret line="324" column="0" lean-forward="false" selection-start-line="324" selection-start-column="0" selection-end-line="324" selection-end-column="0" />
               <folding>
                 <element signature="e#826#845#0" expanded="true" />
               </folding>
@@ -133,24 +94,22 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="builtins.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/Library/Caches/PyCharm2017.2/python_stubs/1745073881/builtins.py">
+      <file leaf-file-name="extensible_aligner.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/models/extensible_aligner.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="202">
-              <caret line="169" column="11" lean-forward="false" selection-start-line="169" selection-start-column="4" selection-end-line="169" selection-end-column="11" />
+            <state relative-caret-position="316">
+              <caret line="177" column="36" lean-forward="true" selection-start-line="177" selection-start-column="36" selection-end-line="177" selection-end-column="36" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="shift_reduce_grammar.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+      <file leaf-file-name="seq2seq_aligner.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/models/seq2seq_aligner.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1597">
-              <caret line="154" column="39" lean-forward="false" selection-start-line="154" selection-start-column="39" selection-end-line="154" selection-end-column="39" />
-              <folding>
-                <element signature="e#825#843#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="-1604">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -166,16 +125,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>\&quot;(?!(\&quot;?(\&quot;)))\&quot;</find>
-      <find>\&quot;(?!\&quot;)\s*\&quot;</find>
-      <find>\&quot;(?!\&quot;{2})\s*\&quot;</find>
-      <find>FileWriter</find>
-      <find>r(\'(?!\'{2})(.+?)\')</find>
-      <find>(\'(?!\')(.+?)\')</find>
-      <find>r\&quot;\&quot;|r\'\'</find>
-      <find>r\&quot;\&quot;|r\'\'(?!\')</find>
-      <find>r(\'(.+?)\')</find>
-      <find>a(?!a{2})</find>
       <find>\'{3}\s*\'{3}</find>
       <find>\'(?!\'{2})\s*\'(?!\'{2})</find>
       <find>\\\\</find>
@@ -194,8 +143,18 @@
       <find>glove</find>
       <find>_grammar</find>
       <find>true</find>
-      <find>lambda</find>
+      <find>off</find>
+      <find>os.pat</find>
+      <find>ev</find>
+      <find>evaluate</find>
+      <find>evaluate(</find>
+      <find>os.path.join</find>
       <find>self._grammar</find>
+      <find>lambda</find>
+      <find>dropout</find>
+      <find>print</find>
+      <find>_compute_output_shape</find>
+      <find>compute</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -207,7 +166,6 @@
         <option value="$PROJECT_DIR$/models/base_aligner.py" />
         <option value="$USER_HOME$/codebase=tt, model=tt/almond+django/models/config.py" />
         <option value="$PROJECT_DIR$/scripts/plot_learning.py" />
-        <option value="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
         <option value="$PROJECT_DIR$/grammar/thingtalk.py" />
         <option value="$PROJECT_DIR$/grammar/slr.py" />
         <option value="$PROJECT_DIR$/../StackGAN-Pytorch/code/trainer.py" />
@@ -216,8 +174,15 @@
         <option value="$PROJECT_DIR$/util/loader.py" />
         <option value="$PROJECT_DIR$/dataset/tokenize_data.py" />
         <option value="$PROJECT_DIR$/preprocess.py" />
-        <option value="$PROJECT_DIR$/models/config.py" />
         <option value="$PROJECT_DIR$/grammar/django.py" />
+        <option value="$PROJECT_DIR$/run_train.py" />
+        <option value="$PROJECT_DIR$/../NL2code/code_gen.py" />
+        <option value="$PROJECT_DIR$/belu_score.py" />
+        <option value="$PROJECT_DIR$/../NL2code/evaluation.py" />
+        <option value="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
+        <option value="$PROJECT_DIR$/models/config.py" />
+        <option value="$PROJECT_DIR$/models/common.py" />
+        <option value="$PROJECT_DIR$/models/extensible_aligner.py" />
       </list>
     </option>
   </component>
@@ -258,11 +223,6 @@
             <path>
               <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
               <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
-              <item name="dataset" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
-              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
               <item name="grammar" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -274,6 +234,17 @@
               <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
               <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
               <item name="util" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
+              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
+              <item name="workdir" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
+              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
+              <item name="workdir" type="462c0819:PsiDirectoryNode" />
+              <item name="mymodel" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -349,10 +320,10 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.5368803" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4159613" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.45465538" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2841596" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.38210398" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -388,6 +359,10 @@
           <line>102</line>
           <option name="timeStamp" value="17" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/../NL2code/code_gen.py</url>
+          <option name="timeStamp" value="19" />
+        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -396,57 +371,17 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="18" />
+      <option name="time" value="20" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$USER_HOME$/codebase=tt, model=tt/almond+django/models/base_aligner.py" />
-    <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="128">
-          <caret line="8" column="1" lean-forward="false" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///anaconda3/lib/python3.6/codecs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
-          <caret line="310" column="0" lean-forward="false" selection-start-line="310" selection-start-column="0" selection-end-line="310" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/codebase=tt, model=tt/almond+django/models/config.py" />
-    <entry file="file://$PROJECT_DIR$/util/loader.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="157">
-          <caret line="210" column="0" lean-forward="false" selection-start-line="210" selection-start-column="0" selection-end-line="210" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/plot_learning.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="309">
-          <caret line="24" column="0" lean-forward="false" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/run_train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1760">
-          <caret line="121" column="0" lean-forward="false" selection-start-line="121" selection-start-column="0" selection-end-line="121" selection-end-column="0" />
-          <folding>
-            <element signature="e#795#804#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="288">
           <caret line="161" column="66" lean-forward="false" selection-start-line="161" selection-start-column="66" selection-end-line="161" selection-end-column="66" />
           <folding>
-            <element signature="e#825#843#0" expanded="true" />
+            <element signature="e#825#843#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -489,7 +424,7 @@
         <state relative-caret-position="141">
           <caret line="159" column="18" lean-forward="true" selection-start-line="159" selection-start-column="18" selection-end-line="159" selection-end-column="18" />
           <folding>
-            <element signature="e#52#104#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -506,7 +441,7 @@
         <state relative-caret-position="384">
           <caret line="27" column="12" lean-forward="false" selection-start-line="27" selection-start-column="12" selection-end-line="27" selection-end-column="12" />
           <folding>
-            <element signature="e#52#104#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -526,7 +461,7 @@
         <state relative-caret-position="480">
           <caret line="33" column="8" lean-forward="true" selection-start-line="33" selection-start-column="8" selection-end-line="33" selection-end-column="8" />
           <folding>
-            <element signature="e#825#843#0" expanded="true" />
+            <element signature="e#825#843#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -552,7 +487,7 @@
         <state relative-caret-position="4592">
           <caret line="290" column="24" lean-forward="true" selection-start-line="290" selection-start-column="24" selection-end-line="290" selection-end-column="24" />
           <folding>
-            <element signature="e#52#104#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -572,7 +507,7 @@
         <state relative-caret-position="608">
           <caret line="41" column="28" lean-forward="false" selection-start-line="41" selection-start-column="28" selection-end-line="41" selection-end-column="28" />
           <folding>
-            <element signature="e#825#843#0" expanded="true" />
+            <element signature="e#825#843#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -588,13 +523,6 @@
     </entry>
     <entry file="file://$USER_HOME$/codebase=tt, model=tt/almond+django/run_train.py" />
     <entry file="file://$USER_HOME$/codebase=tt, model=tt/almond+django/models/base_aligner.py" />
-    <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="128">
-          <caret line="8" column="1" lean-forward="false" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///anaconda3/lib/python3.6/codecs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="205">
@@ -603,25 +531,10 @@
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/codebase=tt, model=tt/almond+django/models/config.py" />
-    <entry file="file://$PROJECT_DIR$/scripts/plot_learning.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="309">
-          <caret line="24" column="0" lean-forward="false" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///anaconda3/lib/python3.6/site-packages/IPython/core/interactiveshell.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="392">
           <caret line="2917" column="33" lean-forward="false" selection-start-line="2917" selection-start-column="33" selection-end-line="2917" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/slr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="8144">
-          <caret line="509" column="13" lean-forward="false" selection-start-line="509" selection-start-column="13" selection-end-line="509" selection-end-column="13" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -663,91 +576,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/models/extensible_aligner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-4914">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="305">
-          <caret line="42" column="26" lean-forward="true" selection-start-line="42" selection-start-column="26" selection-end-line="42" selection-end-column="26" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/prepare.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1648">
-          <caret line="112" column="0" lean-forward="true" selection-start-line="112" selection-start-column="0" selection-end-line="112" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///anaconda3/lib/python3.6/importlib/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-368">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/abstract.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="310">
-          <caret line="48" column="18" lean-forward="false" selection-start-line="48" selection-start-column="18" selection-end-line="48" selection-end-column="18" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1597">
-          <caret line="154" column="39" lean-forward="false" selection-start-line="154" selection-start-column="39" selection-end-line="154" selection-end-column="39" />
-          <folding>
-            <element signature="e#825#843#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Library/Caches/PyCharm2017.2/python_stubs/1745073881/builtins.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="202">
-          <caret line="169" column="11" lean-forward="false" selection-start-line="169" selection-start-column="4" selection-end-line="169" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/preprocess.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="53" column="62" lean-forward="true" selection-start-line="53" selection-start-column="62" selection-end-line="53" selection-end-column="62" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="148">
-          <caret line="163" column="0" lean-forward="true" selection-start-line="163" selection-start-column="0" selection-end-line="163" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/run_train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="121">
-          <caret line="34" column="94" lean-forward="true" selection-start-line="34" selection-start-column="94" selection-end-line="34" selection-end-column="94" />
-          <folding>
-            <element signature="e#795#804#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -759,23 +592,187 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/prepare.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-539">
+          <caret line="21" column="17" lean-forward="true" selection-start-line="21" selection-start-column="17" selection-end-line="21" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Caches/PyCharm2017.2/python_stubs/1745073881/builtins.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="403">
+          <caret line="187" column="0" lean-forward="true" selection-start-line="187" selection-start-column="0" selection-end-line="187" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/util/eval.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="36" column="30" lean-forward="true" selection-start-line="36" selection-start-column="30" selection-end-line="36" selection-end-column="30" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="31" column="38" lean-forward="true" selection-start-line="31" selection-start-column="38" selection-end-line="31" selection-end-column="38" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../NL2code/code_gen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="178">
+          <caret line="180" column="87" lean-forward="true" selection-start-line="180" selection-start-column="87" selection-end-line="180" selection-end-column="87" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/belu_score.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="41" column="0" lean-forward="true" selection-start-line="41" selection-start-column="0" selection-end-line="41" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../NL2code/evaluation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="383">
+          <caret line="341" column="24" lean-forward="true" selection-start-line="341" selection-start-column="24" selection-end-line="341" selection-end-column="24" />
+          <folding>
+            <element signature="e#25#56#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/preprocess.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="287">
+          <caret line="25" column="0" lean-forward="true" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="224">
+          <caret line="42" column="26" lean-forward="true" selection-start-line="42" selection-start-column="26" selection-end-line="42" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/django.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="334">
+          <caret line="426" column="47" lean-forward="false" selection-start-line="426" selection-start-column="47" selection-end-line="426" selection-end-column="47" />
+          <folding>
+            <element signature="e#0#52#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="34" column="13" lean-forward="false" selection-start-line="34" selection-start-column="8" selection-end-line="34" selection-end-column="13" />
+          <folding>
+            <element signature="e#795#804#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/slr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="158" column="21" lean-forward="false" selection-start-line="158" selection-start-column="16" selection-end-line="158" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/models/config.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="314">
-          <caret line="328" column="9" lean-forward="true" selection-start-line="328" selection-start-column="9" selection-end-line="328" selection-end-column="9" />
+        <state relative-caret-position="-166">
+          <caret line="324" column="0" lean-forward="false" selection-start-line="324" selection-start-column="0" selection-end-line="324" selection-end-column="0" />
           <folding>
             <element signature="e#826#845#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/django.py">
+    <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="304">
-          <caret line="420" column="21" lean-forward="true" selection-start-line="420" selection-start-column="21" selection-end-line="420" selection-end-column="21" />
+        <state relative-caret-position="-3088">
+          <caret line="44" column="8" lean-forward="true" selection-start-line="44" selection-start-column="8" selection-end-line="44" selection-end-column="8" />
           <folding>
-            <element signature="e#52#104#0" expanded="true" />
+            <element signature="e#826#835#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/seq2seq_aligner.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1604">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/abstract.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="172">
+          <caret line="54" column="17" lean-forward="false" selection-start-line="54" selection-start-column="12" selection-end-line="54" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1856">
+          <caret line="116" column="32" lean-forward="true" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/common.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1925">
+          <caret line="214" column="29" lean-forward="false" selection-start-line="214" selection-start-column="29" selection-end-line="214" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="206" column="48" lean-forward="true" selection-start-line="206" selection-start-column="48" selection-end-line="206" selection-end-column="48" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/plot_learning.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="231">
+          <caret line="24" column="0" lean-forward="false" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/extensible_aligner.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="316">
+          <caret line="177" column="36" lean-forward="true" selection-start-line="177" selection-start-column="36" selection-end-line="177" selection-end-column="36" />
+          <folding />
         </state>
       </provider>
     </entry>
