@@ -2,19 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dfecfe07-1afa-41c9-a0f8-cfa88ff6d1ce" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/workdir/config.pkl.json" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/workdir/extra_word_file.tsv" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/config.pkl" afterPath="$PROJECT_DIR$/workdir/config.pkl" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/train.txt" afterPath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/train.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/valid.txt" afterPath="$PROJECT_DIR$/dataset/finaldata/train+valid+test/valid.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/django.py" afterPath="$PROJECT_DIR$/grammar/django.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" afterPath="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/common.py" afterPath="$PROJECT_DIR$/models/common.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/config.py" afterPath="$PROJECT_DIR$/models/config.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/extensible_aligner.py" afterPath="$PROJECT_DIR$/models/extensible_aligner.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/run_train.py" afterPath="$PROJECT_DIR$/run_train.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util/loader.py" afterPath="$PROJECT_DIR$/util/loader.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/model.conf" afterPath="$PROJECT_DIR$/workdir/mymodel/model.conf" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" afterPath="$PROJECT_DIR$/workdir/mymodel/train-stats.json" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,21 +19,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="common.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/common.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1925">
-              <caret line="214" column="29" lean-forward="false" selection-start-line="214" selection-start-column="29" selection-end-line="214" selection-end-column="29" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="tokenize_data.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="1856">
-              <caret line="116" column="32" lean-forward="true" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
+              <caret line="116" column="32" lean-forward="false" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
               </folding>
@@ -53,8 +34,8 @@
       <file leaf-file-name="run_train.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/run_train.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="34" column="13" lean-forward="false" selection-start-line="34" selection-start-column="8" selection-end-line="34" selection-end-column="13" />
+            <state relative-caret-position="222">
+              <caret line="65" column="15" lean-forward="true" selection-start-line="65" selection-start-column="15" selection-end-line="65" selection-end-column="15" />
               <folding>
                 <element signature="e#795#804#0" expanded="true" />
               </folding>
@@ -62,43 +43,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="shift_reduce_grammar.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+      <file leaf-file-name="loader.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/util/loader.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="206" column="48" lean-forward="true" selection-start-line="206" selection-start-column="48" selection-end-line="206" selection-end-column="48" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="slr.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/grammar/slr.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="158" column="21" lean-forward="false" selection-start-line="158" selection-start-column="16" selection-end-line="158" selection-end-column="21" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/config.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-166">
-              <caret line="324" column="0" lean-forward="false" selection-start-line="324" selection-start-column="0" selection-end-line="324" selection-end-column="0" />
-              <folding>
-                <element signature="e#826#845#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="extensible_aligner.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/models/extensible_aligner.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="316">
-              <caret line="177" column="36" lean-forward="true" selection-start-line="177" selection-start-column="36" selection-end-line="177" selection-end-column="36" />
+            <state relative-caret-position="338">
+              <caret line="81" column="22" lean-forward="false" selection-start-line="81" selection-start-column="22" selection-end-line="81" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -107,9 +56,33 @@
       <file leaf-file-name="seq2seq_aligner.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models/seq2seq_aligner.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1604">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+            <state relative-caret-position="910">
+              <caret line="63" column="35" lean-forward="false" selection-start-line="63" selection-start-column="35" selection-end-line="63" selection-end-column="35" />
+              <folding>
+                <element signature="e#826#849#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="common.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/models/common.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="310">
+              <caret line="307" column="8" lean-forward="true" selection-start-line="307" selection-start-column="8" selection-end-line="307" selection-end-column="8" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="base_aligner.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="383">
+              <caret line="270" column="33" lean-forward="true" selection-start-line="270" selection-start-column="33" selection-end-line="270" selection-end-column="33" />
+              <folding>
+                <element signature="e#826#835#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -125,10 +98,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>\'{3}\s*\'{3}</find>
-      <find>\'(?!\'{2})\s*\'(?!\'{2})</find>
-      <find>\\\\</find>
-      <find>\'\\\\\'</find>
       <find>\\{2}</find>
       <find>class</find>
       <find>\\\'(?!\s)</find>
@@ -152,9 +121,13 @@
       <find>self._grammar</find>
       <find>lambda</find>
       <find>dropout</find>
-      <find>print</find>
       <find>_compute_output_shape</find>
       <find>compute</find>
+      <find>optimi</find>
+      <find>print</find>
+      <find>rint</find>
+      <find>tfconfig</find>
+      <find>l2</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -171,18 +144,18 @@
         <option value="$PROJECT_DIR$/../StackGAN-Pytorch/code/trainer.py" />
         <option value="$PROJECT_DIR$/dataset/regex.py" />
         <option value="$PROJECT_DIR$/dataset/check_regex.py" />
-        <option value="$PROJECT_DIR$/util/loader.py" />
         <option value="$PROJECT_DIR$/dataset/tokenize_data.py" />
         <option value="$PROJECT_DIR$/preprocess.py" />
         <option value="$PROJECT_DIR$/grammar/django.py" />
-        <option value="$PROJECT_DIR$/run_train.py" />
         <option value="$PROJECT_DIR$/../NL2code/code_gen.py" />
         <option value="$PROJECT_DIR$/belu_score.py" />
         <option value="$PROJECT_DIR$/../NL2code/evaluation.py" />
-        <option value="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
         <option value="$PROJECT_DIR$/models/config.py" />
         <option value="$PROJECT_DIR$/models/common.py" />
+        <option value="$PROJECT_DIR$/run_train.py" />
+        <option value="$PROJECT_DIR$/grammar/shift_reduce_grammar.py" />
         <option value="$PROJECT_DIR$/models/extensible_aligner.py" />
+        <option value="$PROJECT_DIR$/util/loader.py" />
       </list>
     </option>
   </component>
@@ -223,28 +196,7 @@
             <path>
               <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
               <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
-              <item name="grammar" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
-              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
               <item name="models" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
-              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
-              <item name="util" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
-              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
-              <item name="workdir" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="almond-nnparser-private" type="b2602c69:ProjectViewProjectNode" />
-              <item name="almond-nnparser-private" type="462c0819:PsiDirectoryNode" />
-              <item name="workdir" type="462c0819:PsiDirectoryNode" />
-              <item name="mymodel" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -323,7 +275,7 @@
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4159613" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2841596" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1680774" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.38210398" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -424,7 +376,7 @@
         <state relative-caret-position="141">
           <caret line="159" column="18" lean-forward="true" selection-start-line="159" selection-start-column="18" selection-end-line="159" selection-end-column="18" />
           <folding>
-            <element signature="e#0#52#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -441,7 +393,7 @@
         <state relative-caret-position="384">
           <caret line="27" column="12" lean-forward="false" selection-start-line="27" selection-start-column="12" selection-end-line="27" selection-end-column="12" />
           <folding>
-            <element signature="e#0#52#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -487,7 +439,7 @@
         <state relative-caret-position="4592">
           <caret line="290" column="24" lean-forward="true" selection-start-line="290" selection-start-column="24" selection-end-line="290" selection-end-column="24" />
           <folding>
-            <element signature="e#0#52#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -568,14 +520,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/util/loader.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="201" column="27" lean-forward="false" selection-start-line="201" selection-start-column="27" selection-end-line="201" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///anaconda3/lib/python3.6/importlib/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-368">
@@ -624,16 +568,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../NL2code/code_gen.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="178">
-          <caret line="180" column="87" lean-forward="true" selection-start-line="180" selection-start-column="87" selection-end-line="180" selection-end-column="87" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/belu_score.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="240">
@@ -675,54 +609,8 @@
         <state relative-caret-position="334">
           <caret line="426" column="47" lean-forward="false" selection-start-line="426" selection-start-column="47" selection-end-line="426" selection-end-column="47" />
           <folding>
-            <element signature="e#0#52#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/run_train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="34" column="13" lean-forward="false" selection-start-line="34" selection-start-column="8" selection-end-line="34" selection-end-column="13" />
-          <folding>
-            <element signature="e#795#804#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/slr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="158" column="21" lean-forward="false" selection-start-line="158" selection-start-column="16" selection-end-line="158" selection-end-column="21" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-166">
-          <caret line="324" column="0" lean-forward="false" selection-start-line="324" selection-start-column="0" selection-end-line="324" selection-end-column="0" />
-          <folding>
-            <element signature="e#826#845#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-3088">
-          <caret line="44" column="8" lean-forward="true" selection-start-line="44" selection-start-column="8" selection-end-line="44" selection-end-column="8" />
-          <folding>
-            <element signature="e#826#835#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/seq2seq_aligner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1604">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -737,26 +625,10 @@
     <entry file="file://$PROJECT_DIR$/dataset/tokenize_data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1856">
-          <caret line="116" column="32" lean-forward="true" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
+          <caret line="116" column="32" lean-forward="false" selection-start-line="116" selection-start-column="32" selection-end-line="116" selection-end-column="32" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/common.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1925">
-          <caret line="214" column="29" lean-forward="false" selection-start-line="214" selection-start-column="29" selection-end-line="214" selection-end-column="29" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="206" column="48" lean-forward="true" selection-start-line="206" selection-start-column="48" selection-end-line="206" selection-end-column="48" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -768,11 +640,93 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../NL2code/code_gen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="821">
+          <caret line="180" column="87" lean-forward="true" selection-start-line="180" selection-start-column="87" selection-end-line="180" selection-end-column="87" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-166">
+          <caret line="324" column="0" lean-forward="false" selection-start-line="324" selection-start-column="0" selection-end-line="324" selection-end-column="0" />
+          <folding>
+            <element signature="e#826#845#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/shift_reduce_grammar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5">
+          <caret line="207" column="31" lean-forward="false" selection-start-line="207" selection-start-column="31" selection-end-line="207" selection-end-column="31" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/models/extensible_aligner.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="177" column="36" lean-forward="true" selection-start-line="177" selection-start-column="36" selection-end-line="177" selection-end-column="36" />
+        <state relative-caret-position="243">
+          <caret line="107" column="54" lean-forward="false" selection-start-line="107" selection-start-column="54" selection-end-line="107" selection-end-column="54" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/grammar/slr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8453">
+          <caret line="586" column="19" lean-forward="false" selection-start-line="586" selection-start-column="19" selection-end-line="586" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/common.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="310">
+          <caret line="307" column="8" lean-forward="true" selection-start-line="307" selection-start-column="8" selection-end-line="307" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="222">
+          <caret line="65" column="15" lean-forward="true" selection-start-line="65" selection-start-column="15" selection-end-line="65" selection-end-column="15" />
+          <folding>
+            <element signature="e#795#804#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/util/loader.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="338">
+          <caret line="81" column="22" lean-forward="false" selection-start-line="81" selection-start-column="22" selection-end-line="81" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/seq2seq_aligner.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="910">
+          <caret line="63" column="35" lean-forward="false" selection-start-line="63" selection-start-column="35" selection-end-line="63" selection-end-column="35" />
+          <folding>
+            <element signature="e#826#849#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/base_aligner.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="383">
+          <caret line="270" column="33" lean-forward="true" selection-start-line="270" selection-start-column="33" selection-end-line="270" selection-end-column="33" />
+          <folding>
+            <element signature="e#826#835#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

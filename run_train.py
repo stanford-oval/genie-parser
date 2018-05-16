@@ -109,7 +109,7 @@ def run():
                           dropout=config.dropout)
 
         tfconfig = tf.ConfigProto()
-        tfconfig.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
+        #tfconfig.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
 
         with tf.Session(config=tfconfig) as sess:
             # Run the Op to initialize the variables.

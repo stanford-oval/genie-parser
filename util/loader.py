@@ -70,7 +70,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
             vector[i] = words[word]
         elif '<unk>' in words:
             unknown_tokens.add(word)
-            print("sentence: ", sentence, "; word: ", word)
+            #print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)

@@ -102,7 +102,7 @@ class GreedyExtensibleDecoder(Decoder):
             elif isinstance(self._output_layers[key], common.AttentivePointerLayer):
                 layer_output_shapes[key] = tf.TensorShape([self._input_max_length])
             else: 
-                layer_output_shape = self._output_layers[key]._compute_output_shape(output_shape_with_unknown_batch)
+                layer_output_shape = self._output_layers[key].compute_output_shape(output_shape_with_unknown_batch)
                 # now remove the first dimension (batch size)
                 layer_output_shapes[key] = nest.map_structure(lambda s: s[1:], layer_output_shape)
             sample_id_shapes[key] = tf.TensorShape([])
@@ -166,7 +166,7 @@ class TupleOutputLayer(tf.layers.Layer):
 
         return self._tuple_type(**outputs)
 
-    def _compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape):
         layer_output_shapes = dict()
         for key in self._sequence_keys:
             if isinstance(self._layers[key], common.EmbeddingPointerLayer):
@@ -174,7 +174,7 @@ class TupleOutputLayer(tf.layers.Layer):
             elif isinstance(self._layers[key], common.AttentivePointerLayer):
                 layer_output_shapes[key] = tf.TensorShape([None, self._input_max_length])
             else: 
-                layer_output_shapes[key] = self._layers[key]._compute_output_shape(input_shape)
+                layer_output_shapes[key] = self._layers[key].compute_output_shape(input_shape)
         return self._tuple_type(**layer_output_shapes)
 
 
