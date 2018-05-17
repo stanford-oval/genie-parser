@@ -191,6 +191,7 @@ def load_data(from_file, input_words, grammar, max_length):
         labels[key] = []
     label_lengths = []
     label_sequences = []
+    total_label_len = 0
 
     with open(from_file, 'r') as data:
         for line in data:
@@ -210,6 +211,7 @@ def load_data(from_file, input_words, grammar, max_length):
             label_sequence = canonical.split(' ')
             label_sequences.append(label_sequence)
             label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+            total_label_len += label_len
             for key in grammar.output_size:
                 labels[key].append(label[key])
             label_lengths.append(label_len)
@@ -217,7 +219,9 @@ def load_data(from_file, input_words, grammar, max_length):
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
-
+    print('********')
+    print('avg label productions', total_label_len/len(inputs))
+    print('********')
 
     # FIXME remove
     inputs = np.array(inputs)

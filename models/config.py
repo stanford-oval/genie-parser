@@ -86,7 +86,7 @@ class Config(object):
             batch_size=256,
             n_epochs=25,
             learning_rate=0.01,
-            learning_rate_decay=0.95,
+            learning_rate_decay=0.90,
             dropout=0.5,
             gradient_clip=0.5,
             l2_regularization=0.0,
@@ -314,17 +314,16 @@ class Config(object):
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         flatten_grammar = self.model_type != 'extensible'
-
         if load_grammar != '0':
 
-            if self._reverse == True:
+            if self._config['output']['grammar'] == 'django-TD':
                 print('********')
                 print('load TD grammar')
                 print('********')
                 with open('config_TD.pkl', 'rb') as input:
                     self._grammar = pickle.load(input)
 
-            elif self._reverse == False:
+            elif self._config['output']['grammar'] == 'django-BU':
                 print('********')
                 print('load BU grammar')
                 print('********')
@@ -337,16 +336,16 @@ class Config(object):
                                            self._config['output']['grammar_input_file'],
                                            flatten=flatten_grammar,
                                            max_input_length=self.max_length)
-            if self._reverse == True:
+            if self._config['output']['grammar'] == 'django-TD':
                 print('********')
                 print('build TD grammar')
                 print('********')
                 with open('config_TD.pkl', 'wb') as output:
                     pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
 
-            elif self._reverse == False:
+            elif self._config['output']['grammar'] == 'django-BU':
                 print('********')
-                print('build TD grammar')
+                print('build BU grammar')
                 print('********')
                 with open('config_BU.pkl', 'wb') as output:
                     pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
