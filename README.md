@@ -44,7 +44,10 @@ that uses Almond NN-Parser).
     ```
     mkdir ~/workdir
     cd ~/workdir
-    ~/almond-nnparser/prepare.py . ${SNAPSHOT}
+    if using Django:
+        ~/almond-nnparser/preprocess.py ./ ${DATASET} ./ [extra data dict]
+    otherwise:
+        ~/almond-nnparser/prepare.py ./ ${SNAPSHOT} [extra data dict]
    ```
    This script computes the input dictionary, downloads a snapshot of Thingpedia,
    and computes a subset of the word embedding matrix to make it faster to
@@ -62,8 +65,10 @@ that uses Almond NN-Parser).
    and create a `model.conf` inside it. Edit any model parameters that you
    wish.
 6. Train:
+    Choose whether you want to build the grammar(0) or load an already available grammar(1):
+    (if you choose 1, based on your model config it will load BU or TD grammar)
     ```
-    ~/almond-nnparser/run_train.py ./model.1 train:${DATASET}/train.tsv dev:${DATASET}/dev.tsv
+    ~/almond-nnparser/run_train.py ./model.1 train:${DATASET}/train.tsv dev:${DATASET}/dev.tsv (0|1)
     ```
 7. Visualize the training:
     ```
@@ -71,7 +76,7 @@ that uses Almond NN-Parser).
     ```
 8. Test:
     ```
-    ~/almond-nnparser/run_test.py ./model.1 ${DATASET}/test.tsv
+    ~/almond-nnparser/run_test.py ./model.1 ${DATASET}/test.tsv (0|1)
     ```
     
     This will produce a `stats_test.txt` file for error analysis. The file is tab-separated and has 7 columns;
