@@ -32,7 +32,7 @@ from tensorflow.python import debug as tf_debug
 
 def run():
     if len(sys.argv) < 5:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + ' load_grammar ')
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + " load_grammar ")
         sys.exit(1)
 
     np.random.seed(42)
@@ -43,7 +43,7 @@ def run():
         load_existing = True
         off = 3
 
-    load_grammar = sys.argv[off+2]
+    load_grammar = sys.argv.pop()
 
 
     model_dir = sys.argv[1]
@@ -57,7 +57,7 @@ def run():
     dev_sets = []
     train_data = dict()
     dev_data = dict()
-    for what_filename in sys.argv[off:off+2]:
+    for what_filename in sys.argv[off:]:
         what, filename = what_filename.split(':')
         if what not in ('train', 'dev'):
             print('I don\'t know how to use', what)

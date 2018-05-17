@@ -1,3 +1,0 @@
-<s> if not , </s>	else :	else :	True	CorrectGrammar	CorrectFunction	CorrectNumFunction	CorrectSignature
-<s> <unk> is <unk> . </s>	self . empty_label = None	self . empty_label = None	True	CorrectGrammar	CorrectFunction	CorrectNumFunction	CorrectSignature
-<s> for every attr in <unk> , </s>	for attr in self . rendering_attrs :	for attr in self . rendering_attrs :	True	CorrectGrammar	CorrectFunction	CorrectNumFunction	CorrectSignature

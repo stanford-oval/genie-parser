@@ -834,7 +834,7 @@
 17834	call the method _entity_re.sub with 2 arguments : _replace_entity and text , return the result .	return _entity_re . sub ( _replace_entity , text )
 17835	call the function allow_lazy with 2 arguments : unescape_entities and six.text_type , substitute the result for unescape_entities .	unescape_entities = allow_lazy ( unescape_entities , six . text_type )
 17836	define the function unescape_string_literal with an argument s .	def unescape_string_literal ( s ) :
-17837	if first element of s is not contained in `` STR '' or last element of s is not equal to first element of s ,	if s [ 0 ] not in "STR" or s [ - 1 ] != s [ 0 ] :
+17837	if first element of s is not contained in `` STR '' or last element of s is not equal to first element of s ,	if s [ 0 ] not in STR or s [ - 1 ] != s [ 0 ] :
 17838	raise an ValueError exception wit an argument string STR0 , where STR1 is replaced with s .	raise ValueError ( STR0 % s )
 17839	substitute first element of s for quote .	quote = s [ 0 ]
 17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote , replace every occurrence of raw string STRspecial in the result with string '\STR , return the result .	return s [ 1 : - 1 ] . replace ( STR0 % quote , quote ) . replace ( STRspecial , STRspecial )
@@ -1700,7 +1700,7 @@
 18700	if not ,	else :
 18701	call the function timedelta with an argument minutes set to offset , substitute the result for self.__offset .	self . __offset = timedelta ( minutes = offset )
 18702	if offset is lesser than integer 0 , sign is set to STR0 , otherwise sign is STR1 ,	sign = STR0 if offset < 0 else STR1
-18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 , and placed into 2 character spaces , and STR3 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces .	self . __name = STR0 % ( sign , abs ( offset ) / 60. , abs ( offset ) % 60 )
+18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 , and placed into 2 character spaces , and STR3 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces .	self . __name = STR0 % ( sign , abs ( offset ) / 60 , abs ( offset ) % 60 )
 18704	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 18705	return self.__name .	return self . __name
 18706	define the method __getinitargs__ with an argument self .	def __getinitargs__ ( self ) :

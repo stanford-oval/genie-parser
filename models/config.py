@@ -55,9 +55,13 @@ def create_grammar(grammar_type, *args, **kw):
         pkg = 'simple'
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
-    elif grammar_type == 'django':
+    elif grammar_type == 'django-BU':
         pkg = 'django'
         class_name = 'DjangoGrammar'
+    elif grammar_type == 'django-TD':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
+        kw['reverse'] = True
     else:
         pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)
@@ -312,23 +316,40 @@ class Config(object):
         flatten_grammar = self.model_type != 'extensible'
 
         if load_grammar != '0':
-            print('********')
-            print ('load grammar')
-            print('********')
 
-            with open('config.pkl', 'rb') as input:
-                self._grammar = pickle.load(input)
+            if self._reverse == True:
+                print('********')
+                print('load TD grammar')
+                print('********')
+                with open('config_TD.pkl', 'rb') as input:
+                    self._grammar = pickle.load(input)
+
+            elif self._reverse == False:
+                print('********')
+                print('load BU grammar')
+                print('********')
+                with open('config_BU.pkl', 'rb') as input:
+                    self._grammar = pickle.load(input)
         else:
-            print('********')
-            print ('build grammar')
-            print('********')
+
 
             self._grammar = create_grammar(self._config['output']['grammar'],
                                            self._config['output']['grammar_input_file'],
                                            flatten=flatten_grammar,
                                            max_input_length=self.max_length)
-            with open('config.pkl', 'wb') as output:
-                pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
+            if self._reverse == True:
+                print('********')
+                print('build TD grammar')
+                print('********')
+                with open('config_TD.pkl', 'wb') as output:
+                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
+
+            elif self._reverse == False:
+                print('********')
+                print('build TD grammar')
+                print('********')
+                with open('config_BU.pkl', 'wb') as output:
+                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
 
 
         ##########
