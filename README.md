@@ -66,7 +66,7 @@ that uses Almond NN-Parser).
    wish.
 6. Train:
     Choose whether you want to build the grammar(0) or load an already available grammar(1):
-    (if you choose 1, based on your model config it will load BU or TD grammar)
+    (if you choose 1, based on your model config, it will either load BU or TD grammar)
     ```
     ~/almond-nnparser/run_train.py ./model.1 train:${DATASET}/train.tsv dev:${DATASET}/dev.tsv (0|1)
     ```
