@@ -64,7 +64,7 @@ class SimpleGrammar(AbstractGrammar):
         print(self.entities)
         
         # HACK
-        self._thingtalk = ThingTalkGrammar('./thingpedia.json')
+        self._thingtalk = ThingTalkGrammar('./thingpedia.json', flatten=True)
 
 
     @property
@@ -99,7 +99,7 @@ class SimpleGrammar(AbstractGrammar):
             'tokens': vector
         }, len
         
-    def reconstruct_program(self, sequence, ignore_errors=False):
+    def reconstruct_program(self, input_vector, sequence, ignore_errors=False):
         if isinstance(sequence, dict):
             sequence = sequence['tokens']
         program = []
@@ -111,7 +111,7 @@ class SimpleGrammar(AbstractGrammar):
             program = [x for x in program if not x.startswith('@@')]
         
         try:
-            self._thingtalk.vectorize_program(program, 60)
+            self._thingtalk.vectorize_program([], program, 60)
             return program
         except:
             if ignore_errors:
