@@ -80,9 +80,10 @@ class SimpleGrammar(AbstractGrammar):
     def vectorize_program(self, input_sentence, program, max_length):
         if not self._split_device:
             del input_sentence
+            vector, len = vectorize(program, self.dictionary, max_length, add_eos=True)
             return {
-                'tokens': vectorize(program, self.dictionary, max_length, add_eos=True)
-            }
+                'tokens': vector
+            }, len
         
         if isinstance(program, str):
             program = program.split(' ')
@@ -93,9 +94,10 @@ class SimpleGrammar(AbstractGrammar):
                     yield '@' + device
                 yield tok
         del input_sentence
+        vector, len = vectorize(program_with_device(), self.dictionary, max_length, add_eos=True)
         return {
-            'tokens': vectorize(program_with_device(), self.dictionary, max_length, add_eos=True)
-        }
+            'tokens': vector
+        }, len
         
     def reconstruct_program(self, sequence, ignore_errors=False):
         if isinstance(sequence, dict):
