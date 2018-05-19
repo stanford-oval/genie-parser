@@ -42,7 +42,7 @@ with open(inputfile, 'r') as fin, open(os.path.join(workdir, 'tokens_' + os.path
         line = re.sub(r'\\\"(?!\s)', 'STR', line)
         line = re.sub(r'\\\'(?!\s)', 'STR', line)
 
-        line = re.sub(r'n\'t', 'not', line)  # Empty string
+        line = re.sub(r'n\'t', 'not', line)
 
 
 

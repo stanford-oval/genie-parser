@@ -398,6 +398,8 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.add('great15914')
         idents.add('y13277')
         idents.add('__all__')
+        idents.add('STR')
+
 
         kwlist2 = set(kwlist)
         kwlist2.add('exec')
@@ -415,16 +417,22 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.sort()
         self.num_functions = 0
         numbers = list(map(str, range(1001)))
-        numbers.extend(['022', '1024', '1900', '2000', '2037', '2048', '3600', '15936', '16384', '86400', '100000', '1e200', '1.0', '2592000', '60.'])
+        numbers.extend(['022', '1024', '1900', '2000', '2037', '2048', '3600',
+                        '15936', '16384', '86400', '100000', '1e200', '1.0', '2592000', '60.'])
         strings = ['STR' + str(i) for i in range(201)]
-        strings.extend(['STR', 'STRspecial'])
+
+        strings.extend(['STRspecial'])
         self.tokens += self.construct_parser(grammar=GRAMMAR,
-                                             extensible_terminals={'IDENT': idents
+                                             extensible_terminals={'IDENT': idents,
+                                                                   'NUMBER': numbers,
+                                                                   'STRING': strings,
                                                                    },
                                              copy_terminals={
-                                                             'NUMBER': numbers,
-                                                             'STRING': strings
+                                                             #'NUMBER': numbers,
+
                                                              })
+
+
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):

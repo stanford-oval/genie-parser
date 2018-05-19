@@ -128,6 +128,9 @@ class ShiftReduceGrammar(AbstractGrammar):
         return self._output_size
     
     def vectorize_program(self, input_sentence, program, max_length=60):
+        # print('*********')
+        # print(input_sentence)
+        # print('*********')
         if isinstance(program, str):
             program = program.split(' ')
         if self._reverse:
@@ -143,6 +146,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             vectors['COPY_' + term] = np.zeros((max_length,), dtype=np.int32)
         action_vector = vectors['actions']
         i = 0
+
         for action, param in parsed:
             if action == 'shift':
                 term, tokenidx = param
@@ -150,7 +154,11 @@ class ShiftReduceGrammar(AbstractGrammar):
                     assert tokenidx < self._output_size['COPY_' + term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + self._copy_terminal_indices[term]
                     token = self._parser.extensible_terminals[term][tokenidx]
-                    input_idx = input_sentence.index(token)
+                    if token in input_sentence:
+                        input_idx = input_sentence.index(token)
+                        #print('wrong')
+                    else:
+                        continue
                     vectors['COPY_' + term][i] = input_idx
                 elif term in self._parser.extensible_terminals:
                     assert tokenidx < self._output_size[term]

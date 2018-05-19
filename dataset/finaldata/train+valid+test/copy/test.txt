@@ -1,9 +1,9 @@
 17001	if source is an instance of Group class ,	if isinstance ( source , Group ) :
-17002	if second element of source is None ,	if source [ 1 ] is None :
+17002	if 1 element of source is None ,	if source [ 1 ] is None :
 17003	params is an empty list ,	params = [ ]
 17004	if not ,	else :
-17005	params is a list with second element of source as a element .	params = [ source [ 1 ] ]
-17006	return a list containing first element of source and a list containing params .	return [ source [ 0 ] ] , [ params ]
+17005	params is a list with 1 element of source as a element .	params = [ source [ 1 ] ]
+17006	return a list containing 0 element of source and a list containing params .	return [ source [ 0 ] ] , [ params ]
 17007	result is a list containing an empty string .	result = [ STR ]
 17008	result_args is a list containing an empty list .	result_args = [ [ ] ]
 17009	pos and last are integer 0 .	pos = last = 0
@@ -13,7 +13,7 @@
 17013	join source list elements from last till pos indexes into a string , substitute the result for piece .	piece = STR . join ( source [ last : pos ] )
 17014	if elt is an instance of Group class ,	if isinstance ( elt , Group ) :
 17015	increment piece by firs element of elt .	piece += elt [ 0 ]
-17016	substitute second element of elt for param .	param = elt [ 1 ]
+17016	substitute 1 element of elt for param .	param = elt [ 1 ]
 17017	if not ,	else :
 17018	param is None .	param = None
 17019	increment pos by one , substitute the result for last .	last = pos + 1
@@ -114,8 +114,8 @@
 17114	import module types .	import types
 17115	__author__ is a string STR0 .	__author__ = STR0
 17116	__version__ is a string STR0 .	__version__ = STR0
-17117	if first element of sys.version_info equals integer 2 , PY2 is boolean True , otherwise it is boolean False .	PY2 = sys . version_info [ 0 ] == 2
-17118	if first element of sys.version_info equals integer 3 , PY3 is boolean True , otherwise it is boolean False .	PY3 = sys . version_info [ 0 ] == 3
+17117	if 0 element of sys.version_info equals integer 2 , PY2 is boolean True , otherwise it is boolean False .	PY2 = sys . version_info [ 0 ] == 2
+17118	if 0 element of sys.version_info equals integer 3 , PY3 is boolean True , otherwise it is boolean False .	PY3 = sys . version_info [ 0 ] == 3
 17119	if PY3 is true ,	if PY3 :
 17120	substitute str for string_types .	string_types = str ,
 17121	substitute int for integer_types .	integer_types = int ,
@@ -340,7 +340,7 @@
 17340	define the function u with an argument s .	def u ( s ) :
 17341	return s .	return s
 17342	substitute chr for unichr .	unichr = chr
-17343	if second element of sys.version_info is smaller than or equal to integer 1 ,	if sys . version_info [ 1 ] <= 1 :
+17343	if 1 element of sys.version_info is smaller than or equal to integer 1 ,	if sys . version_info [ 1 ] <= 1 :
 17344	define the function int2byte with an argument i .	def int2byte ( i ) :
 17345	call the function bytes with an argument tuple with an element i , return the result .	return bytes ( ( i , ) )
 17346	if not ,	else :
@@ -359,7 +359,7 @@
 17359	substitute unichr for unichr .	unichr = unichr
 17360	substitute chr for int2byte .	int2byte = chr
 17361	define the function byte2int with an argument bs .	def byte2int ( bs ) :
-17362	get the integer representation of the first element of bs , return it .	return ord ( bs [ 0 ] )
+17362	get the integer representation of the 0 element of bs , return it .	return ord ( bs [ 0 ] )
 17363	define the function indexbytes with 2 arguments buf and i .	def indexbytes ( buf , i ) :
 17364	get the integer representation of the i-th element of buf , return it .	return ord ( buf [ i ] )
 17365	define the function iterbytes with an argument buf .	def iterbytes ( buf ) :
@@ -555,7 +555,7 @@
 17555	opt_dict is an dictionary with 5 elements : STR0 for STR1 , STR2 for STR3 , STR4 for STR5 , STR6 for STR7 , and STR8 for STR9 .	opt_dict = { STR0 : STR1 , STR2 : STR3 , STR4 : STR5 , STR6 : STR7 , STR8 : STR9 }
 17556	define the method colorize with 3 arguments : text set to an empty string , opts set to an empty tuple and unpacked dictionary kwargs .	def colorize ( text = STR , opts = ( ) , ** kwargs ) :
 17557	code_list is an empty list .	code_list = [ ]
-17558	if text is an empty string and length of opts equals integer 1 and first element of opts equals string STR0 ,	if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
+17558	if text is an empty string and length of opts equals integer 1 and 0 element of opts equals string STR0 ,	if text == STR and len ( opts ) == 1 and opts [ 0 ] == STR0 :
 17559	format string STR0 with RESET , return the result .	return STR0 % RESET
 17560	call the function six.iteritems with an argument kwargs , for every k and v in the result ,	for k , v in six . iteritems ( kwargs ) :
 17561	if k equals a string STR0 ,	if k == STR0 :
@@ -589,9 +589,9 @@
 17589	convert role to uppercase .	role = role . upper ( )
 17590	split instructions by STR0 character , substitute the result for styles .	styles = instructions . split ( STR0 )
 17591	reverse the order of elements of styles .	styles . reverse ( )
-17592	remove first element from styles , split it by the STR0 character , substitute the result for colors .	colors = styles . pop ( ) . split ( STR0 )
+17592	remove 0 element from styles , split it by the STR0 character , substitute the result for colors .	colors = styles . pop ( ) . split ( STR0 )
 17593	reverse the order of colors elements ,	colors . reverse ( )
-17594	remove the first element from colors , substitute it for fg .	fg = colors . pop ( )
+17594	remove the 0 element from colors , substitute it for fg .	fg = colors . pop ( )
 17595	if fg is contained in color_names ,	if fg in color_names :
 17596	substitute fg for value under the STR0 key of definition dictionary .	definition [ STR0 ] = fg
 17597	if colors is true and last element of colors is contained in color_names ,	if colors and colors [ - 1 ] in color_names :
@@ -619,7 +619,7 @@
 17619	from django.utils.safestring import mark_safe into default name space .	from django . utils . safestring import mark_safe
 17620	if six.PY2 is true ,	if six . PY2 :
 17621	from django.utils.encoding import force_unicode .	from django . utils . encoding import force_unicode
-17622	if identity lambda function returns false , substitute the x for capfirst , if not call the function force_text with an argument x , convert the first element of the result to uppercase , append to it the rest of the result , substitute it for capfirst .	capfirst = lambda x : x and force_text ( x ) [ 0 ] . upper ( ) + force_text ( x ) [ 1 : ]
+17622	if identity lambda function returns false , substitute the x for capfirst , if not call the function force_text with an argument x , convert the 0 element of the result to uppercase , append to it the rest of the result , substitute it for capfirst .	capfirst = lambda x : x and force_text ( x ) [ 0 ] . upper ( ) + force_text ( x ) [ 1 : ]
 17623	call the function allow_lazy with 3 arguments : capfirst and six.text_type .	capfirst = allow_lazy ( capfirst , six . text_type )
 17624	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands , re.U and re.S , substitute the result for re_words .	re_words = re . compile ( STR0 , re . U | re . S )
 17625	call the function re.compile with 2 arguments : raw string STR0 and bitwise OR performed with 2 operands , re.U and re.S , substitute the result for re_chars .	re_chars = re . compile ( STR0 , re . U | re . S )
@@ -747,7 +747,7 @@
 17747	is length of list_ equals integer 0 ,	if len ( list_ ) == 0 :
 17748	return an empty string .	return STR
 17749	if length of list_ equals integer 1 ,	if len ( list_ ) == 1 :
-17750	call the function force_text with first element of list_ as an argument , return the result .	return force_text ( list_ [ 0 ] )
+17750	call the function force_text with 0 element of list_ as an argument , return the result .	return force_text ( list_ [ 0 ] )
 17751	return a string STR0 formated with 3 elements : result of the function force_text called with an argument i , separated by result of the function _ called with an argument string STR1 , for every i in list_ without last element , result of the function force_text called with an argument last_word , result of the function force_text called with an argument : last element of list_ .	return STR0 % ( _ ( STR1 ) . join ( force_text ( i ) for i in list_ [ : - 1 ] ) , force_text ( last_word ) , force_text ( list_ [ - 1 ] ) )
 17752	call the function allow_lazy with 2 arguments : get_text_list and six.text_type , substitute the result for get_text_list .	get_text_list = allow_lazy ( get_text_list , six . text_type )
 17753	define the function normalize_newlines with an argument text .	def normalize_newlines ( text ) :
@@ -814,11 +814,11 @@
 17814	call the method bit.group with an argument integer 0 , yield the result .	yield bit . group ( 0 )
 17815	define the function _replace_entity with an argument match .	def _replace_entity ( match ) :
 17816	call the method match.group with an argument integer 1 , substitute the result for text .	text = match . group ( 1 )
-17817	if first element of text equals STR0 ,	if text [ 0 ] == STR0 :
-17818	remove first element of text .	text = text [ 1 : ]
+17817	if 0 element of text equals STR0 ,	if text [ 0 ] == STR0 :
+17818	remove 0 element of text .	text = text [ 1 : ]
 17819	try ,	try :
-17820	if first element of text is contained in STR0 .	if text [ 0 ] in STR0 :
-17821	convert text without first element to hexadecimal integer , substitute it for c .	c = int ( text [ 1 : ] , 16 )
+17820	if 0 element of text is contained in STR0 .	if text [ 0 ] in STR0 :
+17821	convert text without 0 element to hexadecimal integer , substitute it for c .	c = int ( text [ 1 : ] , 16 )
 17822	if nor ,	else :
 17823	convert text to an integer , substitute it for c .	c = int ( text )
 17824	call the method six.unichr with an argument c , return the result .	return six . unichr ( c )
@@ -834,9 +834,9 @@
 17834	call the method _entity_re.sub with 2 arguments : _replace_entity and text , return the result .	return _entity_re . sub ( _replace_entity , text )
 17835	call the function allow_lazy with 2 arguments : unescape_entities and six.text_type , substitute the result for unescape_entities .	unescape_entities = allow_lazy ( unescape_entities , six . text_type )
 17836	define the function unescape_string_literal with an argument s .	def unescape_string_literal ( s ) :
-17837	if first element of s is not contained in `` STR '' or last element of s is not equal to first element of s ,	if s [ 0 ] not in "STR" or s [ - 1 ] != s [ 0 ] :
+17837	if 0 element of s is not contained in `` STR '' or last element of s is not equal to 0 element of s ,	if s [ 0 ] not in STR or s [ - 1 ] != s [ 0 ] :
 17838	raise an ValueError exception wit an argument string STR0 , where STR1 is replaced with s .	raise ValueError ( STR0 % s )
-17839	substitute first element of s for quote .	quote = s [ 0 ]
+17839	substitute 0 element of s for quote .	quote = s [ 0 ]
 17840	remove first and last elements of s , replace every occurrence of string STR0 formated with quote with quote , replace every occurrence of raw string STRspecial in the result with string '\STR , return the result .	return s [ 1 : - 1 ] . replace ( STR0 % quote , quote ) . replace ( STRspecial , STRspecial )
 17841	call the function allow_lazy with an argument unescape_string_literal , substitute the result for unescape_string_literal .	unescape_string_literal = allow_lazy ( unescape_string_literal )
 17842	define the function slugify with an argument value .	def slugify ( value ) :
@@ -946,7 +946,7 @@
 17946	get the type of the exc object , substitute it for exc_type .	exc_type = type ( exc )
 17947	call the function exc_type with an argument string STR0 , replace STR1 with dt , substitute the result for exc_value .	exc_value = exc_type ( STR0 % dt )
 17948	substitute exc for exc_value.__cause__ .	exc_value . __cause__ = exc
-17949	call the function six.reraise with 3 arguments : exc_type , exc_value and third element of the result of the method sys.exc_info .	six . reraise ( exc_type , exc_value , sys . exc_info ( ) [ 2 ] )
+17949	call the function six.reraise with 3 arguments : exc_type , exc_value and 2 element of the result of the method sys.exc_info .	six . reraise ( exc_type , exc_value , sys . exc_info ( ) [ 2 ] )
 17950	if pytz is true , substitute pytz.utc for utc , otherwise substitute result of the function UTC for utc .	utc = pytz . utc if pytz else UTC ( )
 17951	define the function get_fixed_timezone with an argument offset .	def get_fixed_timezone ( offset ) :
 17952	if offset is an instance of timedelta class ,	if isinstance ( offset , timedelta ) :
@@ -1143,7 +1143,7 @@
 18143	if KeyError exception is caught ,	except KeyError :
 18144	if character STR0 is not contained in lang_code ,	if STR0 not in lang_code :
 18145	raise an KeyError with an argument STR0 , where STR1 is replaced with lang_code .	raise KeyError ( STR0 % lang_code )
-18146	split lang_code by character STR0 , substitute the first element of the result for generic_lang_code .	generic_lang_code = lang_code . split ( STR0 ) [ 0 ]
+18146	split lang_code by character STR0 , substitute the 0 element of the result for generic_lang_code .	generic_lang_code = lang_code . split ( STR0 ) [ 0 ]
 18147	try ,	try :
 18148	get the LANG_INFO dictionary value under the generic_lang_code key , return the result .	return LANG_INFO [ generic_lang_code ]
 18149	if KeyError exception is caught ,	except KeyError :
@@ -1317,7 +1317,7 @@
 18317	do nothing .	pass
 18318	return settings.LANGUAGE_CODE .	return settings . LANGUAGE_CODE
 18319	define the function get_language_bidi .	def get_language_bidi ( ) :
-18320	call the function get_language , split the result by STR0 , substitute the first element of the result for base_lang .	base_lang = get_language ( ) . split ( STR0 ) [ 0 ]
+18320	call the function get_language , split the result by STR0 , substitute the 0 element of the result for base_lang .	base_lang = get_language ( ) . split ( STR0 ) [ 0 ]
 18321	if base_lang is contained in settings.LANGUAGES_BIDI , return boolean True , if not , return boolean False .	return base_lang in settings . LANGUAGES_BIDI
 18322	define the function catalog .	def catalog ( ) :
 18323	use global variable _default .	global _default
@@ -1396,7 +1396,7 @@
 18396	get the value under the lang_code key of the _BROWSERS_DEPRECATED_LOCALES dictionary , substitute it for replacement .	replacement = _BROWSERS_DEPRECATED_LOCALES . get ( lang_code )
 18397	if lang_code is not contained in _supported and replacement is contained in _supported ,	if lang_code not in _supported and replacement in _supported :
 18398	return replacement .	return replacement
-18399	split lang_code by STR0 , substitute the first element of the result for generic_lang_code .	generic_lang_code = lang_code . split ( STR0 ) [ 0 ]
+18399	split lang_code by STR0 , substitute the 0 element of the result for generic_lang_code .	generic_lang_code = lang_code . split ( STR0 ) [ 0 ]
 18400	for every code in tuple with 2 elements : lang_code and generic_lang_code ,	for code in ( lang_code , generic_lang_code ) :
 18401	if code is contained in _supported and call to the function check_for_language with an argument code evaluates to true ,	if code in _supported and check_for_language ( code ) :
 18402	return code .	return code
@@ -1556,17 +1556,17 @@
 18556	call the function constant_re.findall with an argument t.contents , substitute the result for cmatches .	cmatches = constant_re . findall ( t . contents )
 18557	if imatch is true ,	if imatch :
 18558	call the method imatch.group with an argument integer 1 , substitute the result for g .	g = imatch . group ( 1 )
-18559	if first element of g equals a string STR ,	if g [ 0 ] == STR :
+18559	if 0 element of g equals a string STR ,	if g [ 0 ] == STR :
 18560	strip g of STR from both ends ,	g = g . strip ( STR )
-18561	otherwise if first element of g equals a string STR ,	elif g [ 0 ] == STR :
+18561	otherwise if 0 element of g equals a string STR ,	elif g [ 0 ] == STR :
 18562	strip g of STR from both ends ,	g = g . strip ( STR )
 18563	call the method one_percent_re.sub with 2 arguments : string STR0 and g , substitute the result for .	g = one_percent_re . sub ( STR0 , g )
 18564	call the method imatch.group with an argument integer 1 , if it evaluates to true ,	if imatch . group ( 2 ) :
 18565	call the method imatch.group with an argument integer 2 , use the result as an argument for the call to the method context_re.match , substitute the result for context_match .	context_match = context_re . match ( imatch . group ( 2 ) )
 18566	call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
-18567	if first element of message_context equals to character STR ,	if message_context [ 0 ] == STR :
+18567	if 0 element of message_context equals to character STR ,	if message_context [ 0 ] == STR :
 18568	strip message_context of STR characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR )
-18569	otherwise if , first element of message_context is equal to STR ,	elif message_context [ 0 ] == STR :
+18569	otherwise if , 0 element of message_context is equal to STR ,	elif message_context [ 0 ] == STR :
 18570	strip message_context of STR characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR )
 18571	format string STR0 with message_context and g , write it to out .	out . write ( STR0 % ( message_context , g ) )
 18572	message_context is None .	message_context = None
@@ -1578,9 +1578,9 @@
 18578	call the method bmatch.group with an argument integer 1 , if it evaluates to true ,	if bmatch . group ( 1 ) :
 18579	call the method bmatch.group with an argument integer 1 , use the result as an argument for the call to the function context_re.match , substitute the result for context_match .	context_match = context_re . match ( bmatch . group ( 1 ) )
 18580	call the method context_match.group with an argument integer 1 , substitute the result for message_context .	message_context = context_match . group ( 1 )
-18581	if first element of message_context equals to character STR ,	if message_context [ 0 ] == STR :
+18581	if 0 element of message_context equals to character STR ,	if message_context [ 0 ] == STR :
 18582	strip message_context of STR characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR )
-18583	otherwise if first element of message_context equals to character STR ,	elif message_context [ 0 ] == STR :
+18583	otherwise if 0 element of message_context equals to character STR ,	elif message_context [ 0 ] == STR :
 18584	strip message_context of STR characters from both ends , substitute the result for message_context .	message_context = message_context . strip ( STR )
 18585	intrans is boolean True .	intrans = True
 18586	inplural is boolean False .	inplural = False
@@ -1596,12 +1596,12 @@
 18596	call the function blankout with 2 arguments : t.contents and STR0 , write the result to out .	out . write ( blankout ( t . contents , STR0 ) )
 18597	otherwise if t.token_type equals TOKEN_VAR ,	elif t . token_type == TOKEN_VAR :
 18598	split t.contents by STR0 symbol , substitute the result for parts ,	parts = t . contents . split ( STR0 )
-18599	call the method constant_re.match with first element of parts as an argument , substitute the result for cmatch .	cmatch = constant_re . match ( parts [ 0 ] )
+18599	call the method constant_re.match with 0 element of parts as an argument , substitute the result for cmatch .	cmatch = constant_re . match ( parts [ 0 ] )
 18600	if cmatch is true ,	if cmatch :
 18601	call the method cmatch.group with an argument integer 1 , format with the result string STR0 , write it to out .	out . write ( STR0 % cmatch . group ( 1 ) )
-18602	for every p in parts without the first element ,	for p in parts [ 1 : ] :
+18602	for every p in parts without the 0 element ,	for p in parts [ 1 : ] :
 18603	find index of the occurrence of string STR0 in p , if its greater or equal to integer 0 ,	if p . find ( STR0 ) >= 0 :
-18604	split p into two parts at the first STR0 , use the second element of the result to format string STR1 , write it to out .	out . write ( STR0 % p . split ( STR1 , 1 ) [ 1 ] )
+18604	split p into two parts at the first STR0 , use the 1 element of the result to format string STR1 , write it to out .	out . write ( STR0 % p . split ( STR1 , 1 ) [ 1 ] )
 18605	if not ,	else :
 18606	call the function blankout with 2 arguments : p and STR0 , write the result to out .	out . write ( blankout ( p , STR0 ) )
 18607	otherwise if t.token_type equals TOKEN_COMMENT ,	elif t . token_type == TOKEN_COMMENT :
@@ -1628,7 +1628,7 @@
 18628	if priority is false ,	if not priority :
 18629	priority is floating point number 1.0 .	priority = 1.0
 18630	append a tuple with 2 entries lang and priority to result .	result . append ( ( lang , priority ) )
-18631	sort result in reversed order by the key as lambda function with an argument k and reeturn value second element of k .	result . sort ( key = lambda k : k [ 1 ] , reverse = True )
+18631	sort result in reversed order by the key as lambda function with an argument k and reeturn value 1 element of k .	result . sort ( key = lambda k : k [ 1 ] , reverse = True )
 18632	return result .	return result
 18633	import module copy .	import copy
 18634	derive the class Node from object base class .	class Node ( object ) :
@@ -1700,7 +1700,7 @@
 18700	if not ,	else :
 18701	call the function timedelta with an argument minutes set to offset , substitute the result for self.__offset .	self . __offset = timedelta ( minutes = offset )
 18702	if offset is lesser than integer 0 , sign is set to STR0 , otherwise sign is STR1 ,	sign = STR0 if offset < 0 else STR1
-18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 , and placed into 2 character spaces , and STR3 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces .	self . __name = STR0 % ( sign , abs ( offset ) / 60. , abs ( offset ) % 60 )
+18703	self.__name is a string STR0 , replace STR1 with sign , STR2 is replaced with absolute value of offset divided by 60 , and placed into 2 character spaces , and STR3 is replaced with reminder of the division of absolute offset by integer 60 , and placed into 2 character spaces .	self . __name = STR0 % ( sign , abs ( offset ) / 60 , abs ( offset ) % 60 )
 18704	define the method __repr__ with an argument self .	def __repr__ ( self ) :
 18705	return self.__name .	return self . __name
 18706	define the method __getinitargs__ with an argument self .	def __getinitargs__ ( self ) :
@@ -1742,7 +1742,7 @@
 18742	try ,	try :
 18743	call the method time.mktime with an argument tt , substitute the result for stamp .	stamp = time . mktime ( tt )
 18744	if OverflowError or ValueError exceptions are caught ,	except ( OverflowError , ValueError ) :
-18745	create a tuple out a tuple with an element integer 2037 and a list tt elements without the first element , substitute the result for tt .	tt = ( 2037 , ) + tt [ 1 : ]
+18745	create a tuple out a tuple with an element integer 2037 and a list tt elements without the 0 element , substitute the result for tt .	tt = ( 2037 , ) + tt [ 1 : ]
 18746	call the method time.mktime with an argument tt , substitute the result for stamp .	stamp = time . mktime ( tt )
 18747	call the method time.localtime with an argument stamp , substitute the result for tt .	tt = time . localtime ( stamp )
 18748	if tt.tm_isdst is greater than intger 0 , return boolean True , otherwise return boolean False .	return tt . tm_isdst > 0
@@ -1762,17 +1762,17 @@
 18762	call the get_complete_version function with version as argument , store the result in version .	version = get_complete_version ( version )
 18763	call the get_major_version wit version as argument , store the result in major .	major = get_major_version ( version )
 18764	sub is an empty string .	sub = STR
-18765	if fourth element of version equals to string STR0 and fight element of version equals to integer 0 ,	if version [ 3 ] == STR0 and version [ 4 ] == 0 :
+18765	if 3 element of version equals to string STR0 and fight element of version equals to integer 0 ,	if version [ 3 ] == STR0 and version [ 4 ] == 0 :
 18766	call the function get_git_changeset , store the result in git_changeset .	git_changeset = get_git_changeset ( )
 18767	if git_changeset is true ,	if git_changeset :
 18768	convert git_changeset to string , append it to the string STR0 , replace it for sub .	sub = STR0 % git_changeset
-18769	otherwise if fourth element of version does not equals to STR0 ,	elif version [ 3 ] != STR0 :
+18769	otherwise if 3 element of version does not equals to STR0 ,	elif version [ 3 ] != STR0 :
 18770	mapping is a dictionary with 3 initial entries : STR0 for STR1 , STR for STR2 and STR3 for STR4 .	mapping = { STR0 : STR1 , STR2 : STR , STR3 : STR4 }
-18771	use fourth element of version as a key to get the value from mapping dictionary , append to it fourth element of version converted to string , substitute it for sub .	sub = mapping [ version [ 3 ] ] + str ( version [ 4 ] )
+18771	use 3 element of version as a key to get the value from mapping dictionary , append to it 3 element of version converted to string , substitute it for sub .	sub = mapping [ version [ 3 ] ] + str ( version [ 4 ] )
 18772	sum major and sub , return the result converted to string .	return str ( major + sub )
 18773	define the function get_major_version with an argument version defaulting to None .	def get_major_version ( version = None ) :
 18774	call the get_complete_version with an argument version , store the result in version .	version = get_complete_version ( version )
-18775	assign integer 2 to parts if third element of version equals to zero , otherwise assign it integer 3 .	parts = 2 if version [ 2 ] == 0 else 3
+18775	assign integer 2 to parts if 2 element of version equals to zero , otherwise assign it integer 3 .	parts = 2 if version [ 2 ] == 0 else 3
 18776	convert x into a string for every x in list of version elements up to the parts index , join the previous into a string separated by STR0 , assign the result to major .	major = STR0 . join ( str ( x ) for x in version [ : parts ] )
 18777	return major .	return major
 18778	define the function get_complete_version with in argument version , defaulting to None .	def get_complete_version ( version = None ) :
@@ -1780,14 +1780,14 @@
 18780	from django import VERSION as version into default name space .	from django import VERSION as version
 18781	if not ,	else :
 18782	if length of version does not equals to integer 5 , raise an exception .	assert len ( version ) == 5
-18783	if fourth element of version does not equals to string STR0 or STR1 or STR2 or STR3 , raise an exception .	assert version [ 3 ] in ( STR0 , STR1 , STR2 , STR3 )
+18783	if 3 element of version does not equals to string STR0 or STR1 or STR2 or STR3 , raise an exception .	assert version [ 3 ] in ( STR0 , STR1 , STR2 , STR3 )
 18784	return version	return version
 18785	define the function get_git_changeset .	def get_git_changeset ( ) :
 18786	if get_git_changeset has an attribute STR0 ,	if hasattr ( get_git_changeset , STR0 ) :
 18787	return get_git_changeset.cache .	return get_git_changeset . cache
 18788	get the absolute path of the __file__ , repo_dir is name of the directory two leveles above it .	repo_dir = os . path . dirname ( os . path . dirname ( os . path . abspath ( __file__ ) ) )
 18789	call the subprocess.Popen function with , STR0 , stdout set to subprocess.PIPE , stderr set to subprocess.PIPE , shell set to boolean True , cwd set to repo_dir and universal_newlines set to boolean True , as arguments , substitute the result for git_log .	git_log = subprocess . Popen ( STR0 , stdout = subprocess . PIPE , stderr = subprocess . PIPE , shell = True , cwd = repo_dir , universal_newlines = True )
-18790	evaluate the method git_log.communicate , substitute first element of the result for timestamp .	timestamp = git_log . communicate ( ) [ 0 ]
+18790	evaluate the method git_log.communicate , substitute 0 element of the result for timestamp .	timestamp = git_log . communicate ( ) [ 0 ]
 18791	try	try :
 18792	call the datetime.datetime.utcfromtimestamp with timestamp converted to an integer as argument , substitute result for timestamp .	timestamp = datetime . datetime . utcfromtimestamp ( int ( timestamp ) )
 18793	if ValueError exception is caught ,	except ValueError :
