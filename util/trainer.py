@@ -139,9 +139,19 @@ class Trainer(object):
         print('Epoch %d: easy set = %d, hard set = %d' % (epoch, easy_set_target, hard_set_target))
         easy_set_indices = np.random.choice(np.arange(easy_set_size), size=easy_set_target)
         hard_set_indices = np.random.choice(np.arange(hard_set_size), size=hard_set_target)
+
+        def mix_one(easy, hard):
+            if isinstance(easy, dict):
+                mixed = dict()
+                for key in easy:
+                    mixed[key] = np.concatenate((easy[key][easy_set_indices], hard[key][hard_set_indices]), axis=0)
+                return mixed
+            elif isinstance(easy, list):
+                return [easy[i] for i in easy_set_indices] + [hard[i] for i in hard_set_indices]
+            else:
+                return np.concatenate((easy[easy_set_indices], hard[hard_set_indices]), axis=0)
         
-        return tuple(np.concatenate((easy[easy_set_indices], hard[hard_set_indices]), axis=0) for easy, hard in
-                     zip(easy_set, hard_set))  
+        return tuple(mix_one(easy, hard) for easy, hard in zip(easy_set, hard_set))
     
     def _fit_curriculum(self, sess):
         # flush stdout so we show the output before the first progress bar
