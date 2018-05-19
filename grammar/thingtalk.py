@@ -424,10 +424,11 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'false'))
 
         self.tokens += self.construct_parser(GRAMMAR)
-        print('num functions', self.num_functions)
-        print('num queries', len(self.functions['queries']))
-        print('num actions', len(self.functions['actions']))
-        print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
+        if not self._quiet:
+            print('num functions', self.num_functions)
+            print('num queries', len(self.functions['queries']))
+            print('num actions', len(self.functions['actions']))
+            print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
         
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):

@@ -27,11 +27,12 @@ from .slr import SLRParserGenerator
 
 class ShiftReduceGrammar(AbstractGrammar):
 
-    def __init__(self, reverse=True, flatten=True, max_input_length=60):
+    def __init__(self, quiet=False, reverse=False, flatten=True, max_input_length=60):
         super().__init__()
         
         self.tokens = ['</s>', '<s>']
         
+        self._quiet = quiet
         self._parser = None
 
         self._extensible_terminals = []
@@ -96,11 +97,12 @@ class ShiftReduceGrammar(AbstractGrammar):
         for i, term in enumerate(self._copy_terminals):
             self._copy_terminal_indices[term] = i
         
-        if self._reverse:
+        if not self._quiet and self._reverse:
             print('using reversed grammar')
-        print('num rules', self._parser.num_rules)
-        print('num states', self._parser.num_states)
-        print('num shifts', len(self._extensible_terminals) + 1)
+        if not self._quiet:
+            print('num rules', self._parser.num_rules)
+            print('num states', self._parser.num_states)
+            print('num shifts', len(self._extensible_terminals) + 1)
 
         self._output_size = dict()
         self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
