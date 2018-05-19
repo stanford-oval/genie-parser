@@ -72,10 +72,11 @@ def main():
                     if in_device:
                         num_params += 1
 
-        vector, length = grammar.vectorize_program(gold, max_length=60)
+        sentence = sentence.split(' ')[1:-1] # remove <s> and </s>
+        vector, length = grammar.vectorize_program(sentence, gold, max_length=60)
         
         writer.writerow({
-            'sentence_length': len(sentence.split(' ')),
+            'sentence_length': len(sentence),
             'gold_length': len(gold),
             'gold_num_prod': length,
             'num_total_params': num_total_params,
