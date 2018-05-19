@@ -55,26 +55,21 @@ that uses Almond NN-Parser).
    against, or pass -1 for the latest content of Thingpedia. Be aware that
    using -1 might make the results impossible to reproduce.
    
-4. Check that the dataset is compatible with the Thingpedia snapshot:
    ```
-    cut -f3 ${DATASET}/*.tsv > programs.txt
-    cd ~/almond-nnparser
-    python3 -m grammar.thingtalk ~/workdir/thingpedia.json < ~/workdir/programs.txt
-   ```
-5. Prepare a model directory, eg. `model.1`, inside the working directory,
+4. Prepare a model directory, eg. `model.1`, inside the working directory,
    and create a `model.conf` inside it. Edit any model parameters that you
    wish.
-6. Train:
+5. Train:
     Choose whether you want to build the grammar(0) or load an already available grammar(1):
     (if you choose 1, based on your model config, it will either load BU or TD grammar)
     ```
     ~/almond-nnparser/run_train.py ./model.1 train:${DATASET}/train.tsv dev:${DATASET}/dev.tsv (0|1)
     ```
-7. Visualize the training:
+6. Visualize the training:
     ```
     ~/almond-nnparser/scripts/plot_learning.py ./model.1/train-stats.json
     ```
-8. Test:
+7. Test:
     ```
     ~/almond-nnparser/run_test.py ./model.1 ${DATASET}/test.tsv (0|1)
     ```
