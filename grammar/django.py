@@ -425,14 +425,12 @@ class DjangoGrammar(ShiftReduceGrammar):
         self.tokens += self.construct_parser(grammar=GRAMMAR,
                                              extensible_terminals={'IDENT': idents,
                                                                    'NUMBER': numbers,
-                                                                   'STRING': strings,
+                                                                   #'STRING': strings,
                                                                    },
                                              copy_terminals={
                                                              #'NUMBER': numbers,
-
+                                                             'STRING': strings,
                                                              })
-
-
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):

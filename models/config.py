@@ -314,6 +314,7 @@ class Config(object):
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         flatten_grammar = self.model_type != 'extensible'
+
         if load_grammar != '0':
 
             if self._config['output']['grammar'] == 'django-TD':
@@ -336,6 +337,7 @@ class Config(object):
                                            self._config['output']['grammar_input_file'],
                                            flatten=flatten_grammar,
                                            max_input_length=self.max_length)
+
             if self._config['output']['grammar'] == 'django-TD':
                 print('********')
                 print('build TD grammar')
