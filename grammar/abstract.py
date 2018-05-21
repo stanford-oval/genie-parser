@@ -65,10 +65,10 @@ class AbstractGrammar(object):
         raise NotImplementedError()
     
     def print_prediction(self, input_sentence, sequence):
-        print(' '.join(self.tokens[x] for x in sequence))
+        print(' '.join(self.tokens[x] for x in sequence[self.primary_output]))
     
     def prediction_to_string(self, sequence):
-        return [self.tokens[x] for x in sequence]
+        return [self.tokens[x] for x in sequence[self.primary_output]]
     
     def vectorize_program(self, input_sentence, program, max_length):
         raise NotImplementedError()
