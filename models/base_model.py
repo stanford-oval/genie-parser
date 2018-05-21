@@ -68,13 +68,14 @@ class BaseModel(object):
         return predictions
     
     def eval_on_batch(self, sess, *data, **kw):
-        """Make predictions for the provided batch of data
+        """Make predictions and evaluate loss for the provided batch of data
 
         Args:
             sess: tf.Session()
             input_batch: np.ndarray of shape (n_samples, n_features)
         Returns:
             predictions: np.ndarray of shape (n_samples, n_classes)
+            eval_loss : loss on the batch
         """
         feed = self.create_feed_dict(*data, **kw)
         return sess.run([self.preds, self.eval_loss], feed_dict=feed)
