@@ -35,7 +35,7 @@ def preprocess_dataset(annot_file, code_file):
     f_annot.close()
     f_annot.close()
 
-    # serialize_to_file(examples, 'django.cleaned.bin')
+    # serialize_to_file(examples, './raw_data/django.cleaned.bin')
 
     print 'error num: %d' % err_num
     print 'preprocess_dataset: cleaned example num: %d' % len(examples)
@@ -48,11 +48,22 @@ def canonicalize_example(query, code):
     from lang.py.parse import parse_raw, parse_tree_to_python_ast, canonicalize_code as make_it_compilable
     import astor, ast
 
-    canonical_query, str_map = canonicalize_query(query)
+    canonical_query, str_map, num_map = canonicalize_query(query)
+
+
+    # #******
+    # canonical_code_tmp, str_map_tmp  = canonicalize_query(code)
+    # if len(str_map) != len(str_map_tmp):
+    #     print 'Wrong str_map'
+    #
+    # #******
+
     canonical_code = code
 
     for str_literal, str_repr in str_map.iteritems():
         canonical_code = canonical_code.replace(str_literal, '\'' + str_repr + '\'')
+    for number, num_repr in num_map.iteritems():
+        canonical_code = canonical_code.replace(number, num_repr)
 
     canonical_code = make_it_compilable(canonical_code)
 
@@ -85,6 +96,8 @@ Parses single or double-quoted strings while preserving escaped quote chars
 
 QUOTED_STRING_RE = re.compile(r"(?P<quote>['\"])(?P<string>.*?)(?<!\\)(?P=quote)")
 
+NUMBER_RE = re.compile(r"[0x|0d|0o].*?\s|[-+]?\d+\.?\d*")
+
 def canonicalize_query(query):
     """
     canonicalize the query, replace strings to a special place holder
@@ -92,10 +105,15 @@ def canonicalize_query(query):
     str_count = 0
     str_map = dict()
 
-    matches = QUOTED_STRING_RE.findall(query)
-    # de-duplicate
+    num_count = 0
+    num_map = dict()
+
+    matches_string = QUOTED_STRING_RE.findall(query)
+    matches_number = NUMBER_RE.findall(query)
+
+    # de-duplicate strings
     cur_replaced_strs = set()
-    for match in matches:
+    for match in matches_string:
         # If one or more groups are present in the pattern,
         # it returns a list of groups
         quote = match[0]
@@ -116,6 +134,29 @@ def canonicalize_query(query):
         str_count += 1
         cur_replaced_strs.add(str_literal)
 
+
+
+    # de-duplicate numbers
+    cur_replaced_nums = set()
+    for number in matches_number:
+        # If one or more groups are present in the pattern,
+        # it returns a list of groups
+
+        if number in cur_replaced_nums:
+            continue
+
+        # FIXME: substitute the ' % s ' with
+        if str_literal in ['\'%s\'', '\"%s\"']:
+            continue
+
+        num_repr = '_NUM:%d_' % num_count
+        num_map[number] = num_repr
+
+        query = query.replace(number, num_repr)
+
+        num_count += 1
+        cur_replaced_nums.add(number)
+
     # tokenize
     query_tokens = nltk.word_tokenize(query)
 
@@ -130,7 +171,7 @@ def canonicalize_query(query):
 
     query = ' '.join(new_query_tokens)
 
-    return query, str_map
+    return query, str_map, num_map
 
 
 if __name__ == '__main__':
