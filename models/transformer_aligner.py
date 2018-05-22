@@ -293,7 +293,7 @@ class TransformerAligner(BaseModel):
         # output_ids_with_go = tf.concat([tf.expand_dims(go_vec, axis=1), self.primary_output_placeholder], axis=1)
         
         # TODO: figure out if hidden_size is correct
-        hidden_size = self.config.encoder_hidden_size
+        hidden_size = self.config.decoder_hidden_size
         dec_state = dec_initial_state
 
         for i in range(self.config.num_decoder_blocks):
