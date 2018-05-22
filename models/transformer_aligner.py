@@ -39,10 +39,18 @@ class TransformerAligner(BaseModel):
         input_embeddings = self.add_input_embeddings(xavier)
         input_embeddings += positional_encoding(self.input_placeholder,
                                                 self.config.input_embed_size)
-
         # Apply dropout immediately before encoding.
         input_embeddings = tf.layers.dropout(input_embeddings,
                                              self.dropout_placeholder)
+
+        # TODO: should we treat ouptut the same as input?
+        output_embeddings = self.add_output_embeddings(xavier)
+        output_embeddings += positional_encoding(self.input_placeholder,
+                                                self.config.output_embed_size)
+        # Apply dropout immediately before encoding.
+        output_embeddings = tf.layers.dropout(output_embeddings,
+                                             self.dropout_placeholder)
+
         # Encoder block
         # shape (batch_size, max_input_length, hidden_size)
         with tf.variable_scope('encoder', initializer=xavier):
@@ -52,7 +60,7 @@ class TransformerAligner(BaseModel):
 
         # Decoder block
         with tf.variable_scope('decoder'):
-            preds = self.add_decoder_op(self.final_encoder_state)
+            preds = self.add_decoder_op(self.final_encoder_state, self.output_embeddings)
 
         self.pred = self.finalize_predictions(preds)
 
@@ -186,6 +194,33 @@ class TransformerAligner(BaseModel):
         # return input_projection(inputs)
         return inputs
 
+    def add_output_embeddings(self, xavier):
+        with tf.variable_scope('embed', initializer=xavier):
+            with tf.variable_scope('output'):
+                shape = (self.config.output_size, self.config.output.embed_size)
+                init = None
+
+                if self.config.train_output_embeddings:
+                    if self.config.output_embedding_matrix is not None:
+                        init = tf.constant_initializer(self.config.output_embedding_matrix)
+
+                    self.output_embed_matrix = tf.get_variable('embedding',
+                                                              shape=shape,
+                                                              initializer=init)
+                else:
+                    self.output_embed_matrix = tf.constant(self.config.output_embedding_matrix)
+
+                # shape: (dictionary size, embed_size)
+                assert self.output_embed_matrix.get_shape() == shape
+
+        # shape: (batch size, max output length, embed_size)
+        outputs = tf.nn.embedding_lookup([self.output_embed_matrix], self.output_placeholder)
+        assert outputs.get_shape()[1] == (self.config.max_length, self.config.output_embed_size)
+
+        # return output_projection(output)
+        return outputs
+
+
     def add_encoder_op(self, inputs):
         ''' Adds the encoder block of the Transformer network.
         Args:
@@ -236,7 +271,7 @@ class TransformerAligner(BaseModel):
 
                     self.output_embed_matrices[key] = embed_matrix
 
-    def add_decoder_op(self, enc_final_state):
+    def add_decoder_op(self, enc_final_state, dec_state):
         ''' Adds the decoder op.
 
         The decoder takes as inputs:
@@ -245,6 +280,8 @@ class TransformerAligner(BaseModel):
 
         The start token is self.config.grammar.start
         The end token is self.config.grammar.end
+
+        Returns final_outputs (final_outputs, final_state, final_sequence_lengths)
         '''
 
         # TODO do decoder based on how the evaluation is set up
@@ -254,18 +291,58 @@ class TransformerAligner(BaseModel):
         # output_embed_size = output_embed_matrix.shape[-1]
         # primary_output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
         # output_ids_with_go = tf.concat([tf.expand_dims(go_vec, axis=1), self.primary_output_placeholder], axis=1)
+        
+        # TODO: figure out if hidden_size is correct
+        hidden_size = self.config.encoder_hidden_size
+        dec_state = dec_initial_state
 
-        if training:
-            outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
-            # FIXME
+        for i in range(self.config.num_decoder_blocks):
+            with tf.variable_scope('decoder_block_{}'.format(i)):
+                # shape (batch_size, max_input_length, encoder_hidden_size)
+                mh_out = multihead_attention(query=dec_state, key=dec_state,
+                                             output_size=hidden_size,
+                                             num_heads=self.config.num_heads,
+                                             dropout_rate=self.dropout_placeholder,
+                                             mask_future=False)
 
-        else:
-            # FIXME
+                # Residual connection and normalize
+                mh_out += dec_state
+                dec_state = normalize(mh_out)
 
-        if not training:
-            # self.attention_scores = FIXME
+                mh_out = multihead_attention(query=dec_state, key=enc_final_state,
+                                             output_size=hidden_size,
+                                             num_heads=self.config.num_heads,
+                                             dropout_rate=self.dropout_placeholder,
+                                             mask_future=False)
 
-        return final_outputs
+                # Residual connection and normalize
+                mh_out += dec_state
+                mh_out = normalize(mh_out)
+
+                # No change in shape
+                ff_out = feedforward(mh_out, 4*hidden_size, hidden_size)
+
+                # Residual connection and normalize
+                ff_out += mh_out
+                dec_state = normalize(ff_out)
+
+        params = {"inputs": dec_state, "filters": self.config.grammar.output_size, "kernel_size": 1,
+                  "activation": tf.nn.softmax, "use_bias": True}
+        dec_state = tf.layers.conv1d(**params)
+
+        return dec_state
+
+        # if training:
+        #     outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
+        #     # FIXME
+
+        # else:
+        #     # FIXME
+
+        # if not training:
+        #     # self.attention_scores = FIXME
+
+        # return final_outputs
 
     def finalize_predictions(self, preds):
         raise NotImplementedError()
