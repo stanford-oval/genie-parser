@@ -115,19 +115,18 @@ def run():
                         feed = model.create_feed_dict([sentence, fake_input],
                                                       [sentence_length, fake_length],
                                                       [fake_parse, fake_parse])
-                        predictions, raw_predictions, attention_scores = sess.run((model.preds, model.raw_preds, model.attention_scores), feed_dict=feed)
+                        predictions, attention_scores = sess.run((model.preds, model.attention_scores), feed_dict=feed)
 
                         prediction = dict()
-                        raw_prediction = dict()
                         for key in predictions:
                             prediction[key] = predictions[key][0,0]
-                            raw_prediction[key] = raw_predictions.rnn_output[key][0]
+                            #raw_prediction[key] = raw_predictions.rnn_output[key][0]
                         primary_prediction = prediction[config.grammar.primary_output]
                         index, = np.where(primary_prediction == config.grammar.end)
                         if len(index):
                             for key in predictions:
                                 prediction[key] = prediction[key][:index[0]+1]
-                                raw_prediction[key] = raw_prediction[key][:index[0]+1]
+                                #raw_prediction[key] = raw_prediction[key][:index[0]+1]
                             primary_prediction = primary_prediction[:index[0]+1]
                         for key in prediction:
                             #print(key, '=', raw_prediction[key])
