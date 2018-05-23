@@ -438,26 +438,17 @@ if __name__ == '__main__':
     grammar = ThingTalkGrammar(sys.argv[1], reverse=False)
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
-    vectors = []
-    ok_grammar = 0
-    fail_grammar = 0
     for line in sys.stdin:
         try:
-            program = line.strip()
-            vectors.append(grammar.vectorize_program(program)[0])
-            reconstructed = grammar.reconstruct_program(vectors[-1])
+            sentence, program = line.strip().split('\t')[1:3]
+            sentence = sentence.split(' ')
+            vector, length = grammar.vectorize_program(sentence, program)
+            reconstructed = grammar.reconstruct_program(sentence, vector)
             assert program == ' '.join(reconstructed)
             #print()
             #print(program)
-            #grammar.print_prediction(vectors[-1])
-            
-            ok_grammar += 1
+            #grammar.print_prediction(vector)
         except:
             print(line.strip())
-            grammar.print_prediction(vectors[-1])
-            fail_grammar += 1
+            grammar.print_prediction(sentence, vector)
             raise
-    np.save('programs.npy', np.array(vectors), allow_pickle=False)
-    print(ok_grammar / (ok_grammar+fail_grammar))
-    #for i, name in enumerate(grammar.state_names):
-    #    print i, name
