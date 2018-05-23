@@ -44,8 +44,7 @@ def vectorize_constituency_parse(parse, max_length, expect_length):
             vector[i] = False
             i += 1
     if i <= 2*max_length-1:
-        if i != 2*expect_length-1:
-            raise AssertionError(str(i) + " " + str(expect_length) + " " + str(parse))
+        assert i == 2*expect_length-1, (i, expect_length, parse)
     else:
         # we don't have space to shift/reduce the last token
         # this means that we truncated the sentence before
@@ -213,7 +212,7 @@ def load_data(from_file, input_words, grammar, max_length):
                 labels[key].append(label[key])
             label_lengths.append(label_len)
             if parse is not None:
-                parses.append(vectorize_constituency_parse(parse, max_length, in_len))
+                parses.append(vectorize_constituency_parse(parse, max_length, in_len-2))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
 
