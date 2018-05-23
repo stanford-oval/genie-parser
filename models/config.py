@@ -76,10 +76,10 @@ class Config(object):
         self._config['training'] = OrderedDict(
             batch_size=256,
             n_epochs=25,
-            learning_rate=0.01,
+            learning_rate=0.005,
             learning_rate_decay=0.95,
             dropout=0.5,
-            gradient_clip=0.5,
+            gradient_clip=1.0,
             l2_regularization=0.0,
             l1_regularization=0.0,
             embedding_l2_regularization=0.0,
@@ -91,19 +91,19 @@ class Config(object):
             use_margin_loss='true'
         )
         self._config['input'] = OrderedDict(
-            input_words='./input_words.txt',
-            input_embeddings='./embeddings-300.txt',
+            input_words='./en/input_words.txt',
+            input_embeddings='./en/embeddings-300.txt',
             input_embed_size=300,
-            input_projection=50,
-            max_length=60,
+            input_projection=75,
+            max_length=65,
             train_input_embeddings='false',
             use_typed_embeddings='true'
         )
         self._config['output'] = OrderedDict(
-            grammar='tt',
-            grammar_input_file='./thingpedia.json',
+            grammar='thingtalk.ThingTalkGrammar',
+            grammar_input_file='./en/thingpedia.json',
             train_output_embeddings='true',
-            output_embed_size=15,
+            output_embed_size=100,
             beam_width=10,
             training_beam_width=10
         )

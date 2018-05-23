@@ -32,6 +32,9 @@ import re
 import tempfile
 import shutil
 import numpy as np
+import configparser
+
+from grammar import thingtalk
 
 ssl_context = ssl.create_default_context()
 
@@ -50,7 +53,7 @@ def add_words(input_words, canonical):
         sequence = canonical
     for word in sequence:
         if not word:
-            raise ValueError('Invalid canonical "%s"' % (canonical,))
+            raise ValueError('Invalid word "%s" in phrase "%s"' % (word, canonical,))
         input_words.add(word)
 
 def get_thingpedia(input_words, workdir, snapshot):
@@ -94,34 +97,36 @@ def get_thingpedia(input_words, workdir, snapshot):
     with open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
         json.dump(output, fp, indent=2)
 
-def download_glove(glove):
+def download_glove(glove, embed_size):
     if os.path.exists(glove):
         return
 
     print('Downloading glove...')
     with tempfile.TemporaryFile() as tmp:
-        with urllib.request.urlopen('http://nlp.stanford.edu/data/glove.42B.300d.zip') as res:
+        with urllib.request.urlopen('https://nlp.stanford.edu/data/glove.42B.' + str(embed_size) + 'd.zip') as res:
             shutil.copyfileobj(res, tmp)
         with zipfile.ZipFile(tmp, 'r') as glove_zip:
-            glove_zip.extract('glove.42B.300d.txt', path=os.path.dirname(glove))
+            glove_zip.extract('glove.42B.' + str(embed_size) + 'd.txt', path=os.path.dirname(glove))
     print('Done')
 
-def create_dictionary(input_words, dataset):
+def load_dataset(input_words, dataset, grammar):
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
 
         with open(os.path.join(dataset, filename), 'r') as fp:
             for line in fp:
-                sentence = line.strip().split('\t')[1]
+                sentence, program = line.strip().split('\t')[1:3]
+                sentence = sentence.split(' ')
                 add_words(input_words, sentence)
+                
+                grammar.vectorize_program(sentence, program)
 
-    if len(sys.argv) > 4:
-       extra_word_file = sys.argv[4]
-       print('Adding extra dictionary from', extra_word_file)
-       with open(extra_word_file, 'r') as fp:
-           for line in fp:
-               input_words.add(line.strip())
+def add_extra_words(input_words, extra_word_file):
+    print('Adding extra dictionary from', extra_word_file)
+    with open(extra_word_file, 'r') as fp:
+        for line in fp:
+            input_words.add(line.strip())
 
 
 def save_dictionary(input_words, workdir):
@@ -208,32 +213,58 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
                     print("WARNING: missing word", word)
                 print(word, *np.random.normal(0, 0.9, (embed_size,)), file=outfp)
 
+def create_model_conf(workdir, embed_size):
+    os.makedirs(os.path.join(workdir, 'model'), exist_ok=True)
+    
+    model_config = configparser.ConfigParser()
+    model_config['input'] = {
+        'input_words': os.path.join(workdir, 'input_words.txt'),
+        'input_embeddings': os.path.join(workdir, 'embeddings-' + str(embed_size) + '.txt'),
+        'input_embed_size': embed_size
+    }
+    model_config['output'] = {
+        'grammar': 'thingtalk.ThingTalkGrammar',
+        'grammar_input_file': os.path.join(workdir, 'thingpedia.json')
+    }
+    
+    with open(os.path.join(workdir, 'model', 'model.conf'), 'w') as fp:
+        model_config.write(fp)
+
 def main():
     np.random.seed(1234)
 
     workdir = sys.argv[1]
-    if len(sys.argv) > 2:
-        snapshot = int(sys.argv[2])
+    os.makedirs(workdir, exist_ok=True)
+    dataset = sys.argv[2]
+    if len(sys.argv) > 3:
+        snapshot = int(sys.argv[3])
     else:
         snapshot = -1
-    if len(sys.argv) > 3:
-        embed_size = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        embed_size = int(sys.argv[4])
     else:
         embed_size = 300
+    if len(sys.argv) > 5:
+        extra_word_file = sys.argv[5]
+    else:
+        extra_word_file = None
         
-    dataset = os.getenv('DATASET', workdir)
-    glove = os.getenv('GLOVE', os.path.join(workdir, 'glove.42B.300d.txt'))
-    
-    download_glove(glove)
+    glove = os.getenv('GLOVE', os.path.join(workdir, 'glove.42B.' + str(embed_size) + 'd.txt'))    
+    download_glove(glove, embed_size)
     
     input_words = set()
     # add the canonical words for the builtin functions
     add_words(input_words, 'now nothing notify return the event')
 
-    create_dictionary(input_words, dataset)
     get_thingpedia(input_words, workdir, snapshot)
+    grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'))
+    
+    load_dataset(input_words, dataset, grammar)
+    if extra_word_file:
+        add_extra_words(input_words, extra_word_file)
     save_dictionary(input_words, workdir)
     trim_embeddings(input_words, workdir, embed_size, glove)
+    create_model_conf(workdir, embed_size)
 
 if __name__ == '__main__':
     main()
