@@ -32,7 +32,7 @@ from tensorflow.python import debug as tf_debug
 
 def run():
     if len(sys.argv) < 5:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + " load_grammar ")
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + " load_grammar **")
         sys.exit(1)
 
     np.random.seed(42)

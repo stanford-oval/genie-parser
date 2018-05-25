@@ -315,20 +315,25 @@ class Config(object):
         
         flatten_grammar = self.model_type != 'extensible'
 
+        ##########
+        #
+        #
+        ##########
+
         if load_grammar == '1':
 
             if self._config['output']['grammar'] in ['django-TD', 'reverse-tt', 'reverse-tt-split-device']:
                 print('********')
                 print('loading TD grammar')
                 print('********')
-                with open('config_TD.pkl', 'rb') as input:
+                with open('config_TD' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
                     self._grammar = pickle.load(input)
 
             else:
                 print('********')
                 print('loading BU grammar')
                 print('********')
-                with open('config_BU.pkl', 'rb') as input:
+                with open('config_BU' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
                     self._grammar = pickle.load(input)
 
         elif load_grammar == '0':
@@ -341,14 +346,14 @@ class Config(object):
                 print('********')
                 print('building TD grammar')
                 print('********')
-                with open('config_TD.pkl', 'wb') as output:
+                with open('config_TD' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
                     pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
 
-            elif:
+            else:
                 print('********')
                 print('building BU grammar')
                 print('********')
-                with open('config_BU.pkl', 'wb') as output:
+                with open('config_BU' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
                     pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
 
 
