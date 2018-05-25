@@ -44,6 +44,9 @@ def run():
         off = 3
 
     load_grammar = sys.argv.pop()
+    if load_grammar not in ['0', '1']:
+        print("Undefined load_grammar value: choose 1 to load or 0 to build the grammar")
+        sys.exit(1)
 
 
     model_dir = sys.argv[1]
