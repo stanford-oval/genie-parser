@@ -123,6 +123,8 @@ def load_dictionary(file, use_types=False, grammar=None):
             word = word.strip()
             if use_types and word[0].isupper():
                 continue
+            if word[0] in ["_", "'"]:
+                word = word[1:]
             add_word(word)
     return words, reverse
 
