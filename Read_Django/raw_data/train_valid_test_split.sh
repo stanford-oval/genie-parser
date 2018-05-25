@@ -6,14 +6,10 @@
 DATA=$1
 
 
-python3 $DATA/../tokenize_data.py $DATA/ $DATA/../all.anno
-python3 $DATA/../tokenize_data.py $DATA/ $DATA/../all.code
-
-
-sed 's/^ *//g' < $DATA/tokens_all.code.txt> $DATA/code++.txt
+#sed 's/^ *//g' < $DATA/tokens_all.code.txt> $DATA/code++.txt
 #sed 's/^ *//g' < $DATA/all.anno > $DATA/anno++.txt
 
-nl -w 5  $DATA/tokens_all.anno.txt > $DATA/anno_num.txt
+nl -w 5  $DATA/annot.all.canonicalized.vanilla.txt > $DATA/anno_num.txt
 #nl -w 5  -s ' ' $DATA/code++.txt > $DATA/code_num.txt
 
 sed 's/^ *//g' < $DATA/anno_num.txt > $DATA/anno_num++.txt
@@ -21,7 +17,7 @@ sed 's/^ *//g' < $DATA/anno_num.txt > $DATA/anno_num++.txt
 
 
 
-paste $DATA/anno_num++.txt $DATA/code++.txt > $DATA/data.txt
+paste $DATA/anno_num++.txt $DATA/code.all.canonicalized.vanilla.txt > $DATA/data.txt
 
 
 

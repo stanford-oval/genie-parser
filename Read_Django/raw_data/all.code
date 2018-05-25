@@ -861,7 +861,7 @@ from __future__ import unicode_literals
               checks = self . registered_checks
    for check in checks :
               new_errors = check ( app_configs = app_configs )
- assert is_iterable ( new_errors ) , (  "The function %r did not return a list. All functions registered "  "with the checks registry must return a list." % check )
+ assert is_iterable ( new_errors ) , (  "The function %r did not return a list. All functions registered with the checks registry must return a list." % check )
  errors . extend ( new_errors )
   return errors
    def tag_exists ( self , tag ) :
@@ -2668,9 +2668,9 @@ from __future__ import unicode_literals
       has_old_option = hasattr ( self , 'requires_model_validation' )
  has_new_option = hasattr ( self , 'requires_system_checks' )
   if has_old_option :
-              warnings . warn (  '"requires_model_validation" is deprecated '  'in favor of "requires_system_checks".' ,  RemovedInDjango19Warning )
+              warnings . warn (  '"requires_model_validation" is deprecated in favor of "requires_system_checks".' ,  'RemovedInDjango19Warning' )
   if has_old_option and has_new_option :
-              raise ImproperlyConfigured (  'Command %s defines both "requires_model_validation" '  'and "requires_system_checks", which is illegal. Use only '  '"requires_system_checks".' % self . __class__ . __name__ )
+              raise ImproperlyConfigured (  'Command %s defines both "requires_model_validation" and "requires_system_checks", which is illegal. Use only "requires_system_checks".' % self . __class__ . __name__ )
    self . requires_system_checks = (  self . requires_system_checks if has_new_option else  self . requires_model_validation if has_old_option else  True )
    @ property
  def use_argparse ( self ) :
@@ -4366,7 +4366,7 @@ from __future__ import unicode_literals
  from django . utils import autoreload
  from django . utils import six
  from django . core . exceptions import ImproperlyConfigured
-  naiveip_re = re . compile ( r"""^(?: (?P<addr>     (?P<ipv4>\d{1,3}(?:\.\d{1,3}){3}) |         # IPv4 address     (?P<ipv6>\[[a-fA-F0-9:]+\]) |               # IPv6 address     (?P<fqdn>[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*) # FQDN ):)?(?P<port>\d+)$""" , re . X )
+  naiveip_re = re . compile ( r"^(?: (?P<addr> (?P<ipv4>\d{1,3}(?:\.\d{1,3}){3}) |, (?P<ipv6>\[[a-fA-F0-9:]+\]) | (?P<fqdn>[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*) ):)?(?P<port>\d+)$" , re . X )
  DEFAULT_PORT = "8000"
    class Command ( BaseCommand ) :
       help = "Starts a lightweight Web server for development."
@@ -10873,9 +10873,9 @@ from __future__ import unicode_literals
   self . backout . append ( self . pointer )
  self . pointer = i
  return s
-        constant_string = r""" (?:%(i18n_open)s%(strdq)s%(i18n_close)s| %(i18n_open)s%(strsq)s%(i18n_close)s| %(strdq)s| %(strsq)s) """ % {  'strdq' : r'"[^"\\]*(?:\\.[^"\\]*)*"' ,  'strsq' : r"'[^'\\]*(?:\\.[^'\\]*)*'" ,  'i18n_open' : re . escape ( "_(" ) ,  'i18n_close' : re . escape ( ")" ) ,  }
+        constant_string = r" (?:%(i18n_open)s%(strdq)s%(i18n_close)s| %(i18n_open)s%(strsq)s%(i18n_close)s| %(strdq)s| %(strsq)s) "" % {  'strdq' : r'"[^"\\]*(?:\\.[^"\\]*)*"' ,  'strsq' : r"'[^'\\]*(?:\\.[^'\\]*)*'" ,  'i18n_open' : re . escape ( "_(" ) ,  'i18n_close' : re . escape ( ")" ) ,  }
  constant_string = constant_string . replace ( "\n" , "" )
-  filter_raw_string = r""" ^(?P<constant>%(constant)s)| ^(?P<var>[%(var_chars)s]+|%(num)s)|  (?:\s*%(filter_sep)s\s*      (?P<filter_name>\w+)          (?:%(arg_sep)s              (?:               (?P<constant_arg>%(constant)s)|               (?P<var_arg>[%(var_chars)s]+|%(num)s)              )          )?  )""" % {  'constant' : constant_string ,  'num' : r'[-+\.]?\d[\d\.e]*' ,  'var_chars' : "\w\." ,  'filter_sep' : re . escape ( FILTER_SEPARATOR ) ,  'arg_sep' : re . escape ( FILTER_ARGUMENT_SEPARATOR ) ,  }
+  filter_raw_string = r"^(?P<constant>%(constant)s)|^(?P<var>[%(var_chars)s]+|%(num)s)| (?:\s*%(filter_sep)s\s* (?P<filter_name>\w+)(?:%(arg_sep)s(?:(?P<constant_arg>%(constant)s)|(?P<var_arg>[%(var_chars)s]+|%(num)s)))?)" % {  'constant' : constant_string ,  'num' : r'[-+\.]?\d[\d\.e]*' ,  'var_chars' : "\w\." ,  'filter_sep' : re . escape ( FILTER_SEPARATOR ) ,  'arg_sep' : re . escape ( FILTER_ARGUMENT_SEPARATOR ) ,  }
   filter_re = re . compile ( filter_raw_string , re . UNICODE | re . VERBOSE )
    class FilterExpression ( object ) :
  def __init__ ( self , token , parser ) :
@@ -10887,7 +10887,7 @@ from __future__ import unicode_literals
  for match in matches :
               start = match . start ( )
  if upto != start :
-                  raise TemplateSyntaxError ( "Could not parse some characters: "  "%s|%s|%s" %  ( token [ : upto ] , token [ upto : start ] ,  token [ start : ] ) )
+                  raise TemplateSyntaxError ( "Could not parse some characters: %s|%s|%s" %  ( token [ : upto ] , token [ upto : start ] ,  token [ start : ] ) )
   if var_obj is None :
                   var , constant = match . group ( "var" , "constant" )
  if constant :

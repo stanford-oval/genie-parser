@@ -126,7 +126,7 @@
   call the method self.key_function with key, self.key_prefix and version as arguments, substitute the result for new_key.
   return new_key.
   define the method add with 5 arguments, self, key, value, timeout defaulting to DEFAULT_TIMEOUT and version defaulting to None.
-  docsring
+  docstring
   raise an exception of class NotImplementedError with string 'subclasses of BaseCache must provide an add() method' as argument.
   define the method get with 4 arguments, self, key, default set to None and version set to None.
   raise an exception of class NotImplementedError, with string 'subclasses of BaseCache must provide a get() method' as argument.
@@ -180,7 +180,7 @@
   define the method decr_version with 4 arguments, self, key, delta defaulting to integer 1 and version defaulting to None.
   call the method self.incr_version with key, negative delta and version as arguments.
   define the close method with 2 arguments, self and dictionary of argument pairs kwargs.
-  docstirng
+  docstring
   do nothing.
   import module base64.
   from datetime import datetime into default name space.
@@ -2668,10 +2668,10 @@
   if self has an 'requires_model_validation' attribute, has_old_option is boolean True, otherwise it is boolean False.
   if self has an 'requires_system_checks' attribute, has_new_option is boolean True, otherwise it is boolean False.
   if has_old_option is true,
-  call the function warnings.warn with 2 arguments: string '"requires_model_validation" is deprecated ' 'in favor of "requires_system_checks".' and RemovedInDjango19Warning.   
+  call the function warnings.warn with 2 arguments: string '"requires_model_validation" is deprecated in favor of "requires_system_checks".' and 'RemovedInDjango19Warning'.   
   if has_old_option and has_new_option are both true,
-  raise an ImproperlyConfigured exception wiht an argument string 'Command %s defines both "requires_model_validation" '
-  'and "requires_system_checks", which is illegal. Use only "requires_system_checks".', replace '%s' for self.__class__.__name__.   call the method self.requires_system_checks with an argument: self.requires_system_checks if has_new_option is true, or if it is false, but has_old_option is true use self.requires_model_validation, if they are both false use boolean True as an argument.   
+  raise an ImproperlyConfigured exception wiht an argument string 'Command %s defines both "requires_model_validation" and "requires_system_checks", which is illegal. Use only "requires_system_checks".', replace '%s' for self.__class__.__name__.   
+  call the method self.requires_system_checks with an argument: self.requires_system_checks if has_new_option is true, or if it is false, but has_old_option is true use self.requires_model_validation, if they are both false use boolean True as an argument.   
   property decorator,
   define the method use_argparse with an argument self,
   convert self.option_list into a boolean, return the inverted value.
@@ -2697,9 +2697,9 @@
   if not,
   parser is an instance of CommandParser class, created with 3 arguments: self, prog as a string created by joining: os.path.basename(prog_name) and subcommand, separated by whitespace and description set to self.help, if exists, or None, otherwise.   
   call the method parser.add_option with 3 arguments: string '--version', action set to string 'version', and version set to result of the method self.get_version.   
-  call the method parser.add_option with 8 arguments: string '-v', string '--verbosity', action set to string 'store',
-  dest set to string 'verbosity', default set to string '1', type set to int, choices is a list, containing integers: 0, 1, 2 and 3,   call the method parser.add_option with 2 arguments: string '--settings' and help as a string 'The Python path to a settings module,  e.g. "myproject.settings.main". If this isn\'t provided, the DJANGO_SETTINGS_MODULE environment variable will be used.'
-  call the method parser.add_option with 2 arguments: string '--pythonpath' and help set to a string 'A directory to add to the Python  path, e.g. "/home/djangoprojects/myproject".'
+  call the method parser.add_option with 8 arguments: string '-v', string '--verbosity', action set to string 'store', dest set to string 'verbosity', default set to string '1', type set to int, choices is a list, containing integers: 0, 1, 2 and 3,   
+  call the method parser.add_option with 2 arguments: string '--settings' and help as a string 'The Python path to a settings module, e.g. "myproject.settings.main". If this isn\'t provided, the DJANGO_SETTINGS_MODULE environment variable will be used.'
+  call the method parser.add_option with 2 arguments: string '--pythonpath' and help set to a string 'A directory to add to the Python path, e.g. "/home/djangoprojects/myproject".'
   call the method parser.add_option with 3 arguments: string '--traceback', action set to a string 'store_true', and help set to string 'Raise on exception'.   
   call the method parser.add_option with 5 arguments: string '--no-color', action is string 'store_true', dest is string 'no_color', default is boolean False, and help is a string "Don't colorize the command output.".   
   if self.args is true,
@@ -2709,7 +2709,7 @@
   define the method add_arguments with an argument self and parser.
   do nothing
   define the method print_help with 3 arguments: self, prog_name and subcommand.
-  call the method self.create_parser with arguments prog_name and subcommand.
+  call the method self.create_parser with arguments prog_name and subcommand.x
   call the method parser.print_help.
   define the method run_from_argv with arguments self and argv.
   self._called_from_command_line is boolean True.
@@ -4366,8 +4366,8 @@
   from django.utils import autoreload into default name space.
   from django.utils import six into default name space.
   from django.core.exceptions import ImproperlyConfigured into default name space.
-  call the method re.compile with 2 arguments: raw string """^(?: (?P<addr> (?P<ipv4>\d{1,3}(?:\.\d{1,3}){3}) |"""
-  """(?P<ipv6>\[[a-fA-F0-9:]+\]) | (?P<fqdn>[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*) ):)?(?P<port>\d+)$""", re.X   DEFAULT_PORT is a string "8000".
+  call the method re.compile with 2 arguments: raw string "^(?: (?P<addr> (?P<ipv4>\d{1,3}(?:\.\d{1,3}){3}) |, (?P<ipv6>\[[a-fA-F0-9:]+\]) | (?P<fqdn>[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*) ):)?(?P<port>\d+)$" , re.X  
+  DEFAULT_PORT is a string "8000".
   derive the class Command from the BaseCommand class.
   help is a string "Starts a lightweight Web server for development.".
   requires_system_checks is boolean False.
@@ -9537,7 +9537,7 @@
   from django.http.request import HttpRequest, QueryDict, RawPostDataException, UnreadablePostError and build_request_repr into default name space.
   from django.http.response import HttpResponse, StreamingHttpResponse, HttpResponseRedirect, HttpResponsePermanentRedirect, HttpResponseNotModified, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound, HttpResponseNotAllowed, HttpResponseGone,   HttpResponseServerError, Http404, BadHeaderError, JsonResponse into default name space.   
   from django.http.utils import fix_location_header and conditional_content_removal into default name space.
-  __all__ is a list of strings, 'SimpleCookie', 'parse_cookie', 'HttpRequest', 'QueryDict', 'RawPostDataException',
+  __all__ is a list of strings, 'SimpleCookie' , 'parse_cookie' , 'HttpRequest' , 'QueryDict' ,  'RawPostDataException' , 'UnreadablePostError' , 'build_request_repr' ,  'HttpResponse' , 'StreamingHttpResponse' , 'HttpResponseRedirect' ,  'HttpResponsePermanentRedirect' , 'HttpResponseNotModified' ,  'HttpResponseBadRequest' , 'HttpResponseForbidden' , 'HttpResponseNotFound' ,  'HttpResponseNotAllowed' , 'HttpResponseGone' , 'HttpResponseServerError' ,  'Http404' , 'BadHeaderError' , 'fix_location_header' , 'JsonResponse' ,  'conditional_content_removal',
   from __future__ import unicode_literals into default name space.
   from django.utils.encoding import force_st into default name space.
   from django.utils import six into default name space.
@@ -10296,7 +10296,7 @@
   from django.utils.http import cookie_date into default name space.
   from django.utils.six.moves import map into default name space.
   from django.utils.six.moves.urllib.parse import urlparse into default name space.
-  REASON_PHRASES is a dictionary containing 59 initial entries: 'CONTINUE' for 100, 'SWITCHING PROTOCOLS' for 101, 'PROCESSING' for 102, 'OK' for 200, 'CREATED' for 201, 'ACCEPTED' for 202, 'NON-AUTHORITATIVE INFORMATION' for 203,   'NO CONTENT' for 204, 'RESET CONTENT' for 205, 'PARTIAL CONTENT' for 206, 'MULTI-STATUS' for 207, 'ALREADY REPORTED' for 208,   'IM USED' for 226, 'MULTIPLE CHOICES' for 300, 'MOVED PERMANENTLY' for 301, 'FOUND' for 302, 'SEE OTHER' for 303,   'NOT MODIFIED' for 304, 'USE PROXY' for 305, 'RESERVED' for 306, 'TEMPORARY REDIRECT' for 307, 'PERMANENT REDIRECT' for 308,   'BAD REQUEST' for 400, 'UNAUTHORIZED' for 401, 'PAYMENT REQUIRED' for 402, 'FORBIDDEN' for 403, 'NOT FOUND' for 404,   'METHOD NOT ALLOWED' for 405, 'NOT ACCEPTABLE' for 406, 'PROXY AUTHENTICATION REQUIRED' for 407, 'REQUEST TIMEOUT' for 408,   'CONFLICT' for 409, 'GONE' for 410, 'LENGTH REQUIRED' for 411, 'PRECONDITION FAILED' for 412, 'REQUEST ENTITY TOO LARGE' for 413,   'REQUEST-URI TOO LONG' for 414, 'UNSUPPORTED MEDIA TYPE' for 415, 'REQUESTED RANGE NOT SATISFIABLE' for 416,   'EXPECTATION FAILED' for 417, 'I'M A TEAPOT' for 418, 'UNPROCESSABLE ENTITY' for 422, 'LOCKED' for 423, 'FAILED DEPENDENCY' for 424,   'UPGRADE REQUIRED' for 426, 'PRECONDITION REQUIRED' for 428, 'TOO MANY REQUESTS' for 429, 'REQUEST HEADER FIELDS TOO LARGE' for 431,   'INTERNAL SERVER ERROR' for 500, 'NOT IMPLEMENTED' for 501, 'BAD GATEWAY' for 502, 'SERVICE UNAVAILABLE' for 503,   'GATEWAY TIMEOUT' for 504, 'HTTP VERSION NOT SUPPORTED' for 505, 'VARIANT ALSO NEGOTIATES' for 506, 'INSUFFICIENT STORAGE' for 507,   'LOOP DETECTED' for 508, 'NOT EXTENDED' for 510 and 'NETWORK AUTHENTICATION REQUIRED' for 511.   
+  REASON_PHRASES is a dictionary containing 59 initial entries: 'CONTINUE' for 100, 'SWITCHING PROTOCOLS' for 101, 'PROCESSING' for 102, 'OK' for 200, 'CREATED' for 201, 'ACCEPTED' for 202, 'NON-AUTHORITATIVE INFORMATION' for 203,   'NO CONTENT' for 204, 'RESET CONTENT' for 205, 'PARTIAL CONTENT' for 206, 'MULTI-STATUS' for 207, 'ALREADY REPORTED' for 208,   'IM USED' for 226, 'MULTIPLE CHOICES' for 300, 'MOVED PERMANENTLY' for 301, 'FOUND' for 302, 'SEE OTHER' for 303,   'NOT MODIFIED' for 304, 'USE PROXY' for 305, 'RESERVED' for 306, 'TEMPORARY REDIRECT' for 307, 'PERMANENT REDIRECT' for 308,   'BAD REQUEST' for 400, 'UNAUTHORIZED' for 401, 'PAYMENT REQUIRED' for 402, 'FORBIDDEN' for 403, 'NOT FOUND' for 404,   'METHOD NOT ALLOWED' for 405, 'NOT ACCEPTABLE' for 406, 'PROXY AUTHENTICATION REQUIRED' for 407, 'REQUEST TIMEOUT' for 408,   'CONFLICT' for 409, 'GONE' for 410, 'LENGTH REQUIRED' for 411, 'PRECONDITION FAILED' for 412, 'REQUEST ENTITY TOO LARGE' for 413,   'REQUEST-URI TOO LONG' for 414, 'UNSUPPORTED MEDIA TYPE' for 415, 'REQUESTED RANGE NOT SATISFIABLE' for 416,   'EXPECTATION FAILED' for 417, "I'M A TEAPOT" for 418, 'UNPROCESSABLE ENTITY' for 422, 'LOCKED' for 423, 'FAILED DEPENDENCY' for 424,   'UPGRADE REQUIRED' for 426, 'PRECONDITION REQUIRED' for 428, 'TOO MANY REQUESTS' for 429, 'REQUEST HEADER FIELDS TOO LARGE' for 431,   'INTERNAL SERVER ERROR' for 500, 'NOT IMPLEMENTED' for 501, 'BAD GATEWAY' for 502, 'SERVICE UNAVAILABLE' for 503,   'GATEWAY TIMEOUT' for 504, 'HTTP VERSION NOT SUPPORTED' for 505, 'VARIANT ALSO NEGOTIATES' for 506, 'INSUFFICIENT STORAGE' for 507,   'LOOP DETECTED' for 508, 'NOT EXTENDED' for 510 and 'NETWORK AUTHENTICATION REQUIRED' for 511.   
   derive the class BadHeaderError from the ValueError base class.
   do nothing.
   derive the class HttpResponseBase from the six.Iterator base class.
