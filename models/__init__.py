@@ -51,6 +51,9 @@ def create_model(config):
     elif config.model_type == 'extensible':
         pkg = 'extensible_aligner'
         class_name = 'ExtensibleGrammarAligner'
+    elif config.model_type == 'transformer':
+        pkg = 'transformer_aligner'
+        class_name = 'TransformerAligner'
     else:
         raise ValueError("Invalid model type %s" % (config.model_type,))
     
