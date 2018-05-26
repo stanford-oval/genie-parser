@@ -41,9 +41,9 @@ class TokenizeHandler(tornado.web.RequestHandler):
         query = self.get_query_argument("q")
         language = self.application.get_language(locale)
         
-        print('GET /%s/tokenize' % locale, query)
+        #print('GET /%s/tokenize' % locale, query)
         tokenized = yield language.tokenizer.tokenize(query)
-        print("Tokenized", tokenized.tokens, tokenized.values)
+        #print("Tokenized", tokenized.tokens, tokenized.values)
         
         sys.stdout.flush()
         cache_time = 3600
@@ -73,18 +73,23 @@ class QueryHandler(tornado.web.RequestHandler):
         with language.session.as_default():
             with language.session.graph.as_default():
                 input, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
-                print('Vectorized', input, input_len)
+                #print('Vectorized', input, input_len)
                 if parse:
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
                     parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
                 input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
                 sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
-                assert len(sequences) == 1
-                
-                for i, beam in enumerate(sequences[0]):
-                    decoded = grammar.reconstruct_program(beam, ignore_errors=True)
-                    print("Beam", i+1, decoded if decoded else 'failed to predict')
+
+                primary_sequences = sequences[grammar.primary_output]                
+                assert len(primary_sequences) == 1
+                for i in range(len(primary_sequences[0])):
+                    vectors = dict()
+                    for key in sequences:
+                        vectors[key] = sequences[key][0,i]
+
+                    decoded = grammar.reconstruct_program(input, vectors, ignore_errors=True)
+                    #print("Beam", i+1, decoded if decoded else 'failed to predict')
                     if not decoded:
                         continue
                     json_rep = dict(code=decoded, score=1)
@@ -99,16 +104,19 @@ class QueryHandler(tornado.web.RequestHandler):
 
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
+        store = self.get_query_argument("store", "yes")
         language = self.application.get_language(locale)
         try:
             limit = int(self.get_query_argument("limit", default=5))
         except ValueError:
             raise tornado.web.HTTPError(400, reason='Invalid limit argument')
+        if store not in ('yes','no'):
+            raise tornado.web.HTTPError(400, reason='Invalid store argument')
         expect = self.get_query_argument('expect', default=None)
-        print('GET /%s/query' % locale, query)
+        #print('GET /%s/query' % locale, query)
 
         tokenized = yield language.tokenizer.tokenize(query)
-        print("Tokenized", tokenized.tokens, tokenized.values)
+        #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
         tokens = tokenized.tokens
@@ -123,11 +131,10 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database:
+        if len(result) > 0 and self.application.database and store != 'no':
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
-                                              "values (0, %(language)s, 'log', %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
+                                              "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
-                                              utterance=query,
                                               preprocessed=' '.join(tokens),
                                               target_code=' '.join(result[0]['code']))
         

@@ -43,7 +43,7 @@ class ServerConfig():
         }
         
         self._config['models'] = {
-            'en': './model.en'
+            'en': './en/model'
         }
         
     @property
@@ -82,7 +82,7 @@ class ServerConfig():
         if language in self._config['models']:
             return self._config['models'][language]
         else:
-            return './model.' + language
+            return './' + language + '/model'
 
     @staticmethod
     def load(filenames):

@@ -91,10 +91,10 @@ def main():
 
         ok_rearrange = ok_signature == 'CorrectSignature' and list(sorted(gold)) == list(sorted(predicted))
 
-        assert ok == 'False' or ok_rearrange
-        assert not ok_rearrange or ok_non_value, (' '.join(gold), ' '.join(predicted), ok, ok_signature)
-        assert not ok_non_value or ok_non_op_value
-        assert not ok_non_op_value or ok_param_subset
+        #assert ok == 'False' or ok_rearrange
+        #assert not ok_rearrange or ok_non_value, (' '.join(gold), ' '.join(predicted), ok, ok_signature)
+        #assert not ok_non_value or ok_non_op_value
+        #assert not ok_non_op_value or ok_param_subset
 
         single_token_error = False
         single_token_unit = False
@@ -145,8 +145,8 @@ def main():
         #if ok_signature == 'CorrectSignature' and not ok_param_subset:
         #    print(sentence, ' '.join(gold), ' '.join(predicted), sep='\t', file=sys.stderr)
         #if ok_param_subset and not ok_non_op_value:
-        if ok_non_op_value and ok == 'False':
-            print(sentence, ' '.join(gold), ' '.join(predicted), sep='\t', file=sys.stderr)
+        #if ok_non_op_value and ok == 'False':
+        #    print(sentence, ' '.join(gold), ' '.join(predicted), sep='\t', file=sys.stderr)
 
         sentence = sentence.split(' ')[1:-1] # remove <s> and </s>
         vector, length = grammar.vectorize_program(sentence, gold, max_length=60)
