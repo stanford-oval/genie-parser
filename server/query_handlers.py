@@ -97,6 +97,34 @@ class QueryHandler(tornado.web.RequestHandler):
                     if limit >= 0 and len(results) >= limit:
                         break
         return results
+    
+    @tornado.concurrent.run_on_executor
+    def _run_retrieval_query(self, language, tokens, choices, limit):
+        config = language.config
+        input_embed_matrix = config.input_embedding_matrix
+
+        input, _ = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+        
+        input_encoded = input_embed_matrix[input]
+        input_encoded = np.sum(input_encoded, axis=0)
+        input_norm = np.linalg.norm(input_encoded, ord=2)
+        
+        def try_one_choice(choice_id, choice):
+            choice_vec, _ = vectorize(choice.tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+            choice_encoded = input_embed_matrix[choice_vec]
+            choice_encoded = np.sum(choice_encoded, axis=0)
+            choice_norm = np.linalg.norm(choice_encoded, ord=2)
+            
+            choice_score = np.dot(input_encoded, choice_encoded)
+            choice_score /= input_norm
+            choice_score /= choice_norm
+            
+            return dict(code=['bookkeeping', 'choice', str(choice_id)], score=float(choice_score))
+        
+        results = [try_one_choice(choice_id, choice) for choice_id, choice in choices.items()]
+        results.sort(key=lambda x: -x['score'])
+        results = results[:limit]
+        return results
 
     @tornado.gen.coroutine
     def get(self, **kw):
@@ -115,7 +143,7 @@ class QueryHandler(tornado.web.RequestHandler):
         expect = self.get_query_argument('expect', default=None)
         #print('GET /%s/query' % locale, query)
 
-        tokenized = yield language.tokenizer.tokenize(query)
+        tokenized = yield language.tokenizer.tokenize(query, expect)
         #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
@@ -123,7 +151,17 @@ class QueryHandler(tornado.web.RequestHandler):
         if len(tokens) == 1 and (tokens[0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
-        if result is None and language.exact:
+        if expect == 'MultipleChoice':
+            choices = dict()
+            for arg in self.request.query_arguments:
+                if arg == 'choices[]':
+                    for choice in self.get_query_arguments(arg):
+                        choices[len(choices)] = yield language.tokenizer.tokenize(choice, expect)
+                elif arg.startswith('choices['):
+                    choices[arg[len('choices['):-1]] = yield language.tokenizer.tokenize(self.get_query_argument(arg), expect)
+            
+            result = yield self._run_retrieval_query(language, tokens, choices, limit)
+        elif result is None and language.exact:
             exact = language.exact.get(' '.join(tokens))
             if exact:
                 result = [dict(code=exact, score='Infinity')]
@@ -131,7 +169,7 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database and store != 'no':
+        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice':
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
