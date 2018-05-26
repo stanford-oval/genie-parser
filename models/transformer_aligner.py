@@ -53,51 +53,46 @@ class TransformerAligner(BaseModel):
         with tf.variable_scope('encoder', initializer=xavier):
             final_encoder_state = self.add_encoder_op(input_embeddings)
 
-        # Embed the inputs and positionally encode them.
-        # shape: (batch_size, max_input_length, output_embed_size)
-        output_embeddings = self.add_output_embeddings(xavier)
-        output_embeddings += positional_encoding(self.primary_output_placeholder,
-                                                 self.config.output_embed_size)
-        # Apply dropout immediately before decoding.
-        output_embeddings = tf.layers.dropout(output_embeddings,
-                                              self.dropout_placeholder)
-        # Decoder block
-        # TODO need eval decoder op... loops.
-        # shape (batch_size, max_input_length, decoder_hidden_size)
-        with tf.variable_scope('decoder'):
-            final_dec_state = self.add_decoder_op(final_encoder_state,
-                                                  output_embeddings)
-
-        # Final linear projection to get logits
+        # Add training decoder
         # shape (batch_size, max_input_length, output_size)
-        output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-        logits = tf.layers.dense(final_dec_state, output_size)
+        with tf.variable_scope('train_decoder')
+            train_logits = self.add_decoder_op(final_encoder_code, training=True)
 
-        # Finalize predictions by taking argmax and adding beam size of 1
-        self.raw_preds = logits
-        preds = tf.argmax(logits, axis=2)
-        self.preds = self.finalize_predictions(preds)
-        if not isinstance(self.preds, dict):
-            self.preds = {
-                self.config.grammar.primary_output: self.preds
-            }
-
-        self.action_counts = None
-
+        # Calculate training loss and training op
         if self.config.decoder_sequence_loss > 0:
             with tf.name_scope('sequence_loss'):
-                sequence_loss = self.add_loss_op(logits)
+                sequence_loss = self.add_loss_op(train_logits)
         else:
             sequence_loss = 0
 
         with tf.name_scope('training_loss'):
             self.loss = self.config.decoder_sequence_loss * sequence_loss + self.add_regularization_loss()
 
-        # TODO Need extra eval loss? Why not use feed_dict to control regularization?
+        self.train_op = self.add_training_op(self.loss)
+
+        # Add inference decoder
+        # shape (batch_size, max_input_length, output_size)
+        with tf.variable_scope('eval_decoder')
+            eval_logits = self.add_decoder_op(final_encoder_code, training=False)
+
+        # Calculate evaluation loss
+        if self.config.decoder_sequence_loss > 0:
+            with tf.name_scope('sequence_loss'):
+                sequence_loss = self.add_loss_op(eval_logits)
+        else:
+            sequence_loss = 0
+
         with tf.name_scope('eval_loss'):
             self.eval_loss = self.config.decoder_sequence_loss * sequence_loss
 
-        self.train_op = self.add_training_op(self.loss)
+        # Finalize predictions by taking argmax and adding beam size of 1
+        self.raw_preds = eval_logits
+        preds = tf.argmax(eval_logits, axis=2)
+        self.preds = self.finalize_predictions(preds)
+        if not isinstance(self.preds, dict):
+            self.preds = {
+                self.config.grammar.primary_output: self.preds
+            }
 
         weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         size = 0
@@ -120,10 +115,10 @@ class TransformerAligner(BaseModel):
 
     def add_input_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='input_sequence')
+        self.input_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='input_length')
+        self.constituency_parse_placeholder = tf.placeholder(tf.bool, shape=(None, 2*self.config.max_length-1), name='input_constituency_parse')
 
     def add_output_placeholders(self):
-        # During training this is gold labels.
-        # During inference, this will be all previous tokens inferred.
         self.output_placeholders = dict()
         for key in self.config.grammar.output_size:
             self.output_placeholders[key] = tf.placeholder(tf.int32, shape=(None, self.config.max_length), name='output_sequence')
@@ -134,15 +129,16 @@ class TransformerAligner(BaseModel):
         self.batch_number_placeholder = tf.placeholder(tf.int32, shape=(), name='batch_number')
         self.epoch_placeholder = tf.placeholder(tf.int32, shape=(), name='epoch_number')
         self.dropout_placeholder = tf.placeholder_with_default(0.0, shape=(), name='dropout_probability')
+        self.action_counts = None       # Don't need
 
     def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch,
                          labels_sequence_batch=None, labels_batch=None, label_length_batch=None,
                          dropout=0, batch_number=0, epoch=0):
 
-        # TODO use input length batch
-
         feed_dict = dict()
         feed_dict[self.input_placeholder] = inputs_batch
+        feed_dict[self.input_length_placeholder] = input_length_batch
+        feed_dict[self.constituency_parse_placeholder] = parses_batch
         if labels_batch is not None:
             for key, batch in labels_batch.items():
                 feed_dict[self.output_placeholders[key]] = batch
@@ -198,10 +194,16 @@ class TransformerAligner(BaseModel):
 
         hidden_size = self.config.encoder_hidden_size
 
+        # create mask appropriate for transformer encoding
+        # go from (batch_size) to (batch_size, max_input_length)
+        lengths = self.input_length_placeholder
+        mask = tf.sequence_mask(lengths, self.config.max_length, dtype=tf.int32)
+
         for i in range(NUM_ENCODER_BLOCKS):
             with tf.variable_scope('encoder_block_{}'.format(i)):
                 # shape (batch_size, max_input_length, encoder_hidden_size)
                 mh_out = multihead_attention(query=inputs, key=inputs,
+                                             key_mask=mask, query_mask=mask,
                                              attn_size=hidden_size,
                                              num_heads=NUM_HEADS,
                                              dropout_rate=self.dropout_placeholder,
@@ -219,6 +221,100 @@ class TransformerAligner(BaseModel):
                 inputs = normalize(ff_out)
 
         return inputs
+
+    def add_decoder_op(enc_final_state, training):
+        ''' Adds the decoder op comprised of output embeddings, the decoder
+        blocks, and the final feed forward layer.
+
+        During training, decode is run once using the output_length_placeholder
+        and primary_output_placeholder.
+        During testing, decode is run in a loop until all inputs have hit EOS.
+
+        Returns tensor of shape (batch_size, <= max_input_length, output_size)
+        Training is guaranteed to return max_input_length.
+        '''
+
+        # TODO add variable scopes
+
+        # TODO HACK to add the go vector: this cuts off the last token
+        go_vector = tf.ones((self.batch_size, 1), dtype=tf.int32) * self.config.grammar.start
+        output_embed_matrix = self.add_output_embeddings(xavier)
+        output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
+        positionals = positional_encoding(output_embeddings, self.config.output_embed_size)
+
+        if training:
+            # Embed the inputs
+            output_ids = tf.concat([go_vector,
+                                    self.primary_output_placeholder[:, :-1]],
+                                    axis=1)
+            # shape: (batch_size, max_input_length, output_embed_size)
+            output_embeddings = tf.nn.embedding_lookup([output_embed_matrix], output_ids)
+
+            # Positionally encode them.
+            output_embeddings += positionals
+
+            # Apply dropout immediately before decoding.
+            output_embeddings = tf.layers.dropout(output_embeddings,
+                                                  self.dropout_placeholder)
+
+            # Create mask for decoding.
+            lengths = self.output_length_placeholder
+            mask = tf.sequence_mask(lengths, self.config.max_length, dtype=tf.int32)
+
+            # Decoder block
+            # shape (batch_size, max_input_length, decoder_hidden_size)
+            final_dec_state = self.add_decoder_block(final_encoder_state,
+                                                     output_embeddings, mask)
+        else:
+            def is_not_finished(i, hit_eos, *_):
+                finished = i >= self.config.max_length
+                finished |= tf.reduce_all(hit_eos)
+                return tf.logical_not(finished)
+
+            def inner_loop(i, hit_eos, next_id, embed_so_far, dec_state):
+                # shape: (batch_size, 1, output_embed_size)
+                next_id_embeddings = tf.nn.embedding_lookup([output_embed_matrix], next_id)
+                # pad to be (batch, max_length, output_embed_size)
+                embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i], [0, 0]])
+                next_id_embeddings = tf.pad(next_id_embeddings, embed_padding)
+
+                next_id_embeddings += tf.where(next_id_embeddings == 0, next_id_embeddings, positionals)
+                embed_so_far += next_id_embeddings
+
+                # shape (batch_size, max_input_length)
+                mask = tf.sign(tf.abs(tf.reduce_sum(embed_so_far, axis=-1)))
+
+                # shape (batch_size, max_input_length, decoder_hidden_size)
+                dec_state = self.add_decoder_block(final_encoder_state, embed_so_far, mask)
+
+                # mask out dec_state[:, i+1:, :] to 0s
+                ones = tf.ones(shape=(i+1, self.config.decoder_hidden_size))
+                zeros = tf.zeros(shape=(self.config.max_length - i - 1, self.config.decoder_hidden_size))
+                dec_state_mask = tf.expand_dims(tf.concat([ones, zeros], axis=0), 0)
+                tiled_mask = tf.tile(dec_state_mask, [batch_size, 1, 1])
+                dec_state = tf.where(tiled_mask == 0, tiled_mask, dec_state)
+
+                # get logits from dec state
+                next_id_logits = tf.layers.dense(dec_state, output_size)
+                next_id = tf.argmax(next_id_logits, axis=2)
+
+                return i + 1, hit_eos, next_id, embed_so_far, dec_state
+
+            batch_size = tf.shape(inputs)[0]
+            hit_eos = tf.fill([batch_size], False)
+            dec_state = tf.zeros((batch_size, self.config.max_length, self.config.decoder_hidden_size))
+            embed_so_far = tf.zeros((batch_size, self.config.max_length, self.config.output_embed_size)
+
+            i, _, _, _ final_dec_state = tf.while_loop(is_not_finished,
+                                                       inner_loop,
+                                                      [tf.constant(0), hit_eos,
+                                                       go_vector, embed_so_far,
+                                                       dec_state])
+
+        # Final linear projection to get logits
+        # shape (batch_size, <=max_input_length, output_size)
+        logits = tf.layers.dense(final_dec_state, output_size)
+        return logits
 
     def add_output_embeddings(self, xavier):
         with tf.variable_scope('embed', initializer=xavier):
@@ -238,34 +334,26 @@ class TransformerAligner(BaseModel):
 
                     self.output_embed_matrices[key] = embed_matrix
 
-        go_vector = tf.ones((self.batch_size,), dtype=tf.int32) * self.config.grammar.start
         output_embed_matrix = self.output_embed_matrices[self.config.grammar.primary_output]
-        output_embed_size = output_embed_matrix.shape[-1]
-        primary_output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-        # TODO this cuts off the last token...
-        output_ids_with_go = tf.concat([tf.expand_dims(go_vector, axis=1),
-                                        self.primary_output_placeholder[:, :-1]],
-                                        axis=1)
-        # shape: (batch_size, max_input_length, output_embed_size)
-        outputs = tf.nn.embedding_lookup([output_embed_matrix], output_ids_with_go)
-        return outputs
+        return output_embed_matrix
 
-    def add_decoder_op(self, enc_final_state, dec_state):
-        ''' Adds the decoder op.
+    def add_decoder_block(self, enc_final_state, dec_state, mask):
+        ''' Adds the decoder block.
 
         The decoder takes as inputs:
             encoder final state (batch_size, max_input_length, encoder_hidden_size)
             decoder initial embeddings (batch_size, max_input_length, output_embed_size)
+            mask (batch_size, max_input_length)
 
         Returns tensor of shape (batch_size, max_input_length, decoder_hidden_size)
         '''
-
         hidden_size = self.config.decoder_hidden_size
 
         for i in range(NUM_DECODER_BLOCKS):
             with tf.variable_scope('decoder_block_{}'.format(i)):
                 # shape (batch_size, max_input_length, encoder_hidden_size)
                 mh_out = multihead_attention(query=dec_state, key=dec_state,
+                                             key_mask=mask, query_mask=mask,
                                              attn_size=hidden_size,
                                              num_heads=NUM_HEADS,
                                              dropout_rate=self.dropout_placeholder,
@@ -277,6 +365,7 @@ class TransformerAligner(BaseModel):
                 dec_state = normalize(mh_out)
 
                 mh_out = multihead_attention(query=dec_state, key=enc_final_state,
+                                             key_mask=mask, query_mask=mask,
                                              attn_size=hidden_size,
                                              num_heads=NUM_HEADS,
                                              dropout_rate=self.dropout_placeholder,
@@ -300,13 +389,15 @@ class TransformerAligner(BaseModel):
         return tf.expand_dims(preds, axis=1)
 
     def add_loss_op(self, logits):
-        # TODO apply label smoothing as regularization?
-        labels = tf.one_hot(self.primary_output_placeholder, depth=logits.get_shape().as_list()[-1])
-        loss_fn = tf.nn.softmax_cross_entropy_with_logits
-        loss = loss_fn(logits=logits, labels=labels)
-        istarget = tf.to_float(tf.not_equal(self.primary_output_placeholder, 0))
-        mean_loss = tf.reduce_sum(loss * istarget) / (tf.reduce_sum(istarget))
-        return mean_loss
+        # TODO use max margin loss
+        length_diff = self.config.max_length - tf.shape(logits)[1]
+        padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
+        logits = tf.pad(logits, padding, mode='constant')
+        logits.set_shape((None, self.config.max_length, logits.shape[2]))
+        logits = logits + 1e-5 # add epsilon to avoid division by 0
+
+        mask = tf.sequence_mask(self.output_length_placeholder, self.config.max_length, dtype=tf.float32)
+        return tf.contrib.seq2seq.sequence_loss(logits, self.primary_output_placeholder, mask)
 
     def _add_l2_helper(self, where, amount):
         weights = [w for w in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if re.search(where, w.name)]
@@ -383,13 +474,15 @@ def positional_encoding(inputs, num_units, scope="positional_encoding",
 
         return tf.cast(outputs, tf.float32)
 
-def multihead_attention(query, key, attn_size=None, num_heads=8,
-                        dropout_rate=0, mask_future=False,
+def multihead_attention(query, key, key_mask, query_mask, attn_size=None,
+                        num_heads=8, dropout_rate=0, mask_future=False,
                         scope='multihead_attention', reuse=None):
     '''
     Args:
         query: A 3D tensor with shape (N, T_q, C_q)
         key: A 3D tensor with shape (N, T_k, C_k)
+        key_mask: A 2D tensor with shape (N, T_k)
+        query_mask: A 2D tensor with shape (N, T_q)
         attn_size: attention size and also final output size
         num_heads: number of attention layers
         dropout_rate: rate of dropout during attention
@@ -417,13 +510,10 @@ def multihead_attention(query, key, attn_size=None, num_heads=8,
         outputs = outputs / (K_.get_shape().as_list()[-1] ** 0.5)
 
         # Mask keys
-        key_masks = tf.sign(tf.abs(tf.reduce_sum(key, axis=-1))) # (N, T_k)
-        key_masks = tf.tile(key_masks, [num_heads, 1])  # (num_heads*N, T_k)
-        key_masks = tf.tile(tf.expand_dims(key_masks, 1), [1, tf.shape(query)[1], 1])
-        # shape (num_heads*N, T_q, T_k)
-
+        key_mask = tf.tile(key_mask, [num_heads, 1])  # (num_heads*N, T_k)
+        key_mask = tf.tile(tf.expand_dims(key_mask, 1), [1, tf.shape(query)[1], 1]) # shape (num_heads*N, T_q, T_k)
         paddings = tf.ones_like(outputs) * (-2 ** 32 + 1)
-        outputs = tf.where(tf.equal(key_masks, 0), paddings, outputs)
+        outputs = tf.where(tf.equal(key_mask, 0), paddings, outputs)
 
         # Mask future time steps
         if mask_future:
@@ -438,11 +528,8 @@ def multihead_attention(query, key, attn_size=None, num_heads=8,
         outputs = tf.nn.softmax(outputs) # (num_heads*N, T_q, T_k)
 
         # Mask query
-        query_masks = tf.sign(tf.abs(tf.reduce_sum(query, axis=-1))) # (N, T_q)
-        query_masks = tf.tile(query_masks, [num_heads, 1])  # (num_heads*N, T_q)
-        query_masks = tf.tile(tf.expand_dims(query_masks, -1), [1, 1, tf.shape(key)[1]])
-        # shape (num_heads*N, T_q, T_k)
-
+        query_mask = tf.tile(query_mask, [num_heads, 1])  # (num_heads*N, T_q)
+        query_masks = tf.tile(tf.expand_dims(query_masks, -1), [1, 1, tf.shape(key)[1]]) # shape (num_heads*N, T_q, T_k)
         outputs *= query_masks # (N, T_q, T_k) because of broadcasting
 
         # Dropout
