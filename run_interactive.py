@@ -115,7 +115,8 @@ def run():
                         feed = model.create_feed_dict([sentence, fake_input],
                                                       [sentence_length, fake_length],
                                                       [fake_parse, fake_parse])
-                        predictions, attention_scores = sess.run((model.preds, model.attention_scores), feed_dict=feed)
+                        # predictions, attention_scores = sess.run((model.preds, model.attention_scores), feed_dict=feed)
+                        predictions = sess.run((model.preds), feed_dict=feed)
 
                         prediction = dict()
                         for key in predictions:
@@ -145,7 +146,7 @@ def run():
                                     print('beam', i, 'failed to predict')
 
                         sentence = list(config.reverse_dictionary[x] for x in sentence[:sentence_length])
-                        show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
+                        # show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
                 except EOFError:
                     pass
             
