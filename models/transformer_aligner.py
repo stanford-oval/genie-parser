@@ -43,7 +43,9 @@ class TransformerAligner(BaseModel):
         # Embed the inputs and positionally encode them.
         # shape: (batch_size, max_input_length, embed_size)
         input_embeddings = self.add_input_embeddings(xavier)
-        input_embeddings += positional_encoding(self.input_placeholder,
+        batch_size = tf.shape(self.input_placeholder)[0]
+        max_input_length = self.config.max_length
+        input_embeddings += positional_encoding(batch_size, max_input_length,
                                                 self.config.input_embed_size)
         # Apply dropout immediately before encoding.
         input_embeddings = tf.layers.dropout(input_embeddings,
@@ -55,8 +57,8 @@ class TransformerAligner(BaseModel):
 
         # Add training decoder
         # shape (batch_size, max_input_length, output_size)
-        with tf.variable_scope('train_decoder')
-            train_logits = self.add_decoder_op(final_encoder_code, training=True)
+        with tf.variable_scope('train_decoder', initializer=xavier):
+            train_logits = self.add_decoder_op(final_encoder_state, training=True)
 
         # Calculate training loss and training op
         if self.config.decoder_sequence_loss > 0:
@@ -72,8 +74,8 @@ class TransformerAligner(BaseModel):
 
         # Add inference decoder
         # shape (batch_size, max_input_length, output_size)
-        with tf.variable_scope('eval_decoder')
-            eval_logits = self.add_decoder_op(final_encoder_code, training=False)
+        with tf.variable_scope('eval_decoder', initializer=xavier):
+            eval_logits = self.add_decoder_op(final_encoder_state, training=False)
 
         # Calculate evaluation loss
         if self.config.decoder_sequence_loss > 0:
@@ -211,18 +213,18 @@ class TransformerAligner(BaseModel):
 
                 # Residual connection and normalize
                 if (i != 0): mh_out += inputs
-                mh_out = normalize(mh_out)
+                mh_out = normalize(mh_out, scope="attention_norm_{}".format(i))
 
                 # No change in shape
                 ff_out = feedforward(mh_out, 4*hidden_size, hidden_size)
 
                 # Residual connection and normalize
                 ff_out += mh_out
-                inputs = normalize(ff_out)
+                inputs = normalize(ff_out, scope="ff_norm_{}".format(i))
 
         return inputs
 
-    def add_decoder_op(enc_final_state, training):
+    def add_decoder_op(self, enc_final_state, training):
         ''' Adds the decoder op comprised of output embeddings, the decoder
         blocks, and the final feed forward layer.
 
@@ -230,17 +232,19 @@ class TransformerAligner(BaseModel):
         and primary_output_placeholder.
         During testing, decode is run in a loop until all inputs have hit EOS.
 
-        Returns tensor of shape (batch_size, <= max_input_length, output_size)
+        Returns tensor of shape (batch_size, max_input_length, output_size)
         Training is guaranteed to return max_input_length.
         '''
 
         # TODO add variable scopes
 
         # TODO HACK to add the go vector: this cuts off the last token
+        batch_size, max_input_length = tf.shape(enc_final_state)[0], self.config.max_length
+        positionals = positional_encoding(batch_size, max_input_length, self.config.output_embed_size)
+
         go_vector = tf.ones((self.batch_size, 1), dtype=tf.int32) * self.config.grammar.start
-        output_embed_matrix = self.add_output_embeddings(xavier)
+        output_embed_matrix = self.add_output_embeddings()
         output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-        positionals = positional_encoding(output_embeddings, self.config.output_embed_size)
 
         if training:
             # Embed the inputs
@@ -263,7 +267,7 @@ class TransformerAligner(BaseModel):
 
             # Decoder block
             # shape (batch_size, max_input_length, decoder_hidden_size)
-            final_dec_state = self.add_decoder_block(final_encoder_state,
+            final_dec_state = self.add_decoder_block(enc_final_state,
                                                      output_embeddings, mask)
         else:
             def is_not_finished(i, hit_eos, *_):
@@ -275,7 +279,7 @@ class TransformerAligner(BaseModel):
                 # shape: (batch_size, 1, output_embed_size)
                 next_id_embeddings = tf.nn.embedding_lookup([output_embed_matrix], next_id)
                 # pad to be (batch, max_length, output_embed_size)
-                embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i], [0, 0]])
+                embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i - 1], [0, 0]])
                 next_id_embeddings = tf.pad(next_id_embeddings, embed_padding)
 
                 next_id_embeddings += tf.where(next_id_embeddings == 0, next_id_embeddings, positionals)
@@ -285,7 +289,7 @@ class TransformerAligner(BaseModel):
                 mask = tf.sign(tf.abs(tf.reduce_sum(embed_so_far, axis=-1)))
 
                 # shape (batch_size, max_input_length, decoder_hidden_size)
-                dec_state = self.add_decoder_block(final_encoder_state, embed_so_far, mask)
+                dec_state = self.add_decoder_block(enc_final_state, embed_so_far, mask)
 
                 # mask out dec_state[:, i+1:, :] to 0s
                 ones = tf.ones(shape=(i+1, self.config.decoder_hidden_size))
@@ -296,27 +300,37 @@ class TransformerAligner(BaseModel):
 
                 # get logits from dec state
                 next_id_logits = tf.layers.dense(dec_state, output_size)
-                next_id = tf.argmax(next_id_logits, axis=2)
+                next_id = tf.argmax(next_id_logits, axis=2)[:, tf.minimum(i+1, self.config.max_length - 1)]
+                hit_eos |= tf.equal(next_id, grammar_end)
+                next_id = tf.cast(tf.expand_dims(next_id, 1), tf.int32)
 
                 return i + 1, hit_eos, next_id, embed_so_far, dec_state
 
-            batch_size = tf.shape(inputs)[0]
+            grammar_end = self.config.grammar.end
             hit_eos = tf.fill([batch_size], False)
             dec_state = tf.zeros((batch_size, self.config.max_length, self.config.decoder_hidden_size))
-            embed_so_far = tf.zeros((batch_size, self.config.max_length, self.config.output_embed_size)
+            embed_so_far = tf.zeros((batch_size, self.config.max_length, self.config.output_embed_size))
 
-            i, _, _, _ final_dec_state = tf.while_loop(is_not_finished,
-                                                       inner_loop,
-                                                      [tf.constant(0), hit_eos,
-                                                       go_vector, embed_so_far,
-                                                       dec_state])
-
+            _, _, _, _, final_dec_state = tf.while_loop(is_not_finished,
+                                                        inner_loop,
+                                                       [tf.constant(0), hit_eos,
+                                                        go_vector, embed_so_far,
+                                                        dec_state],
+                                                        shape_invariants=[
+                                                            tf.TensorShape([]),
+                                                            tf.TensorShape([None]),
+                                                            tf.TensorShape([None, 1]),
+                                                            tf.TensorShape([None, self.config.max_length, self.config.output_embed_size]),
+                                                            tf.TensorShape([None, self.config.max_length, self.config.decoder_hidden_size])
+                                                        ])
         # Final linear projection to get logits
-        # shape (batch_size, <=max_input_length, output_size)
+        # shape (batch_size, max_input_length, output_size)
+        print(final_dec_state.get_shape().as_list())
         logits = tf.layers.dense(final_dec_state, output_size)
         return logits
 
-    def add_output_embeddings(self, xavier):
+    def add_output_embeddings(self):
+        xavier = tf.contrib.layers.xavier_initializer()
         with tf.variable_scope('embed', initializer=xavier):
             with tf.variable_scope('output'):
                 self.output_embed_matrices = dict()
@@ -362,7 +376,7 @@ class TransformerAligner(BaseModel):
 
                 # Residual connection and normalize
                 if (i != 0): mh_out += dec_state
-                dec_state = normalize(mh_out)
+                dec_state = normalize(mh_out, scope="attention_norm_{}".format(i))
 
                 mh_out = multihead_attention(query=dec_state, key=enc_final_state,
                                              key_mask=mask, query_mask=mask,
@@ -374,14 +388,14 @@ class TransformerAligner(BaseModel):
 
                 # Residual connection and normalize
                 mh_out += dec_state
-                mh_out = normalize(mh_out)
+                mh_out = normalize(mh_out, scope="enc_attention_norm_{}".format(i))
 
                 # No change in shape
                 ff_out = feedforward(mh_out, 4*hidden_size, hidden_size)
 
                 # Residual connection and normalize
                 ff_out += mh_out
-                dec_state = normalize(ff_out)
+                dec_state = normalize(ff_out, scope="ff_form_{}".format(i))
 
         return dec_state
 
@@ -442,8 +456,8 @@ class TransformerAligner(BaseModel):
         self.config = config
 
 
-def positional_encoding(inputs, num_units, scope="positional_encoding",
-                        reuse=None):
+def positional_encoding(batch_size, max_input_length, num_units,
+                        scope="positional_encoding", reuse=None):
     '''Sinusoidal Positional_Encoding.
     Args:
       inputs: A 2d Tensor with shape of (batch size, max input length).
@@ -455,7 +469,6 @@ def positional_encoding(inputs, num_units, scope="positional_encoding",
         A 'Tensor' with one more rank than inputs's, with the dimensionality should be 'num_units'
     '''
 
-    batch_size, max_input_length = tf.shape(inputs)[0], inputs.get_shape().as_list()[1]
     with tf.variable_scope(scope, reuse=reuse):
         position_ind = tf.tile(tf.expand_dims(tf.range(max_input_length), 0), [batch_size, 1])
 
@@ -529,8 +542,8 @@ def multihead_attention(query, key, key_mask, query_mask, attn_size=None,
 
         # Mask query
         query_mask = tf.tile(query_mask, [num_heads, 1])  # (num_heads*N, T_q)
-        query_masks = tf.tile(tf.expand_dims(query_masks, -1), [1, 1, tf.shape(key)[1]]) # shape (num_heads*N, T_q, T_k)
-        outputs *= query_masks # (N, T_q, T_k) because of broadcasting
+        query_mask = tf.tile(tf.expand_dims(query_mask, -1), [1, 1, tf.shape(key)[1]]) # shape (num_heads*N, T_q, T_k)
+        outputs *= tf.cast(query_mask, tf.float32) # (N, T_q, T_k) because of broadcasting
 
         # Dropout
         outputs = tf.layers.dropout(outputs, rate=dropout_rate)
@@ -585,8 +598,8 @@ def normalize(inputs, epsilon = 1e-8, scope="ln", reuse=None):
         params_shape = inputs_shape[-1:]
 
         mean, variance = tf.nn.moments(inputs, [-1], keep_dims=True)
-        beta = tf.Variable(tf.zeros(params_shape))
-        gamma = tf.Variable(tf.ones(params_shape))
+        beta = tf.get_variable("beta", params_shape, initializer=tf.zeros_initializer)
+        gamma = tf.get_variable("gamma", params_shape, initializer=tf.ones_initializer)
         normalized = (inputs - mean) / ((variance + epsilon) ** (.5))
         outputs = gamma * normalized + beta
 
