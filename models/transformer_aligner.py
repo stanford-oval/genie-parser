@@ -247,7 +247,7 @@ class TransformerAligner(BaseModel):
 
                     # Residual connection and normalize
                     if (i != 0): mh_out += inputs
-                    mh_out = normalize(mh_out, scope="mh_norm_{}".format(i))
+                    mh_out = normalize(mh_out)
 
                 with tf.variable_scope('ffn'):
                     ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
@@ -256,7 +256,7 @@ class TransformerAligner(BaseModel):
 
                     # Residual connection and normalize
                     ff_out += mh_out
-                    inputs = normalize(ff_out, scope="ff_norm_{}".format(i))
+                    inputs = normalize(ff_out)
 
         return inputs
 
@@ -439,7 +439,7 @@ class TransformerAligner(BaseModel):
 
                     # Residual connection and normalize
                     if (i != 0): mh_out += dec_state
-                    dec_state = normalize(mh_out, scope="self_norm_{}".format(i))
+                    dec_state = normalize(mh_out)
 
                 with tf.variable_scope('enc_dec_attention'):
                     mh_out = multihead_attention(query=dec_state, key=enc_final_state,
@@ -450,7 +450,7 @@ class TransformerAligner(BaseModel):
 
                     # Residual connection and normalize
                     mh_out += dec_state
-                    mh_out = normalize(mh_out, scope="enc_attention_norm_{}".format(i))
+                    mh_out = normalize(mh_out)
 
                 with tf.variable_scope('ffn'):
                     ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
@@ -458,7 +458,7 @@ class TransformerAligner(BaseModel):
 
                     # Residual connection and normalize
                     ff_out += mh_out
-                    dec_state = normalize(ff_out, scope="ff_norm_{}".format(i))
+                    dec_state = normalize(ff_out)
 
         return dec_state
 
@@ -680,12 +680,19 @@ def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
 
     return output
 
-def normalize(inputs, scope='normalize'):
+def normalize(inputs):
     '''Applies layer normalization.
     Returns: A tensor with the same shape and data dtype as `inputs`.
     '''
-    with tf.variable_scope(scope):
-        return tf.contrib.layers.layer_norm(inputs)
+    scale = tf.get_variable("layer_norm_scale", [tf.shape(inputs)[-1]],
+            initializer=tf.ones_initializer())
+    bias = tf.get_variable("layer_norm_bias", [tf.shape(inputs)[-1]],
+            initializer=tf.zeros_initializer())
+    mean = tf.reduce_mean(inputs, axis=[-1], keepdims=True)
+    variance = tf.reduce_mean(tf.square(x - mean), axis=[-1], keepdims=True)
+    norm_x = (x - mean) * tf.rsqrt(variance + 1e-6)
+    return norm_x * scale + bias
+
 def embed_tokens(inputs, matrix, padding_mask):
     ''' Embeds inputs (IDS) using an embedding matrix. Also pads out all
     embeddings where padding_mask = 1.
