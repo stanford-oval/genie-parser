@@ -30,6 +30,8 @@ from .base_model import BaseModel
 
 from .config import Config
 
+from util import beam_search
+
 # TODO put params in config.py
 NUM_ENCODER_BLOCKS = 6;
 NUM_DECODER_BLOCKS = 6;
@@ -39,57 +41,48 @@ class TransformerAligner(BaseModel):
 
     def build(self):
         self.add_placeholders()
-        xavier = tf.contrib.layers.xavier_initializer()
-    
-        # Embed the inputs. shape: (batch_size, max_length, embed_size)
-        input_embeddings = self.add_input_embeddings(xavier)
 
         # Calculate padding and attention bias mask for attention layers.
-        # (batch_size, max_input_length)
+        # (batch_size, max_length)
         input_padding = get_padding_mask(self.input_length_placeholder)
         attention_bias = get_padding_bias(input_padding)
 
-        with tf.variable_scope('encoder'):
-            with tf.variable_scope("positional_encoding"):
-                input_embeddings += positional_encoding(self.config.max_length,
-                                                        self.config.input_projection)
-            # Apply dropout immediately before encoding.
-            input_embeddings = tf.nn.dropout(input_embeddings,
-                                             self.dropout_placeholder)
-            # Encoder block. shape (batch_size, max_length, encoder_hidden_size)
-            final_encoder_state = self.add_encoder_op(input_embeddings, attention_bias, input_padding)
+        # Add embeddings (input/output vocab_size, input/output embed_size)
+        self.add_input_embeddings()
+        self.add_output_embeddings()
 
-        # Add training decoder
-        # shape (batch_size, max_length, output_size)
-        with tf.variable_scope('train_decoder', initializer=xavier):
-            train_logits = self.add_decoder_op(final_encoder_state, training=True)
+        # Add the encoder (batch_size, max_length, encoder_hidden_size)
+        final_enc_state = self.add_encoder_op(input_padding, attention_bias)
+
+        # Add the training decoder (batch_size, max_length, output_size)
+        train_logits = self.add_decoder_op(final_enc_state, attention_bias)
 
         # Calculate training loss and training op
         if self.config.decoder_sequence_loss > 0:
             with tf.name_scope('sequence_loss'):
-                sequence_loss = self.add_loss_op(train_logits)
+                seq_loss = self.add_loss_op(train_logits)
         else:
-            sequence_loss = 0
+            seq_loss = 0
 
         with tf.name_scope('training_loss'):
-            self.loss = self.config.decoder_sequence_loss * sequence_loss + self.add_regularization_loss()
+            seq_loss *= self.config.decoder_sequence_loss
+            self.loss = seq_loss + self.add_regularization_loss()
 
         self.train_op = self.add_training_op(self.loss)
 
-        # Add inference decoder
-        # shape (batch_size, max_length, output_size)
-        with tf.variable_scope('eval_decoder', initializer=xavier):
-            eval_logits = self.add_decoder_op(final_encoder_state, training=False)
+        # Add inference decoder (batch_size, max_length, output_size)
+        with tf.variable_scope('eval_decoder'):
+            eval_logits = self.add_predict_op(final_enc_state, attention_bias)
 
         # Calculate evaluation loss
         if self.config.decoder_sequence_loss > 0:
             with tf.name_scope('sequence_loss'):
-                sequence_loss = self.add_loss_op(eval_logits)
+                eval_seq_loss = self.add_loss_op(eval_logits)
         else:
-            sequence_loss = 0
+            eval_seq_loss = 0
 
         with tf.name_scope('eval_loss'):
-            self.eval_loss = self.config.decoder_sequence_loss * sequence_loss
+            self.eval_loss = self.config.decoder_sequence_loss * eval_seq_loss
 
         # Finalize predictions by taking argmax and adding beam size of 1
         self.raw_preds = eval_logits
@@ -100,19 +93,7 @@ class TransformerAligner(BaseModel):
                 self.config.grammar.primary_output: self.preds
             }
 
-        weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        size = 0
-        def get_size(w):
-            shape = w.get_shape()
-            if shape.ndims == 2:
-                return int(shape[0])*int(shape[1])
-            else:
-                return int(shape[0])
-        for w in weights:
-            sz = get_size(w)
-            print('weight', w, sz)
-            size += sz
-        print('total model size', size)
+        print_weights(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def add_placeholders(self):
         self.add_input_placeholders()
@@ -160,7 +141,12 @@ class TransformerAligner(BaseModel):
     def batch_size(self):
         return tf.shape(self.input_placeholder)[0]
 
-    def add_input_embeddings(self, xavier):
+    @property
+    def output_size(self):
+        return self.config.grammar.output_size[self.config.grammar.primary_output]
+
+    def add_input_embeddings(self):
+        xavier = tf.contrib.layers.xavier_initializer()
         with tf.variable_scope('embed', initializer=xavier):
             with tf.variable_scope('input'):
 
@@ -176,157 +162,6 @@ class TransformerAligner(BaseModel):
                                                               initializer=init)
                 else:
                     self.input_embed_matrix = tf.constant(self.config.input_embedding_matrix)
-
-                # shape: (dictionary size, embed_size)
-                assert self.input_embed_matrix.get_shape() == shape
-
-        # shape: (batch size, max input length, embed_size)
-        inputs = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
-        assert inputs.get_shape()[1:] == (self.config.max_length, self.config.input_embed_size)
-
-        # now project the input down to a small size
-        input_projection = tf.layers.Dense(units=self.config.input_projection,
-                                           name='input_projection')
-        return input_projection(inputs)
-
-    def add_encoder_op(self, inputs, attention_bias, input_padding):
-        ''' Adds the encoder block of the Transformer network.
-        Args:
-            inputs: A 3D tensor with shape (batch_size, max_length, embed_size)
-            attention_bias: bias for the self-attention layer. [batch_size, 1, 1, max_length]
-            inputs_padding: padding mask. [batch_size, max_length]
-        Return:
-            A 3D tensor with shape (batch_size, max_length, hidden_size)
-        '''
-
-        hidden_size = self.config.encoder_hidden_size
-
-        for i in range(NUM_ENCODER_BLOCKS):
-            with tf.variable_scope('layer_{}'.format(i)):
-                with tf.variable_scope('self_attention'):
-                    # shape (batch_size, max_length, encoder_hidden_size)
-                    mh_out = multihead_attention(query=inputs, key=inputs,
-                                                 attn_bias=attention_bias,
-                                                 attn_size=hidden_size,
-                                                 num_heads=NUM_HEADS,
-                                                 dropout_rate=self.dropout_placeholder)
-
-                    # Residual connection and normalize
-                    if (i != 0): mh_out += inputs
-                    mh_out = normalize(mh_out, scope="mh_norm_{}".format(i))
-
-                with tf.variable_scope('ffn'):
-                    ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
-                                         padding=input_padding,
-                                         dropout_rate=self.dropout_placeholder)
-
-                    # Residual connection and normalize
-                    ff_out += mh_out
-                    inputs = normalize(ff_out, scope="ff_norm_{}".format(i))
-
-        return inputs
-
-    def add_decoder_op(self, enc_final_state, training):
-        ''' Adds the decoder op comprised of output embeddings, the decoder
-        blocks, and the final feed forward layer.
-
-        During training, decode is run once using the output_length_placeholder
-        and primary_output_placeholder.
-        During testing, decode is run in a loop until all inputs have hit EOS.
-
-        Returns tensor of shape (batch_size, max_input_length, output_size)
-        '''
-
-        # TODO add variable scopes
-        positionals = positional_encoding(self.config.max_length, self.config.output_embed_size)
-        positionals = tf.tile(tf.expand_dims(positionals, 0), [self.batch_size, 1, 1])
-
-        go_vector = tf.ones((self.batch_size, 1), dtype=tf.int32) * self.config.grammar.start
-        output_embed_matrix = self.add_output_embeddings()
-        output_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-
-        if training:
-            # Embed the inputs
-            # TODO HACK to add the go vector: this cuts off the last token
-            output_ids = tf.concat([go_vector,
-                                    self.primary_output_placeholder[:, :-1]],
-                                    axis=1)
-            # shape: (batch_size, max_input_length, output_embed_size)
-            output_embeddings = tf.nn.embedding_lookup([output_embed_matrix], output_ids)
-
-            # Positionally encode them.
-            output_embeddings += positionals
-
-            # Apply dropout immediately before decoding.
-            output_embeddings = tf.nn.dropout(output_embeddings,
-                                              self.dropout_placeholder)
-
-            # Create mask for decoding.
-            lengths = self.output_length_placeholder
-            mask = tf.sequence_mask(lengths, self.config.max_length, dtype=tf.int32)
-
-            # Decoder block
-            # shape (batch_size, max_input_length, decoder_hidden_size)
-            final_dec_state = self.add_decoder_block(enc_final_state,
-                                                     output_embeddings, mask)
-        else:
-            def is_not_finished(i, hit_eos, *_):
-                finished = i >= self.config.max_length
-                finished |= tf.reduce_all(hit_eos)
-                return tf.logical_not(finished)
-
-            def inner_loop(i, hit_eos, next_id, embed_so_far, dec_state):
-                # shape: (batch_size, 1, output_embed_size)
-                next_id_embeddings = tf.nn.embedding_lookup([output_embed_matrix], next_id)
-                # pad to be (batch, max_length, output_embed_size)
-                embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i - 1], [0, 0]])
-                next_id_embeddings = tf.pad(next_id_embeddings, embed_padding)
-
-                next_id_embeddings += tf.where(next_id_embeddings == 0, next_id_embeddings, positionals)
-                embed_so_far += next_id_embeddings
-
-                # shape (batch_size, max_input_length)
-                mask = tf.sign(tf.abs(tf.reduce_sum(embed_so_far, axis=-1)))
-
-                # shape (batch_size, max_input_length, decoder_hidden_size)
-                dec_state = self.add_decoder_block(enc_final_state, embed_so_far, mask)
-
-                # mask out dec_state[:, i+1:, :] to 0s
-                ones = tf.ones(shape=(i+1, self.config.decoder_hidden_size))
-                zeros = tf.zeros(shape=(self.config.max_length - i - 1, self.config.decoder_hidden_size))
-                dec_state_mask = tf.expand_dims(tf.concat([ones, zeros], axis=0), 0)
-                tiled_mask = tf.tile(dec_state_mask, [self.batch_size, 1, 1])
-                dec_state = tf.where(tiled_mask == 0, tiled_mask, dec_state)
-
-                # get logits from dec state
-                next_id_logits = tf.layers.dense(dec_state, output_size)
-                next_id = tf.argmax(next_id_logits, axis=2)[:, tf.minimum(i+1, self.config.max_length - 1)]
-                hit_eos |= tf.equal(next_id, grammar_end)
-                next_id = tf.cast(tf.expand_dims(next_id, 1), tf.int32)
-
-                return i + 1, hit_eos, next_id, embed_so_far, dec_state
-
-            grammar_end = self.config.grammar.end
-            hit_eos = tf.fill([self.batch_size], False)
-            dec_state = tf.zeros((self.batch_size, self.config.max_length, self.config.decoder_hidden_size))
-            embed_so_far = tf.zeros((self.batch_size, self.config.max_length, self.config.output_embed_size))
-
-            _, _, _, _, final_dec_state = tf.while_loop(is_not_finished,
-                                                        inner_loop,
-                                                       [tf.constant(0), hit_eos,
-                                                        go_vector, embed_so_far,
-                                                        dec_state],
-                                                        shape_invariants=[
-                                                            tf.TensorShape([]),
-                                                            tf.TensorShape([None]),
-                                                            tf.TensorShape([None, 1]),
-                                                            tf.TensorShape([None, self.config.max_length, self.config.output_embed_size]),
-                                                            tf.TensorShape([None, self.config.max_length, self.config.decoder_hidden_size])
-                                                        ])
-        # Final linear projection to get logits
-        # shape (batch_size, max_input_length, output_size)
-        logits = tf.layers.dense(final_dec_state, output_size)
-        return logits
 
     def add_output_embeddings(self):
         xavier = tf.contrib.layers.xavier_initializer()
@@ -348,53 +183,329 @@ class TransformerAligner(BaseModel):
                     self.output_embed_matrices[key] = embed_matrix
 
         output_embed_matrix = self.output_embed_matrices[self.config.grammar.primary_output]
-        return output_embed_matrix
+        self.output_embed_matrix = output_embed_matrix
 
-    def add_decoder_block(self, enc_final_state, dec_state, mask):
+    def add_encoder_op(self, input_padding, attention_bias):
+        ''' Add the encoder operation, given inputs in self.input_placeholder.
+        Produces the final encoding hidden state.
+        Args:
+            attention_bias: bias for the self-attention layer. [batch_size, 1, 1, max_length]
+            inputs_padding: padding mask. [batch_size, max_length]
+        Returns:
+            A 3D tensor (batch_size, max_length, encoder_hidden_size)
+        '''
+
+        with tf.variable_scope('encoder'):
+
+            # (batch size, max input length, embed_size)
+            inputs = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
+
+            # Now project the input down to a small size
+            inputs = tf.layers.dense(inputs, self.config.input_projection)
+
+            # Positionally encode them.
+            with tf.variable_scope("positional_encoding"):
+                input_embeddings += positional_encoding(self.config.max_length,
+                                                        self.config.input_projection)
+            # Apply dropout immediately before encoding.
+            input_embeddings = tf.nn.dropout(input_embeddings,
+                                             self.dropout_placeholder)
+            # Encoder block. (batch_size, max_length, encoder_hidden_size)
+            final_enc_state = self.add_encoder_block(input_embeddings,
+                                                     attention_bias,
+                                                     input_padding)
+        return final_enc_state
+
+    def add_encoder_block(self, inputs, attention_bias, input_padding):
+        ''' Adds the encoder block of the Transformer network.
+        Args:
+            inputs: (batch_size, max_length, embed_size)
+            attention_bias: bias for the self-attention layer. [batch_size, 1, 1, max_length]
+            inputs_padding: padding mask. [batch_size, max_length]
+        Return:
+            A 3D tensor (batch_size, max_length, hidden_size)
+        '''
+
+        hidden_size = self.config.encoder_hidden_size
+
+        for i in range(NUM_ENCODER_BLOCKS):
+            with tf.variable_scope('layer_{}'.format(i)):
+                with tf.variable_scope('self_attention'):
+                    # (batch_size, max_length, encoder_hidden_size)
+                    mh_out = multihead_attention(query=inputs, key=inputs,
+                                                 attn_bias=attention_bias,
+                                                 attn_size=hidden_size,
+                                                 num_heads=NUM_HEADS,
+                                                 dropout_rate=self.dropout_placeholder)
+
+                    # Residual connection and normalize
+                    if (i != 0): mh_out += inputs
+                    mh_out = normalize(mh_out, scope="mh_norm_{}".format(i))
+
+                with tf.variable_scope('ffn'):
+                    ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
+                                         padding=input_padding,
+                                         dropout_rate=self.dropout_placeholder)
+
+                    # Residual connection and normalize
+                    ff_out += mh_out
+                    inputs = normalize(ff_out, scope="ff_norm_{}".format(i))
+
+        return inputs
+
+    def final_output_projection(self, final_state):
+        # Final linear projection (batch_size, max_length, output_size)
+        return tf.layers.dense(final_state, self.output_size)
+
+    def add_decoder_op(self, enc_final_state, enc_dec_attention_bias):
+        ''' Adds the decoder op for training, comprised of output embeddings,
+        the decoder blocks, and the final feed forward layer.
+
+        Args:
+            enc_final_state: final encoder state. (batch_size, max_length, encoder_hidden_size)
+            enc_dec_attention_bias: bias for the encoder-decoder attention layer.
+                (batch_size, 1, 1, max_length)
+        Returns:
+            A 3D Tensor of logits (batch_size, max_length, output_size)
+        '''
+
+        with tf.variable_scope('train_decoder'):
+            # HACK to add the go vector: this cuts off the last token.
+            go_vector = tf.ones((self.batch_size, 1), dtype=tf.int32) * self.config.grammar.start
+            output_ids = tf.concat([go_vector, self.primary_output_placeholder[:, :-1]],
+                                    axis=1)
+
+            # (batch_size, max_length, output_embed_size)
+            output_embeddings = tf.nn.embedding_lookup([self.output_embed_matrix],
+                                                        output_ids)
+            # Positionally encode them.
+            with tf.variable_scope("positional_encoding"):
+                output_embeddings += positional_encoding(self.config.max_length,
+                                                         self.config.output_embed_size)
+            # Apply dropout immediately before decoding.
+            output_embeddings = tf.nn.dropout(output_embeddings,
+                                              self.dropout_placeholder)
+
+            # Get attention bias (upper triangular matrix of large negatives)
+            decoder_self_attention_bias = get_decoder_self_attention_bias(self.config.max_length)
+
+            # Decoder block. (batch_size, max_length, decoder_hidden_size)
+            final_dec_state = self.add_decoder_block(enc_final_state,
+                                                     output_embeddings,
+                                                     decoder_self_attention_bias,
+                                                     enc_dec_attention_bias)
+
+            return self.final_output_projection(final_dec_state)
+
+    def get_symbols_to_logits_fn(self):
+        """Returns a decoding function that calculates logits of the next tokens."""
+
+        timing_signal = positional_encoding(self.config.max_length + 1,
+                                            self.config.output_embed_size)
+        decoder_self_attention_bias = get_decoder_self_attention_bias(self.config.max_length)
+
+        def symbols_to_logits_fn(ids, i, cache):
+            """Generate logits for next potential IDs.
+            Args:
+                ids: Current decoded sequences.
+                    int tensor (batch_size * beam_size, i + 1)
+                i: Loop index
+                cache: dictionary of values storing the encoder output,
+                        encoder-decoder attention bias, and previous decoder
+                        attention values.
+            Returns:
+                Tuple of
+                    (logits with shape [batch_size * beam_size, vocab_size],
+                    updated cache values)
+            """
+            # Set decoder input to the last generated IDs
+            decoder_input = ids[:, -1:]
+
+            # Embed decoder inputs and positionally encode them.
+            # (batch_size * beam_size, 1, output_embed_size)
+            decoder_input = tf.nn.embedding_lookup([self.output_embed_matrix],
+                                                        decoder_input)
+            decoder_input += timing_signal[i:i + 1]
+
+            # Get just the ith self attention bias (1, 1, 1, i+1)
+            self_attention_bias = decoder_self_attention_bias[:, :, i:i + 1, :i + 1]
+
+            # (batch_size * beam_size, 1, decoder_hidden_size)
+            decoder_outputs = self.add_decoder_block(cache.get("encoder_outputs"),
+                                                     decoder_input,
+                                                     cache.get("encoder_decoder_attention_bias"),
+                                                     self_attention_bias, cache)
+
+            # Final linear projection (batch_size, 1, output_size)
+            logits = self.final_output_projection(final_dec_state):
+            logits = tf.squeeze(logits, axis=[1])
+            return logits, cache
+
+        return symbols_to_logits_fn
+
+    def add_predict_op(self, enc_final_state, enc_dec_attention_bias):
+        ''' Adds the op for predictions and evaluation. Similar to the decoder
+        op but each token is decoded iteratively until all inputs have hit EOS.
+
+        Args:
+            enc_final_state: final encoder state. (batch_size, max_length, encoder_hidden_size)
+            enc_dec_attention_bias: bias for the encoder-decoder attention layer.
+                (batch_size, 1, 1, max_length)
+        Returns:
+            A 3D Tensor of logits (batch_size, max_length, output_size)
+        '''
+
+        dec_hidden_size = self.config.decoder_hidden_size
+
+        symbols_to_logits_fn = self.get_symbols_to_logits_fn()
+
+        # Create initial set of IDs that will be passed into symbols_to_logits_fn.
+        initial_ids = tf.zeros([self.batch_size], dtype=tf.int32)
+
+        # Create cache storing decoder attention values for each layer.
+        cache = {
+            "layer_%d" % layer: {
+                "K": tf.zeros([self.batch_size, 0, dec_hidden_size]),
+                "V": tf.zeros([self.batch_size, 0, dec_hidden_size]),
+            } for layer in range(NUM_DECODER_BLOCKS)}
+
+        # Add encoder output and attention bias to the cache.
+        cache["encoder_outputs"] = enc_final_state
+        cache["encoder_decoder_attention_bias"] = enc_dec_attention_bias
+
+        # Use beam search to find the top beam_size sequences and scores.
+        # (batch_size, beam_size, max_length, output_size)
+        logits = beam_search.sequence_beam_search(
+            symbols_to_logits_fn=symbols_to_logits_fn,
+            initial_ids=initial_ids,
+            initial_cache=cache,
+            vocab_size=self.output_size,
+            beam_size=1,
+            alpha=0.6,
+            max_decode_length=self.config.max_length,
+            eos_id=self.config.grammar.end)
+
+        # Get the top sequence for each batch element
+        # (batch_size, max_length, output_size)
+        return logits[:, 0, 1:, :]
+
+#             def is_not_finished(i, hit_eos, *_):
+#                 finished = i >= self.config.max_length
+#                 finished |= tf.reduce_all(hit_eos)
+#                 return tf.logical_not(finished)
+# 
+#             def inner_loop(i, hit_eos, next_id, embed_so_far, dec_state):
+#                 #  (batch_size, 1, output_embed_size)
+#                 next_id_embeddings = tf.nn.embedding_lookup([output_embed_matrix], next_id)
+#                 # pad to be (batch, max_length, output_embed_size)
+#                 embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i - 1], [0, 0]])
+#                 next_id_embeddings = tf.pad(next_id_embeddings, embed_padding)
+# 
+#                 next_id_embeddings += tf.where(next_id_embeddings == 0, next_id_embeddings, positionals)
+#                 embed_so_far += next_id_embeddings
+# 
+#                 # (batch_size, max_length)
+#                 mask = tf.sign(tf.abs(tf.reduce_sum(embed_so_far, axis=-1)))
+# 
+#                 # (batch_size, max_length, decoder_hidden_size)
+#                 dec_state = self.add_decoder_block(enc_final_state, embed_so_far, mask)
+# 
+#                 # mask out dec_state[:, i+1:, :] to 0s
+#                 ones = tf.ones(shape=(i+1, self.config.decoder_hidden_size))
+#                 zeros = tf.zeros(shape=(self.config.max_length - i - 1, self.config.decoder_hidden_size))
+#                 dec_state_mask = tf.expand_dims(tf.concat([ones, zeros], axis=0), 0)
+#                 tiled_mask = tf.tile(dec_state_mask, [self.batch_size, 1, 1])
+#                 dec_state = tf.where(tiled_mask == 0, tiled_mask, dec_state)
+# 
+#                 # get logits from dec state
+#                 next_id_logits = tf.layers.dense(dec_state, output_size)
+#                 next_id = tf.argmax(next_id_logits, axis=2)[:, tf.minimum(i+1, self.config.max_length - 1)]
+#                 hit_eos |= tf.equal(next_id, grammar_end)
+#                 next_id = tf.cast(tf.expand_dims(next_id, 1), tf.int32)
+# 
+#                 return i + 1, hit_eos, next_id, embed_so_far, dec_state
+# 
+#             grammar_end = self.config.grammar.end
+#             hit_eos = tf.fill([self.batch_size], False)
+#             dec_state = tf.zeros((self.batch_size, self.config.max_length, self.config.decoder_hidden_size))
+#             embed_so_far = tf.zeros((self.batch_size, self.config.max_length, self.config.output_embed_size))
+# 
+#             _, _, _, _, final_dec_state = tf.while_loop(is_not_finished,
+#                                                         inner_loop,
+#                                                        [tf.constant(0), hit_eos,
+#                                                         go_vector, embed_so_far,
+#                                                         dec_state],
+#                                                         shape_invariants=[
+#                                                             tf.TensorShape([]),
+#                                                             tf.TensorShape([None]),
+#                                                             tf.TensorShape([None, 1]),
+#                                                             tf.TensorShape([None, self.config.max_length, self.config.output_embed_size]),
+#                                                             tf.TensorShape([None, self.config.max_length, self.config.decoder_hidden_size])
+#                                                         ])
+#         # Final linear projection to get logits
+#         # (batch_size, max_length, output_size)
+#         logits = tf.layers.dense(final_dec_state, output_size)
+#         return logits
+
+    def add_decoder_block(self, enc_final_state, dec_state,
+                          decoder_self_attention_bias, attention_bias,
+                          cache=None):
         ''' Adds the decoder block.
 
-        The decoder takes as inputs:
-            encoder final state (batch_size, max_input_length, encoder_hidden_size)
-            decoder initial embeddings (batch_size, max_input_length, output_embed_size)
-            mask (batch_size, max_input_length)
+        Args:
+            enc_final_state: (batch_size, max_length, encoder_hidden_size)
+            dec_state: (batch_size, max_length, output_embed_size)
+            decoder_self_attention_bias: bias for decoder self-attention layer.
+                (1, 1, max_length, max_length)
+            attention_bias: bias for encoder-decoder attention layer.
+                (batch_size, 1, 1, max_length)
+            cache: (Used for fast decoding) A nested dictionary storing previous
+                    decoder self-attention values in the form:
+                {layer_n: {"k": tensor with shape [batch_size, i, key_channels],
+                           "v": tensor with shape [batch_size, i, value_channels]},
+                ...}
 
-        Returns tensor of shape (batch_size, max_input_length, decoder_hidden_size)
+        Returns:
+            A 3D Tensor (batch_size, max_length, decoder_hidden_size)
         '''
         hidden_size = self.config.decoder_hidden_size
 
         for i in range(NUM_DECODER_BLOCKS):
-            with tf.variable_scope('decoder_block_{}'.format(i)):
-                # shape (batch_size, max_input_length, encoder_hidden_size)
-                mh_out = multihead_attention(query=dec_state, key=dec_state,
-                                             key_mask=mask, query_mask=mask,
-                                             attn_size=hidden_size,
-                                             num_heads=NUM_HEADS,
-                                             dropout_rate=self.dropout_placeholder,
-                                             mask_future=True,
-                                             scope='mh_decode_masked')
+            layer_name = 'layer_{}'.format(i)
+            layer_cache = cache[layer_name] if cache is not None else None
 
-                # Residual connection and normalize
-                if (i != 0): mh_out += dec_state
-                dec_state = normalize(mh_out, scope="attention_norm_{}".format(i))
+            with tf.variable_scope(layer_name):
+                with tf.variable_scope('self_attention'):
+                    # (batch_size, max_length, decoder_hidden_size)
+                    mh_out = multihead_attention(query=dec_state, key=dec_state,
+                                                 attn_bias=decoder_self_attention_bias,
+                                                 attn_size=hidden_size,
+                                                 num_heads=NUM_HEADS,
+                                                 dropout_rate=self.dropout_placeholder,
+                                                 cache=layer_cache)
 
-                mh_out = multihead_attention(query=dec_state, key=enc_final_state,
-                                             key_mask=mask, query_mask=mask,
-                                             attn_size=hidden_size,
-                                             num_heads=NUM_HEADS,
-                                             dropout_rate=self.dropout_placeholder,
-                                             mask_future=False,
-                                             scope='mh_decode_unmasked')
+                    # Residual connection and normalize
+                    if (i != 0): mh_out += dec_state
+                    dec_state = normalize(mh_out, scope="self_norm_{}".format(i))
 
-                # Residual connection and normalize
-                mh_out += dec_state
-                mh_out = normalize(mh_out, scope="enc_attention_norm_{}".format(i))
+                with tf.variable_scope('enc_dec_attention'):
+                    mh_out = multihead_attention(query=dec_state, key=enc_final_state,
+                                                 attn_bias=attention_bias,
+                                                 attn_size=hidden_size,
+                                                 num_heads=NUM_HEADS,
+                                                 dropout_rate=self.dropout_placeholder)
 
-                # No change in shape
-                ff_out = feedforward(mh_out, 4*hidden_size, hidden_size)
+                    # Residual connection and normalize
+                    mh_out += dec_state
+                    mh_out = normalize(mh_out, scope="enc_attention_norm_{}".format(i))
 
-                # Residual connection and normalize
-                ff_out += mh_out
-                dec_state = normalize(ff_out, scope="ff_form_{}".format(i))
+                with tf.variable_scope('ffn'):
+                    ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
+                                         dropout_rate=self.dropout_placeholder)
+
+                    # Residual connection and normalize
+                    ff_out += mh_out
+                    dec_state = normalize(ff_out, scope="ff_norm_{}".format(i))
 
         return dec_state
 
@@ -466,7 +577,7 @@ def positional_encoding(length, embed_size, min_timescale=1.0, max_timescale=1.0
         min_timescale: Minimum scale that will be applied at each position
         max_timescale: Maximum scale that will be applied at each position
     Returns:
-        Tensor with shape [length, embed_size]
+        A 2D Tensor (length, embed_size)
     """
     position = tf.to_float(tf.range(length))
     num_timescales = embed_size // 2
@@ -477,17 +588,23 @@ def positional_encoding(length, embed_size, min_timescale=1.0, max_timescale=1.0
     return signal
 
 def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
-                        dropout_rate=1):
+                        dropout_rate=1, cache=None):
+    # TODO change comments, query/key might not be max_length due to cache
     '''
     Args:
-        query: A 3D tensor with shape (batch_size, max_length, C_q)
-        key: A 3D tensor with shape (batch_size, max_length, C_k)
-        attn_bias: A 4D tensor with shape (batch_size, 1, 1, max_length)
+        query: (batch_size, max_length, C_q)
+        key: (batch_size, max_length, C_k)
+        attn_bias: (batch_size, 1, 1, max_length)
         attn_size: attention size and also final output size
         num_heads: number of attention layers
         dropout_rate: 1 - rate of dropout
+        cache: (Used during prediction) dictionary with tensors containing results
+                of previous attentions. The dictionary must have the items:
+                    {"k": tensor with shape [batch_size, i, key_channels],
+                     "v": tensor with shape [batch_size, i, value_channels]}
+                where i is the current decoded length.
     Returns
-        A 3D tensor with shape (batch_size, max_length, attn_size)
+        A 3D tensor (batch_size, max_length, attn_size)
     '''
 
     def split_heads(self, x):
@@ -495,9 +612,9 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
         The tensor is transposed to ensure the inner dimensions hold the correct values
         during the matrix multiplication.
         Args:
-            x: A tensor with shape [batch_size, length, attn_size]
+            x: (batch_size, length, attn_size)
         Returns:
-            A tensor with shape [batch_size, num_heads, length, attn_size/num_heads]
+            A 4D Tensor (batch_size, num_heads, length, attn_size/num_heads)
         """
         with tf.name_scope("split_heads"):
             batch_size = tf.shape(x)[0]
@@ -513,9 +630,9 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
     def combine_heads(self, x):
         """Combine tensor that has been split.
         Args:
-            x: A tensor [batch_size, num_heads, length, attn_size/num_heads]
+            x: (batch_size, num_heads, length, attn_size/num_heads)
         Returns:
-            A tensor with shape [batch_size, length, attn_size]
+            A 3D Tensor (batch_size, length, attn_size)
         """
         with tf.name_scope("combine_heads"):
             batch_size = tf.shape(x)[0]
@@ -527,6 +644,15 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
     Q = tf.layers.dense(query, attn_size, use_bias=False)
     K = tf.layers.dense(key, attn_size, use_bias=False)
     V = tf.layers.dense(key, attn_size, use_bias=False)
+
+    if cache is not None:
+        # Combine cached keys and values with new keys and values.
+        K = tf.concat([cache["K"], K], axis=1)
+        V = tf.concat([cache["V"], V], axis=1)
+
+        # Update cache
+        cache["K"] = K
+        cache["V"] = V
 
     # (batch_size, num_heads, max_length, attn_size/num_heads)
     Q_ = split_heads(Q)
@@ -556,10 +682,11 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
     return outputs
 
 def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
-    ''' Point-wise feed forward net implemented as two 1xd convolutions.
+    ''' Feed forward net implemented as two dense layers.
+    Optionally removes padding before the layers and adds them back in after.
 
     Args:
-        inputs: A 3D tensor with shape (batch_size, max_input_length, _)
+        inputs: (batch_size, max_length, hidden_size)
         ff_size: size of feed forward layer
         output_size: size of layer output
         padding: padding mask. [batch_size, max_length]
@@ -568,44 +695,33 @@ def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
     '''
 
     # Retrieve dynamically known shapes
-    batch_size = tf.shape(x)[0]
-    length = tf.shape(x)[1]
+    batch_size, max_length, hidden_size = tf.shape(inputs)
 
     if padding is not None:
         with tf.name_scope("remove_padding"):
-            # Flatten padding to [batch_size*length]
+            # Flatten padding to [batch_size*max_length]
             pad_mask = tf.reshape(padding, [-1])
 
-        nonpad_ids = tf.to_int32(tf.where(pad_mask < 1e-9))
+            nonpad_ids = tf.to_int32(tf.where(pad_mask < 1e-9))
 
-        # Reshape x to # [batch_size*length, # hidden_size] to # remove padding
-        x = tf.reshape(x, [-1, self.hidden_size])
-        x = tf.gather_nd(x, indices=nonpad_ids)
+            # Reshape to [batch_size*max_length, hidden_size] to remove padding
+            inputs = tf.reshape(inputs, [-1, hidden_size])
+            inputs = tf.gather_nd(inputs, indices=nonpad_ids)
 
-        # Reshape # x # from # 2 # dimensions # to # 3 # dimensions.
-        x.set_shape([None, self.hidden_size])
-        x = tf.expand_dims(x, axis=0)
+            # Reshape from 2 dimensions to 3 dimensions.
+            inputs.set_shape([None, self.hidden_size])
+            inputs = tf.expand_dims(inputs, axis=0)
 
-    output = self.filter_dense_layer(x)
+    output = tf.layers.dense(inputs, ff_size, activation=tf.nn.relu)
     output = tf.nn.dropout(output, dropout)
-    output = self.output_dense_layer(output)
+    output = tf.layers.dense(output, output_size)
 
     if padding is not None:
         with tf.name_scope("re_add_padding"):
             output = tf.squeeze(output, axis=0)
             output = tf.scatter_nd(indices=nonpad_ids, updates=output,
-                                  shape=[batch_size * length, self.hidden_size])
-          output = tf.reshape(output, [batch_size, length, self.hidden_size])
-
-        # Inner layer
-        params = {"inputs": inputs, "filters": ff_size, "kernel_size": 1,
-                  "activation": tf.nn.relu, "use_bias": True}
-        outputs = tf.layers.conv1d(**params)
-
-        # Readout layer
-        params = {"inputs": outputs, "filters": output_size, "kernel_size": 1,
-                  "activation": None, "use_bias": True}
-        outputs = tf.layers.conv1d(**params)
+                                   shape=[batch_size * max_length, hidden_size])
+            output = tf.reshape(output, [batch_size, max_length, hidden_size])
 
     return outputs
 
@@ -617,18 +733,59 @@ def normalize(inputs, scope='normalize'):
         return tf.contrib.layers.layer_norm(inputs)
 
 def get_padding_mask(lengths):
-    ''' Create mask where 0 is real input and 1 is padding. (batch_size, max_input_length) '''
+    ''' Create padding mask.
+    Args:
+        lengths: A 1D tensor (batch_size) indicating how long is each input.
+
+    Returns:
+        A 2D tensor (batch_size, max_length) where 0 is real input and 1
+        is padding.
+    '''
     with tf.variable_scope('padding'):
         lengths = self.input_length_placeholder
         padding_mask = tf.sequence_mask(lengths, self.config.max_length, dtype=tf.int32)
     return 1 - padding_mask
 
 def get_padding_bias(mask):
-    ''' Given padding mask of shape (batch_size, max_input_length)
-    where 0 is real input and 1 is padding, calculates padding bias.
+    ''' Given padding mask, calculates padding bias.
+    Args:
+        mask: 2D Tensor (batch_size, max_length) where 0 is real input and
+        1 is padding,
 
     Returns:
-        Attention bias tensor of shape [batch_size, 1, 1 length]
+        Attention bias 4D Tensor (batch_size, 1, 1 length)
     '''
     attention_bias = padding * -1e9
     attention_bias = tf.expand_dims(tf.expand_dims(attention_bias, axis=1), axis=1)
+
+
+def get_decoder_self_attention_bias(length):
+    """Calculate bias for decoder's self attention that maintains model's
+    autoregressive property.
+
+    Creates a tensor that masks out locations that correspond to illegal
+    connections (position i attending to positions > i).
+    Args:
+        length: int max length of sequences.
+    Returns:
+        float tensor of shape [1, 1, length, length]
+    """
+    with tf.name_scope("decoder_self_attention_bias"):
+        valid_locs = tf.matrix_band_part(tf.ones([length, length]), -1, 0)
+        valid_locs = tf.reshape(valid_locs, [1, 1, length, length])
+        decoder_bias = -1e9 * (1.0 - valid_locs)
+    return decoder_bias
+
+def print_weights(weights):
+    size = 0
+    def get_size(w):
+        shape = w.get_shape()
+        if shape.ndims == 2:
+            return int(shape[0])*int(shape[1])
+        else:
+            return int(shape[0])
+    for w in weights:
+        sz = get_size(w)
+        print('weight', w, sz)
+        size += sz
+    print('total model size', size)
