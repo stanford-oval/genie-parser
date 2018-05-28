@@ -44,7 +44,7 @@ class TransformerAligner(BaseModel):
 
         # Calculate padding and attention bias mask for attention layers.
         # (batch_size, max_length)
-        input_padding = get_padding_mask(self.input_length_placeholder)
+        input_padding = get_padding_mask(self.input_length_placeholder, self.config.max_length)
         attention_bias = get_padding_bias(input_padding)
 
         # Add embeddings (input/output vocab_size, input/output embed_size)
@@ -72,22 +72,26 @@ class TransformerAligner(BaseModel):
 
         # Add inference decoder (batch_size, max_length, output_size)
         with tf.variable_scope('eval_decoder'):
-            eval_logits = self.add_predict_op(final_enc_state, attention_bias)
+            preds, _ = self.add_predict_op(final_enc_state, attention_bias)
 
-        # Calculate evaluation loss
-        if self.config.decoder_sequence_loss > 0:
-            with tf.name_scope('sequence_loss'):
-                eval_seq_loss = self.add_loss_op(eval_logits)
-        else:
-            eval_seq_loss = 0
+        self.eval_loss = self.loss
+        self.preds = self.finalize_predictions(preds)
+        #     eval_logits = self.add_predict_op(final_enc_state, attention_bias)
 
-        with tf.name_scope('eval_loss'):
-            self.eval_loss = self.config.decoder_sequence_loss * eval_seq_loss
+        # # Calculate evaluation loss
+        # if self.config.decoder_sequence_loss > 0:
+        #     with tf.name_scope('sequence_loss'):
+        #         eval_seq_loss = self.add_loss_op(eval_logits)
+        # else:
+        #     eval_seq_loss = 0
+
+        # with tf.name_scope('eval_loss'):
+        #     self.eval_loss = self.config.decoder_sequence_loss * eval_seq_loss
 
         # Finalize predictions by taking argmax and adding beam size of 1
-        self.raw_preds = eval_logits
-        preds = tf.argmax(eval_logits, axis=2)
-        self.preds = self.finalize_predictions(preds)
+        # self.raw_preds = eval_logits
+        # preds = tf.argmax(eval_logits, axis=2)
+        # self.preds = self.finalize_predictions(preds)
         if not isinstance(self.preds, dict):
             self.preds = {
                 self.config.grammar.primary_output: self.preds
@@ -198,20 +202,20 @@ class TransformerAligner(BaseModel):
         with tf.variable_scope('encoder'):
 
             # (batch size, max input length, embed_size)
-            inputs = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
+            input_embeds = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
 
             # Now project the input down to a small size
-            inputs = tf.layers.dense(inputs, self.config.input_projection)
+            input_embeds = tf.layers.dense(input_embeds, self.config.input_projection)
 
             # Positionally encode them.
             with tf.variable_scope("positional_encoding"):
-                input_embeddings += positional_encoding(self.config.max_length,
+                input_embeds += positional_encoding(self.config.max_length,
                                                         self.config.input_projection)
             # Apply dropout immediately before encoding.
-            input_embeddings = tf.nn.dropout(input_embeddings,
+            input_embeds = tf.nn.dropout(input_embeds,
                                              self.dropout_placeholder)
             # Encoder block. (batch_size, max_length, encoder_hidden_size)
-            final_enc_state = self.add_encoder_block(input_embeddings,
+            final_enc_state = self.add_encoder_block(input_embeds,
                                                      attention_bias,
                                                      input_padding)
         return final_enc_state
@@ -245,7 +249,7 @@ class TransformerAligner(BaseModel):
                 with tf.variable_scope('ffn'):
                     ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
                                          padding=input_padding,
-                                         dropout_rate=self.dropout_placeholder)
+                                         dropout=self.dropout_placeholder)
 
                     # Residual connection and normalize
                     ff_out += mh_out
@@ -333,11 +337,12 @@ class TransformerAligner(BaseModel):
             # (batch_size * beam_size, 1, decoder_hidden_size)
             decoder_outputs = self.add_decoder_block(cache.get("encoder_outputs"),
                                                      decoder_input,
+                                                     self_attention_bias,
                                                      cache.get("encoder_decoder_attention_bias"),
-                                                     self_attention_bias, cache)
+                                                     cache)
 
             # Final linear projection (batch_size, 1, output_size)
-            logits = self.final_output_projection(final_dec_state):
+            logits = self.final_output_projection(decoder_outputs)
             logits = tf.squeeze(logits, axis=[1])
             return logits, cache
 
@@ -374,8 +379,8 @@ class TransformerAligner(BaseModel):
         cache["encoder_decoder_attention_bias"] = enc_dec_attention_bias
 
         # Use beam search to find the top beam_size sequences and scores.
-        # (batch_size, beam_size, max_length, output_size)
-        logits = beam_search.sequence_beam_search(
+        # (batch_size, beam_size, max_length), (batch_size, beam_size)
+        decoded_ids, scores = beam_search.sequence_beam_search(
             symbols_to_logits_fn=symbols_to_logits_fn,
             initial_ids=initial_ids,
             initial_cache=cache,
@@ -386,66 +391,10 @@ class TransformerAligner(BaseModel):
             eos_id=self.config.grammar.end)
 
         # Get the top sequence for each batch element
-        # (batch_size, max_length, output_size)
-        return logits[:, 0, 1:, :]
-
-#             def is_not_finished(i, hit_eos, *_):
-#                 finished = i >= self.config.max_length
-#                 finished |= tf.reduce_all(hit_eos)
-#                 return tf.logical_not(finished)
-# 
-#             def inner_loop(i, hit_eos, next_id, embed_so_far, dec_state):
-#                 #  (batch_size, 1, output_embed_size)
-#                 next_id_embeddings = tf.nn.embedding_lookup([output_embed_matrix], next_id)
-#                 # pad to be (batch, max_length, output_embed_size)
-#                 embed_padding = tf.convert_to_tensor([[0, 0], [i, self.config.max_length - i - 1], [0, 0]])
-#                 next_id_embeddings = tf.pad(next_id_embeddings, embed_padding)
-# 
-#                 next_id_embeddings += tf.where(next_id_embeddings == 0, next_id_embeddings, positionals)
-#                 embed_so_far += next_id_embeddings
-# 
-#                 # (batch_size, max_length)
-#                 mask = tf.sign(tf.abs(tf.reduce_sum(embed_so_far, axis=-1)))
-# 
-#                 # (batch_size, max_length, decoder_hidden_size)
-#                 dec_state = self.add_decoder_block(enc_final_state, embed_so_far, mask)
-# 
-#                 # mask out dec_state[:, i+1:, :] to 0s
-#                 ones = tf.ones(shape=(i+1, self.config.decoder_hidden_size))
-#                 zeros = tf.zeros(shape=(self.config.max_length - i - 1, self.config.decoder_hidden_size))
-#                 dec_state_mask = tf.expand_dims(tf.concat([ones, zeros], axis=0), 0)
-#                 tiled_mask = tf.tile(dec_state_mask, [self.batch_size, 1, 1])
-#                 dec_state = tf.where(tiled_mask == 0, tiled_mask, dec_state)
-# 
-#                 # get logits from dec state
-#                 next_id_logits = tf.layers.dense(dec_state, output_size)
-#                 next_id = tf.argmax(next_id_logits, axis=2)[:, tf.minimum(i+1, self.config.max_length - 1)]
-#                 hit_eos |= tf.equal(next_id, grammar_end)
-#                 next_id = tf.cast(tf.expand_dims(next_id, 1), tf.int32)
-# 
-#                 return i + 1, hit_eos, next_id, embed_so_far, dec_state
-# 
-#             grammar_end = self.config.grammar.end
-#             hit_eos = tf.fill([self.batch_size], False)
-#             dec_state = tf.zeros((self.batch_size, self.config.max_length, self.config.decoder_hidden_size))
-#             embed_so_far = tf.zeros((self.batch_size, self.config.max_length, self.config.output_embed_size))
-# 
-#             _, _, _, _, final_dec_state = tf.while_loop(is_not_finished,
-#                                                         inner_loop,
-#                                                        [tf.constant(0), hit_eos,
-#                                                         go_vector, embed_so_far,
-#                                                         dec_state],
-#                                                         shape_invariants=[
-#                                                             tf.TensorShape([]),
-#                                                             tf.TensorShape([None]),
-#                                                             tf.TensorShape([None, 1]),
-#                                                             tf.TensorShape([None, self.config.max_length, self.config.output_embed_size]),
-#                                                             tf.TensorShape([None, self.config.max_length, self.config.decoder_hidden_size])
-#                                                         ])
-#         # Final linear projection to get logits
-#         # (batch_size, max_length, output_size)
-#         logits = tf.layers.dense(final_dec_state, output_size)
-#         return logits
+        # (batch_size, max_length), (batch_size)
+        top_decoded_ids = decoded_ids[:, 0, 1:]
+        top_scores = scores[:, 0]
+        return top_decoded_ids, top_scores
 
     def add_decoder_block(self, enc_final_state, dec_state,
                           decoder_self_attention_bias, attention_bias,
@@ -501,7 +450,7 @@ class TransformerAligner(BaseModel):
 
                 with tf.variable_scope('ffn'):
                     ff_out = feedforward(mh_out, 4*hidden_size, hidden_size,
-                                         dropout_rate=self.dropout_placeholder)
+                                         dropout=self.dropout_placeholder)
 
                     # Residual connection and normalize
                     ff_out += mh_out
@@ -607,7 +556,7 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
         A 3D tensor (batch_size, max_length, attn_size)
     '''
 
-    def split_heads(self, x):
+    def split_heads(x):
         """Split x into different heads, and transpose the resulting value.
         The tensor is transposed to ensure the inner dimensions hold the correct values
         during the matrix multiplication.
@@ -627,7 +576,7 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
             # Transpose the result
             return tf.transpose(x, [0, 2, 1, 3])
 
-    def combine_heads(self, x):
+    def combine_heads(x):
         """Combine tensor that has been split.
         Args:
             x: (batch_size, num_heads, length, attn_size/num_heads)
@@ -664,8 +613,8 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
 
     # (batch_size, num_heads, max_length, max_length)
     outputs = tf.matmul(Q_, K_, transpose_b=True)
-    outputs += bias
-    weights = tf.nn.softmax(outputs) # (batch_size, num_heads, max_length, max_length)
+    outputs += attn_bias
+    outputs = tf.nn.softmax(outputs)
 
     # Dropout
     outputs = tf.nn.dropout(outputs, dropout_rate)
@@ -674,7 +623,7 @@ def multihead_attention(query, key, attn_bias, attn_size=None, num_heads=8,
     outputs = tf.matmul(outputs, V_) # (batch_size, num_heads, max_length, attn_size/num_heads)
 
     # Recombine heads
-    outputs = self.combine_heads(outputs)
+    outputs = combine_heads(outputs)
 
     # Final linear projection
     outputs = tf.layers.dense(outputs, attn_size, use_bias=False)
@@ -695,7 +644,9 @@ def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
     '''
 
     # Retrieve dynamically known shapes
-    batch_size, max_length, hidden_size = tf.shape(inputs)
+    batch_size = tf.shape(inputs)[0]
+    max_length = tf.shape(inputs)[1]
+    hidden_size = inputs.get_shape().as_list()[-1]
 
     if padding is not None:
         with tf.name_scope("remove_padding"):
@@ -709,7 +660,7 @@ def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
             inputs = tf.gather_nd(inputs, indices=nonpad_ids)
 
             # Reshape from 2 dimensions to 3 dimensions.
-            inputs.set_shape([None, self.hidden_size])
+            inputs.set_shape([None, hidden_size])
             inputs = tf.expand_dims(inputs, axis=0)
 
     output = tf.layers.dense(inputs, ff_size, activation=tf.nn.relu)
@@ -723,7 +674,7 @@ def feedforward(inputs, ff_size, output_size, padding=None, dropout=1):
                                    shape=[batch_size * max_length, hidden_size])
             output = tf.reshape(output, [batch_size, max_length, hidden_size])
 
-    return outputs
+    return output
 
 def normalize(inputs, scope='normalize'):
     '''Applies layer normalization.
@@ -732,19 +683,18 @@ def normalize(inputs, scope='normalize'):
     with tf.variable_scope(scope):
         return tf.contrib.layers.layer_norm(inputs)
 
-def get_padding_mask(lengths):
+def get_padding_mask(lengths, max_length):
     ''' Create padding mask.
     Args:
         lengths: A 1D tensor (batch_size) indicating how long is each input.
 
     Returns:
-        A 2D tensor (batch_size, max_length) where 0 is real input and 1
+        A 2D float tensor (batch_size, max_length) where 0 is real input and 1
         is padding.
     '''
     with tf.variable_scope('padding'):
-        lengths = self.input_length_placeholder
-        padding_mask = tf.sequence_mask(lengths, self.config.max_length, dtype=tf.int32)
-    return 1 - padding_mask
+        padding_mask = tf.sequence_mask(lengths, max_length, dtype=tf.int32)
+    return tf.to_float(1 - padding_mask)
 
 def get_padding_bias(mask):
     ''' Given padding mask, calculates padding bias.
@@ -755,9 +705,8 @@ def get_padding_bias(mask):
     Returns:
         Attention bias 4D Tensor (batch_size, 1, 1 length)
     '''
-    attention_bias = padding * -1e9
-    attention_bias = tf.expand_dims(tf.expand_dims(attention_bias, axis=1), axis=1)
-
+    attention_bias = mask * -1e9
+    return tf.expand_dims(tf.expand_dims(attention_bias, axis=1), axis=1)
 
 def get_decoder_self_attention_bias(length):
     """Calculate bias for decoder's self attention that maintains model's
