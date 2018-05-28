@@ -42,20 +42,23 @@ class TransformerAligner(BaseModel):
     def build(self):
         self.add_placeholders()
 
-        # Calculate padding and attention bias mask for attention layers.
+        # Calculate padding and attention bias mask for encoder attention layers.
         # (batch_size, max_length)
         input_padding = get_padding_mask(self.input_length_placeholder, self.config.max_length)
-        attention_bias = get_padding_bias(input_padding)
+        output_padding = get_padding_mask(self.output_length_placeholder, self.config.max_length)
+        # (batch_size, 1, 1, max_length)
+        enc_attention_bias = get_padding_bias(input_padding)
 
         # Add embeddings (input/output vocab_size, input/output embed_size)
         self.add_input_embeddings()
         self.add_output_embeddings()
 
         # Add the encoder (batch_size, max_length, encoder_hidden_size)
-        final_enc_state = self.add_encoder_op(input_padding, attention_bias)
+        final_enc_state = self.add_encoder_op(input_padding, enc_attention_bias)
 
         # Add the training decoder (batch_size, max_length, output_size)
-        train_logits = self.add_decoder_op(final_enc_state, attention_bias)
+        train_logits = self.add_decoder_op(final_enc_state, output_padding,
+                                           enc_attention_bias)
 
         # Calculate training loss and training op
         if self.config.decoder_sequence_loss > 0:
@@ -193,16 +196,16 @@ class TransformerAligner(BaseModel):
         ''' Add the encoder operation, given inputs in self.input_placeholder.
         Produces the final encoding hidden state.
         Args:
+            inputs_padding: padding mask (1=padding). (batch_size, max_length]
             attention_bias: bias for the self-attention layer. [batch_size, 1, 1, max_length]
-            inputs_padding: padding mask. [batch_size, max_length]
         Returns:
             A 3D tensor (batch_size, max_length, encoder_hidden_size)
         '''
 
         with tf.variable_scope('encoder'):
-
-            # (batch size, max input length, embed_size)
-            input_embeds = tf.nn.embedding_lookup([self.input_embed_matrix], self.input_placeholder)
+            # (batch size, max_length, embed_size)
+            input_embeds = embed_tokens(self.input_placeholder,
+                                        self.input_embed_matrix, input_padding)
 
             # Now project the input down to a small size
             input_embeds = tf.layers.dense(input_embeds, self.config.input_projection)
@@ -210,10 +213,10 @@ class TransformerAligner(BaseModel):
             # Positionally encode them.
             with tf.variable_scope("positional_encoding"):
                 input_embeds += positional_encoding(self.config.max_length,
-                                                        self.config.input_projection)
+                                                    self.config.input_projection)
             # Apply dropout immediately before encoding.
-            input_embeds = tf.nn.dropout(input_embeds,
-                                             self.dropout_placeholder)
+            input_embeds = tf.nn.dropout(input_embeds, self.dropout_placeholder)
+
             # Encoder block. (batch_size, max_length, encoder_hidden_size)
             final_enc_state = self.add_encoder_block(input_embeds,
                                                      attention_bias,
@@ -261,12 +264,13 @@ class TransformerAligner(BaseModel):
         # Final linear projection (batch_size, max_length, output_size)
         return tf.layers.dense(final_state, self.output_size)
 
-    def add_decoder_op(self, enc_final_state, enc_dec_attention_bias):
+    def add_decoder_op(self, enc_final_state, output_padding, enc_dec_attention_bias):
         ''' Adds the decoder op for training, comprised of output embeddings,
         the decoder blocks, and the final feed forward layer.
 
         Args:
             enc_final_state: final encoder state. (batch_size, max_length, encoder_hidden_size)
+            output_padding: binary padding mask (1=padding). (batch_size, max_length)
             enc_dec_attention_bias: bias for the encoder-decoder attention layer.
                 (batch_size, 1, 1, max_length)
         Returns:
@@ -280,8 +284,8 @@ class TransformerAligner(BaseModel):
                                     axis=1)
 
             # (batch_size, max_length, output_embed_size)
-            output_embeddings = tf.nn.embedding_lookup([self.output_embed_matrix],
-                                                        output_ids)
+            output_embeddings = embed_tokens(output_ids, self.output_embed_matrix,
+                                             output_padding)
             # Positionally encode them.
             with tf.variable_scope("positional_encoding"):
                 output_embeddings += positional_encoding(self.config.max_length,
@@ -682,6 +686,24 @@ def normalize(inputs, scope='normalize'):
     '''
     with tf.variable_scope(scope):
         return tf.contrib.layers.layer_norm(inputs)
+def embed_tokens(inputs, matrix, padding_mask):
+    ''' Embeds inputs (IDS) using an embedding matrix. Also pads out all
+    embeddings where padding_mask = 1.
+
+    Args:
+        inputs: A 2D tensor (batch_size, length) of inputs
+        matrix: Embedding matrix (vocab_size, embed_size)
+        padding_mask: binary padding mask where 1 = padding (batch_size, length)
+
+    Returns:
+        A 3D tensor (batch_size, length, embed_size) of embedded inputs.
+    '''
+    input_embeds = tf.nn.embedding_lookup([matrix], inputs)
+
+    # Set all padding embedding values to 0
+    input_embeds *= tf.expand_dims(1 - padding_mask, -1)
+
+    return input_embeds
 
 def get_padding_mask(lengths, max_length):
     ''' Create padding mask.
