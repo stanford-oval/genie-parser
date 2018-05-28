@@ -156,11 +156,17 @@ class ShiftReduceGrammar(AbstractGrammar):
                     token = self._parser.extensible_terminals[term][tokenidx]
                     if token in input_sentence:
                         input_idx = input_sentence.index(token)
-                        #print('wrong')
+                        vectors['COPY_' + term][i] = input_idx
                     else:
                         continue
-                    vectors['COPY_' + term][i] = input_idx
-                elif term in self._parser.extensible_terminals:
+                    # elif term in self._parser._extensible_terminals:
+                    #     # cannot copy from input so look at extensible_list
+                    #     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(
+                    #         self._copy_terminals) + self._extensible_terminal_indices[term]
+                    #     vectors['COPY_' + term][i] = tokenidx
+
+
+                elif term in self._extensible_terminal_indices:
                     assert tokenidx < self._output_size[term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
                     vectors[term][i] = tokenidx
