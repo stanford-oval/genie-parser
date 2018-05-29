@@ -81,3 +81,4 @@ class BaseModel(object):
 
     def build(self):
         raise NotImplementedError("Each Model must implement this method")
+

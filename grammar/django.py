@@ -2,6 +2,7 @@ from .shift_reduce_grammar import ShiftReduceGrammar
 
 from collections import OrderedDict
 from keyword import kwlist
+import numpy as np
 
 
 class DjangoGrammar(ShiftReduceGrammar):
@@ -12,6 +13,8 @@ class DjangoGrammar(ShiftReduceGrammar):
     def __init__(self, filename=None, **kw):
         super().__init__(**kw)
         self.entities = []
+        self.input_to_copy_token_map = []
+        self._token_canonicals = dict()
 
         '''
         Python2.7 Grammar
@@ -431,9 +434,60 @@ class DjangoGrammar(ShiftReduceGrammar):
                                                              #'NUMBER': numbers,
                                                              'STRING': strings,
                                                              })
+        for key in ['IDENT', 'NUMBER', 'STRING']:
+            for val in self.extensible_terminals[key]:
+                self._token_canonicals[val] = val
 
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
+
+    def get_embeddings(self, input_words, input_embeddings):
+        all_embeddings = {
+            'actions': np.identity(self.output_size['actions'], dtype=np.float32)
+        }
+
+        depth = input_embeddings.shape[-1]
+        for key in self.extensible_terminal_list:
+            size = self.output_size[key]
+            embedding_matrix = np.zeros((size, depth), dtype=np.float32)
+            for i, token in enumerate(self.extensible_terminals[key]):
+                embedding_matrix[i] = self._embed_token(token, input_words, input_embeddings)
+            assert not np.any(np.isnan(embedding_matrix))
+            all_embeddings[key] = embedding_matrix
+
+        self.input_to_copy_token_map = np.zeros((len(input_words),), dtype=np.int32)
+        for term in self._copy_terminals:
+            for tokenidx, token in enumerate(self.extensible_terminals[term]):
+                if self.input_to_copy_token_map[input_words[token]] != 0:
+                    raise AssertionError("??? " + token + " " + str(input_words[token]))
+                self.input_to_copy_token_map[input_words[token]] = tokenidx
+                self.copy_token_to_input_maps['COPY_' + term][tokenidx] = input_words[token]
+
+        return all_embeddings
+
+    def _embed_token(self, token, input_words, input_embeddings):
+        input_embed_size = input_embeddings.shape[-1]
+        token_embedding = np.zeros((input_embed_size,), dtype=np.float32)
+        canonical = self.token_canonicals[token]
+        if not canonical:
+            print("WARNING: token %s has no canonical" % (token,))
+            return token_embedding
+        for canonical_token in canonical.split(' '):
+            if canonical_token in ('in', 'on', 'of'):
+                continue
+            if canonical_token in input_words:
+                token_embedding += input_embeddings[input_words[canonical_token]]
+            else:
+                print("WARNING: missing word %s in canonical for output token %s" % (canonical_token, token))
+                token_embedding += input_embeddings[input_words['<unk>']]
+        if np.any(np.isnan(token_embedding)):
+            raise ValueError('Embedding for ' + token + ' is NaN')
+        return token_embedding
+
+
+    @property
+    def token_canonicals(self):
+        return self._token_canonicals
 
 

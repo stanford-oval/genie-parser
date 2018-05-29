@@ -123,6 +123,7 @@ def main():
     # add the canonical words for the builtin functions
     # and a few canonical words that are useful
     add_words(input_words, 'function return argument if else call import raise args model params def')
+    add_words(input_words, " ".join(['STR' + str(i) for i in range(201)]))
 
     create_dictionary(input_words, dataset)
     #get_thingpedia(input_words, workdir, snapshot)
