@@ -75,7 +75,7 @@ class TransformerAligner(BaseModel):
 
         # Add inference decoder (batch_size, max_length, output_size)
         with tf.variable_scope('eval_decoder'):
-            preds, _ = self.add_predict_op(final_enc_state, attention_bias)
+            preds, _ = self.add_predict_op(final_enc_state, enc_attention_bias)
 
         self.eval_loss = self.loss
         self.preds = self.finalize_predictions(preds)
@@ -684,14 +684,15 @@ def normalize(inputs):
     '''Applies layer normalization.
     Returns: A tensor with the same shape and data dtype as `inputs`.
     '''
-    scale = tf.get_variable("layer_norm_scale", [tf.shape(inputs)[-1]],
+    hidden_size = inputs.get_shape().as_list()[-1]
+    scale = tf.get_variable("layer_norm_scale", [hidden_size],
             initializer=tf.ones_initializer())
-    bias = tf.get_variable("layer_norm_bias", [tf.shape(inputs)[-1]],
+    bias = tf.get_variable("layer_norm_bias", [hidden_size],
             initializer=tf.zeros_initializer())
     mean = tf.reduce_mean(inputs, axis=[-1], keepdims=True)
-    variance = tf.reduce_mean(tf.square(x - mean), axis=[-1], keepdims=True)
-    norm_x = (x - mean) * tf.rsqrt(variance + 1e-6)
-    return norm_x * scale + bias
+    variance = tf.reduce_mean(tf.square(inputs - mean), axis=[-1], keepdims=True)
+    norm = (inputs - mean) * tf.rsqrt(variance + 1e-6)
+    return norm * scale + bias
 
 def embed_tokens(inputs, matrix, padding_mask):
     ''' Embeds inputs (IDS) using an embedding matrix. Also pads out all
