@@ -9,11 +9,12 @@ TRAIN_DIR=$HOME/t2t_train/$PROBLEM/$MODEL-$HPARAMS
 mkdir -p $DATA_DIR $TMP_DIR $TRAIN_DIR
 
 # Generate data
-#t2t-datagen \
-#  --data_dir=$DATA_DIR \
-#  --tmp_dir=$TMP_DIR \
-#  --problem=$PROBLEM
+t2t-datagen \
+  --data_dir=$DATA_DIR \
+  --tmp_dir=$TMP_DIR \
+  --problem=$PROBLEM
 
+'''
 # Train
 # *  If you run out of memory, add --hparams='batch_size=1024'.
 t2t-trainer \
@@ -21,6 +22,8 @@ t2t-trainer \
   --problem=$PROBLEM \
   --model=$MODEL \
   --hparams="batch_size=1024" \
-  --train_steps=1000 \
+  --train_steps=5000 \
   --hparams_set=$HPARAMS \
   --output_dir=$TRAIN_DIR
+
+'''
