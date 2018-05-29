@@ -91,7 +91,10 @@ class ParseAlmondTest(translate.TranslateProblem):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
-    train_path = "../dataset/t2t_dir/t2t_train"
+    if train:
+	    train_path = "../dataset/t2t_dir/t2t_train"
+    else:
+    	train_path = "../dataset/t2t_dir/t2t_dev"
     #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
