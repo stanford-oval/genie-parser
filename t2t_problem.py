@@ -79,7 +79,7 @@ class ParseAlmond(translate.TranslateProblem):
 
   @property
   def vocab_filename(self):
-    return "../workdir/all_words.txt"
+    return "all_words.txt"
     #vocab.bpe.%d" % self.approx_vocab_size
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
@@ -92,9 +92,9 @@ class ParseAlmond(translate.TranslateProblem):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
     if train:
-	    train_path = "../t2t_dir/t2t_train"
+	    train_path = "../dataset/t2t_dir/t2t_train"
     else:
-    	train_path = "../t2t_dir/t2t_dev"
+    	train_path = "../dataset/t2t_dir/t2t_dev"
     #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
