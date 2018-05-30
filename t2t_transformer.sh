@@ -1,4 +1,6 @@
-PROBLEM=parse_almond_test
+#!/bin/sh
+
+PROBLEM=parse_almond
 MODEL=transformer
 HPARAMS=transformer_base_single_gpu
 
@@ -14,4 +16,4 @@ t2t-datagen --t2t_usr_dir=$PROBLEM_DIR --data_dir=$DATA_DIR --tmp_dir=$TMP_DIR -
 
 # Train
 # *  If you run out of memory, add --hparams='batch_size=1024'.
-t2t-trainer --t2t_usr_dir=$PROBLEM_DIR --data_dir=$DATA_DIR --model=$MODEL --train_steps=20000 --eval_steps=200 --hparams_set=$HPARAMS --output_dir=$TRAIN_DIR --problem=$PROBLEM --hparams='batch_size=512' &> transformerOutput.txt
+t2t-trainer --t2t_usr_dir=$PROBLEM_DIR --data_dir=$DATA_DIR --model=$MODEL --train_steps=2000 --eval_steps=200 --hparams_set=$HPARAMS --output_dir=$TRAIN_DIR --problem=$PROBLEM --hparams='batch_size=512' | tee -a transformerOutput.txt

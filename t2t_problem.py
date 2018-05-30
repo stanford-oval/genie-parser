@@ -70,7 +70,7 @@ def _get_wmt_ende_bpe_dataset(directory, filename):
 
 
 @registry.register_problem
-class ParseAlmondTest(translate.TranslateProblem):
+class ParseAlmond(translate.TranslateProblem):
   """Problem spec for WMT En-De translation, BPE version."""
 
   @property
@@ -92,9 +92,9 @@ class ParseAlmondTest(translate.TranslateProblem):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
     if train:
-	    train_path = "../dataset/t2t_dir/t2t_train"
+	    train_path = "../t2t_dir/t2t_train"
     else:
-    	train_path = "../dataset/t2t_dir/t2t_dev"
+    	train_path = "../t2t_dir/t2t_dev"
     #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
