@@ -148,7 +148,7 @@ class QueryHandler(tornado.web.RequestHandler):
         
         result = None
         tokens = tokenized.tokens
-        if len(tokens) == 1 and (tokens[0].isupper() or tokens[0] in ('1', '0')):
+        if len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
         if expect == 'MultipleChoice':
