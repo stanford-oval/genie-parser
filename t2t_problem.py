@@ -84,9 +84,10 @@ class ParseAlmond(translate.TranslateProblem):
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
     vocab_filename = os.path.join(data_dir, self.vocab_filename)
+    print('vocab filename: ', vocab_filename)
     if not tf.gfile.Exists(vocab_filename) and force_get:
       raise ValueError("Vocab %s not found" % vocab_filename)
-    return text_encoder.TokenTextEncoder(vocab_filename, replace_oov="UNK")
+    return text_encoder.TokenTextEncoder(vocab_filename, replace_oov='UNK')
 
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     """Instance of token generator for the WMT en->de task, training set."""
