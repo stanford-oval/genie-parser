@@ -1,10 +1,11 @@
 import re
 import csv
 import os
+import argparse
 
 labels = ['step', 'loss', 'accuracy', 'sequence accuracy', 'top 5 accuracy', 'approximate bleu score', 'neg log perplexity', 'rouge 2 fscore', 'rouge L fscore']
 
-with open('transformerOutput.txt', 'r') as f:
+with open('transformer_output.txt', 'r') as f:
     output = f.read()
 
 pattern  = re.compile("INFO:tensorflow:Saving dict for global step.+?(?=INFO)", re.DOTALL)
@@ -31,12 +32,18 @@ with open('transformer_data.csv', 'w') as f:
         print(row)
         writer.writerow(row)
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--clean", dest='clean', action='store_true')
+args = parser.parse_args()
+
 if best_step != -1:
-    pattern = 'model.ckpt-' + best_step + '\.'
-    DIR = '/home/gcampagn/t2t_train/parse_almond_test/transformer-transformer_base_single_gpu'
-    for f in os.listdir(DIR):
-        if not re.search(pattern, f):
-            file_path = os.path.join(DIR, f)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-                print('Removing ', file_path)
+    print('Best step was {} with accuracy {}'.format(best_step, best_acc))
+    if args.clean:
+        pattern = 'model.ckpt-' + best_step + '\.'
+        DIR = '/home/gcampagn/workdir/t2t_train/parse_almond/transformer-transformer_base_single_gpu'
+        for f in os.listdir(DIR):
+            if not re.search(pattern, f):
+                file_path = os.path.join(DIR, f)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    print('Removing ', file_path)
