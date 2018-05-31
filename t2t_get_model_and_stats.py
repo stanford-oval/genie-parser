@@ -61,10 +61,11 @@ with open(os.path.join(args.outdir, args.outfile), 'w') as f:
 if best_step != -1:
     print('Best step was {} with accuracy {}'.format(best_step, best_acc))
     if args.clean:
-        pattern = 'model.ckpt-' + best_step + '\.'
+        model_pattern = 'model.ckpt-'
+        pattern = model_pattern + best_step + '\.'
         DIR = args.model_dir
         for f in os.listdir(DIR):
-            if not re.search(pattern, f):
+            if not re.search(pattern, f) and re.search(model_pattern, f):
                 file_path = os.path.join(DIR, f)
                 if os.path.isfile(file_path):
                     os.remove(file_path)
