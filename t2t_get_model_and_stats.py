@@ -20,7 +20,10 @@ if not os.path.exists(args.outdir):
 
 with open(args.file, 'r') as f:
     output = f.read()
-    copyfile(args.file, os.path.join(args.outdir, args.file))
+    if args.clean:
+        os.rename(args.file, os.path.join(args.outdir, args.file))
+    else:
+        copyfile(args.file, os.path.join(args.outdir, args.file))
 
 pattern  = re.compile("INFO:tensorflow:Saving dict for global step.+?(?=INFO)", re.DOTALL)
 best_acc = 0
