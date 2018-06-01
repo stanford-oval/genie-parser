@@ -1,2 +1,0 @@
-16001	if not ,	else :
-16002	call the method s.get_data , return the result .	return s . get_data ( )
