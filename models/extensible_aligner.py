@@ -281,31 +281,7 @@ class ExtensibleGrammarAligner(BaseAligner):
         finalized = dict()
         for key in self.config.output_size:
             with tf.name_scope('finalize_' + key):
-                if self.config.grammar.is_copy_type(key):
-                    # result.sample_id[key] is an index into the input sequence
-                    # it has shape batch size x decode time x encode time
-                    # we want to first obtain the corresponding input sequence token id
-
-                    flat_sample_id = tf.reshape(result.sample_id[key], (-1,))
-                    sample_id_size = tf.shape(result.sample_id[key])[1]
-                    batch_indices = tf.range(self.batch_size, dtype=tf.int32)
-
-                    batch_indices = tf.tile(batch_indices, multiples=[sample_id_size])
-                    gather_indices = tf.stack((batch_indices, flat_sample_id), axis=1)
-                    #print('gather_indices', gather_indices)
-                    flat_input_token_idx = tf.gather_nd(self.input_placeholder, gather_indices)
-                    #print('flat_input_token_idx', flat_input_token_idx)
-
-                    flat_copy_token_idx = tf.gather(self.config.grammar.input_to_copy_token_map, flat_input_token_idx)
-                    #print('flat_copy_token_idx', flat_copy_token_idx)
-                    
-                    # reshape back into square
-                    copy_token_idx = tf.reshape(flat_copy_token_idx, (self.batch_size, sample_id_size))
-
-                    finalized[key] = copy_token_idx
-                else:
-                    finalized[key] = result.sample_id[key]
-
+                finalized[key] = result.sample_id[key]
                 # add a dimension of 1 between the batch size and the sequence length to emulate a beam width of 1 
                 finalized[key] = tf.expand_dims(finalized[key], axis=1)
         return finalized
