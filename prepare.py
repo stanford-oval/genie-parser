@@ -56,6 +56,8 @@ def add_words(input_words, canonical):
         if not word or word != '$' and word.startswith('$'):
             print('Invalid word "%s" in phrase "%s"' % (word, canonical,))
             continue
+        if word[0].isupper():
+            continue
         input_words.add(word)
 
 def get_thingpedia(input_words, workdir, snapshot):
@@ -76,10 +78,10 @@ def get_thingpedia(input_words, workdir, snapshot):
                     if not function['canonical']:
                         print('WARNING: missing canonical for @%s.%s' % (device['kind'], function_name))
                     else:
-                        add_words(input_words, function['canonical'])
+                        add_words(input_words, function['canonical'].lower())
                     for argname, argcanonical in zip(function['args'], function['argcanonicals']):
                         if argcanonical:
-                            add_words(input_words, argcanonical)
+                            add_words(input_words, argcanonical.lower())
                         else:
                             add_words(input_words, clean(argname))
                     for argtype in function['schema']:
@@ -149,7 +151,7 @@ def save_dictionary(input_words, workdir):
 
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
         for i, word in enumerate(sorted(input_words)):
-            dictionary[word] = i
+            dictionary[word] = 3+i
             print(word, file=fp)
     return dictionary
 

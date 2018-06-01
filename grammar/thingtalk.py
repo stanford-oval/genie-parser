@@ -466,6 +466,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         for term in self._copy_terminals:
             for tokenidx, token in enumerate(self.extensible_terminals[term]):
                 if self.input_to_copy_token_map[input_dictionary[token]] != 0:
+                    print(self.input_to_copy_token_map[input_dictionary[token]], tokenidx)
                     raise AssertionError("??? " + token + " " + str(input_dictionary[token]))
                 self.input_to_copy_token_map[input_dictionary[token]] = tokenidx
 
