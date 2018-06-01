@@ -75,8 +75,8 @@ class Config(object):
         self._config['model'] = OrderedDict(
             model_type='seq2seq',
             encoder_type='birnn',
-            encoder_hidden_size=35,
-            decoder_hidden_size=70,
+            encoder_hidden_size=125,
+            decoder_hidden_size=250,
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
