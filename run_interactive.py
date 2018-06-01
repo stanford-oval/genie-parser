@@ -77,7 +77,8 @@ def run():
     tf.set_random_seed(1234)
     
     model_dir = sys.argv[1]
-    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    cached_grammar = os.path.join(model_dir, 'grammar.pkl')
+    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')], load_grammar=True, cached_grammar=cached_grammar)
     model = create_model(config)
     
     histfile = ".almondnn_history"

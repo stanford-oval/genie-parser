@@ -307,7 +307,7 @@ class Config(object):
             self._config.write(fp)
         
     @staticmethod
-    def load(filenames, load_grammar, cached_grammar):
+    def load(filenames, load_grammar=False, cached_grammar=None):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
@@ -329,8 +329,9 @@ class Config(object):
                                          grammar=self._grammar)
         if not load_grammar:
             self._grammar.set_input_dictionary(words)
-            with open(cached_grammar, 'wb') as fp:
-                pickle.dump(self._grammar, fp, pickle.HIGHEST_PROTOCOL)
+            if cached_grammar is not None:
+                with open(cached_grammar, 'wb') as fp:
+                    pickle.dump(self._grammar, fp, pickle.HIGHEST_PROTOCOL)
 
         self._words = words
         self._reverse = reverse
