@@ -211,6 +211,9 @@ class EmbeddingPointerLayer(tf.layers.Layer):
         #return tf.shape(self._embeddings)[0]
         return self._embeddings.shape[0]
 
+    def compute_output_shape(self, *args):
+        raise TypeError("that one")
+
 
 class AttentivePointerLayer(tf.layers.Layer):
     """
@@ -237,6 +240,9 @@ class AttentivePointerLayer(tf.layers.Layer):
             if is_2d:
                 score = tf.squeeze(score, axis=1)
             return score
+
+    def compute_output_shape(self, *args):
+        raise TypeError("this one")
 
 
 def pad_up_to(vector, size):
@@ -369,6 +375,7 @@ class ActivationWrapper(tf.contrib.rnn.RNNCell):
 
 def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn,
                     dropout, alignment_history=True):
+
     if attention_probability_fn == 'softmax':
         probability_fn = tf.nn.softmax
         score_mask_value = float('-inf')

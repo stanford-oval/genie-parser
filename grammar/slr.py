@@ -345,7 +345,7 @@ class SLRParserGenerator():
                 for i in range(len(rule)-1):
                     if _is_nonterminal(rule[i]):
                         if _is_nonterminal(rule[i+1]):
-                            #if '*' in self._first_sets[rule[i+1]]:
+                            #if 'not' in self._first_sets[rule[i+1]]:
                             #    print(rule[i], 'followed by', rule[i+1])
                             progress = _add_all(self._first_sets[rule[i+1]], follow_sets[rule[i]]) or progress
                         else:
@@ -353,7 +353,7 @@ class SLRParserGenerator():
                                 follow_sets[rule[i]].add(rule[i+1])
                                 progress = True
                 if _is_nonterminal(rule[-1]):
-                    #if '*' in follow_sets[lhs]:
+                    #if 'not' in follow_sets[lhs]:
                     #    print(lhs, 'into', rule[-1])
                     progress = _add_all(follow_sets[lhs], follow_sets[rule[-1]]) or progress
                                     
@@ -399,14 +399,14 @@ class SLRParserGenerator():
                                 lhs, _ = self.rules[loop_rule_id]
                                 print(loop_rule_id, lhs, '->', rhs)
                             print()
-                            if self.action_table[item_set.info.id][term][0] == 'shift':
-                                jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
-                                print("Item Set", jump_set.info.id, jump_set.info.intransitions)
-                                for rule in jump_set.rules:
-                                    loop_rule_id, rhs = rule
-                                    lhs, _ = self.rules[loop_rule_id]
-                                    print(loop_rule_id, lhs, '->', rhs)
-                                print()
+                            #if self.action_table[item_set.info.id][term][0] == 'shift':
+                            #    jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
+                            #    print("Item Set", jump_set.info.id, jump_set.info.intransitions)
+                            #    for rule in jump_set.rules:
+                            #        loop_rule_id, rhs = rule
+                            #        lhs, _ = self.rules[loop_rule_id]
+                            #        print(loop_rule_id, lhs, '->', rhs)
+                            #    print()
                             
                             raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
                         self.action_table[item_set.info.id][term] = ('reduce', rule_id)
@@ -504,10 +504,10 @@ class ShiftReduceParser:
             action, param = self._action_table[state][terminal]
             if action == 'accept':
                 return result
-            # if action == 'shift':
+            #if action == 'shift':
             #    print('shift', param, token)
-            # else:
-            #    print('reduce', param, self._rules[param])
+            #else:
+            #    print('reduce', param, self.rules[param])
             if action == 'shift':
                 state = param
                 result.append(('shift', (terminal, tokenidx)))

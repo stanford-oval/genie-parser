@@ -31,22 +31,30 @@ from util.loader import unknown_tokens, load_data
 from tensorflow.python import debug as tf_debug
 
 def run():
-    if len(sys.argv) < 4:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>")
+    if len(sys.argv) < 5:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + " load_grammar **")
         sys.exit(1)
 
     np.random.seed(42)
-    
-    model_dir = sys.argv[1]
-    model_conf = os.path.join(model_dir, 'model.conf')
-    config = Config.load(['./default.conf', model_conf])
-    model = create_model(config)
 
     off = 2
     load_existing = False
     if sys.argv[2] == '--continue':
         load_existing = True
         off = 3
+
+    load_grammar = sys.argv.pop()
+    if load_grammar not in ['0', '1']:
+        print("Undefined load_grammar value: choose 1 to load or 0 to build the grammar")
+        sys.exit(1)
+
+
+    model_dir = sys.argv[1]
+    model_conf = os.path.join(model_dir, 'model.conf')
+    config = Config.load(['./default.conf', model_conf], load_grammar=load_grammar)
+    model = create_model(config)
+
+
 
     train_sets = []
     dev_sets = []

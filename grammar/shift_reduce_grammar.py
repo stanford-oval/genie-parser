@@ -130,6 +130,9 @@ class ShiftReduceGrammar(AbstractGrammar):
         return self._output_size
     
     def vectorize_program(self, input_sentence, program, max_length=60):
+        # print('*********')
+        # print(input_sentence)
+        # print('*********')
         if isinstance(program, str):
             program = program.split(' ')
         if self._reverse:
@@ -145,16 +148,23 @@ class ShiftReduceGrammar(AbstractGrammar):
             vectors['COPY_' + term] = np.zeros((max_length,), dtype=np.int32)
         action_vector = vectors['actions']
         i = 0
+
         for action, param in parsed:
             if action == 'shift':
                 term, tokenidx = param
                 if term in self._copy_terminal_indices:
-                    assert tokenidx < self._output_size['COPY_' + term]
-                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + self._copy_terminal_indices[term]
                     token = self._parser.extensible_terminals[term][tokenidx]
-                    input_idx = input_sentence.index(token)
-                    vectors['COPY_' + term][i] = input_idx
-                elif term in self._parser.extensible_terminals:
+                    if token in input_sentence:
+                        assert tokenidx < self._output_size['COPY_' + term]
+                        action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
+                                           self._copy_terminal_indices[term]
+                        input_idx = input_sentence.index(token)
+                        vectors['COPY_' + term][i] = input_idx
+                    else:
+                        continue
+
+
+                elif term in self._extensible_terminal_indices:
                     assert tokenidx < self._output_size[term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
                     vectors[term][i] = tokenidx
@@ -165,7 +175,9 @@ class ShiftReduceGrammar(AbstractGrammar):
             assert action_vector[i] < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
             i += 1
             if i >= max_length-1:
-                raise ValueError("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
+                print ("Truncated parse of " + str(program) + " (needs " + str(len(parsed)) + " actions)")
+                action_vector[max_length - 1] = self.end
+                return vectors, max_length - 1
         action_vector[i] = self.end # eos
         i += 1
         

@@ -37,14 +37,16 @@ import warnings
 warnings.simplefilter("ignore", DeprecationWarning)
 
 def run():
-    if len(sys.argv) < 3:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Test Set>>")
+    if len(sys.argv) < 4:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Test Set>>" + " load_grammar ")
         sys.exit(1)
 
     np.random.seed(42)
+
+    load_grammar = sys.argv.pop()
     
     model_dir = sys.argv[1]
-    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')])
+    config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')], load_grammar=load_grammar)
     model = create_model(config)
 
     test_data = dict()
@@ -62,7 +64,7 @@ def run():
         tf.set_random_seed(1234)
         with tf.device('/cpu:0'):
             model.build()
-        
+
             test_evals = dict()
             for key, data in test_data.items():
                 test_evals[key] = Seq2SeqEvaluator(model, config.grammar, data, key, config.reverse_dictionary, beam_size=config.beam_size, batch_size=config.batch_size)
@@ -70,7 +72,7 @@ def run():
 
             with tf.Session() as sess:
                 loader.restore(sess, os.path.join(model_dir, 'best'))
-                
+
                 #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
                 #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 

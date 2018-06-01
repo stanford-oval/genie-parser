@@ -112,7 +112,7 @@ that uses Almond NN-Parser).
     ```
     ~/almond-nnparser/scripts/plot_learning.py ./en/model/train-stats.json
     ```
-8. Test:
+7. Test:
     ```
     ~/almond-nnparser/run_test.py ./en/model ${DATASET}/test.tsv
     ```

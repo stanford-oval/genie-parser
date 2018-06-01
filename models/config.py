@@ -22,9 +22,11 @@ Created on Jul 20, 2017
 
 import configparser
 import importlib
+import pickle
 
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
+
 
 def create_grammar(grammar_type, *args, **kw):
     pkg = None
@@ -53,6 +55,13 @@ def create_grammar(grammar_type, *args, **kw):
         pkg = 'simple'
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
+    elif grammar_type == 'django-BU':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
+    elif grammar_type == 'django-TD':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
+        kw['reverse'] = True
     else:
         pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)
@@ -298,18 +307,65 @@ class Config(object):
             self._config.write(fp)
         
     @staticmethod
-    def load(filenames):
+    def load(filenames, load_grammar):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         flatten_grammar = self.model_type != 'extensible'
-        self._grammar = create_grammar(self._config['output']['grammar'],
-                                       self._config['output']['grammar_input_file'],
-                                       flatten=flatten_grammar,
-                                       max_input_length=self.max_length)
-        
+
+        ##########
+        #
+        #
+        ##########
+
+        if load_grammar == '1':
+
+            if self._config['output']['grammar'] in ['django-TD', 'reverse-tt', 'reverse-tt-split-device']:
+                print('********')
+                print('loading TD grammar')
+                print('********')
+                with open('config_TD_' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
+                    self._grammar = pickle.load(input)
+
+            else:
+                print('********')
+                print('loading BU grammar')
+                print('********')
+                with open('config_BU_' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
+                    self._grammar = pickle.load(input)
+
+        elif load_grammar == '0':
+
+            if self._config['output']['grammar'] in ['django-TD', 'reverse-tt', 'reverse-tt-split-device']:
+                print('********')
+                print('building TD grammar')
+                print('********')
+                self._grammar = create_grammar(self._config['output']['grammar'],
+                                               self._config['output']['grammar_input_file'],
+                                               flatten=flatten_grammar,
+                                               max_input_length=self.max_length)
+                with open('config_TD_' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
+                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
+
+            else:
+                print('********')
+                print('building BU grammar')
+                print('********')
+                self._grammar = create_grammar(self._config['output']['grammar'],
+                                               self._config['output']['grammar_input_file'],
+                                               flatten=flatten_grammar,
+                                               max_input_length=self.max_length)
+                with open('config_BU_' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
+                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
+
+
+        ##########
+        #
+        #
+        ##########
+
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
                                          grammar=self._grammar)
@@ -339,5 +395,5 @@ class Config(object):
         else:
             self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
         print("Output embed size", self.output_embed_size)
-        
+
         return self

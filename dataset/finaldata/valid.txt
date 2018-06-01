@@ -1,0 +1,4 @@
+16001	if not ,	else :
+16002	call the method s.get_data , return the result .	return s . get_data ( )
+16003	define the function strip_tags with an argument value .	def strip_tags ( value ) :
+16004	while STR0 is contained in value and STR1 is contained in value ,	while STR0 in value and STR1 in value :
