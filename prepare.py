@@ -35,6 +35,7 @@ import numpy as np
 import configparser
 
 from grammar import thingtalk
+from util.loader import vectorize
 
 ssl_context = ssl.create_default_context()
 
@@ -52,8 +53,9 @@ def add_words(input_words, canonical):
     else:
         sequence = canonical
     for word in sequence:
-        if not word:
-            raise ValueError('Invalid word "%s" in phrase "%s"' % (word, canonical,))
+        if not word or word != '$' and word.startswith('$'):
+            print('Invalid word "%s" in phrase "%s"' % (word, canonical,))
+            continue
         input_words.add(word)
 
 def get_thingpedia(input_words, workdir, snapshot):
@@ -109,7 +111,18 @@ def download_glove(glove, embed_size):
             glove_zip.extract('glove.42B.' + str(embed_size) + 'd.txt', path=os.path.dirname(glove))
     print('Done')
 
-def load_dataset(input_words, dataset, grammar):
+def load_dataset(input_words, dataset):
+    for filename in os.listdir(dataset):
+        if not filename.endswith('.tsv'):
+            continue
+
+        with open(os.path.join(dataset, filename), 'r') as fp:
+            for line in fp:
+                sentence = line.strip().split('\t')[1]
+                sentence = sentence.split(' ')
+                add_words(input_words, sentence)
+
+def verify_dataset(input_words, dataset, grammar):
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
@@ -118,9 +131,8 @@ def load_dataset(input_words, dataset, grammar):
             for line in fp:
                 sentence, program = line.strip().split('\t')[1:3]
                 sentence = sentence.split(' ')
-                add_words(input_words, sentence)
-                
-                grammar.vectorize_program(sentence, program)
+                sentence_vector, _ = vectorize(sentence, input_words, max_length=60, add_start=True, add_eos=True)
+                grammar.vectorize_program(sentence_vector, program)
 
 def add_extra_words(input_words, extra_word_file):
     print('Adding extra dictionary from', extra_word_file)
@@ -130,9 +142,16 @@ def add_extra_words(input_words, extra_word_file):
 
 
 def save_dictionary(input_words, workdir):
+    dictionary = dict()
+    dictionary['</s>'] = 0
+    dictionary['<s>'] = 1
+    dictionary['<unk>'] = 2
+
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
-        for word in sorted(input_words):
+        for i, word in enumerate(sorted(input_words)):
+            dictionary[word] = i
             print(word, file=fp)
+    return dictionary
 
 def trim_embeddings(input_words, workdir, embed_size, glove):
     HACK = {
@@ -257,12 +276,15 @@ def main():
     add_words(input_words, 'now nothing notify return the event')
 
     get_thingpedia(input_words, workdir, snapshot)
-    grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'))
+    grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'), flatten=False)
     
-    load_dataset(input_words, dataset, grammar)
+    load_dataset(input_words, dataset)
     if extra_word_file:
         add_extra_words(input_words, extra_word_file)
-    save_dictionary(input_words, workdir)
+    dictionary = save_dictionary(input_words, workdir)
+    grammar.set_input_dictionary(dictionary)
+    verify_dataset(dictionary, dataset, grammar)
+
     trim_embeddings(input_words, workdir, embed_size, glove)
     create_model_conf(workdir, embed_size)
 

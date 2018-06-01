@@ -40,6 +40,10 @@ class AbstractGrammar(object):
         self.dictionary = dict()
         self.num_control_tokens = 2
 
+    def set_input_dictionary(self, input_dictionary):
+        # AbstractGrammar does nothing with it
+        pass
+
     @property
     def start(self):
         ''' The ID of the start token when decoding '''

@@ -489,17 +489,11 @@ class ShiftReduceParser:
         state = 0
         result = []
         sequence_iter = iter(sequence)
-        token = next(sequence_iter)
+        terminal, tokenidx = next(sequence_iter)
         while True:
-            if token in self._reverse_extensible_terminals:
-                terminal, tokenidx = self._reverse_extensible_terminals[token]
-            else:
-                terminal = token
-                tokenidx = 0
-
             if terminal not in self._action_table[state]:
                 raise ValueError(
-                    "Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(
+                    "Parse error: unexpected token " + terminal + " in state " + str(state) + ", expected " + str(
                         self._action_table[state].keys()))
             action, param = self._action_table[state][terminal]
             if action == 'accept':
@@ -513,9 +507,9 @@ class ShiftReduceParser:
                 result.append(('shift', (terminal, tokenidx)))
                 stack.append(state)
                 try:
-                    token = next(sequence_iter)
+                    terminal, tokenidx = next(sequence_iter)
                 except StopIteration:
-                    token = EOF_TOKEN
+                    terminal = EOF_TOKEN
             else:
                 rule_id = param
                 result.append(('reduce', rule_id))

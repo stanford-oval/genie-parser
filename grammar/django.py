@@ -462,7 +462,6 @@ class DjangoGrammar(ShiftReduceGrammar):
                 if self.input_to_copy_token_map[input_words[token]] != 0:
                     raise AssertionError("??? " + token + " " + str(input_words[token]))
                 self.input_to_copy_token_map[input_words[token]] = tokenidx
-                self.copy_token_to_input_maps['COPY_' + term][tokenidx] = input_words[token]
 
         return all_embeddings
 
@@ -489,5 +488,4 @@ class DjangoGrammar(ShiftReduceGrammar):
     @property
     def token_canonicals(self):
         return self._token_canonicals
-
 

@@ -65,6 +65,8 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
         word = word.strip()
         if len(word) == 0:
             raise ValueError("empty token in " + str(sentence))
+        if word[0].isupper() and '*' in word:
+            word, _ = word.rsplit('*', maxsplit=1)
         if word in words:
             vector[i] = words[word]
         elif '<unk>' in words:
@@ -208,7 +210,7 @@ def load_data(from_file, input_words, grammar, max_length):
             input_lengths.append(in_len)
             label_sequence = canonical.split(' ')
             label_sequences.append(label_sequence)
-            label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+            label, label_len = grammar.vectorize_program(input, label_sequence, max_length)
             total_label_len += label_len
             for key in grammar.output_size:
                 labels[key].append(label[key])

@@ -31,8 +31,8 @@ from util.loader import unknown_tokens, load_data
 from tensorflow.python import debug as tf_debug
 
 def run():
-    if len(sys.argv) < 5:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>" + " load_grammar **")
+    if len(sys.argv) < 3:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
         sys.exit(1)
 
     np.random.seed(42)
@@ -42,28 +42,33 @@ def run():
     if sys.argv[2] == '--continue':
         load_existing = True
         off = 3
-
-    load_grammar = sys.argv.pop()
-    if load_grammar not in ['0', '1']:
-        print("Undefined load_grammar value: choose 1 to load or 0 to build the grammar")
-        sys.exit(1)
-
+    load_grammar = False
+    if sys.argv[off] == '--load-grammar':
+        load_grammar = True
 
     model_dir = sys.argv[1]
+    try:
+        os.mkdir(model_dir)
+    except OSError:
+        pass
     model_conf = os.path.join(model_dir, 'model.conf')
-    config = Config.load(['./default.conf', model_conf], load_grammar=load_grammar)
+    cached_grammar = os.path.join(model_dir, 'grammar.pkl')
+    config = Config.load(['./default.conf', model_conf], load_grammar=load_grammar, cached_grammar=cached_grammar)
     model = create_model(config)
-
-
 
     train_sets = []
     dev_sets = []
     train_data = dict()
     dev_data = dict()
     for what_filename in sys.argv[off:]:
+        if ':' not in what_filename:
+            print('Invalid train/dev input, must be "train:filename.tsv" or "dev:filename.tsv"')
+            print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
+            sys.exit(1)
         what, filename = what_filename.split(':')
         if what not in ('train', 'dev'):
             print('I don\'t know how to use', what)
+            print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
             sys.exit(1)
         print('Loading', filename, 'as', what)
         data = load_data(filename, config.dictionary, config.grammar, config.max_length)
@@ -77,10 +82,6 @@ def run():
             dev_sets.append(key)
             dev_data[key] = data
     print("unknown", unknown_tokens)
-    try:
-        os.mkdir(model_dir)
-    except OSError:
-        pass
     if not os.path.exists(model_conf):
         config.save(model_conf)
 

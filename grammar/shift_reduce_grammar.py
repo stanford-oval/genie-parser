@@ -112,10 +112,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             self._output_size['COPY_' + term] = self._max_input_length
         
         self.input_to_copy_token_map = None
-        self.copy_token_to_input_maps = dict()
-        for term in self._copy_terminals:
-            self.copy_token_to_input_maps['COPY_' + term] = np.zeros((1 + len(self._parser.extensible_terminals[term]),), dtype=np.int32)
-        
+
         return generator.terminals
     
     @property
@@ -129,16 +126,20 @@ class ShiftReduceGrammar(AbstractGrammar):
     def output_size(self):
         return self._output_size
     
-    def vectorize_program(self, input_sentence, program, max_length=60):
+    def tokenize_program(self, program):
+        if isinstance(program, str):
+            program = program.split(' ')
+        for token in program:
+            yield token, 0
+
+    def vectorize_program(self, input_vector, program, max_length=60):
         # print('*********')
         # print(input_sentence)
         # print('*********')
-        if isinstance(program, str):
-            program = program.split(' ')
         if self._reverse:
-            parsed = self._parser.parse_reverse(program)
+            parsed = self._parser.parse_reverse(self.tokenize_program(program))
         else:
-            parsed = self._parser.parse(program)
+            parsed = self._parser.parse(self.tokenize_program(program))
         
         vectors = dict()
         vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
@@ -149,20 +150,20 @@ class ShiftReduceGrammar(AbstractGrammar):
         action_vector = vectors['actions']
         i = 0
 
+        def vec_index(vec, key):
+            for i in range(len(vec)):
+                if vec[i] == key:
+                    return i
+            raise ValueError('Cannot find ' + str(key) + ' in ' + str(vec))
+
         for action, param in parsed:
             if action == 'shift':
                 term, tokenidx = param
                 if term in self._copy_terminal_indices:
-                    token = self._parser.extensible_terminals[term][tokenidx]
-                    if token in input_sentence:
-                        assert tokenidx < self._output_size['COPY_' + term]
-                        action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
-                                           self._copy_terminal_indices[term]
-                        input_idx = input_sentence.index(token)
-                        vectors['COPY_' + term][i] = input_idx
-                    else:
-                        continue
-
+                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
+                                       self._copy_terminal_indices[term]
+                    input_idx = vec_index(input_vector, tokenidx)
+                    vectors['COPY_' + term][i] = input_idx
 
                 elif term in self._extensible_terminal_indices:
                     assert tokenidx < self._output_size[term]
@@ -195,7 +196,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
                     input_idx = sequences['COPY_' + term][i]
-                    input_token_idx = input_vector[1+input_idx]
+                    input_token_idx = input_vector[input_idx]
                     token_idx = self.input_to_copy_token_map[input_token_idx]
                     return ('shift', (term, token_idx))
                 else:
@@ -267,7 +268,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
                 input_idx = sequences['COPY_' + term][i]
-                input_token_idx = input_vector[1+input_idx]
+                input_token_idx = input_vector[input_idx]
                 token_idx = self.input_to_copy_token_map[input_token_idx]
                 print(action, 'copy', term, input_idx, self._parser.extensible_terminals[term][token_idx])
             else:

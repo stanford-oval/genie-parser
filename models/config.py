@@ -307,7 +307,7 @@ class Config(object):
             self._config.write(fp)
         
     @staticmethod
-    def load(filenames, load_grammar):
+    def load(filenames, load_grammar, cached_grammar):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
@@ -315,60 +315,23 @@ class Config(object):
         
         flatten_grammar = self.model_type != 'extensible'
 
-        ##########
-        #
-        #
-        ##########
-
-        if load_grammar == '1':
-
-            if self._config['output']['grammar'] in ['django-TD', 'reverse-tt', 'reverse-tt-split-device']:
-                print('********')
-                print('loading TD grammar')
-                print('********')
-                with open('config_TD_' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
-                    self._grammar = pickle.load(input)
-
-            else:
-                print('********')
-                print('loading BU grammar')
-                print('********')
-                with open('config_BU_' + self._config['model']['model_type'] + '.pkl', 'rb') as input:
-                    self._grammar = pickle.load(input)
-
-        elif load_grammar == '0':
-
-            if self._config['output']['grammar'] in ['django-TD', 'reverse-tt', 'reverse-tt-split-device']:
-                print('********')
-                print('building TD grammar')
-                print('********')
-                self._grammar = create_grammar(self._config['output']['grammar'],
-                                               self._config['output']['grammar_input_file'],
-                                               flatten=flatten_grammar,
-                                               max_input_length=self.max_length)
-                with open('config_TD_' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
-                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
-
-            else:
-                print('********')
-                print('building BU grammar')
-                print('********')
-                self._grammar = create_grammar(self._config['output']['grammar'],
-                                               self._config['output']['grammar_input_file'],
-                                               flatten=flatten_grammar,
-                                               max_input_length=self.max_length)
-                with open('config_BU_' + self._config['model']['model_type'] + '.pkl', 'wb') as output:
-                    pickle.dump(self._grammar, output, pickle.HIGHEST_PROTOCOL)
-
-
-        ##########
-        #
-        #
-        ##########
+        if load_grammar:
+            with open(cached_grammar, 'rb') as fp:
+                self._grammar = pickle.load(fp)
+        else:
+            self._grammar = create_grammar(self._config['output']['grammar'],
+                                           self._config['output']['grammar_input_file'],
+                                           flatten=flatten_grammar,
+                                           max_input_length=self.max_length)
 
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
                                          grammar=self._grammar)
+        if not load_grammar:
+            self._grammar.set_input_dictionary(words)
+            with open(cached_grammar, 'wb') as fp:
+                pickle.dump(self._grammar, fp, pickle.HIGHEST_PROTOCOL)
+
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
