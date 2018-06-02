@@ -23,6 +23,8 @@ Created on Aug 2, 2017
 import tornado.web
 import re
 
+from util.loader import vectorize
+
 entity_re = re.compile('^[A-Z_]+_[0-9]')
 def check_program_entities(program, entities):
     for token in program:
@@ -45,10 +47,12 @@ class LearnHandler(tornado.web.RequestHandler):
         grammar = language.config.grammar
         
         tokenized = yield language.tokenizer.tokenize(query)
+        input, input_len = vectorize(tokenized.tokens, language.config.dictionary, language.config.max_length, add_eos=True, add_start=True)
         sequence = target_code.split(' ')
         try:
-            program_vector, program_length = grammar.vectorize_program(tokenized.tokens, sequence, max_length=language.config.max_length)
-        except ValueError:
+            program_vector, program_length = grammar.vectorize_program(input, sequence, max_length=language.config.max_length)
+        except ValueError as e:
+            print(e)
             raise tornado.web.HTTPError(400, reason="Invalid ThingTalk")
 
         if not check_program_entities(sequence, tokenized.values):
