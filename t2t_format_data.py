@@ -6,11 +6,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--train-tsv', default='train.tsv')
 parser.add_argument('--test-tsv', default='test.tsv')
 parser.add_argument('--dev-tsv', default='dev.tsv')
+parser.add_argument('--workdir', default='./../workdir')
+parser.add_argument('--dataset', default='./../dataset')
 args = parser.parse_args()
 
-WORKDIR = './../workdir'
-DATASET = './../dataset'
-DIR = os.path.join(DATASET, 't2t_dir')
+WORKDIR = args.workdir
+DATASET = args.dataset
+DIR = os.path.join(DATASET, 't2t_data')
 
 if not os.path.exists(DIR):
     os.makedirs(DIR)
@@ -39,14 +41,11 @@ with open(os.path.join(DIR, 't2t_dev_x'), 'w') as f1:
                 f1.write(parts[1] + '\n')
                 f2.write(parts[2])
 
-if not os.path.exists(os.path.join(DATASET, 't2t_data')):
-    os.makedirs(os.path.join(DATASET, 't2t_data'))
-
-with open(os.path.join(DATASET, 't2t_data/all_words.txt'), 'w') as f:
+with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
     with open(os.path.join(WORKDIR, 'input_words.txt'), 'r') as read:
         lines = read.readlines()
         f.writelines(lines)
     with open(os.path.join(WORKDIR, 'output_words.txt'), 'r') as write:
         lines = write.readlines()
         f.writelines(lines)
-    f.writelines(['UNK\n'])
+    f.writelines(['UNK\n'])     # Need to manually add in UNK apparently.

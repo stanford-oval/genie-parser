@@ -55,18 +55,18 @@ import tensorflow as tf
 # ]
 
 
-def _get_wmt_ende_bpe_dataset(directory, filename):
-  """Extract the WMT en-de corpus `filename` to directory unless it's there."""
-  train_path = os.path.join(directory, filename)
-  if not (tf.gfile.Exists(train_path + ".de") and
-          tf.gfile.Exists(train_path + ".en")):
-    url = ("https://drive.google.com/uc?export=download&id="
-           "0B_bZck-ksdkpM25jRUN2X2UxMm8")
-    corpus_file = generator_utils.maybe_download_from_drive(
-        directory, "wmt16_en_de.tar.gz", url)
-    with tarfile.open(corpus_file, "r:gz") as corpus_tar:
-      corpus_tar.extractall(directory)
-  return train_path
+# def _get_wmt_ende_bpe_dataset(directory, filename):
+#   """Extract the WMT en-de corpus `filename` to directory unless it's there."""
+#   train_path = os.path.join(directory, filename)
+#   if not (tf.gfile.Exists(train_path + ".de") and
+#           tf.gfile.Exists(train_path + ".en")):
+#     url = ("https://drive.google.com/uc?export=download&id="
+#            "0B_bZck-ksdkpM25jRUN2X2UxMm8")
+#     corpus_file = generator_utils.maybe_download_from_drive(
+#         directory, "wmt16_en_de.tar.gz", url)
+#     with tarfile.open(corpus_file, "r:gz") as corpus_tar:
+#       corpus_tar.extractall(directory)
+#   return train_path
 
 
 @registry.register_problem
@@ -80,11 +80,10 @@ class ParseAlmond(translate.TranslateProblem):
   @property
   def vocab_filename(self):
     return "all_words.txt"
-    #vocab.bpe.%d" % self.approx_vocab_size
+    # return vocab.bpe.%d" % self.approx_vocab_size
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
     vocab_filename = os.path.join(data_dir, self.vocab_filename)
-    print('vocab filename: ', vocab_filename)
     if not tf.gfile.Exists(vocab_filename) and force_get:
       raise ValueError("Vocab %s not found" % vocab_filename)
     return text_encoder.TokenTextEncoder(vocab_filename, replace_oov='UNK')
@@ -93,9 +92,9 @@ class ParseAlmond(translate.TranslateProblem):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
     if train:
-	    train_path = "../dataset/t2t_dir/t2t_train"
+	    train_path = "../dataset/t2t_data/t2t_train"
     else:
-    	train_path = "../dataset/t2t_dir/t2t_dev"
+    	train_path = "../dataset/t2t_data/t2t_dev"
     #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
