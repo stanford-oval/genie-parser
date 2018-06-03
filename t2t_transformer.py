@@ -7,8 +7,6 @@ HOME = os.path.expanduser('~')
 DEFAULT_PROBLEM = 'parse_almond'
 DEFAULT_MODEL = 'transformer'
 DEFAULT_HPARAMS = 'transformer_base_single_gpu'
-DEFAULT_TRAIN_DIR = 'workdir/t2t_train/' + DEFAULT_PROBLEM + '/' + \
-        DEFAULT_MODEL + '-' + DEFAULT_HPARAMS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default=DEFAULT_PROBLEM)
@@ -20,9 +18,13 @@ parser.add_argument('--data-dir', default=join(HOME, 'dataset/t2t_data'))
 parser.add_argument('--tmp-dir', default='/tmp/t2t_datagen')
 parser.add_argument('--train-steps', default=10000)
 parser.add_argument('--eval-steps', default=200)
-parser.add_argument('--train-dir', default=join(HOME, DEFAULT_TRAIN_DIR))
+parser.add_argument('--train-dir')
 parser.add_argument('--datagen', action='store_true')
 args = parser.parse_args()
+
+if args.train_dir is None:
+    args.train_dir = 'workdir/t2t_train/' + args.problem + '/' + \
+        args.model + '-' + args.hparams_set
 
 call("mkdir -p {} {} {}".format(args.data_dir, args.tmp_dir, args.train_dir), shell=True)
 
