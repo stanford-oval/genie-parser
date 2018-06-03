@@ -19,12 +19,8 @@ from collections import Counter
 from grammar.abstract import AbstractGrammar
 from models import Config
 import os
+import argparse
 import sys
-
-########################################################################
-# This needs to be run in a directory with thingpedia.json
-# This needs to be run after t2t-datagen and t2t_decode.py (on t2t_test_x)
-##########################################################################
 
 class T2T_Evaluator(object):
     '''
@@ -179,7 +175,15 @@ class T2T_Evaluator(object):
             if fp is not None:
                 fp.close()
 
+########################################################################
+# This needs to be run after t2t-datagen and t2t_decode.py (on t2t_test_x)
+# model.conf should contain the path of the grammar file (thingpedia.json).
+##########################################################################
 
-config = Config.load([os.path.join(sys.argv[1], 'model.conf')])
+parser = argparse.ArgumentParser()
+parser.add_argument('--model-conf', default='model.conf')
+args = parser.parse_args()
+
+config = Config.load([args.model_conf])
 evaluator = T2T_Evaluator(config.grammar, config.reverse_dictionary)
 print(evaluator.eval(True))
