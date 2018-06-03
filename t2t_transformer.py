@@ -23,8 +23,8 @@ parser.add_argument('--datagen', action='store_true')
 args = parser.parse_args()
 
 if args.train_dir is None:
-    args.train_dir = 'workdir/t2t_train/' + args.problem + '/' + \
-        args.model + '-' + args.hparams_set
+    train_dir = 'workdir/t2t_train/{}/{}-{}'.format(args.problem, args.model, args.hparams_set)
+    args.train_dir = join(HOME, train_dir)
 
 call("mkdir -p {} {} {}".format(args.data_dir, args.tmp_dir, args.train_dir), shell=True)
 

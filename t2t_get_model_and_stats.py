@@ -32,35 +32,39 @@ best_acc = 0
 best_step = -1
 best_stats = None
 
-with open(os.path.join(args.outdir, args.outfile), 'w') as f:
-    if not args.print_only:
-        writer = csv.writer(f)
-        writer.writerow(LABELS)
-    print('\t'.join(LABELS))
-    for match in re.findall(pattern, output):
-        step = re.search("(?<=global_step = ).+?(?=,)", match, re.DOTALL).group(0)
-        loss = re.search("(?<=loss = ).+?(?=,)", match, re.DOTALL).group(0)
-        acc = re.search("(?<=accuracy = ).+?(?=,)", match, re.DOTALL).group(0)
-        seq_acc = re.search("(?<=accuracy_per_sequence = ).+?(?=,)", match, re.DOTALL).group(0)
-        if args.rank_seq_acc:
-            if float(seq_acc) > best_acc:
-                best_acc = float(seq_acc)
-                best_step = step
-        else:
-            if float(acc) > best_acc:
-                best_acc = float(acc)
-                best_step = step
+if not args.print_only:
+    f = open(os.path.join(args.outdir, args.outfile), 'w')
+    writer = csv.writer(f)
+    writer.writerow(LABELS)
 
-        acc_t5 = re.search("(?<=accuracy_top5 = ).+?(?=,)", match, re.DOTALL).group(0)
-        bleu = re.search("(?<=bleu_score = ).+?(?=,)", match, re.DOTALL).group(0)
-        perp = re.search("(?<=perplexity = ).+?(?=,)", match, re.DOTALL).group(0)
-        rouge_f2 = re.search("(?<=rouge_2_fscore = ).+?(?=,)", match, re.DOTALL).group(0)
-        rouge_fL = re.search("(?<=rouge_L_fscore = ).*", match, re.DOTALL).group(0)
-        row = [int(step), float(loss), float(acc), float(seq_acc), float(acc_t5), float(bleu), float(perp), float(rouge_f2), float(rouge_fL)]
-        row = [str(num) for num in row]
-        print('\t'.join(row).strip())
-        if not args.print_only:
-            writer.writerow(row)
+print('\t'.join(LABELS))
+for match in re.findall(pattern, output):
+    step = re.search("(?<=global_step = ).+?(?=,)", match, re.DOTALL).group(0)
+    loss = re.search("(?<=loss = ).+?(?=,)", match, re.DOTALL).group(0)
+    acc = re.search("(?<=accuracy = ).+?(?=,)", match, re.DOTALL).group(0)
+    seq_acc = re.search("(?<=accuracy_per_sequence = ).+?(?=,)", match, re.DOTALL).group(0)
+    if args.rank_seq_acc:
+        if float(seq_acc) > best_acc:
+            best_acc = float(seq_acc)
+            best_step = step
+    else:
+        if float(acc) > best_acc:
+            best_acc = float(acc)
+            best_step = step
+
+    acc_t5 = re.search("(?<=accuracy_top5 = ).+?(?=,)", match, re.DOTALL).group(0)
+    bleu = re.search("(?<=bleu_score = ).+?(?=,)", match, re.DOTALL).group(0)
+    perp = re.search("(?<=perplexity = ).+?(?=,)", match, re.DOTALL).group(0)
+    rouge_f2 = re.search("(?<=rouge_2_fscore = ).+?(?=,)", match, re.DOTALL).group(0)
+    rouge_fL = re.search("(?<=rouge_L_fscore = ).*", match, re.DOTALL).group(0)
+    row = [int(step), float(loss), float(acc), float(seq_acc), float(acc_t5), float(bleu), float(perp), float(rouge_f2), float(rouge_fL)]
+    row = [str(num) for num in row]
+    print('\t'.join(row).strip())
+    if not args.print_only:
+        writer.writerow(row)
+
+if not args.print_only:
+    f.close()
 
 if best_step != -1:
     print('Best step was {} with accuracy {}'.format(best_step, best_acc))
