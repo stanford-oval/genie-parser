@@ -26,9 +26,9 @@ def split_input_and_labels(filename, input_file, label_file):
                     program = parts[2].strip()
                     prog_vector, length = grammar.vectorize_program(sentence, program)
                     prog_vector['actions'] = prog_vector['actions'][:length-1]
-                    prog_vector = ' '.join(grammar.prediction_to_string(prog_vector))
+                    prog_vector = grammar.prediction_to_string(prog_vector)
                     f1.write(parts[1] + '\n')
-                    f2.write(prog_vector + '\n')
+                    f2.write(' '.join(prog_vector) + '\n')
 
     print('done splitting {}'.format(filename))
 
@@ -42,11 +42,20 @@ split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
 split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
 
 with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
+    f.write('<pad>\n<EOS>\n')   # does this work?
+
     with open(os.path.join(WORKDIR, 'input_words.txt'), 'r') as read:
         lines = read.readlines()
         f.writelines(lines)
-    with open(os.path.join(WORKDIR, 'output_words.txt'), 'r') as write:
-        lines = write.readlines()
-        f.writelines(lines)
-    f.write('UNK\n') # Need to manually add in UNK apparently.
+    # with open(os.path.join(WORKDIR, 'output_words.txt'), 'r') as write:
+    #     lines = write.readlines()
+    #     f.writelines(lines)
+    num_actions = grammar.num_control_tokens + grammar._parser.num_rules
+    num_actions += len(grammar._copy_terminals) + len(grammar._extensible_terminals)
 
+    actions = list(range(grammar.num_control_tokens, num_actions))
+    grammarized_actions = grammar.prediction_to_string({'actions': actions})
+
+    for token in grammarized_actions:
+        f.write(token + '\n')
+    f.write('UNK\n') # Need to manually add in UNK apparently.

@@ -75,7 +75,7 @@ class ParseAlmond(translate.TranslateProblem):
 
   @property
   def approx_vocab_size(self):
-    return 3974
+    return 4604
 
   @property
   def vocab_filename(self):
