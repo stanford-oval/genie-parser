@@ -36,12 +36,12 @@ else:
     cmd = ' '.join((
         "t2t-trainer --t2t_usr_dir={} --data_dir={} --model={}",
         "--train_steps={} --eval_steps={} --hparams_set={}",
-        "--output_dir=$TRAIN_DIR --problem=$PROBLEM --hparams={}",
+        "--output_dir={} --problem={} --hparams={}",
         "&>> transformer_output.txt",
     ))
 
     cmd = cmd.format(args.problem_dir, args.data_dir, args.model,
             args.train_steps, args.eval_steps, args.hparams_set, args.train_dir,
             args.problem, args.hparams)
-
+    print(cmd)
     call(cmd, shell=True)
