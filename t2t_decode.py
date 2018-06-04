@@ -19,7 +19,7 @@ parser.add_argument('--problem-dir', default=os.path.join(HOME, 'almond-nnparser
 parser.add_argument('--data-dir', default=os.path.join(HOME, 'dataset/t2t_data'))
 parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/thingpedia.json'))
 parser.add_argument('--ckpt_path', required=True)
-parser.add_argument('--outfile', default='translation.tt')
+parser.add_argument('--outfile', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt')
 args = parser.parse_args()
 
 grammar = ThingTalkGrammar(args.grammar, reverse=False)
@@ -50,18 +50,19 @@ def exec_decode(decode_file):
 print('WARNING: does not support copy or extensible terminals. Will write out a blank prediction.')
 
 if args.file is None:
-    decode_file = args.data_dir + '/decode_this.txt'
+    decode_file = '/tmp/t2t_decode.txt'
 
     while(True):
-        s = input("Input sentance to translate:  ")
+        s = input("Input sentence to translate:  ")
         if s == 'done':
             break
 
         call('echo "{}" > {}'.format(s, decode_file), shell=True)
         exec_decode(decode_file)
 
-        print('\n\n\n\n Input sentence: \t' + s)
-        call('cat translation.tt', shell=True)
+        print('\n\n\n Input sentence: \t' + s)
+        call('cat {}'.format(args.outfile), shell=True)
+        print('\n')
 
 else:
     exec_decode(args.file)

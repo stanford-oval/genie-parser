@@ -189,7 +189,7 @@ HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-conf', default='model.conf')
-parser.add_argument('--predictions', default=os.path.join(HOME, 'almond-nnparser/translation.tt'))
+parser.add_argument('--predictions', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 parser.add_argument('--pre-t2t-data', default=os.path.join(HOME,'dataset/test.tsv'))
 args = parser.parse_args()
 

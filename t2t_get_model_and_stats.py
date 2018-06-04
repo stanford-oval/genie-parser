@@ -6,13 +6,15 @@ import argparse
 
 LABELS = ['step', 'loss', 'accuracy', 'sequence accuracy', 'top 5 accuracy', 'approximate bleu score', 'neg log perplexity', 'rouge 2 fscore', 'rouge L fscore']
 
+HOME = os.path.expanduser('~')
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--clean", action='store_true')
 parser.add_argument("--print-only", action='store_true')
 parser.add_argument("--rank-seq-acc", action='store_true')
-parser.add_argument("--model-dir", default='/home/gcampagn/workdir/t2t_train/parse_almond/transformer-transformer_base_single_gpu')
+parser.add_argument("--model-dir", default=os.path.join(HOME, 'workdir/t2t_train/parse_almond/transformer-transformer_base_single_gpu'))
+parser.add_argument("--outdir", default=os.path.join(HOME, 'workdir/t2t_results'))
 parser.add_argument("--file", default='transformer_output.txt')
-parser.add_argument("--outdir", default='/home/gcampagn/workdir/model_and_stats/')
 parser.add_argument("--outfile", default='transformer_output.csv')
 args = parser.parse_args()
 
