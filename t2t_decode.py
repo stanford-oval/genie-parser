@@ -19,7 +19,7 @@ parser.add_argument('--problem-dir', default=os.path.join(HOME, 'almond-nnparser
 parser.add_argument('--data-dir', default=os.path.join(HOME, 'dataset/t2t_data'))
 parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/thingpedia.json'))
 parser.add_argument('--ckpt_path', required=True)
-parser.add_argument('--outfile', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt')
+parser.add_argument('--outfile', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 args = parser.parse_args()
 
 grammar = ThingTalkGrammar(args.grammar, reverse=False)
@@ -28,7 +28,7 @@ def exec_decode(decode_file):
     cmd = ' '.join(('t2t-decoder --t2t_usr_dir={} --data_dir={}',
                        '--problem={} --model={} --hparams_set={}',
                        '--checkpoint_path={} --decode_hparams={}',
-                       '--decode_from_file={}', '--decode_to_file={}'))
+                       '--decode_from_file={} --decode_to_file={}'))
     cmd = cmd.format(args.problem_dir, args.data_dir, args.problem,
             args.model, args.hparams_set, args.ckpt_path,
             args.decode_hparams, decode_file, args.outfile + '.tmp')

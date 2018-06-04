@@ -22,15 +22,20 @@ import os
 import argparse
 import sys
 
+def print_dict(d, fp=sys.stdout):
+    for k, v in d.items():
+        print(k, ' : ', v, file=fp)
+
 class T2T_Evaluator(object):
     '''
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, grammar : AbstractGrammar, preds_file, pre_t2t_file, reverse_dictionary=None):
+    def __init__(self, grammar : AbstractGrammar, preds_file, pre_t2t_file, results_dir, reverse_dictionary=None):
         self.grammar = grammar
         self._reverse_dictionary = reverse_dictionary
         self._beam_size = 1
+        self.results_dir = results_dir
 
         with open(preds_file, 'r') as seq:
             self.sequences = [line.strip().split() for line in seq]
@@ -41,10 +46,6 @@ class T2T_Evaluator(object):
                 sentence, program = line.split('\t')[1].strip().split(), line.split('\t')[2].strip().split()
                 self.input_sequences.append(sentence)
                 self.label_sequences.append(program)
-
-        #print(len(self.label_sequences))
-        #print(len(self.input_sequences))
-        #print(len(self.sequences))
 
     def eval(self, save_to_file=False):
         sequences = self.sequences
@@ -68,8 +69,7 @@ class T2T_Evaluator(object):
         ok_full = np.zeros((self._beam_size,), dtype=np.int32)
         fp = None
         if save_to_file:
-            fp = open("t2t_stats.txt", "w")
-            print("Writing decoded values to ", fp.name)
+            fp = open(os.path.join(self.results_dir, "t2t_results.txt"), "w")
 
         def get_devices(seq):
             return tuple(x for x in seq if x.startswith('@@'))
@@ -158,14 +158,6 @@ class T2T_Evaluator(object):
             else:
                 recall = [0]
                 
-            print("ok grammar:", acc_grammar)
-            print("ok function count:", acc_fn_count)
-            print("ok device:", acc_device)
-            print("ok function:", acc_fn)
-            print("ok signature:", acc_signature)
-            print("ok full:", acc_full)
-            print("program recall:", recall)
-                
             metrics = {
                 'grammar_accuracy': float(acc_grammar[0]),
                 'accuracy': float(acc_full[0]),
@@ -175,6 +167,11 @@ class T2T_Evaluator(object):
                 'signature_accuracy': float(acc_signature[0]),
                 'program_recall': float(recall[0]),
             }
+
+            if save_to_file:
+                with open(os.path.join(self.results_dir, "t2t_stats.txt"), "w") as stats_fp:
+                    print_dict(metrics, stats_fp)
+
             return metrics
         finally:
             if fp is not None:
@@ -189,10 +186,11 @@ HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-conf', default='model.conf')
+parser.add_argument('--results-dir', default=os.path.join(HOME, 'workdir/t2t_results'))
 parser.add_argument('--predictions', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 parser.add_argument('--pre-t2t-data', default=os.path.join(HOME,'dataset/test.tsv'))
 args = parser.parse_args()
 
 config = Config.load([args.model_conf])
-evaluator = T2T_Evaluator(config.grammar, args.predictions, args.pre_t2t_data, config.reverse_dictionary)
-print(evaluator.eval(True))
+evaluator = T2T_Evaluator(config.grammar, args.predictions, args.pre_t2t_data, args.results_dir, config.reverse_dictionary)
+print_dict(evaluator.eval(True))
