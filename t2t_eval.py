@@ -27,20 +27,25 @@ class T2T_Evaluator(object):
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, grammar : AbstractGrammar, reverse_dictionary=None):
+    def __init__(self, grammar : AbstractGrammar, preds_file, pre_t2t_file, reverse_dictionary=None):
         self.grammar = grammar
         self._reverse_dictionary = reverse_dictionary
         self._beam_size = 1
-        with open('/home/gcampagn/almond-nnparser/translation.tt', 'r') as seq:
-            lines = seq.readlines()
-            self.sequences = [line.strip() for line in lines]
-        with open('/home/gcampagn/dataset/t2t_dir/t2t_test_x', 'r') as inputs:
-            lines = inputs.readlines()
-            self.input_sequences = [line.strip() for line in lines]
-        with open('/home/gcampagn/dataset/t2t_dir/t2t_test_y', 'r') as labels:
-            lines = labels.readlines()
-            self.label_sequences = [line.strip() for line in lines]
-        
+
+        with open(preds_file, 'r') as seq:
+            self.sequences = [line.strip().split() for line in seq]
+        with open(pre_t2t_file, 'r') as pre_t2t_data:
+            self.input_sequences = []
+            self.label_sequences = []
+            for line in pre_t2t_data:
+                sentence, program = line.split('\t')[1].strip().split(), line.split('\t')[2].strip().split()
+                self.input_sequences.append(sentence)
+                self.label_sequences.append(program)
+
+        #print(len(self.label_sequences))
+        #print(len(self.input_sequences))
+        #print(len(self.sequences))
+
     def eval(self, save_to_file=False):
         sequences = self.sequences
         label_sequences = self.label_sequences
@@ -131,10 +136,10 @@ class T2T_Evaluator(object):
                     ok_full[beam_pos] += 1
                     is_ok_full = True
                 
-                if beam_pos == 0 and save_to_file:
-                    sentence = self.input_sequences[i]
-                    gold_str = gold
-                    decoded_str = decoded
+                if beam_pos == 0 and save_to_file and self.input_sequences is not None:
+                    sentence = ' '.join(self.input_sequences[i])
+                    gold_str = ' '.join(gold)
+                    decoded_str = ' '.join(decoded)
                     print(sentence, gold_str, decoded_str, is_ok_full,
                           'CorrectGrammar' if is_ok_grammar else 'IncorrectGrammar',
                           'CorrectFunction' if is_ok_fn else 'IncorrectFunction',
@@ -180,10 +185,14 @@ class T2T_Evaluator(object):
 # model.conf should contain the path of the grammar file (thingpedia.json).
 ##########################################################################
 
+HOME = os.path.expanduser('~')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-conf', default='model.conf')
+parser.add_argument('--predictions', default=os.path.join(HOME, 'almond-nnparser/translation.tt'))
+parser.add_argument('--pre-t2t-data', default=os.path.join(HOME,'dataset/test.tsv'))
 args = parser.parse_args()
 
 config = Config.load([args.model_conf])
-evaluator = T2T_Evaluator(config.grammar, config.reverse_dictionary)
+evaluator = T2T_Evaluator(config.grammar, args.predictions, args.pre_t2t_data, config.reverse_dictionary)
 print(evaluator.eval(True))
