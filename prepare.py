@@ -133,8 +133,8 @@ def verify_dataset(input_words, dataset, grammar):
             for line in fp:
                 sentence, program = line.strip().split('\t')[1:3]
                 sentence = sentence.split(' ')
-                sentence_vector, _ = vectorize(sentence, input_words, max_length=60, add_start=True, add_eos=True)
-                grammar.vectorize_program(sentence_vector, program)
+                sentence_vector, _ = vectorize(sentence, input_words, max_length=130, add_start=True, add_eos=True)
+                grammar.vectorize_program(sentence_vector, program, max_length=130)
 
 def add_extra_words(input_words, extra_word_file):
     print('Adding extra dictionary from', extra_word_file)
@@ -237,6 +237,9 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
 def create_model_conf(workdir, embed_size):
     os.makedirs(os.path.join(workdir, 'model'), exist_ok=True)
     
+    if os.path.exists(os.path.join(workdir, 'model', 'model.conf')):
+        return
+
     model_config = configparser.ConfigParser()
     model_config['input'] = {
         'input_words': os.path.join(workdir, 'input_words.txt'),
@@ -285,7 +288,7 @@ def main():
         add_extra_words(input_words, extra_word_file)
     dictionary = save_dictionary(input_words, workdir)
     grammar.set_input_dictionary(dictionary)
-    verify_dataset(dictionary, dataset, grammar)
+    #verify_dataset(dictionary, dataset, grammar)
 
     trim_embeddings(input_words, workdir, embed_size, glove)
     create_model_conf(workdir, embed_size)
