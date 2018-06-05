@@ -37,14 +37,12 @@ import warnings
 warnings.simplefilter("ignore", DeprecationWarning)
 
 def run():
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> <<Test Set>>")
         sys.exit(1)
 
     np.random.seed(42)
 
-    load_grammar = sys.argv.pop()
-    
     model_dir = sys.argv[1]
     cached_grammar = os.path.join(model_dir, 'grammar.pkl')
     config = Config.load(['./default.conf', os.path.join(model_dir, 'model.conf')], load_grammar=True, cached_grammar=cached_grammar)

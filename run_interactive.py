@@ -34,7 +34,7 @@ matplotlib.use('GTK3Cairo')
 import matplotlib.pyplot as plt
 
 from models import Config, create_model
-from util.loader import vectorize
+from util.loader import vectorize, Dataset
 
 from tensorflow.python import debug as tf_debug
 
@@ -108,14 +108,20 @@ def run():
                         if not line:
                             continue
                         
+                        line = line.split(' ')
                         sentence, sentence_length = vectorize(line, config.dictionary, config.max_length, add_eos=True, add_start=True)
                         print('Vectorized', sentence, sentence_length)
-                        fake_input, fake_length = vectorize('ig to fb', config.dictionary, config.max_length, add_eos=True, add_start=True)
-                        fake_parse = np.zeros((2*config.max_length-1,))
                         
-                        feed = model.create_feed_dict([sentence, fake_input],
-                                                      [sentence_length, fake_length],
-                                                      [fake_parse, fake_parse])
+                        fake_parse = np.zeros((2*config.max_length-1,))
+                        data = Dataset(input_sequences=[line],
+                                       input_vectors=[sentence],
+                                       input_lengths=[sentence_length],
+                                       constituency_parse=[fake_parse],
+                                       label_sequences=None,
+                                       label_vectors=None,
+                                       label_lengths=None
+                                       )
+                        feed = model.create_feed_dict(data)
                         predictions, attention_scores = sess.run((model.preds, model.attention_scores), feed_dict=feed)
 
                         prediction = dict()

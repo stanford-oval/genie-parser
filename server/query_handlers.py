@@ -27,7 +27,7 @@ import tornado.concurrent
 import sys
 import datetime
 
-from util.loader import vectorize, vectorize_constituency_parse
+from util.loader import Dataset, vectorize, vectorize_constituency_parse
 
 class TokenizeHandler(tornado.web.RequestHandler):
     '''
@@ -78,8 +78,15 @@ class QueryHandler(tornado.web.RequestHandler):
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
                     parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
-                input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
-                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
+                data = Dataset(input_sequences=[tokens],
+                               input_vectors=[input],
+                               input_lengths=[input_len],
+                               constituency_parse=[parse_vector],
+                               label_sequences=None,
+                               label_vectors=None,
+                               label_lengths=None
+                               )
+                sequences = language.model.predict_on_batch(language.session, data)
 
                 primary_sequences = sequences[grammar.primary_output]                
                 assert len(primary_sequences) == 1

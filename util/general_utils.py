@@ -1,56 +1,30 @@
 import sys
 import time
 import numpy as np
-
+import collections
+from tensorflow.python.util import nest
 
 def get_minibatches(data, minibatch_size, shuffle=True):
     """
-    Iterates through the provided data one minibatch at at time. You can use this function to
-    iterate through data in minibatches as follows:
-
-        for inputs_minibatch in get_minibatches(inputs, minibatch_size):
-            ...
-
-    Or with multiple data sources:
+    Iterates through the provided data one minibatch at at time:
 
         for inputs_minibatch, labels_minibatch in get_minibatches([inputs, labels], minibatch_size):
             ...
 
     Args:
-        data: there are two possible values:
-            - a list or numpy array
-            - a list or tuple where each element is either a list or numpy array
+        data: a tuple, namedtuple or list where each element is a numpy array
         minibatch_size: the maximum number of items in a minibatch
         shuffle: whether to randomize the order of returned data
     Returns:
-        minibatches: the return value depends on data:
-            - If data is a list/array it yields the next minibatch of data.
-            - If data a list of lists/arrays it returns the next minibatch of each element in the
-              list. This can be used to iterate through multiple data sources
-              (e.g., features and labels) at the same time.
-
+        minibatches: the next minibatch of each element in the list/tuple.
     """
-    list_data = isinstance(data, (list, tuple)) and isinstance(data[0], (list,np.ndarray))
-    data_size = len(data[0]) if list_data else len(data)
+    data_size = len(data[0])
     indices = np.arange(data_size)
     if shuffle:
         np.random.shuffle(indices)
     for minibatch_start in np.arange(0, data_size, minibatch_size):
         minibatch_indices = indices[minibatch_start:minibatch_start + minibatch_size]
-        yield [minibatch(d, minibatch_indices) for d in data] if list_data \
-            else minibatch(data, minibatch_indices)
-
-
-def minibatch(data, minibatch_idx):
-    if isinstance(data, dict):
-        minidict = dict()
-        for key, v in data.items():
-            minidict[key] = minibatch(v, minibatch_idx)
-        return minidict
-    elif isinstance(data, np.ndarray):
-        return data[minibatch_idx]
-    else:
-        return [data[i] for i in minibatch_idx]
+        yield nest.map_structure(lambda d: d[minibatch_indices], data)
 
 
 def logged_loop(iterable, n=None):

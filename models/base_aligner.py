@@ -25,6 +25,8 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.util import nest
 
+from util.loader import Dataset
+
 from .base_model import BaseModel
 from .encoders import RNNEncoder, BiRNNEncoder, BagOfWordsEncoder
 from .tree_encoder import TreeEncoder
@@ -149,26 +151,23 @@ class BaseAligner(BaseModel):
         self.epoch_placeholder = tf.placeholder(tf.int32, shape=(), name='epoch_number')
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name='dropout_probability')
 
-    def create_feed_dict(self, inputs_batch, input_length_batch, parses_batch,
-                         label_sequence_batch=None, labels_batch=None, label_length_batch=None,
-                         dropout=1, batch_number=0, epoch=0):
+    def create_feed_dict(self, data : Dataset, dropout=1, batch_number=0, epoch=0):
         feed_dict = dict()
-        feed_dict[self.input_placeholder] = inputs_batch
-        feed_dict[self.input_length_placeholder] = input_length_batch
-        feed_dict[self.constituency_parse_placeholder] = parses_batch
-        if labels_batch is not None:
-            for key, batch in labels_batch.items():
+        feed_dict[self.input_placeholder] = data.input_vectors
+        feed_dict[self.input_length_placeholder] = data.input_lengths
+        feed_dict[self.constituency_parse_placeholder] = data.constituency_parse
+        if data.label_vectors is not None:
+            for key, batch in data.label_vectors.items():
                 feed_dict[self.output_placeholders[key]] = batch
-        if label_length_batch is not None:
-            feed_dict[self.output_length_placeholder] = label_length_batch
+            feed_dict[self.output_length_placeholder] = data.label_lengths
         feed_dict[self.dropout_placeholder] = dropout
         feed_dict[self.batch_number_placeholder] = batch_number
         feed_dict[self.epoch_placeholder] = epoch
         
-        if self.config.decoder_action_count_loss > 0 and labels_batch is not None:
-            action_count_batch = np.zeros((len(labels_batch), self.config.grammar.output_size), dtype=np.int32)
-            for i in range(len(labels_batch)):
-                action_count_batch[i] = np.bincount(labels_batch[i][:label_length_batch[i]],
+        if self.config.decoder_action_count_loss > 0 and data.label_vectors is not None:
+            action_count_batch = np.zeros((len(data.label_vectors[self.config.grammar.primary_output]), self.config.grammar.output_size[self.config.grammar.primary_output]), dtype=np.int32)
+            for i in range(len(data.label_vectors[self.config.grammar.primary_output])):
+                action_count_batch[i] = np.bincount(data.label_vectors[self.config.grammar.primary_output][i][:data.label_lengths[i]],
                                                     minlength=self.config.grammar.output_size)
             feed_dict[self.output_action_counts] = action_count_batch
         return feed_dict

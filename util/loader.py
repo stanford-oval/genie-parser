@@ -23,6 +23,11 @@ Created on Mar 16, 2017
 import numpy as np
 import time
 
+from collections import namedtuple
+
+Dataset = namedtuple('Dataset', ('input_sequences', 'input_vectors', 'input_lengths',
+    'constituency_parse', 'label_sequences', 'label_vectors', 'label_lengths'))
+
 unknown_tokens = set()
 
 def vectorize_constituency_parse(parse, max_length, expect_length):
@@ -155,14 +160,14 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     embeddings_matrix[words['</s>'], embed_size-1] = 1.
     embeddings_matrix[words['<s>'], embed_size-2] = 1.
 
-    for token, id in words.items():
+    for token, token_id in words.items():
         if token in ('<unk>', '</s>', '<s>'):
             continue
         if use_types and token[0].isupper():
             continue
         if token in word_vectors:
             vec = word_vectors[token]
-            embeddings_matrix[id, 0:len(vec)] = vec
+            embeddings_matrix[token_id, 0:len(vec)] = vec
         else:
             raise ValueError("missing vector for", token)
     if use_types:
@@ -183,6 +188,7 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     return embeddings_matrix, embed_size
 
 def load_data(from_file, input_words, grammar, max_length):
+    input_sequences = []
     inputs = []
     input_lengths = []
     parses = []
@@ -198,36 +204,53 @@ def load_data(from_file, input_words, grammar, max_length):
             #print(line)
             split = line.strip().split('\t')
             if len(split) == 4:
-                _, sentence, canonical, parse = split
+                _, sentence, label, parse = split
             else:
-                _, sentence, canonical = split
+                _, sentence, label = split
                 parse = None
+
+            input_vector, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
+            
             sentence = sentence.split(' ')
+            if len(sentence) > max_length:
+                sentence = sentence[:max_length]
+            else:
+                sentence += [''] * (max_length-len(sentence))
+            input_sequences.append(sentence)
 
-            input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
-
-            inputs.append(input)
+            inputs.append(input_vector)
             input_lengths.append(in_len)
-            label_sequence = canonical.split(' ')
+            label_sequence = label.split(' ')
+            label_vector, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+
+            if len(label_sequence) > max_length:
+                label_sequence = label_sequence[:max_length]
+            else:
+                label_sequence += [''] * (max_length-len(label_sequence))
             label_sequences.append(label_sequence)
-            label, label_len = grammar.vectorize_program(input, label_sequence, max_length)
             total_label_len += label_len
             for key in grammar.output_size:
-                labels[key].append(label[key])
+                labels[key].append(label_vector[key])
             label_lengths.append(label_len)
             if parse is not None:
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len-2))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
-    print('********')
     print('avg label productions', total_label_len/len(inputs))
-    print('********')
 
-    # FIXME remove
+    input_sequences = np.array(input_sequences, dtype=np.str)
+    label_sequences = np.array(label_sequences, dtype=np.str)
     inputs = np.array(inputs)
     input_lengths = np.array(input_lengths)
     parses = np.array(parses)
     for key in grammar.output_size:
         labels[key] = np.array(labels[key])
+    label_lengths = np.array(label_lengths)
 
-    return inputs, input_lengths, parses, label_sequences, labels, label_lengths
+    return Dataset(input_sequences=input_sequences,
+                   input_vectors=inputs,
+                   input_lengths=input_lengths,
+                   constituency_parse=parses,
+                   label_sequences=label_sequences,
+                   label_vectors=labels,
+                   label_lengths=label_lengths)
