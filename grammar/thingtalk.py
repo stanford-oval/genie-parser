@@ -26,10 +26,8 @@ import urllib.request
 import ssl
 import re
 import sys
-import itertools
-import numpy as np
 from .shift_reduce_grammar import ShiftReduceGrammar
-from util.loader import load_dictionary, vectorize
+from util.loader import load_dictionary
 
 from collections import OrderedDict
 from orderedset import OrderedSet
@@ -450,25 +448,15 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 in_string = not in_string
                 yield token, 0
             elif in_string:
-                yield 'WORD', self._input_dictionary[token]
+                yield 'WORD', token
             else:
                 yield token, 0
 
     def set_input_dictionary(self, input_dictionary):
-        self._input_dictionary = input_dictionary
-
         non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
         self.tokens += self.construct_parser(self._grammar, copy_terminals={
             'WORD': non_entity_words
         })
-
-        self.input_to_copy_token_map = np.zeros((len(input_dictionary),), dtype=np.int32)
-        for term in self._copy_terminals:
-            for tokenidx, token in enumerate(self.extensible_terminals[term]):
-                if self.input_to_copy_token_map[input_dictionary[token]] != 0:
-                    print(self.input_to_copy_token_map[input_dictionary[token]], tokenidx)
-                    raise AssertionError("??? " + token + " " + str(input_dictionary[token]))
-                self.input_to_copy_token_map[input_dictionary[token]] = tokenidx
 
         if not self._quiet:
             print('num functions', self.num_functions)
@@ -492,14 +480,13 @@ if __name__ == '__main__':
         try:
             sentence, program = line.strip().split('\t')[1:3]
             sentence = sentence.split(' ')
-            sentence_vector, _ = vectorize(sentence, dictionary, max_length=60, add_start=True, add_eos=True)
-            vector, length = grammar.vectorize_program(sentence_vector, program)
-            reconstructed = grammar.reconstruct_program(sentence_vector, vector)
+            vector, length = grammar.vectorize_program(sentence, program)
+            reconstructed = grammar.reconstruct_program(sentence, vector)
             assert program == ' '.join(reconstructed)
             #print()
             #print(program)
             #grammar.print_prediction(sentence_vector, vector)
         except:
             print(line.strip())
-            grammar.print_prediction(sentence_vector, vector)
+            grammar.print_prediction(sentence, vector)
             raise

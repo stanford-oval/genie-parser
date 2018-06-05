@@ -430,14 +430,7 @@ class ShiftReduceParser:
         self._start_symbol = start_symbol
         
         self._extensible_terminals = extensible_terminals
-        # reverse the extensible terminal dictionary
-        self._reverse_extensible_terminals = dict()
-        for term, values in extensible_terminals.items():
-            for idx, value in enumerate(values):
-                if value in self._reverse_extensible_terminals:
-                    raise ValueError('Ambiguous concrete token ' + value)
-                self._reverse_extensible_terminals[value] = (term, idx)
-        
+
     @property
     def num_rules(self):
         # the last rule is $ROOT -> $input <<EOF>>
@@ -489,7 +482,7 @@ class ShiftReduceParser:
         state = 0
         result = []
         sequence_iter = iter(sequence)
-        terminal, tokenidx = next(sequence_iter)
+        terminal, token = next(sequence_iter)
         while True:
             if terminal not in self._action_table[state]:
                 raise ValueError(
@@ -504,10 +497,10 @@ class ShiftReduceParser:
             #    print('reduce', param, self.rules[param])
             if action == 'shift':
                 state = param
-                result.append(('shift', (terminal, tokenidx)))
+                result.append(('shift', (terminal, token)))
                 stack.append(state)
                 try:
-                    terminal, tokenidx = next(sequence_iter)
+                    terminal, token = next(sequence_iter)
                 except StopIteration:
                     terminal = EOF_TOKEN
             else:
@@ -545,9 +538,8 @@ class ShiftReduceParser:
         stacks = dict()
         for action, param in sequence:
             if action == 'shift':
-                term, tokenidx = param
+                term, token = param
                 if term in self._extensible_terminals:
-                    token = self._extensible_terminals[term][tokenidx]
                     if 'terminal_' + term not in stacks:
                         stacks['terminal_' + term] = [token]
                     else:

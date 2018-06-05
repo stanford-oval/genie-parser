@@ -72,14 +72,14 @@ class QueryHandler(tornado.web.RequestHandler):
         grammar = config.grammar
         with language.session.as_default():
             with language.session.graph.as_default():
-                input, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+                input_vector, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
                 #print('Vectorized', input, input_len)
                 if parse:
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
                     parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
                 data = Dataset(input_sequences=[tokens],
-                               input_vectors=[input],
+                               input_vectors=[input_vector],
                                input_lengths=[input_len],
                                constituency_parse=[parse_vector],
                                label_sequences=None,
@@ -91,11 +91,11 @@ class QueryHandler(tornado.web.RequestHandler):
                 primary_sequences = sequences[grammar.primary_output]                
                 assert len(primary_sequences) == 1
                 for i in range(len(primary_sequences[0])):
-                    vectors = dict()
+                    prediction = dict()
                     for key in sequences:
-                        vectors[key] = sequences[key][0,i]
+                        prediction[key] = sequences[key][0,i]
 
-                    decoded = grammar.reconstruct_program(input, vectors, ignore_errors=True)
+                    decoded = grammar.reconstruct_program(tokens, prediction, ignore_errors=True)
                     #print("Beam", i+1, decoded if decoded else 'failed to predict')
                     if not decoded:
                         continue

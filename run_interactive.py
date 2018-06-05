@@ -108,13 +108,13 @@ def run():
                         if not line:
                             continue
                         
-                        line = line.split(' ')
-                        sentence, sentence_length = vectorize(line, config.dictionary, config.max_length, add_eos=True, add_start=True)
-                        print('Vectorized', sentence, sentence_length)
+                        sentence = line.split(' ')
+                        input_vector, sentence_length = vectorize(sentence, config.dictionary, config.max_length, add_eos=True, add_start=True)
+                        print('Vectorized', input_vector[:sentence_length])
                         
                         fake_parse = np.zeros((2*config.max_length-1,))
                         data = Dataset(input_sequences=[line],
-                                       input_vectors=[sentence],
+                                       input_vectors=[input_vector],
                                        input_lengths=[sentence_length],
                                        constituency_parse=[fake_parse],
                                        label_sequences=None,
@@ -138,7 +138,7 @@ def run():
                         config.grammar.print_prediction(sentence, prediction)
                         if len(predictions[config.grammar.primary_output][0]) == 1:
                             try:
-                                print('predicted', ' '.join(config.grammar.reconstruct_program(sentence, prediction)))
+                                print('predicted', ' '.join(config.grammar.reconstruct_program(line, prediction)))
                             except (KeyError, TypeError, IndexError, ValueError):
                                 print('failed to predict')
                         else:
@@ -151,7 +151,6 @@ def run():
                                 except (KeyError, TypeError, IndexError, ValueError):
                                     print('beam', i, 'failed to predict')
 
-                        sentence = list(config.reverse_dictionary[x] for x in sentence[:sentence_length])
                         show_heatmap(sentence, config.grammar.prediction_to_string(prediction), attention_scores[0])
                 except EOFError:
                     pass

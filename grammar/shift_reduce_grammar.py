@@ -111,8 +111,6 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._copy_terminals:
             self._output_size['COPY_' + term] = self._max_input_length
         
-        self.input_to_copy_token_map = None
-
         return generator.terminals
     
     @property
@@ -132,7 +130,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         for token in program:
             yield token, 0
 
-    def vectorize_program(self, input_vector, program, max_length=60):
+    def vectorize_program(self, input_sentence, program, max_length=60):
         # print('*********')
         # print(input_sentence)
         # print('*********')
@@ -150,25 +148,18 @@ class ShiftReduceGrammar(AbstractGrammar):
         action_vector = vectors['actions']
         i = 0
 
-        def vec_index(vec, key):
-            for i in range(len(vec)):
-                if vec[i] == key:
-                    return i
-            raise ValueError('Cannot find ' + str(key) + ' in ' + str(vec))
-
         for action, param in parsed:
             if action == 'shift':
-                term, tokenidx = param
+                term, token = param
                 if term in self._copy_terminal_indices:
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
                                        self._copy_terminal_indices[term]
-                    input_idx = vec_index(input_vector, tokenidx)
-                    vectors['COPY_' + term][i] = input_idx
-
+                    input_position = input_sentence.index(token)
+                    vectors['COPY_' + term][i] = input_position
                 elif term in self._extensible_terminal_indices:
-                    assert tokenidx < self._output_size[term]
+                    assert token < self._output_size[term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
-                    vectors[term][i] = tokenidx
+                    vectors[term][i] = token
                 else:
                     continue
             else:
@@ -184,7 +175,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         
         return vectors, i
 
-    def reconstruct_program(self, input_vector, sequences, ignore_errors=False):
+    def reconstruct_program(self, input_sentence, sequences, ignore_errors=False):
         actions = sequences['actions']
         try:
             def gen_action(i):
@@ -195,10 +186,9 @@ class ShiftReduceGrammar(AbstractGrammar):
                     return ('reduce', x - self.num_control_tokens)
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
-                    input_idx = sequences['COPY_' + term][i]
-                    input_token_idx = input_vector[input_idx]
-                    token_idx = self.input_to_copy_token_map[input_token_idx]
-                    return ('shift', (term, token_idx))
+                    input_position = sequences['COPY_' + term][i]
+                    input_token = input_sentence[input_position]
+                    return ('shift', (term, input_token))
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))
@@ -253,7 +243,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             else:
                 return (self._parser.extensible_terminals[key][output],)
 
-    def print_prediction(self, input_vector, sequences):
+    def print_prediction(self, input_sentence, sequences):
         actions = sequences['actions']
         for i, action in enumerate(actions):
             if action == 0:
@@ -267,10 +257,9 @@ class ShiftReduceGrammar(AbstractGrammar):
                 print(action, 'reduce', ':', lhs, '->', ' '.join(rhs))
             elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
-                input_idx = sequences['COPY_' + term][i]
-                input_token_idx = input_vector[input_idx]
-                token_idx = self.input_to_copy_token_map[input_token_idx]
-                print(action, 'copy', term, input_idx, self._parser.extensible_terminals[term][token_idx])
+                input_position = sequences['COPY_' + term][i]
+                token = input_sentence[input_position]
+                print(action, 'copy', term, token)
             else:
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                 print(action, 'shift', term, sequences[term][i], self._parser.extensible_terminals[term][sequences[term][i]])
@@ -283,6 +272,8 @@ class ShiftReduceGrammar(AbstractGrammar):
                 return 'G'
             elif action - self.num_control_tokens < self._parser.num_rules:
                 return 'R' + str(action - self.num_control_tokens)
+            elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
+                return 'C' + str(action - self.num_control_tokens)
             else:
                 return 'S' + str(action - self.num_control_tokens - self._parser.num_rules)
         return list(map(action_to_string, sequences['actions']))

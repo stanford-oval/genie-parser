@@ -13,7 +13,6 @@ class DjangoGrammar(ShiftReduceGrammar):
     def __init__(self, filename=None, **kw):
         super().__init__(**kw)
         self.entities = []
-        self.input_to_copy_token_map = []
         self._token_canonicals = dict()
 
         '''
@@ -455,13 +454,6 @@ class DjangoGrammar(ShiftReduceGrammar):
                 embedding_matrix[i] = self._embed_token(token, input_words, input_embeddings)
             assert not np.any(np.isnan(embedding_matrix))
             all_embeddings[key] = embedding_matrix
-
-        self.input_to_copy_token_map = np.zeros((len(input_words),), dtype=np.int32)
-        for term in self._copy_terminals:
-            for tokenidx, token in enumerate(self.extensible_terminals[term]):
-                if self.input_to_copy_token_map[input_words[token]] != 0:
-                    raise AssertionError("??? " + token + " " + str(input_words[token]))
-                self.input_to_copy_token_map[input_words[token]] = tokenidx
 
         return all_embeddings
 
