@@ -52,6 +52,12 @@ class TokenizeHandler(tornado.web.RequestHandler):
         self.write(dict(tokens=tokenized.tokens, entities=tokenized.values))
         self.finish()
 
+def clean_tokens(tokens):
+    for t in tokens:
+        if t[0].isupper() and '*' in t:
+            yield t.rsplit('*', maxsplit=1)[0]
+        else:
+            yield t
 
 class QueryHandler(tornado.web.RequestHandler):
     '''
@@ -64,7 +70,7 @@ class QueryHandler(tornado.web.RequestHandler):
     
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
-        tokens = tokenized.tokens
+        tokens = list(clean_tokens(tokenized.tokens))
         parse = tokenized.constituency_parse
 
         results = []
