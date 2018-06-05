@@ -289,8 +289,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                                        ('$constant_array_values', ',', '$constant_Any')],
             '$constant_Any': OrderedSet(),
 
-            '$word_list': [('WORD',),
-                           ('$word_list', 'WORD',)]
+            '$word_list': [('SPAN',),],
+                           #('WORD',),
+                           #('$word_list', 'WORD',)]
         })
         
         def add_type(type, value_rules, operators):
@@ -439,23 +440,32 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             program = program.split(' ')
 
         in_string = False
-        for token in program:
+        string_begin = None
+        string_end = None
+        for i, token in enumerate(program):
             if self._flatten:
                 yield token, 0
                 continue
 
             if token == '"':
                 in_string = not in_string
-                yield token, 0
+                if in_string:
+                    string_begin = i+1
+                else:
+                    string_end = i
+                    yield 'SPAN', program[string_begin:string_end]
+                    string_begin = None
+                    string_end = None
+                yield token, None
             elif in_string:
-                yield 'WORD', token
+                continue
             else:
                 yield token, 0
 
     def set_input_dictionary(self, input_dictionary):
-        non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
+        #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
         self.tokens += self.construct_parser(self._grammar, copy_terminals={
-            'WORD': non_entity_words
+            'SPAN': []
         })
 
         if not self._quiet:
@@ -463,7 +473,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             print('num queries', len(self.functions['queries']))
             print('num actions', len(self.functions['actions']))
             print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
-            print('num words', len(non_entity_words))
         
         self.dictionary = dict()
         for i, token in enumerate(self.tokens):

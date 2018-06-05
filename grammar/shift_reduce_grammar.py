@@ -21,9 +21,21 @@ Created on Dec 8, 2017
 '''
 
 import numpy as np
+from collections import OrderedDict
 
 from .abstract import AbstractGrammar
 from .slr import SLRParserGenerator
+
+def find_substring(sequence, substring):
+    for i in range(len(sequence)-len(substring)+1):
+        found = True
+        for j in range(0, len(substring)):
+            if sequence[i+j] != substring[j]:
+                found = False
+                break
+        if found:
+            return i
+    return -1
 
 class ShiftReduceGrammar(AbstractGrammar):
 
@@ -104,12 +116,13 @@ class ShiftReduceGrammar(AbstractGrammar):
             print('num states', self._parser.num_states)
             print('num shifts', len(self._extensible_terminals) + 1)
 
-        self._output_size = dict()
+        self._output_size = OrderedDict()
         self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
         for term in self._extensible_terminals:
             self._output_size[term] = len(self._parser.extensible_terminals[term])
         for term in self._copy_terminals:
-            self._output_size['COPY_' + term] = self._max_input_length
+            self._output_size['COPY_' + term + '_begin'] = self._max_input_length
+            self._output_size['COPY_' + term + '_end'] = self._max_input_length
         
         return generator.terminals
     
@@ -141,27 +154,31 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._extensible_terminals:
             vectors[term] = np.ones((max_length,), dtype=np.int32) * -1
         for term in self._copy_terminals:
-            vectors['COPY_' + term] = np.ones((max_length,), dtype=np.int32) * -1
+            vectors['COPY_' + term + '_begin'] = np.ones((max_length,), dtype=np.int32) * -1
+            vectors['COPY_' + term + '_end'] = np.ones((max_length,), dtype=np.int32) * -1
         action_vector = vectors['actions']
         i = 0
 
         for action, param in parsed:
             if action == 'shift':
-                term, token = param
+                term, payload = param
                 if term in self._copy_terminal_indices:
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
                                        self._copy_terminal_indices[term]
+                    span = payload
                     # add one to account for <s> at the front
-                    input_position = 1 + input_sentence.index(token)
-                    if input_position > self._max_input_length:
-                        print('copy token', token, 'past the end of the input sentence')
-                        vectors['COPY_' + term][i] = self._max_input_length-1 # last position in the sentence
+                    input_position = 1 + find_substring(input_sentence, span)
+                    if input_position == 0 or input_position > self._max_input_length:
+                        vectors['COPY_' + term + '_begin'][i] = self._max_input_length-1 # last position in the sentence
+                        vectors['COPY_' + term + '_end'][i] = self._max_input_length-1
                     else:
-                        vectors['COPY_' + term][i] = input_position
+                        vectors['COPY_' + term + '_begin'][i] = input_position
+                        vectors['COPY_' + term + '_end'][i] = input_position + len(span)-1
                 elif term in self._extensible_terminal_indices:
-                    assert token < self._output_size[term]
+                    tokenid = payload
+                    assert tokenid < self._output_size[term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
-                    vectors[term][i] = token
+                    vectors[term][i] = tokenid
                 else:
                     continue
             else:
@@ -188,9 +205,10 @@ class ShiftReduceGrammar(AbstractGrammar):
                     return ('reduce', x - self.num_control_tokens)
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
-                    input_position = sequences['COPY_' + term][i]-1
-                    input_token = input_sentence[input_position]
-                    return ('shift', (term, input_token))
+                    begin_position = sequences['COPY_' + term + '_begin'][i]-1
+                    end_position = sequences['COPY_' + term + '_end'][i]-1
+                    input_span = input_sentence[begin_position:end_position+1]
+                    return ('shift', (term, ' '.join(input_span)))
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))
@@ -259,9 +277,10 @@ class ShiftReduceGrammar(AbstractGrammar):
                 print(action, 'reduce', ':', lhs, '->', ' '.join(rhs))
             elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
-                input_position = sequences['COPY_' + term][i]-1
-                token = input_sentence[input_position]
-                print(action, 'copy', term, token)
+                begin_position = sequences['COPY_' + term + '_begin'][i]-1
+                end_position = sequences['COPY_' + term + '_end'][i]-1
+                input_span = input_sentence[begin_position:end_position+1]
+                print(action, 'copy', term, input_span)
             else:
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                 print(action, 'shift', term, sequences[term][i], self._parser.extensible_terminals[term][sequences[term][i]])
