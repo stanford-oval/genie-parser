@@ -333,7 +333,7 @@ class ExtensibleGrammarAligner(BaseAligner):
                 preds = tf.pad(logits, padding, mode='constant')
                 preds.set_shape((None, self.config.max_length, logits.shape[2]))
         
-                if key == self.config.grammar.primary_output or self.config.grammar.is_copy_type(key):
+                if key == self.config.grammar.primary_output:
                     mask = sequence_mask
                     masked_gold = self.output_placeholders[key]
                 else:
@@ -347,6 +347,6 @@ class ExtensibleGrammarAligner(BaseAligner):
                     loss = 20 * self._max_margin_loss(preds, masked_gold, mask, size)
                 else:
                     loss = self._sequence_softmax_loss(preds, masked_gold, mask)
-                total_loss += tf.reduce_mean(loss, axis=0)
+                total_loss += loss
 
-        return total_loss
+        return tf.reduce_mean(total_loss, axis=0)

@@ -88,7 +88,7 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         all_extensible_terminals = dict()
         all_extensible_terminals.update(extensible_terminals)
-        all_extensible_terminals.update(copy_terminals)        
+        all_extensible_terminals.update(copy_terminals)
         generator = SLRParserGenerator(grammar, all_extensible_terminals, '$input')
         self._parser = generator.build()
 
@@ -131,20 +131,17 @@ class ShiftReduceGrammar(AbstractGrammar):
             yield token, 0
 
     def vectorize_program(self, input_sentence, program, max_length=60):
-        # print('*********')
-        # print(input_sentence)
-        # print('*********')
         if self._reverse:
             parsed = self._parser.parse_reverse(self.tokenize_program(program))
         else:
             parsed = self._parser.parse(self.tokenize_program(program))
-        
+
         vectors = dict()
         vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
         for term in self._extensible_terminals:
             vectors[term] = np.ones((max_length,), dtype=np.int32) * -1
         for term in self._copy_terminals:
-            vectors['COPY_' + term] = np.zeros((max_length,), dtype=np.int32)
+            vectors['COPY_' + term] = np.ones((max_length,), dtype=np.int32) * -1
         action_vector = vectors['actions']
         i = 0
 
@@ -154,8 +151,13 @@ class ShiftReduceGrammar(AbstractGrammar):
                 if term in self._copy_terminal_indices:
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
                                        self._copy_terminal_indices[term]
-                    input_position = input_sentence.index(token)
-                    vectors['COPY_' + term][i] = input_position
+                    # add one to account for <s> at the front
+                    input_position = 1 + input_sentence.index(token)
+                    if input_position > self._max_input_length:
+                        print('copy token', token, 'past the end of the input sentence')
+                        vectors['COPY_' + term][i] = self._max_input_length-1 # last position in the sentence
+                    else:
+                        vectors['COPY_' + term][i] = input_position
                 elif term in self._extensible_terminal_indices:
                     assert token < self._output_size[term]
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
@@ -172,7 +174,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 return vectors, max_length - 1
         action_vector[i] = self.end # eos
         i += 1
-        
+
         return vectors, i
 
     def reconstruct_program(self, input_sentence, sequences, ignore_errors=False):
@@ -186,7 +188,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                     return ('reduce', x - self.num_control_tokens)
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
-                    input_position = sequences['COPY_' + term][i]
+                    input_position = sequences['COPY_' + term][i]-1
                     input_token = input_sentence[input_position]
                     return ('shift', (term, input_token))
                 else:
@@ -199,7 +201,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         except (KeyError, TypeError, IndexError, ValueError):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
-                # ignore it 
+                # ignore it
                 return []
             else:
                 raise
@@ -257,7 +259,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 print(action, 'reduce', ':', lhs, '->', ' '.join(rhs))
             elif action - self.num_control_tokens - self._parser.num_rules < len(self._copy_terminals):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
-                input_position = sequences['COPY_' + term][i]
+                input_position = sequences['COPY_' + term][i]-1
                 token = input_sentence[input_position]
                 print(action, 'copy', term, token)
             else:
