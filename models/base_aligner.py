@@ -50,44 +50,16 @@ class BaseAligner(BaseModel):
             enc_hidden_states, enc_final_state = self.add_encoder_op(inputs=inputs)
         self.final_encoder_state = enc_final_state
         
-        if self.config.decoder_action_count_loss > 0:
-            # only consider the first 23 values (excluding any query, action, parameter or filter)
-            #count_layer = tf.layers.Dense(self.config.grammar.output_size, name='action_count_layer')
-            count_layer = tf.layers.Dense(23, name='action_count_layer')
-            action_count_logits = count_layer(tf.concat(nest.flatten(enc_final_state), axis=1))
-            #self.action_counts = action_count_logits > 0
-            self.action_counts = None
-        else:
-            self.action_counts = None
-
         # the training decoder
         with tf.name_scope('train_decoder'):
             with tf.variable_scope('decoder', initializer=xavier):
                 train_preds = self.add_decoder_op(enc_final_state=enc_final_state, enc_hidden_states=enc_hidden_states, training=True)
 
-        if self.config.decoder_action_count_loss > 0:
-            with tf.name_scope('action_count_loss'):
-                binarized_label = tf.cast(self.output_action_counts[:,:23] >= 1, dtype=tf.float32)
-                #binarized_predictions = tf.cast(self.action_counts >= 0.5, dtype=tf.float32)
-                #action_count_loss = tf.nn.l2_loss(tf.cast(self.output_action_counts, dtype=tf.float32) - self.action_counts)
-                
-                action_count_loss = tf.losses.hinge_loss(labels=binarized_label, logits=action_count_logits,
-                                                         reduction=tf.losses.Reduction.NONE)
-                action_count_loss = tf.reduce_sum(action_count_loss, axis=1)
-                action_count_loss = tf.reduce_mean(action_count_loss)
-        else:
-            action_count_loss = 0
-        
-        if self.config.decoder_sequence_loss > 0:
-            with tf.name_scope('training_sequence_loss'):
-                training_sequence_loss = self.add_loss_op(train_preds)
-        else:
-            training_sequence_loss = 0
+        with tf.name_scope('training_sequence_loss'):
+            training_sequence_loss = self.add_loss_op(train_preds)
         
         with tf.name_scope('training_loss'):
-            self.loss = self.config.decoder_action_count_loss * action_count_loss + \
-                self.config.decoder_sequence_loss * training_sequence_loss + \
-                self.add_regularization_loss()
+            self.loss = training_sequence_loss + self.add_regularization_loss()
         self.train_op = self.add_training_op(self.loss)
         
         # the inference decoder
@@ -101,14 +73,10 @@ class BaseAligner(BaseModel):
                 self.config.grammar.primary_output: self.preds
             }
         
-        if self.config.decoder_sequence_loss > 0:
-            with tf.name_scope('eval_sequence_loss'):
-                eval_sequence_loss = self.add_loss_op(eval_preds)
-        else:
-            eval_sequence_loss = 0
+        with tf.name_scope('eval_sequence_loss'):
+            eval_sequence_loss = self.add_loss_op(eval_preds)
         with tf.name_scope('eval_loss'):
-            self.eval_loss = self.config.decoder_action_count_loss * action_count_loss + \
-                self.config.decoder_sequence_loss * eval_sequence_loss
+            self.eval_loss = eval_sequence_loss
 
         weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         size = 0
@@ -143,9 +111,6 @@ class BaseAligner(BaseModel):
         self.primary_output_placeholder = self.output_placeholders[self.config.grammar.primary_output]
         self.output_length_placeholder = tf.placeholder(tf.int32, shape=(None,), name='output_length')
 
-        action_count_size = self.config.grammar.output_size[self.config.grammar.primary_output]
-        self.output_action_counts = tf.placeholder(dtype=tf.int32, shape=(None, action_count_size), name='output_action_counts')
-
     def add_extra_placeholders(self):
         self.batch_number_placeholder = tf.placeholder(tf.int32, shape=(), name='batch_number')
         self.epoch_placeholder = tf.placeholder(tf.int32, shape=(), name='epoch_number')
@@ -163,13 +128,6 @@ class BaseAligner(BaseModel):
         feed_dict[self.dropout_placeholder] = dropout
         feed_dict[self.batch_number_placeholder] = batch_number
         feed_dict[self.epoch_placeholder] = epoch
-        
-        if self.config.decoder_action_count_loss > 0 and data.label_vectors is not None:
-            action_count_batch = np.zeros((len(data.label_vectors[self.config.grammar.primary_output]), self.config.grammar.output_size[self.config.grammar.primary_output]), dtype=np.int32)
-            for i in range(len(data.label_vectors[self.config.grammar.primary_output])):
-                action_count_batch[i] = np.bincount(data.label_vectors[self.config.grammar.primary_output][i][:data.label_lengths[i]],
-                                                    minlength=self.config.grammar.output_size)
-            feed_dict[self.output_action_counts] = action_count_batch
         return feed_dict
 
     def add_encoder_op(self, inputs):

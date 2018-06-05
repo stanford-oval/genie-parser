@@ -93,8 +93,6 @@ class Config(object):
             l1_regularization=0.0,
             embedding_l2_regularization=0.0,
             scheduled_sampling=0.0,
-            decoder_action_count_loss=0.0,
-            decoder_sequence_loss=1.0,
             optimizer='RMSProp',
             shuffle_data='true',
             use_margin_loss='true'
@@ -179,14 +177,6 @@ class Config(object):
             return int(model_conf['hidden_size'])
         else:
             return int(model_conf['decoder_hidden_size'])
-    
-    @property
-    def decoder_action_count_loss(self):
-        return float(self._config['training']['decoder_action_count_loss'])
-    
-    @property
-    def decoder_sequence_loss(self):
-        return float(self._config['training']['decoder_sequence_loss'])
     
     @property
     def scheduled_sampling(self):
