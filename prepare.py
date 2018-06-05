@@ -33,6 +33,7 @@ import tempfile
 import shutil
 import numpy as np
 import configparser
+from collections import Counter
 
 from grammar import thingtalk
 from util.loader import vectorize
@@ -113,7 +114,9 @@ def download_glove(glove, embed_size):
             glove_zip.extract('glove.42B.' + str(embed_size) + 'd.txt', path=os.path.dirname(glove))
     print('Done')
 
-def load_dataset(input_words, dataset):
+def load_dataset(input_words, dataset, min_count=50):
+    word_counter = Counter()
+    
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
@@ -121,8 +124,9 @@ def load_dataset(input_words, dataset):
         with open(os.path.join(dataset, filename), 'r') as fp:
             for line in fp:
                 sentence = line.strip().split('\t')[1]
-                sentence = sentence.split(' ')
-                add_words(input_words, sentence)
+                word_counter.update(sentence.split(' '))
+    
+    add_words(input_words, (word for word,count in word_counter.items() if count >= min_count))
 
 def verify_dataset(input_words, dataset, grammar):
     for filename in os.listdir(dataset):
