@@ -95,7 +95,9 @@ class Config(object):
             scheduled_sampling=0.0,
             optimizer='RMSProp',
             shuffle_data='true',
-            use_margin_loss='true'
+            use_margin_loss='true',
+            curriculum_schedule=0.05,
+            curriculum_max_prob=0.7
         )
         self._config['input'] = OrderedDict(
             input_words='./en/input_words.txt',
@@ -239,6 +241,14 @@ class Config(object):
     @property
     def use_margin_loss(self):
         return self._config['training'].getboolean('use_margin_loss')
+
+    @property
+    def curriculum_schedule(self):
+        return float(self._config['training']['curriculum_schedule'])
+
+    @property
+    def curriculum_max_prob(self):
+        return float(self._config['training']['curriculum_max_prob'])
     
     @property
     def train_input_embeddings(self):

@@ -110,7 +110,9 @@ def run():
                           n_epochs=config.n_epochs,
                           shuffle_data=config.shuffle_training_data,
                           load_existing=load_existing,
-                          dropout=config.dropout)
+                          dropout=config.dropout,
+                          curriculum_schedule=config.curriculum_schedule,
+                          curriculum_max_prob=config.curriculum_max_prob)
 
         tfconfig = tf.ConfigProto()
         #tfconfig.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
