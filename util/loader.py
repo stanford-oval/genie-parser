@@ -187,6 +187,22 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix, embed_size
 
+# A custom list-like object that can be also indexed by a numpy array
+# This object exists for compatibility with get_minibatches, for cases
+# where the full numpy array would be too heavy
+class CustomList(object):
+    __slots__ = ['_data']
+
+    def __init__(self, iterable):
+        self._data = list(iterable)
+    def __len__(self):
+        return len(self._data)
+    def __getitem__(self, key):
+        if isinstance(key, np.ndarray):
+            return CustomList(self._data[x] for x in key)
+        else:
+            return self._data[key]
+
 def load_data(from_file, input_words, grammar, max_length):
     input_sequences = []
     inputs = []
@@ -212,10 +228,6 @@ def load_data(from_file, input_words, grammar, max_length):
             input_vector, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
             
             sentence = sentence.split(' ')
-            if len(sentence) > max_length:
-                sentence = sentence[:max_length]
-            else:
-                sentence += [''] * (max_length-len(sentence))
             input_sequences.append(sentence)
 
             inputs.append(input_vector)
@@ -223,10 +235,6 @@ def load_data(from_file, input_words, grammar, max_length):
             label_sequence = label.split(' ')
             label_vector, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
 
-            if len(label_sequence) > max_length:
-                label_sequence = label_sequence[:max_length]
-            else:
-                label_sequence += [''] * (max_length-len(label_sequence))
             label_sequences.append(label_sequence)
             total_label_len += label_len
             for key in grammar.output_size:
@@ -238,8 +246,8 @@ def load_data(from_file, input_words, grammar, max_length):
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
     print('avg label productions', total_label_len/len(inputs))
 
-    input_sequences = np.array(input_sequences, dtype=np.str)
-    label_sequences = np.array(label_sequences, dtype=np.str)
+    input_sequences = CustomList(input_sequences)
+    label_sequences = CustomList(label_sequences)
     inputs = np.array(inputs)
     input_lengths = np.array(input_lengths)
     parses = np.array(parses)

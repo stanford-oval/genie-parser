@@ -81,7 +81,7 @@ def run():
         else:
             dev_sets.append(key)
             dev_data[key] = data
-    print("unknown", unknown_tokens)
+    print("%d unknown words" % (len(unknown_tokens),))
     if not os.path.exists(model_conf):
         config.save(model_conf)
 
