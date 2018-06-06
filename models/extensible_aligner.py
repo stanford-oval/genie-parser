@@ -96,7 +96,7 @@ class GreedyExtensibleDecoder(Decoder):
         for key in self._sequence_keys:
             if isinstance(self._output_layers[key], common.EmbeddingPointerLayer):
                 layer_output_shapes[key] = tf.expand_dims(self._output_layers[key].output_size, axis=0)
-            elif isinstance(self._output_layers[key], common.AttentivePointerLayer):
+            elif isinstance(self._output_layers[key], (common.AttentivePointerLayer, common.DNNPointerLayer)):
                 layer_output_shapes[key] = tf.TensorShape([self._input_max_length])
             else: 
                 layer_output_shape = self._output_layers[key].compute_output_shape(output_shape_with_unknown_batch)
@@ -168,7 +168,7 @@ class TupleOutputLayer(tf.layers.Layer):
         for key in self._sequence_keys:
             if isinstance(self._layers[key], common.EmbeddingPointerLayer):
                 layer_output_shapes[key] = tf.TensorShape([None, self._layers[key].output_size])
-            elif isinstance(self._layers[key], common.AttentivePointerLayer):
+            elif isinstance(self._layers[key], (common.AttentivePointerLayer, common.DNNPointerLayer)):
                 layer_output_shapes[key] = tf.TensorShape([None, self._input_max_length])
             else: 
                 layer_output_shapes[key] = self._layers[key].compute_output_shape(input_shape)
@@ -219,7 +219,7 @@ class ExtensibleGrammarAligner(BaseAligner):
                 if key == self.config.grammar.primary_output:
                     output_layers[key] = tf.layers.Dense(size, use_bias=False)
                 elif self.config.grammar.is_copy_type(key):
-                    output_layers[key] = common.AttentivePointerLayer(enc_hidden_states)
+                    output_layers[key] = common.DNNPointerLayer(enc_hidden_states) #common.AttentivePointerLayer(enc_hidden_states)
                 else:
                     output_layers[key] = common.EmbeddingPointerLayer(self.config.decoder_hidden_size/2, self.output_embed_matrices[key],
                                                                       dropout=self.dropout_placeholder)

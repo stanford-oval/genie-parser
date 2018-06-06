@@ -245,6 +245,42 @@ class AttentivePointerLayer(tf.layers.Layer):
         raise TypeError("this one")
 
 
+class DNNPointerLayer(tf.layers.Layer):
+    def __init__(self, enc_hidden_states):
+        super().__init__()
+        
+        self._num_units = enc_hidden_states.shape[-1]
+        self._max_input_length = enc_hidden_states.shape[1]
+        self._enc_hidden_states = enc_hidden_states
+
+        self._layer1 = tf.layers.Dense(self._num_units, activation=tf.tanh, use_bias=True)
+        self._layer2 = tf.layers.Dense(1, use_bias=True)
+
+    def build(self, input_shape):
+        layer1_input_shape = tf.TensorShape([None, self._max_input_length, input_shape[-1] + self._num_units])
+        self._layer1.build(layer1_input_shape)
+        intermediate_shape = self._layer1.compute_output_shape(layer1_input_shape)
+        self._layer2.build(intermediate_shape)
+        self.built = True
+
+    def call(self, inputs):
+        # inputs is [batch, depth]
+        # tile it to [batch, time, depth]
+        input_shape = tf.shape(self._enc_hidden_states)
+        batch_size = input_shape[0]
+        input_length = input_shape[1]
+        tiled_inputs = tf.tile(tf.expand_dims(inputs, axis=1), [1, input_length, 1])
+
+        dnn_inputs = tf.concat((self._enc_hidden_states, tiled_inputs), axis=2)
+        dnn_outputs = self._layer2(self._layer1(dnn_inputs))
+
+        # dnn outputs is [batch x time, depth == 1]
+        return tf.reshape(dnn_outputs, (batch_size, input_length))
+
+    def compute_output_shape(self, *args):
+        return tf.TensorShape([None, self._max_input_length])
+
+
 def pad_up_to(vector, size):
     rank = vector.get_shape().ndims - 1
     
