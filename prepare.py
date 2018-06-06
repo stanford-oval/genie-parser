@@ -61,15 +61,19 @@ def add_words(input_words, canonical):
             continue
         input_words.add(word)
 
-def get_thingpedia(input_words, workdir, snapshot):
+def get_thingpedia(input_words, workdir, snapshot, subset=None):
     thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
 
     output = dict()
     with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
-        output['devices'] = json.load(res)['data']
-        for device in output['devices']:
+        all_devices = json.load(res)['data']
+        output['devices'] = []
+        for device in all_devices:
             if device['kind_type'] in ('global', 'category', 'discovery'):
                 continue
+            if subset is not None and device['kind'] not in subset:
+                continue
+            output['devices'].append(device)
             if device.get('kind_canonical', None):
                 add_words(input_words, device['kind_canonical'])
             else:
@@ -284,7 +288,7 @@ def main():
     # add the canonical words for the builtin functions
     add_words(input_words, 'now nothing notify return the event')
 
-    get_thingpedia(input_words, workdir, snapshot)
+    get_thingpedia(input_words, workdir, snapshot, ('com.spotify',))
     grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'), flatten=False)
     
     load_dataset(input_words, dataset)
