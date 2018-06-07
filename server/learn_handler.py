@@ -45,6 +45,9 @@ class LearnHandler(tornado.web.RequestHandler):
         grammar = language.config.grammar
         
         tokenized = yield language.tokenizer.tokenize(query)
+        if len(tokenized.tokens) == 0:
+            raise tornado.web.HTTPError(400, reason="Refusing to learn an empty sentence")
+
         sequence = target_code.split(' ')
         try:
             program_vector, program_length = grammar.vectorize_program(tokenized.tokens, sequence, max_length=language.config.max_length)

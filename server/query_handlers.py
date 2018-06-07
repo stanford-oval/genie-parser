@@ -148,10 +148,12 @@ class QueryHandler(tornado.web.RequestHandler):
         
         result = None
         tokens = tokenized.tokens
-        if len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
+        if len(tokens) == 0:
+            result = [dict(code=['bookkeeping', 'special', 'special:failed'], score='Infinity')]
+        elif len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
-        if expect == 'MultipleChoice':
+        elif expect == 'MultipleChoice':
             choices = dict()
             for arg in self.request.query_arguments:
                 if arg == 'choices[]':
@@ -169,7 +171,7 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice':
+        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice' and len(tokens) > 0:
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
