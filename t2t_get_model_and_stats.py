@@ -12,7 +12,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--clean", action='store_true')
 parser.add_argument("--print-only", action='store_true')
 parser.add_argument("--rank-seq-acc", action='store_true')
-parser.add_argument("--model-dir", default=os.path.join(HOME, 'workdir/t2t_train/parse_almond/transformer-transformer_base_single_gpu'))
+#parser.add_argument("--model-dir", default=os.path.join(HOME, 'workdir/t2t_train/parse_almond/transformer-transformer_base_single_gpu'))
+parser.add_argument("--model-dir", default = 'transformer_base_single_gpu')
 parser.add_argument("--outdir", default=os.path.join(HOME, 'workdir/t2t_results'))
 parser.add_argument("--file", default='transformer_output.txt')
 parser.add_argument("--outfile", default='transformer_output.csv')
@@ -73,7 +74,7 @@ if best_step != -1:
     if args.clean and not args.print_only:
         model_pattern = 'model.ckpt-'
         pattern = model_pattern + best_step + '\.'
-        DIR = args.model_dir
+        DIR = os.path.join(HOME, 'workdir/t2t_train/parse_almond/transformer-') + args.model_dir
         for f in os.listdir(DIR):
             if not re.search(pattern, f) and re.search(model_pattern, f):
                 file_path = os.path.join(DIR, f)
