@@ -24,6 +24,7 @@ import numpy as np
 import time
 
 from collections import namedtuple
+from .general_utils import logged_loop
 
 Dataset = namedtuple('Dataset', ('input_sequences', 'input_vectors', 'input_lengths',
     'constituency_parse', 'label_sequences', 'label_vectors', 'label_lengths'))
@@ -215,8 +216,13 @@ def load_data(from_file, input_words, grammar, max_length):
     label_sequences = []
     total_label_len = 0
 
+    N = 0
     with open(from_file, 'r') as data:
         for line in data:
+            N += 1
+
+        data.seek(0)
+        for line in logged_loop(data, N):
             #print(line)
             split = line.strip().split('\t')
             if len(split) == 4:
