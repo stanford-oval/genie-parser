@@ -179,8 +179,9 @@ class QueryHandler(tornado.web.RequestHandler):
                                               target_code=' '.join(result[0]['code']))
         
         sys.stdout.flush()
-        cache_time = 3600
-        self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
-        self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
+        #cache_time = 3600
+        #self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
+        #self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
+        self.set_header("Cache-Control", "no-store,must-revalidate")
         self.write(dict(candidates=result, tokens=tokens, entities=tokenized.values))
         self.finish()
