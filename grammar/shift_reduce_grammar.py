@@ -208,7 +208,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                     begin_position = sequences['COPY_' + term + '_begin'][i]-1
                     end_position = sequences['COPY_' + term + '_end'][i]-1
                     input_span = input_sentence[begin_position:end_position+1]
-                    return ('shift', (term, ' '.join(input_span)))
+                    return ('shift', (term, input_span))
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
                     return ('shift', (term, sequences[term][i]))

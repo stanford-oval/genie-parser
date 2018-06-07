@@ -288,7 +288,7 @@ def main():
     # add the canonical words for the builtin functions
     add_words(input_words, 'now nothing notify return the event')
 
-    get_thingpedia(input_words, workdir, snapshot, ('com.spotify',))
+    get_thingpedia(input_words, workdir, snapshot, None) #('com.spotify',))
     grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'), flatten=False)
     
     load_dataset(input_words, dataset)

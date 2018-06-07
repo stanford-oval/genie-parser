@@ -541,9 +541,9 @@ class ShiftReduceParser:
                 term, token = param
                 if term in self._extensible_terminals:
                     if 'terminal_' + term not in stacks:
-                        stacks['terminal_' + term] = [token]
+                        stacks['terminal_' + term] = [token] if isinstance(token, list) else [[token]]
                     else:
-                        stacks['terminal_' + term].append(token)
+                        stacks['terminal_' + term].append(token if isinstance(token, list) else [token])
             elif action == 'accept':
                 break
             else:
@@ -554,7 +554,7 @@ class ShiftReduceParser:
                     if symbol[0] == '$':
                         new_prog = stacks[symbol].pop() + new_prog
                     elif symbol in self._extensible_terminals:
-                        new_prog.insert(0, stacks['terminal_' + symbol].pop())
+                        new_prog = stacks['terminal_' + symbol].pop() + new_prog
                     else:
                         new_prog.insert(0, symbol)
                 if lhs not in stacks:
