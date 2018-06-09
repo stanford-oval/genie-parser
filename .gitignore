@@ -4,3 +4,4 @@
 .project
 .pydevproject
 glove.42B.300d.txt
+workdir/*
