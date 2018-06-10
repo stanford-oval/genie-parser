@@ -5,7 +5,7 @@ from os.path import join
 
 HOME = os.path.expanduser('~')
 
-call("rm -r workdir/t2t_results", shell=True)
+call("rm -rf workdir/t2t_results", shell=True)
 
 os.chdir("almond-nnparser")
 
