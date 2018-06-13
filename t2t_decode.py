@@ -2,6 +2,7 @@ from subprocess import call
 import os
 from grammar.thingtalk import ThingTalkGrammar
 import argparse
+import time
 
 HOME = os.path.expanduser('~')
 DEFAULT_PROBLEM = 'parse_almond'
@@ -65,4 +66,9 @@ if args.file is None:
         print('\n')
 
 else:
+    print("timing decoding")
+    start = time.time()
     exec_decode(args.file)
+    print(time.time() - start)
+    with open('time.txt', 'w') as f:
+        f.write(str(time.time()- start))
