@@ -64,7 +64,6 @@ def run():
     with open(sys.argv[1], 'rb') as fp:
         data = pickle.load(fp)
     
-
     for what in ('train', 'dev', 'test'):
         with open('ifttt-' + what + '.tsv', 'w') as fout:
             do_one(fout, data[what], what)

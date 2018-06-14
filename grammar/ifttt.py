@@ -23,7 +23,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
             '$trigger': [('$channel', '$trigger_function')],
             '$trigger_function': [],
             '$action': [('$channel', '$action_function')],
-            '$action_function': [],
+            '$action_function': []
         })
     
         self.allfunctions = set()

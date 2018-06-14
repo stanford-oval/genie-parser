@@ -50,11 +50,13 @@ class TokenizerService(object):
             self._requests[id].set_result(result)
             del self._requests[id]
         
-    def tokenize(self, language_tag, query):
+    def tokenize(self, language_tag, query, expect=None):
         id = self._next_id
         self._next_id += 1
         
         req = dict(req=id, utterance=query, languageTag=language_tag)
+        if expect is not None:
+            req['expect'] = expect
         outer = Future()
         self._requests[id] = outer
         
@@ -73,5 +75,5 @@ class Tokenizer(object):
         self._service = service
         self._lang = language_tag
         
-    def tokenize(self, query):
-        return self._service.tokenize(self._lang, query)
+    def tokenize(self, query, expect=None):
+        return self._service.tokenize(self._lang, query, expect)

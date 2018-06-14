@@ -44,7 +44,7 @@ class ItemSet:
 
 DEBUG = False
 
-ITEM_SET_SEP = ()
+ITEM_SET_SEP = ''
 
 
 class SLRParserGenerator():
@@ -189,13 +189,17 @@ class SLRParserGenerator():
     def _number_rules(self, grammar):
         self.rules = []
         self.grammar = dict()
+        self.rule_set = set()
         for lhs, rules in grammar.items():
             self.grammar[lhs] = []
             for rule in rules:
-                assert isinstance(rule, tuple)
+                if not isinstance(rule, tuple):
+                    raise TypeError('Invalid rule ' + repr(rule))
                 #assert len(rule) == 1 or len(rule) == 2
                 rule_id = len(self.rules)
                 self.rules.append((lhs, rule))
+                if (lhs, rule) in self.rule_set:
+                    raise ValueError('duplicate rule ' + lhs + '->' + str(rule))
                 self.grammar[lhs].append(rule_id)
                 if DEBUG:
                     print(rule_id, lhs, '->', rule)
@@ -238,7 +242,7 @@ class SLRParserGenerator():
                         stack.append(new_rule)
                     break
         item_set = list(item_set)
-        #item_set.sort()
+        item_set.sort()
         return item_set
     
     def _generate_all_item_sets(self):
@@ -341,12 +345,16 @@ class SLRParserGenerator():
                 for i in range(len(rule)-1):
                     if _is_nonterminal(rule[i]):
                         if _is_nonterminal(rule[i+1]):
+                            #if '*' in self._first_sets[rule[i+1]]:
+                            #    print(rule[i], 'followed by', rule[i+1])
                             progress = _add_all(self._first_sets[rule[i+1]], follow_sets[rule[i]]) or progress
                         else:
                             if rule[i+1] not in follow_sets[rule[i]]:
                                 follow_sets[rule[i]].add(rule[i+1])
                                 progress = True
                 if _is_nonterminal(rule[-1]):
+                    #if '*' in follow_sets[lhs]:
+                    #    print(lhs, 'into', rule[-1])
                     progress = _add_all(follow_sets[lhs], follow_sets[rule[-1]]) or progress
                                     
         self._follow_sets = follow_sets
@@ -387,10 +395,19 @@ class SLRParserGenerator():
                         if term in self.action_table[item_set.info.id] and self.action_table[item_set.info.id][term] != ('reduce', rule_id):
                             print("Item Set", item_set.info.id, item_set.info.intransitions)
                             for rule in item_set.rules:
-                                rule_id, rhs = rule
-                                lhs, _ = self.rules[rule_id]
-                                print(rule_id, lhs, '->', rhs)
+                                loop_rule_id, rhs = rule
+                                lhs, _ = self.rules[loop_rule_id]
+                                print(loop_rule_id, lhs, '->', rhs)
                             print()
+                            if self.action_table[item_set.info.id][term][0] == 'shift':
+                                jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
+                                print("Item Set", jump_set.info.id, jump_set.info.intransitions)
+                                for rule in jump_set.rules:
+                                    loop_rule_id, rhs = rule
+                                    lhs, _ = self.rules[loop_rule_id]
+                                    print(loop_rule_id, lhs, '->', rhs)
+                                print()
+                            
                             raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
                         self.action_table[item_set.info.id][term] = ('reduce', rule_id)
 
