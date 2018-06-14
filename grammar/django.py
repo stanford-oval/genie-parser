@@ -1,7 +1,23 @@
+# Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
+#
+# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 '''
-Created on Apr 24, 2018
+Created on May 2nd, 2018
 
-@author: gcampagn
+@author: mehrad
 '''
 
 from .shift_reduce_grammar import ShiftReduceGrammar
@@ -278,13 +294,6 @@ class DjangoGrammar(ShiftReduceGrammar):
 
         self.allfunctions = set()
 
-
-        # add common keywords
-        #kwlist.extend(['name', '__init__', 'from', 'import', 'return', 'def', 'self', 'pass', 'None', 'NotImplementedError', 'io',
-        #               'os', 'random', 'class', 'utils', 'key', 'value', 'open', 'close', 'pickle', 'isinstance',
-        #               'LibraryValueNotFoundException'
-        #               ])
-
         idents = set()
         
         # add things that are keywords in python3 but identifiers in python2
@@ -294,10 +303,7 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.add('nonlocal')
         
         with open(filename, 'r') as fp:
-            #i = 0
             for line in fp:
-                #if i >= 2000:
-                    #break
                 for token in line.strip().split(' '):
                     if token:
                         if token[0].isalpha() and not token in kwlist:
