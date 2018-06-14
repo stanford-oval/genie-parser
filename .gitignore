@@ -1,7 +1,7 @@
 # specific
 *.pyc
 .DS_Store
-wokdir/
+workdir/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
