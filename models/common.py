@@ -269,6 +269,7 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
         with tf.name_scope('ImprovedAttentivePointerLayer', (inputs, time,)):
             e_ti = tf.matmul(tf.matmul(inputs, self.kernel_encode, transpose_a=True), self._enc_hidden_states)
             e_ti_prime = tf.exp(e_ti)
+
             if time != 0:
                 sum_e = tf.reduce_sum(tf.exp(e_ti), axis=0, keep_dims=True)
                 e_ti_prime = tf.divide(e_ti_prime, sum_e)
@@ -284,6 +285,7 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
             e_ti_prime = tf.exp(e_ti)
             sum_e_prime = tf.reduce_sum(tf.exp(e_ti_prime), axis=1, keep_dims=True)
             alpha_ti_decode = tf.divide(tf.exp(e_ti_prime), sum_e_prime)
+
 
             c_t_decode = tf.tensordot(alpha_ti_decode, self._enc_hidden_states, [[2], [1]])
 
