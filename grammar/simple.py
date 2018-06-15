@@ -64,7 +64,7 @@ class SimpleGrammar(AbstractGrammar):
         print(self.entities)
         
         # HACK
-        self._thingtalk = ThingTalkGrammar('./thingpedia.json', flatten=True)
+        self._thingtalk = ThingTalkGrammar('./en/thingpedia.json', flatten=True)
 
 
     @property
