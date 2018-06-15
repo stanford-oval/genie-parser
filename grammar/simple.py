@@ -19,13 +19,16 @@ Created on Jul 20, 2017
 
 @author: gcampagn
 '''
-
+import os
 import tensorflow as tf
 
 from .abstract import AbstractGrammar
 from .thingtalk import ThingTalkGrammar
 
 from util.loader import vectorize
+
+HOME = os.path.expanduser('~')
+
 
 class SimpleGrammar(AbstractGrammar):
     '''
@@ -64,7 +67,7 @@ class SimpleGrammar(AbstractGrammar):
         print(self.entities)
         
         # HACK
-        self._thingtalk = ThingTalkGrammar('./en/thingpedia.json', flatten=True)
+        self._thingtalk = ThingTalkGrammar(os.path.join(HOME, 'workdir/en/thingpedia.json'), flatten=True)
 
 
     @property
