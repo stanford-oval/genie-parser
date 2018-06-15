@@ -23,7 +23,7 @@ HOME = os.path.expanduser('~')
 
 ## get best checkpoint
 #print("finding best checkpoint")
-#best_ckpt = check_output("python3 t2t_get_model_and_stats.py --clean --model-dir transformer_tiny --get_best_ckpt", shell=True)
+#best_ckpt = check_output("python3 t2t_get_model_and_stats.py --model-dir transformer_tiny --get_best_ckpt", shell=True)
 #best_ckpt = int(str(best_ckpt, 'utf-8'))
 
 ## decode test file
