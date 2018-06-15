@@ -80,7 +80,7 @@ class SimpleGrammar(AbstractGrammar):
             'tokens': len(self.tokens)
         }
 
-    def vectorize_program(self, input_sentence, program, max_length):
+    def vectorize_program(self, input_sentence, program, max_length=60):
         if not self._split_device:
             del input_sentence
             vector, len = vectorize(program, self.dictionary, max_length, add_eos=True)
