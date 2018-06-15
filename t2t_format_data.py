@@ -11,7 +11,7 @@ parser.add_argument('--test-tsv', default='test.tsv')
 parser.add_argument('--dev-tsv', default='dev.tsv')
 parser.add_argument('--workdir', default=os.path.join(HOME, 'workdir'))
 parser.add_argument('--dataset', default=os.path.join(HOME, 'dataset'))
-parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/thingpedia.json'))
+parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
 args = parser.parse_args()
 
 WORKDIR = args.workdir
