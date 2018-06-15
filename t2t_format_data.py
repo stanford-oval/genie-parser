@@ -46,7 +46,7 @@ split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
 with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
     f.write('<pad>\n<EOS>\n')   # does this work?
 
-    with open(os.path.join(WORKDIR, '/en/input_words.txt'), 'r') as read:
+    with open(os.path.join(WORKDIR, 'en/input_words.txt'), 'r') as read:
         lines = read.readlines()
         f.writelines(lines)
     # with open(os.path.join(WORKDIR, 'output_words.txt'), 'r') as write:
