@@ -267,6 +267,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             '$param_passing': [],
             '$const_param': [],
             '$out_param_Any': [],
+            '$out_param_Array(Any)': [],
             '$out_param_list': [('$out_param_Any',),
                                 ('$out_param_list', ',', '$out_param_Any')],
 
