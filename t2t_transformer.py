@@ -39,7 +39,7 @@ else:
         "t2t-trainer --t2t_usr_dir={} --data_dir={} --model={}",
         "--train_steps={} --eval_steps={} --hparams_set={}",
         "--output_dir={} --problem={} --hparams={}",
-        "&>> transformer_output.txt",
+        "&> transformer_output.txt",
     ))
 
     cmd = cmd.format(args.problem_dir, args.data_dir, args.model,
