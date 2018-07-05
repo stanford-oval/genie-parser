@@ -185,7 +185,7 @@ class T2T_Evaluator(object):
 HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model-conf', default='model.conf')
+parser.add_argument('--model-conf', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
 parser.add_argument('--results-dir', default=os.path.join(HOME, 'workdir/t2t_results'))
 parser.add_argument('--predictions', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 parser.add_argument('--pre-t2t-data', default=os.path.join(HOME,'dataset/test.tsv'))
