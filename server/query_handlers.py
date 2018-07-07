@@ -126,6 +126,7 @@ class QueryHandler(tornado.web.RequestHandler):
         results = results[:limit]
         return results
 
+
     @tornado.gen.coroutine
     def get(self, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
@@ -143,11 +144,16 @@ class QueryHandler(tornado.web.RequestHandler):
         expect = self.get_query_argument('expect', default=None)
         #print('GET /%s/query' % locale, query)
 
+<<<<<<< HEAD
         tokenized = yield language.tokenizer.tokenize(query, expect)
+=======
+        tokenized = yield language.tokenizer.tokenize(query)
+>>>>>>> transformer
         #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
         tokens = tokenized.tokens
+<<<<<<< HEAD
         if len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
@@ -162,6 +168,12 @@ class QueryHandler(tornado.web.RequestHandler):
             
             result = yield self._run_retrieval_query(language, tokens, choices, limit)
         elif result is None and language.exact:
+=======
+        if len(tokens) == 1 and (tokens[0].isupper() or tokens[0] in ('1', '0')):
+            # if the whole input is just an entity, return that as an answer
+            result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
+        if result is None and language.exact:
+>>>>>>> transformer
             exact = language.exact.get(' '.join(tokens))
             if exact:
                 result = [dict(code=exact, score='Infinity')]
@@ -169,7 +181,11 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
+<<<<<<< HEAD
         if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice':
+=======
+        if len(result) > 0 and self.application.database and store != 'no':
+>>>>>>> transformer
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,

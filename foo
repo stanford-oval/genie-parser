@@ -1,0 +1,1 @@
+trigger tt:com.bodytrace.scale.source tt:param.value > NUMBER_0 kg

@@ -294,6 +294,16 @@ class DjangoGrammar(ShiftReduceGrammar):
 
         self.allfunctions = set()
 
+<<<<<<< HEAD
+=======
+
+        # add common keywords
+        #kwlist.extend(['name', '__init__', 'from', 'import', 'return', 'def', 'self', 'pass', 'None', 'NotImplementedError', 'io',
+        #               'os', 'random', 'class', 'utils', 'key', 'value', 'open', 'close', 'pickle', 'isinstance',
+        #               'LibraryValueNotFoundException'
+        #               ])
+
+>>>>>>> transformer
         idents = set()
         
         # add things that are keywords in python3 but identifiers in python2
@@ -303,7 +313,14 @@ class DjangoGrammar(ShiftReduceGrammar):
         idents.add('nonlocal')
         
         with open(filename, 'r') as fp:
+<<<<<<< HEAD
             for line in fp:
+=======
+            #i = 0
+            for line in fp:
+                #if i >= 2000:
+                    #break
+>>>>>>> transformer
                 for token in line.strip().split(' '):
                     if token:
                         if token[0].isalpha() and not token in kwlist:

@@ -273,3 +273,18 @@ class ShiftReduceGrammar(AbstractGrammar):
             else:
                 return 'S' + str(action - self.num_control_tokens - self._parser.num_rules)
         return list(map(action_to_string, sequences['actions']))
+
+    def string_to_prediction(self, strings):
+        def string_to_action(string):
+            if string == 'A':
+                return 0
+            elif string == 'G':
+                return 1
+            elif string.startswith('R'):
+                action = int(string[1:]) + self.num_control_tokens
+                assert action - self.num_control_tokens < self._parser.num_rules
+                return action
+            else:
+                action = int(string[1:]) + self.num_control_tokens + self._parser.num_rules
+                return action
+        return list(map(string_to_action, strings))

@@ -19,13 +19,16 @@ Created on Jul 20, 2017
 
 @author: gcampagn
 '''
-
+import os
 import tensorflow as tf
 
 from .abstract import AbstractGrammar
 from .thingtalk import ThingTalkGrammar
 
 from util.loader import vectorize
+
+HOME = os.path.expanduser('~')
+
 
 class SimpleGrammar(AbstractGrammar):
     '''
@@ -64,7 +67,11 @@ class SimpleGrammar(AbstractGrammar):
         print(self.entities)
         
         # HACK
+<<<<<<< HEAD
         self._thingtalk = ThingTalkGrammar('./thingpedia.json', flatten=True)
+=======
+        self._thingtalk = ThingTalkGrammar(os.path.join(HOME, 'workdir/en/thingpedia.json'), flatten=True)
+>>>>>>> transformer
 
 
     @property
@@ -77,7 +84,9 @@ class SimpleGrammar(AbstractGrammar):
             'tokens': len(self.tokens)
         }
 
-    def vectorize_program(self, input_sentence, program, max_length):
+
+    def vectorize_program(self, input_sentence, program, max_length=60):
+
         if not self._split_device:
             del input_sentence
             vector, len = vectorize(program, self.dictionary, max_length, add_eos=True)
