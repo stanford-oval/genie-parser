@@ -67,11 +67,8 @@ class SimpleGrammar(AbstractGrammar):
         print(self.entities)
         
         # HACK
-<<<<<<< HEAD
-        self._thingtalk = ThingTalkGrammar('./thingpedia.json', flatten=True)
-=======
         self._thingtalk = ThingTalkGrammar(os.path.join(HOME, 'workdir/en/thingpedia.json'), flatten=True)
->>>>>>> transformer
+
 
 
     @property
