@@ -186,7 +186,7 @@ class EmbeddingPointerLayer(tf.layers.Layer):
         self.bias = self.add_variable('bias', shape=(self._hidden_size,), dtype=self.dtype)
         self.output_projection = self.add_variable('output_projection', shape=(self._hidden_size,), dtype=self.dtype)
         self.built = True
-        
+
     def call(self, inputs):
         with tf.name_scope('EmbeddingPointerLayer', (inputs,)):
             input_shape = inputs.shape
@@ -210,6 +210,9 @@ class EmbeddingPointerLayer(tf.layers.Layer):
     def output_size(self):
         #return tf.shape(self._embeddings)[0]
         return self._embeddings.shape[0]
+
+    def compute_output_shape(self, *args):
+        raise TypeError("that one")
 
 
 class AttentivePointerLayer(tf.layers.Layer):
@@ -237,7 +240,11 @@ class AttentivePointerLayer(tf.layers.Layer):
             if is_2d:
                 score = tf.squeeze(score, axis=1)
             return score
-        
+
+    def compute_output_shape(self, *args):
+        raise TypeError("this one")
+
+
 class ImprovedAttentivePointerLayer(tf.layers.Layer):
     """
     A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
@@ -262,6 +269,7 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
         with tf.name_scope('ImprovedAttentivePointerLayer', (inputs, time,)):
             e_ti = tf.matmul(tf.matmul(inputs, self.kernel_encode, transpose_a=True), self._enc_hidden_states)
             e_ti_prime = tf.exp(e_ti)
+
             if time != 0:
                 sum_e = tf.reduce_sum(tf.exp(e_ti), axis=0, keep_dims=True)
                 e_ti_prime = tf.divide(e_ti_prime, sum_e)
@@ -278,6 +286,7 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
             sum_e_prime = tf.reduce_sum(tf.exp(e_ti_prime), axis=1, keep_dims=True)
             alpha_ti_decode = tf.divide(tf.exp(e_ti_prime), sum_e_prime)
 
+
             c_t_decode = tf.tensordot(alpha_ti_decode, self._enc_hidden_states, [[2], [1]])
 
             ############################################################################################################
@@ -287,6 +296,42 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
 
             return score
 
+
+    def compute_output_shape(self, *args):
+        return tf.TensorShape([None, self._max_input_length])
+
+class DNNPointerLayer(tf.layers.Layer):
+    def __init__(self, enc_hidden_states):
+        super().__init__()
+        
+        self._num_units = enc_hidden_states.shape[-1]
+        self._max_input_length = enc_hidden_states.shape[1]
+        self._enc_hidden_states = enc_hidden_states
+
+        self._layer1 = tf.layers.Dense(self._num_units, activation=tf.tanh, use_bias=True)
+        self._layer2 = tf.layers.Dense(1, use_bias=True)
+
+    def build(self, input_shape):
+
+        layer1_input_shape = tf.TensorShape([None, self._max_input_length, input_shape[-1] + self._num_units])
+        self._layer1.build(layer1_input_shape)
+        intermediate_shape = self._layer1.compute_output_shape(layer1_input_shape)
+        self._layer2.build(intermediate_shape)
+        self.built = True
+
+    def call(self, inputs):
+        # inputs is [batch, depth]
+        # tile it to [batch, time, depth]
+        input_shape = tf.shape(self._enc_hidden_states)
+        batch_size = input_shape[0]
+        input_length = input_shape[1]
+        tiled_inputs = tf.tile(tf.expand_dims(inputs, axis=1), [1, input_length, 1])
+
+        dnn_inputs = tf.concat((self._enc_hidden_states, tiled_inputs), axis=2)
+        dnn_outputs = self._layer2(self._layer1(dnn_inputs))
+
+        # dnn outputs is [batch x time, depth == 1]
+        return tf.reshape(dnn_outputs, (batch_size, input_length))
 
     def compute_output_shape(self, *args):
         return tf.TensorShape([None, self._max_input_length])
@@ -422,6 +467,7 @@ class ActivationWrapper(tf.contrib.rnn.RNNCell):
 
 def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, batch_size, attention_probability_fn,
                     dropout, alignment_history=True):
+
     if attention_probability_fn == 'softmax':
         probability_fn = tf.nn.softmax
         score_mask_value = float('-inf')
