@@ -60,4 +60,4 @@ with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
 
     for token in grammarized_actions:
         f.write(token + '\n')
-    f.write('UNK\n') # Need to manually add in UNK apparently.
+    f.write('<unk>\n') # Need to manually add in UNK apparently.
