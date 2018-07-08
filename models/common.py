@@ -237,6 +237,59 @@ class AttentivePointerLayer(tf.layers.Layer):
             if is_2d:
                 score = tf.squeeze(score, axis=1)
             return score
+        
+class ImprovedAttentivePointerLayer(tf.layers.Layer):
+    """
+    A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
+    """
+
+    def __init__(self, enc_hidden_states):
+        super().__init__()
+
+        self._enc_hidden_states = enc_hidden_states
+        self._num_units = enc_hidden_states.shape[-1]
+        self._max_input_length = enc_hidden_states.shape[1]
+
+    def build(self, input_shape):
+        self.kernel_encode = self.add_variable('kernel_encode', (self._num_units, self._num_units), dtype=self.dtype)
+        self.kernel_decode = self.add_variable('kernel_decode', (self._num_units, self._num_units), dtype=self.dtype)
+
+        self.layer_out = tf.layers.Dense(self._num_units, activation=tf.nn.softmax, use_bias=True)
+        self.built = True
+
+    def call(self, inputs, scores):
+        time = scores.shape[-1]
+        with tf.name_scope('ImprovedAttentivePointerLayer', (inputs, time,)):
+            e_ti = tf.matmul(tf.matmul(inputs, self.kernel_encode, transpose_a=True), self._enc_hidden_states)
+            e_ti_prime = tf.exp(e_ti)
+            if time != 0:
+                sum_e = tf.reduce_sum(tf.exp(e_ti), axis=0, keep_dims=True)
+                e_ti_prime = tf.divide(e_ti_prime, sum_e)
+            sum_e_prime = tf.reduce_sum(e_ti_prime, axis=1, keep_dims=True)
+            alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime)
+
+            c_t_encode = tf.tensordot(alpha_ti_encode, self._enc_hidden_states, [[2], [1]])
+
+
+            ############################################################################################################
+
+            e_ti = tf.matmul(tf.matmul(inputs, self.kernel_decode, transpose_a=True), self._enc_hidden_states)
+            e_ti_prime = tf.exp(e_ti)
+            sum_e_prime = tf.reduce_sum(tf.exp(e_ti_prime), axis=1, keep_dims=True)
+            alpha_ti_decode = tf.divide(tf.exp(e_ti_prime), sum_e_prime)
+
+            c_t_decode = tf.tensordot(alpha_ti_decode, self._enc_hidden_states, [[2], [1]])
+
+            ############################################################################################################
+
+            data_concat = tf.concat((inputs, c_t_encode, c_t_decode), axis=2)
+            score = self.layer_out(data_concat)
+
+            return score
+
+
+    def compute_output_shape(self, *args):
+        return tf.TensorShape([None, self._max_input_length])
 
 
 def pad_up_to(vector, size):
