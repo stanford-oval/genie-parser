@@ -19,59 +19,65 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import tarfile
 
 # Dependency imports
 
-from tensor2tensor.data_generators import generator_utils
+
+from tensor2tensor.layers import common_hparams
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import translate
 from tensor2tensor.utils import registry
+from tensor2tensor.layers import modalities
 
 import tensorflow as tf
 
-# _ENDE_TRAIN_DATASETS = [
-#     [
-#         "http://data.statmt.org/wmt17/translation-task/training-parallel-nc-v12.tgz",  # pylint: disable=line-too-long
-#         ("training/news-commentary-v12.de-en.en",
-#          "training/news-commentary-v12.de-en.de")
-#     ],
-#     [
-#         "http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz",
-#         ("commoncrawl.de-en.en", "commoncrawl.de-en.de")
-#     ],
-#     [
-#         "http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz",
-#         ("training/europarl-v7.de-en.en", "training/europarl-v7.de-en.de")
-#     ],
-# ]
-# _ENDE_TEST_DATASETS = [
-#     [
-#         "http://data.statmt.org/wmt17/translation-task/dev.tgz",
-#         ("dev/newstest2013.en", "dev/newstest2013.de")
-#     ],
-# ]
+
+@registry.register_hparams
+def almond_params():
+  # Start with the base set
+  hp = common_hparams.basic_params1()
+  # Modify existing hparams
+  hp.target_modality = 'symbol:almond'
+  #hp.num_hidden_layers = 2
+  # Add new hparams
+  #hp.add_hparam("filter_size", 2048)
+  return hp
+
+@registry.register_symbol_modality("almond")
+class AlmondSymbolModality(modalities.SymbolModality):
+
+    def loss(self, top_out, targets):
+        logits = top_out
+        cas
+        with tf.name_scope("max_margin_loss", values=[logits, targets]):
+            # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
+            targets_shape = targets.get_shape().as_list()
+            logits_shape = logits.get_shape().as_list()
+            print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
+
+            targets = tf.squeeze(targets, axis=[2, 3])
+            logits = tf.squeeze(logits, axis=[2, 3])
+            targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+            targets_lengths = tf.reduce_sum(targets_mask, axis=1)
+            sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
+                targets, targets_lengths)
+            xent = tf.nn.ctc_loss(
+                sparse_targets,
+                logits,
+                targets_lengths,
+                time_major=False,
+                preprocess_collapse_repeated=False,
+                ctc_merge_repeated=False)
+            weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
+            return tf.reduce_sum(xent), tf.reduce_sum(weights)
 
 
-
-# def _get_wmt_ende_bpe_dataset(directory, filename):
-#   """Extract the WMT en-de corpus `filename` to directory unless it's there."""
-#   train_path = os.path.join(directory, filename)
-#   if not (tf.gfile.Exists(train_path + ".de") and
-#           tf.gfile.Exists(train_path + ".en")):
-#     url = ("https://drive.google.com/uc?export=download&id="
-#            "0B_bZck-ksdkpM25jRUN2X2UxMm8")
-#     corpus_file = generator_utils.maybe_download_from_drive(
-#         directory, "wmt16_en_de.tar.gz", url)
-#     with tarfile.open(corpus_file, "r:gz") as corpus_tar:
-#       corpus_tar.extractall(directory)
-#   return train_path
 
 
 @registry.register_problem
-class ParseAlmond(translate.TranslateProblem):
+class ParseAlmondCommands(translate.TranslateProblem):
   """Problem spec for WMT En-De translation, BPE version."""
 
   @property
@@ -96,9 +102,9 @@ class ParseAlmond(translate.TranslateProblem):
     train = dataset_split == problem.DatasetSplit.TRAIN
 
     if train:
-	    train_path = "../dataset/t2t_data/t2t_train"
+        train_path = "../dataset/t2t_data/t2t_train"
     else:
-    	train_path = "../dataset/t2t_data/t2t_dev"
+        train_path = "../dataset/t2t_data/t2t_dev"
     #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
@@ -113,57 +119,3 @@ class ParseAlmond(translate.TranslateProblem):
 
     return text_problems.text2text_txt_iterator(train_path + "_x",
                                                 train_path + "_y")
-
-
-# @registry.register_problem
-# class TranslateEndeWmt8k(translate.TranslateProblem):
-#   """Problem spec for WMT En-De translation."""
-
-#   @property
-#   def approx_vocab_size(self):
-#     return 2**13  # 8192
-
-#   @property
-#   def vocab_filename(self):
-#     return "vocab.ende.%d" % self.approx_vocab_size
-
-#   def source_data_files(self, dataset_split):
-#     train = dataset_split == problem.DatasetSplit.TRAIN
-#     return _ENDE_TRAIN_DATASETS if train else _ENDE_TEST_DATASETS
-
-
-# @registry.register_problem
-# class TranslateEndeWmt32k(TranslateEndeWmt8k):
-
-#   @property
-#   def approx_vocab_size(self):
-#     return 2**15  # 32768
-
-
-# @registry.register_problem
-# class TranslateEndeWmt32kPacked(TranslateEndeWmt32k):
-
-#   @property
-#   def packed_length(self):
-#     return 256
-
-
-# @registry.register_problem
-# class TranslateEndeWmt8kPacked(TranslateEndeWmt8k):
-
-#   @property
-#   def packed_length(self):
-#     return 256
-
-
-# @registry.register_problem
-# class TranslateEndeWmtCharacters(translate.TranslateProblem):
-#   """Problem spec for WMT En-De translation."""
-
-#   @property
-#   def vocab_type(self):
-<<<<<<< HEAD
-#     return text_problems.VocabType.CHARACTER
-=======
-#     return text_problems.VocabType.CHARACTER
->>>>>>> transformer

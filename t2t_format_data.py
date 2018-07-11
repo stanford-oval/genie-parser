@@ -1,7 +1,9 @@
 import re
 import argparse
 import os
-from grammar.thingtalk import ThingTalkGrammar
+from grammar.simple import SimpleGrammar
+from models import Config
+
 
 HOME = os.path.expanduser('~')
 
@@ -37,11 +39,14 @@ def split_input_and_labels(filename, input_file, label_file):
 if not os.path.exists(DIR):
     os.makedirs(DIR)
 
-grammar = ThingTalkGrammar(args.grammar, reverse=False)
+model_conf = os.path.join(WORKDIR, 'en/model/model.conf')
+config = Config.load(['./default.conf', model_conf])
 
-split_input_and_labels(args.train_tsv, 't2t_train_x', 't2t_train_y')
-split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
-split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
+grammar = config.grammar
+
+# split_input_and_labels(args.train_tsv, 't2t_train_x', 't2t_train_y')
+# split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
+# split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
 
 with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
     f.write('<pad>\n<EOS>\n')   # does this work?
@@ -52,12 +57,17 @@ with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
     # with open(os.path.join(WORKDIR, 'output_words.txt'), 'r') as write:
     #     lines = write.readlines()
     #     f.writelines(lines)
-    num_actions = grammar.num_control_tokens + grammar._parser.num_rules
-    num_actions += len(grammar._copy_terminals) + len(grammar._extensible_terminals)
+    if hasattr(grammar, '_parser'):
+        num_actions = grammar.num_control_tokens + grammar._parser.num_rules
+    else:
+        num_actions = grammar.output_size[grammar.primary_output]
+    if hasattr(grammar, '_copy_terminals') and hasattr(grammar, '_extensible_terminals'):
+        num_actions += len(grammar._copy_terminals) + len(grammar._extensible_terminals)
 
     actions = list(range(grammar.num_control_tokens, num_actions))
-    grammarized_actions = grammar.prediction_to_string({'actions': actions})
+    grammarized_actions = grammar.prediction_to_string({grammar.primary_output: actions})
 
     for token in grammarized_actions:
         f.write(token + '\n')
     f.write('<unk>\n') # Need to manually add in UNK apparently.
+    f.write('UNK\n')  # Need to manually add in UNK apparently.
