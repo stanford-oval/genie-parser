@@ -8,9 +8,10 @@ from models import Config
 HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--train-tsv', default='train.tsv')
+parser.add_argument('--train-tsv', action='append')
 parser.add_argument('--test-tsv', default='test.tsv')
 parser.add_argument('--dev-tsv', default='dev.tsv')
+parser.add_argument('--curriculum', action='store_true')
 parser.add_argument('--workdir', default=os.path.join(HOME, 'workdir'))
 parser.add_argument('--dataset', default=os.path.join(HOME, 'dataset'))
 parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
@@ -44,9 +45,19 @@ config = Config.load(['./default.conf', model_conf])
 
 grammar = config.grammar
 
-# split_input_and_labels(args.train_tsv, 't2t_train_x', 't2t_train_y')
-# split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
-# split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
+train_file_lists = args.train_tsv
+curriculum = args.curriculum
+
+if curriculum and len(train_data_lists) < 2:
+    raise ValueError('Must have exactly two training sets for curriculum learning')
+
+for file in train_file_lists:
+    key = os.path.basename(file)
+    key = key[:key.rindex('.')]
+    split_input_and_labels(file, 't2t_train_' + key + '_x', 't2t_train_' + key + '_y')
+
+split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
+split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
 
 with open(os.path.join(DIR, 'all_words.txt'), 'w') as f:
     f.write('<pad>\n<EOS>\n')   # does this work?

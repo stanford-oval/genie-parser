@@ -73,6 +73,30 @@ class AlmondSymbolModality(modalities.SymbolModality):
             weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
             return tf.reduce_sum(xent), tf.reduce_sum(weights)
 
+    # def loss(self, top_out, targets):
+    #     logits = top_out
+    #     cas
+    #     with tf.name_scope("max_margin_loss", values=[logits, targets]):
+    #         # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
+    #         targets_shape = targets.get_shape().as_list()
+    #         logits_shape = logits.get_shape().as_list()
+    #         print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
+    #
+    #         targets = tf.squeeze(targets, axis=[2, 3])
+    #         logits = tf.squeeze(logits, axis=[2, 3])
+    #         targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+    #         targets_lengths = tf.reduce_sum(targets_mask, axis=1)
+    #         sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
+    #             targets, targets_lengths)
+    #         xent = tf.nn.ctc_loss(
+    #             sparse_targets,
+    #             logits,
+    #             targets_lengths,
+    #             time_major=False,
+    #             preprocess_collapse_repeated=False,
+    #             ctc_merge_repeated=False)
+    #         weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
+    #         return tf.reduce_sum(xent), tf.reduce_sum(weights)
 
 
 
@@ -105,7 +129,6 @@ class ParseAlmondCommands(translate.TranslateProblem):
         train_path = "../dataset/t2t_data/t2t_train"
     else:
         train_path = "../dataset/t2t_data/t2t_dev"
-    #train_path = _get_wmt_ende_bpe_dataset(tmp_dir, dataset_path)
 
     # Vocab
     token_path = os.path.join(data_dir, self.vocab_filename)
