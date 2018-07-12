@@ -4,7 +4,7 @@ from subprocess import call
 from os.path import join
 
 HOME = os.path.expanduser('~')
-DEFAULT_PROBLEM = 'parse_almond_commands'
+DEFAULT_PROBLEM = 'parse_almond'
 DEFAULT_MODEL = 'transformer'
 DEFAULT_HPARAMS = 'transformer_tiny'
 

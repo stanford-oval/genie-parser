@@ -78,9 +78,9 @@ class T2T_Evaluator(object):
         def get_signature(seq):
             return [x for x in seq if (x.startswith('@') and not x.startswith('@@')) or x in ('now', 'monitor', 'timer', 'attimer', 'notify')]
 
-        output_size = self.grammar.output_size[self.grammar.primary_output]
+        # output_size = self.grammar.output_size[self.grammar.primary_output]
         gold_functions_counter = Counter()
-        #all_functions = set(self.grammar.allfunctions)
+        # all_functions = set(self.grammar.allfunctions)
         
         try:
             for i, seq in enumerate(sequences):
@@ -185,12 +185,16 @@ class T2T_Evaluator(object):
 HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model-conf', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
+#parser.add_argument('--model-conf', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
+parser.add_argument('--workdir', default=os.path.join(HOME, 'workdir'))
 parser.add_argument('--results-dir', default=os.path.join(HOME, 'workdir/t2t_results'))
 parser.add_argument('--predictions', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 parser.add_argument('--pre-t2t-data', default=os.path.join(HOME,'dataset/test.tsv'))
 args = parser.parse_args()
 
-config = Config.load([args.model_conf])
+
+model_conf = os.path.join(args.workdir, 'en/model/model.conf')
+config = Config.load(['./default.conf', model_conf])
+
 evaluator = T2T_Evaluator(config.grammar, args.predictions, args.pre_t2t_data, args.results_dir, config.reverse_dictionary)
 print_dict(evaluator.eval(True))

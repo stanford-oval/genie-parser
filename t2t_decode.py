@@ -3,6 +3,8 @@ import os
 from grammar.thingtalk import ThingTalkGrammar
 import argparse
 import time
+from models import Config
+
 
 HOME = os.path.expanduser('~')
 DEFAULT_PROBLEM = 'parse_almond'
@@ -20,10 +22,16 @@ parser.add_argument('--problem-dir', default=os.path.join(HOME, 'almond-nnparser
 parser.add_argument('--data-dir', default=os.path.join(HOME, 'dataset/t2t_data'))
 parser.add_argument('--grammar', default=os.path.join(HOME, 'workdir/en/thingpedia.json'))
 parser.add_argument('--ckpt_path', required=True)
+parser.add_argument('--workdir', default=os.path.join(HOME, 'workdir'))
 parser.add_argument('--outfile', default=os.path.join(HOME, 'workdir/t2t_results/translation.tt'))
 args = parser.parse_args()
 
-grammar = ThingTalkGrammar(args.grammar, reverse=False)
+
+
+model_conf = os.path.join(args.workdir, 'en/model/model.conf')
+config = Config.load(['./default.conf', model_conf])
+
+grammar = config.grammar
 
 def exec_decode(decode_file):
     cmd = ' '.join(('t2t-decoder --t2t_usr_dir={} --data_dir={}',
@@ -43,7 +51,7 @@ def exec_decode(decode_file):
                 grammarized = grammarized.strip().split()
 
                 actions = grammar.string_to_prediction(grammarized)  # get back actions vector
-                reconstructed = grammar.reconstruct_program(inp, {'actions': actions}, ignore_errors=True)
+                reconstructed = grammar.reconstruct_program(inp, {grammar.primary_output: actions}, ignore_errors=True)
                 out.write(' '.join(reconstructed) + '\n')
 
     os.remove(args.outfile + '.tmp')
@@ -71,4 +79,4 @@ else:
     exec_decode(args.file)
     print(time.time() - start)
     with open('time.txt', 'w') as f:
-        f.write(str(time.time()- start))
+        f.write(str(time.time() - start))

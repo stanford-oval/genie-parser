@@ -49,29 +49,71 @@ def almond_params():
 class AlmondSymbolModality(modalities.SymbolModality):
 
     def loss(self, top_out, targets):
+        print("we're inside loss function")
         logits = top_out
-        cas
-        with tf.name_scope("max_margin_loss", values=[logits, targets]):
-            # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
-            targets_shape = targets.get_shape().as_list()
-            logits_shape = logits.get_shape().as_list()
-            print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
 
-            targets = tf.squeeze(targets, axis=[2, 3])
-            logits = tf.squeeze(logits, axis=[2, 3])
+        batch_size = logits.shape[0]
+        max_length = logits.shape[1]
+        num_classes = logits.shape[2]
+
+        with tf.name_scope("max_margin_loss", values=[logits, targets]):
+
             targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
-            targets_lengths = tf.reduce_sum(targets_mask, axis=1)
-            sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
-                targets, targets_lengths)
-            xent = tf.nn.ctc_loss(
-                sparse_targets,
-                logits,
-                targets_lengths,
-                time_major=False,
-                preprocess_collapse_repeated=False,
-                ctc_merge_repeated=False)
-            weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
-            return tf.reduce_sum(xent), tf.reduce_sum(weights)
+
+            flat_mask = tf.reshape(targets_mask, (batch_size * max_length,))
+
+            flat_preds = tf.reshape(logits, (batch_size * max_length, num_classes))
+            flat_gold = tf.reshape(targets, (batch_size * max_length,))
+
+            flat_indices = tf.range(batch_size * max_length, dtype=tf.int32)
+            flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
+
+            one_hot_gold = tf.one_hot(targets, depth=max_length, dtype=tf.float32)
+            marginal_scores = logits - one_hot_gold + 1
+
+            marginal_scores = tf.reshape(marginal_scores, (batch_size * max_length, num_classes))
+            max_margin = tf.reduce_max(marginal_scores, axis=1)
+
+            gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
+            margin = max_margin - gold_score
+
+            margin = margin * flat_mask
+
+            margin = tf.reshape(margin, (batch_size, max_length))
+            output_length = tf.reduce_sum(targets_mask, axis=1)
+
+            weights = self.targets_weights_fn(targets)
+
+            return tf.reduce_mean(tf.reduce_sum(margin, axis=1) / tf.cast(output_length, dtype=tf.float32), axis=0), \
+                   tf.reduce_sum(weights)
+
+
+
+        # with tf.name_scope("max_margin_loss", values=[logits, targets]):
+        #     # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
+        #     targets_shape = targets.get_shape().as_list()
+        #     logits_shape = logits.get_shape().as_list()
+        #     print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
+        #
+        #
+        #
+        #     mask = tf.shape()
+        #
+        #     targets = tf.squeeze(targets, axis=[2, 3])
+        #     logits = tf.squeeze(logits, axis=[2, 3])
+        #     targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+        #     targets_lengths = tf.reduce_sum(targets_mask, axis=1)
+        #     sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
+        #         targets, targets_lengths)
+        #     xent = tf.nn.ctc_loss(
+        #         sparse_targets,
+        #         logits,
+        #         targets_lengths,
+        #         time_major=False,
+        #         preprocess_collapse_repeated=False,
+        #         ctc_merge_repeated=False)
+        #     weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
+        #     return tf.reduce_sum(xent), tf.reduce_sum(weights)
 
     # def loss(self, top_out, targets):
     #     logits = top_out
@@ -101,7 +143,7 @@ class AlmondSymbolModality(modalities.SymbolModality):
 
 
 @registry.register_problem
-class ParseAlmondCommands(translate.TranslateProblem):
+class ParseAlmond(translate.TranslateProblem):
   """Problem spec for WMT En-De translation, BPE version."""
 
   @property
@@ -110,6 +152,7 @@ class ParseAlmondCommands(translate.TranslateProblem):
 
   @property
   def vocab_filename(self):
+    print("reading vocab_file: all_words.txt")
     return "all_words.txt"
     # return vocab.bpe.%d" % self.approx_vocab_size
 
@@ -124,7 +167,7 @@ class ParseAlmondCommands(translate.TranslateProblem):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     """Instance of token generator for the WMT en->de task, training set."""
     train = dataset_split == problem.DatasetSplit.TRAIN
-
+    print(train)
     if train:
         train_path = "../dataset/t2t_data/t2t_train"
     else:
