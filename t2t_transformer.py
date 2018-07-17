@@ -6,7 +6,7 @@ from os.path import join
 HOME = os.path.expanduser('~')
 DEFAULT_PROBLEM = 'parse_almond'
 DEFAULT_MODEL = 'transformer'
-DEFAULT_HPARAMS = 'transformer_tiny'
+DEFAULT_HPARAMS = 'almond_params'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default=DEFAULT_PROBLEM)
