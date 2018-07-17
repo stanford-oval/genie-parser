@@ -54,7 +54,9 @@ if curriculum and len(train_data_lists) < 2:
 for file in train_file_lists:
     key = os.path.basename(file)
     key = key[:key.rindex('.')]
-    split_input_and_labels(file, 't2t_train_' + key + '_x', 't2t_train_' + key + '_y')
+    if not curriculum:
+        key = ''
+    split_input_and_labels(file, 't2t_train' + key + '_x', 't2t_train' + key + '_y')
 
 split_input_and_labels(args.test_tsv, 't2t_test_x', 't2t_test_y')
 split_input_and_labels(args.dev_tsv, 't2t_dev_x', 't2t_dev_y')
