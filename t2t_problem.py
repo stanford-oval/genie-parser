@@ -56,6 +56,7 @@ class AlmondSymbolModality(modalities.SymbolModality):
         # hp = self._model_hparams
         logits = top_out
 
+
         targets = tf.squeeze(targets, axis=[2, 3])
         logits = tf.squeeze(logits, axis=[2, 3])
 
@@ -69,14 +70,15 @@ class AlmondSymbolModality(modalities.SymbolModality):
         print("max_length", max_length)
         print("num_classes", num_classes)
 
+
         targets_shape = targets.get_shape().as_list()
         logits_shape = logits.get_shape().as_list()
         print("logits_shape: ", logits_shape, "\ntargets_shape: ", targets_shape)
 
+
         with tf.name_scope("max_margin_loss", values=[logits, targets]):
 
             targets_mask = tf.subtract(1.0, tf.to_float(tf.equal(targets, 0)))
-            print('target_mask isssss : ', targets_mask)
 
             flat_mask = tf.reshape(targets_mask, (batch_size * max_length,))
 
@@ -149,3 +151,4 @@ class ParseAlmond(translate.TranslateProblem):
 
     return text_problems.text2text_txt_iterator(train_path + "_x",
                                                 train_path + "_y")
+

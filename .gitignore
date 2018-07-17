@@ -2,6 +2,10 @@
 *.pyc
 .DS_Store
 workdir/*
+.idea/workspace.xml
+transformer_output.txt
+time.txt
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
