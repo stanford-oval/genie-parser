@@ -56,19 +56,26 @@ class AlmondSymbolModality(modalities.SymbolModality):
         hp = self._model_hparams
         logits = top_out
 
-        batch_size = hp.batch_size
-        max_length = hp.max_length
-        num_classes = logits.shape[4]
-
-        print("batch_size:", batch_size)
-        print("max_length", max_length)
 
         targets = tf.squeeze(targets, axis=[2, 3])
         logits = tf.squeeze(logits, axis=[2, 3])
 
+        # batch_size = hp.batch_size
+        # max_length = hp.max_length
+        batch_size = tf.shape(logits)[0]
+        max_length = tf.shape(logits)[1]
+        num_classes = tf.shape(logits)[2]
+
+        print("batch_size:", batch_size)
+        print("max_length", max_length)
+        print("num_classes", num_classes)
+
+
         targets_shape = targets.get_shape().as_list()
         logits_shape = logits.get_shape().as_list()
-        print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
+        print("logits_shape: ", logits_shape, "\ntargets_shape: ", targets_shape)
+
+
 
         with tf.name_scope("max_margin_loss", values=[logits, targets]):
 
@@ -101,34 +108,6 @@ class AlmondSymbolModality(modalities.SymbolModality):
 
             return tf.reduce_mean(tf.div(tf.reduce_sum(margin, axis=1), output_length), axis=0), \
                     tf.reduce_sum(weights)
-
-
-    #
-    # def loss(self, top_out, targets):
-    #     logits = top_out
-    #     print("we're inside loss function")
-    #     with tf.name_scope("max_margin_loss", values=[logits, targets]):
-    #         # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
-    #         targets_shape = targets.get_shape().as_list()
-    #         logits_shape = logits.get_shape().as_list()
-    #         print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
-    #
-    #         targets = tf.squeeze(targets, axis=[2, 3])
-    #         logits = tf.squeeze(logits, axis=[2, 3])
-    #         targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
-    #         targets_lengths = tf.reduce_sum(targets_mask, axis=1)
-    #         sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
-    #             targets, targets_lengths)
-    #         xent = tf.nn.ctc_loss(
-    #             sparse_targets,
-    #             logits,
-    #             targets_lengths,
-    #             time_major=False,
-    #             preprocess_collapse_repeated=False,
-    #             ctc_merge_repeated=False)
-    #         weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
-    #         return tf.reduce_sum(xent), tf.reduce_sum(weights)
-
 
 
 @registry.register_problem
