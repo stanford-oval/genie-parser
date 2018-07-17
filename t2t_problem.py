@@ -24,6 +24,7 @@ import os
 
 
 from tensor2tensor.layers import common_hparams
+from tensor2tensor.models.transformer import transformer_base, transformer_tiny
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
@@ -36,29 +37,43 @@ import tensorflow as tf
 
 @registry.register_hparams
 def almond_params():
-  # Start with the base set
-  hp = common_hparams.basic_params1()
-  # Modify existing hparams
-  hp.target_modality = 'symbol:almond'
-  #hp.num_hidden_layers = 2
-  # Add new hparams
-  #hp.add_hparam("filter_size", 2048)
-  return hp
+    # Start with the base set
+    hp = transformer_tiny()
+    # Modify existing hparams
+    hp.target_modality = 'symbol:almond'
+    #hp.num_hidden_layers = 2
+    # Add new hparams
+    #hp.add_hparam("filter_size", 2048)
+    return hp
 
 @registry.register_symbol_modality("almond")
 class AlmondSymbolModality(modalities.SymbolModality):
 
     def loss(self, top_out, targets):
+        #  we assume targets are , [batch, length, 1, 1] here.
+        #  we assume logits are , [batch, length, 1, 1, num_classes] here.
         print("we're inside loss function")
+        hp = self._model_hparams
         logits = top_out
 
-        batch_size = logits.shape[0]
-        max_length = logits.shape[1]
-        num_classes = logits.shape[2]
+        batch_size = hp.batch_size
+        max_length = hp.max_length
+        num_classes = logits.shape[4]
+
+        print("batch_size:", batch_size)
+        print("max_length", max_length)
+
+        targets = tf.squeeze(targets, axis=[2, 3])
+        logits = tf.squeeze(logits, axis=[2, 3])
+
+        targets_shape = targets.get_shape().as_list()
+        logits_shape = logits.get_shape().as_list()
+        print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
 
         with tf.name_scope("max_margin_loss", values=[logits, targets]):
 
-            targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+            targets_mask = tf.subtract(1.0, tf.to_float(tf.equal(targets, 0)))
+            print('target_mask isssss : ', targets_mask)
 
             flat_mask = tf.reshape(targets_mask, (batch_size * max_length,))
 
@@ -68,7 +83,7 @@ class AlmondSymbolModality(modalities.SymbolModality):
             flat_indices = tf.range(batch_size * max_length, dtype=tf.int32)
             flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
 
-            one_hot_gold = tf.one_hot(targets, depth=max_length, dtype=tf.float32)
+            one_hot_gold = tf.one_hot(targets, depth=num_classes, dtype=tf.float32)
             marginal_scores = logits - one_hot_gold + 1
 
             marginal_scores = tf.reshape(marginal_scores, (batch_size * max_length, num_classes))
@@ -84,40 +99,14 @@ class AlmondSymbolModality(modalities.SymbolModality):
 
             weights = self.targets_weights_fn(targets)
 
-            return tf.reduce_mean(tf.reduce_sum(margin, axis=1) / tf.cast(output_length, dtype=tf.float32), axis=0), \
-                   tf.reduce_sum(weights)
+            return tf.reduce_mean(tf.div(tf.reduce_sum(margin, axis=1), output_length), axis=0), \
+                    tf.reduce_sum(weights)
 
 
-
-        # with tf.name_scope("max_margin_loss", values=[logits, targets]):
-        #     # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
-        #     targets_shape = targets.get_shape().as_list()
-        #     logits_shape = logits.get_shape().as_list()
-        #     print("logits_shape: ", logits_shape, "\n targets_shape: ", targets_shape)
-        #
-        #
-        #
-        #     mask = tf.shape()
-        #
-        #     targets = tf.squeeze(targets, axis=[2, 3])
-        #     logits = tf.squeeze(logits, axis=[2, 3])
-        #     targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
-        #     targets_lengths = tf.reduce_sum(targets_mask, axis=1)
-        #     sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
-        #         targets, targets_lengths)
-        #     xent = tf.nn.ctc_loss(
-        #         sparse_targets,
-        #         logits,
-        #         targets_lengths,
-        #         time_major=False,
-        #         preprocess_collapse_repeated=False,
-        #         ctc_merge_repeated=False)
-        #     weights = self.targets_weights_fn(targets)  # pylint: disable=not-callable
-        #     return tf.reduce_sum(xent), tf.reduce_sum(weights)
-
+    #
     # def loss(self, top_out, targets):
     #     logits = top_out
-    #     cas
+    #     print("we're inside loss function")
     #     with tf.name_scope("max_margin_loss", values=[logits, targets]):
     #         # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
     #         targets_shape = targets.get_shape().as_list()
