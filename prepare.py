@@ -33,8 +33,10 @@ import tempfile
 import shutil
 import numpy as np
 import configparser
+from collections import Counter
 
 from grammar import thingtalk
+from util.loader import vectorize
 
 ssl_context = ssl.create_default_context()
 
@@ -52,19 +54,26 @@ def add_words(input_words, canonical):
     else:
         sequence = canonical
     for word in sequence:
-        if not word:
-            raise ValueError('Invalid word "%s" in phrase "%s"' % (word, canonical,))
+        if not word or word != '$' and word.startswith('$'):
+            print('Invalid word "%s" in phrase "%s"' % (word, canonical,))
+            continue
+        if word[0].isupper():
+            continue
         input_words.add(word)
 
-def get_thingpedia(input_words, workdir, snapshot):
+def get_thingpedia(input_words, workdir, snapshot, subset=None):
     thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
 
     output = dict()
     with urllib.request.urlopen(thingpedia_url + '/api/snapshot/' + str(snapshot) + '?meta=1', context=ssl_context) as res:
-        output['devices'] = json.load(res)['data']
-        for device in output['devices']:
+        all_devices = json.load(res)['data']
+        output['devices'] = []
+        for device in all_devices:
             if device['kind_type'] in ('global', 'category', 'discovery'):
                 continue
+            if subset is not None and device['kind'] not in subset:
+                continue
+            output['devices'].append(device)
             if device.get('kind_canonical', None):
                 add_words(input_words, device['kind_canonical'])
             else:
@@ -74,10 +83,10 @@ def get_thingpedia(input_words, workdir, snapshot):
                     if not function['canonical']:
                         print('WARNING: missing canonical for @%s.%s' % (device['kind'], function_name))
                     else:
-                        add_words(input_words, function['canonical'])
+                        add_words(input_words, function['canonical'].lower())
                     for argname, argcanonical in zip(function['args'], function['argcanonicals']):
                         if argcanonical:
-                            add_words(input_words, argcanonical)
+                            add_words(input_words, argcanonical.lower())
                         else:
                             add_words(input_words, clean(argname))
                     for argtype in function['schema']:
@@ -109,7 +118,21 @@ def download_glove(glove, embed_size):
             glove_zip.extract('glove.42B.' + str(embed_size) + 'd.txt', path=os.path.dirname(glove))
     print('Done')
 
-def load_dataset(input_words, dataset, grammar):
+def load_dataset(input_words, dataset, min_count=50):
+    word_counter = Counter()
+    
+    for filename in os.listdir(dataset):
+        if not filename.endswith('.tsv'):
+            continue
+
+        with open(os.path.join(dataset, filename), 'r') as fp:
+            for line in fp:
+                sentence = line.strip().split('\t')[1]
+                word_counter.update(sentence.split(' '))
+    
+    add_words(input_words, (word for word,count in word_counter.items() if count >= min_count))
+
+def verify_dataset(input_words, dataset, grammar):
     for filename in os.listdir(dataset):
         if not filename.endswith('.tsv'):
             continue
@@ -118,9 +141,8 @@ def load_dataset(input_words, dataset, grammar):
             for line in fp:
                 sentence, program = line.strip().split('\t')[1:3]
                 sentence = sentence.split(' ')
-                add_words(input_words, sentence)
-                
-                grammar.vectorize_program(sentence, program)
+                sentence_vector, _ = vectorize(sentence, input_words, max_length=130, add_start=True, add_eos=True)
+                grammar.vectorize_program(sentence_vector, program, max_length=130)
 
 def add_extra_words(input_words, extra_word_file):
     print('Adding extra dictionary from', extra_word_file)
@@ -130,9 +152,16 @@ def add_extra_words(input_words, extra_word_file):
 
 
 def save_dictionary(input_words, workdir):
+    dictionary = dict()
+    dictionary['</s>'] = 0
+    dictionary['<s>'] = 1
+    dictionary['<unk>'] = 2
+
     with open(os.path.join(workdir, 'input_words.txt'), 'w') as fp:
-        for word in sorted(input_words):
+        for i, word in enumerate(sorted(input_words)):
+            dictionary[word] = 3+i
             print(word, file=fp)
+    return dictionary
 
 def trim_embeddings(input_words, workdir, embed_size, glove):
     HACK = {
@@ -216,6 +245,9 @@ def trim_embeddings(input_words, workdir, embed_size, glove):
 def create_model_conf(workdir, embed_size):
     os.makedirs(os.path.join(workdir, 'model'), exist_ok=True)
     
+    if os.path.exists(os.path.join(workdir, 'model', 'model.conf')):
+        return
+
     model_config = configparser.ConfigParser()
     model_config['input'] = {
         'input_words': os.path.join(workdir, 'input_words.txt'),
@@ -256,13 +288,16 @@ def main():
     # add the canonical words for the builtin functions
     add_words(input_words, 'now nothing notify return the event')
 
-    get_thingpedia(input_words, workdir, snapshot)
-    grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'))
+    get_thingpedia(input_words, workdir, snapshot, None) #('com.spotify',))
+    grammar = thingtalk.ThingTalkGrammar(os.path.join(workdir, 'thingpedia.json'), flatten=False)
     
-    load_dataset(input_words, dataset, grammar)
+    load_dataset(input_words, dataset)
     if extra_word_file:
         add_extra_words(input_words, extra_word_file)
-    save_dictionary(input_words, workdir)
+    dictionary = save_dictionary(input_words, workdir)
+    grammar.set_input_dictionary(dictionary)
+    #verify_dataset(dictionary, dataset, grammar)
+
     trim_embeddings(input_words, workdir, embed_size, glove)
     create_model_conf(workdir, embed_size)
 

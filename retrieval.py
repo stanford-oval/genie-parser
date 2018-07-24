@@ -68,7 +68,6 @@ class RetrievalModel(BaseModel):
             self.config.grammar.primary_output: tf.expand_dims(self.pred, axis=1)
         }
         self.eval_loss = tf.reduce_sum(tf.reduce_max(distances, axis=1), axis=0)
-        self.action_counts = None
         
     def create_feed_dict(self, inputs_batch, *args, **kw):
         return { self.input_placeholder: inputs_batch }

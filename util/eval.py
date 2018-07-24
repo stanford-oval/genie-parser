@@ -23,6 +23,7 @@ Created on Mar 16, 2017
 import numpy as np
 from collections import Counter
 
+from util.loader import Dataset
 from grammar.abstract import AbstractGrammar
 from .general_utils import get_minibatches, Progbar
 
@@ -32,7 +33,7 @@ class Seq2SeqEvaluator(object):
     Evaluate a sequence to sequence model on some data against some gold data
     '''
 
-    def __init__(self, model, grammar : AbstractGrammar, data, tag : str, reverse_dictionary=None, beam_size=10, batch_size=256):
+    def __init__(self, model, grammar : AbstractGrammar, data : Dataset, tag : str, reverse_dictionary=None, beam_size=10, batch_size=256):
         self.model = model
         self.grammar = grammar
         self.data = data
@@ -42,12 +43,10 @@ class Seq2SeqEvaluator(object):
         self._batch_size = batch_size
         
     def eval(self, session, save_to_file=False):
-        sequences = []
         sum_eval_loss = 0
-        _, _, _, label_sequences, _, _ = self.data
-        
-        if save_to_file:
 
+        if save_to_file:
+            label_sequences = self.data.label_sequences
             gold_programs = set()
             correct_programs = [set() for _ in range(self._beam_size)]
             for label in label_sequences:
@@ -76,10 +75,6 @@ class Seq2SeqEvaluator(object):
 
         output_size = self.grammar.output_size[self.grammar.primary_output]
         confusion_matrix = np.zeros((output_size, output_size), dtype=np.int32)
-        action_count_tp = np.zeros((output_size,), dtype=np.int32)
-        action_count_fp = np.zeros((output_size,), dtype=np.int32)
-        action_count_tn = np.zeros((output_size,), dtype=np.int32)
-        action_count_fn = np.zeros((output_size,), dtype=np.int32)
         function_tp = Counter()
         function_fp = Counter()
         #function_tn = Counter()
@@ -92,41 +87,14 @@ class Seq2SeqEvaluator(object):
         progbar = Progbar(total_n_minibatches)
         try:
             for data_batch in get_minibatches(self.data, self._batch_size, shuffle=False):
-
-                input_batch, input_length_batch, _, _, label_batch, label_length_batch = data_batch
-
-                if self.model.action_counts is not None:
-                    feed = self.model.create_feed_dict(*data_batch, batch_number=n_minibatches)
-                    sequences, action_counts, eval_loss = session.run([self.model.pred, self.model.action_counts, self.model.eval_loss], feed_dict=feed)
-                    
-                    label_action_counts = np.zeros((len(label_batch), output_size), dtype=np.int32)
-                    for i in range(len(label_batch[self.grammar.primary_output])):
-                        label_action_counts[i] = np.bincount(label_batch[self.grammar.primary_output][i, :label_length_batch[i]],
-                                                             minlength=output_size)
-                else:
-                    sequences, eval_loss = self.model.eval_on_batch(session, *data_batch, batch_number=n_minibatches)
-                    action_counts = None
-                    label_action_counts = None
+                predicted_sequences, eval_loss = self.model.eval_on_batch(session, data_batch, batch_number=n_minibatches)
                 sum_eval_loss += eval_loss
                 
-                if action_counts is not None:
-                    binarized_action_counts = action_counts >= 0.5
-                    label_action_counts = label_action_counts >= 1
-                    true_positives = np.sum(np.logical_and(binarized_action_counts, label_action_counts), axis=0)
-                    false_positives = np.sum(np.logical_and(binarized_action_counts, np.logical_not(label_action_counts)), axis=0)
-                    true_negatives = np.sum(np.logical_and(np.logical_not(binarized_action_counts), np.logical_not(label_action_counts)), axis=0)
-                    false_negatives = np.sum(np.logical_and(np.logical_not(binarized_action_counts), label_action_counts), axis=0)
-                    action_count_tp += true_positives
-                    action_count_fp += false_positives
-                    action_count_tn += true_negatives
-                    action_count_fn += false_negatives
-
-
-                primary_sequences = sequences[self.grammar.primary_output]
-                primary_label_batch = label_batch[self.grammar.primary_output]
+                primary_sequences = predicted_sequences[self.grammar.primary_output]
+                primary_label_batch = data_batch.label_vectors[self.grammar.primary_output]
 
                 for i, seq in enumerate(primary_sequences):
-                    gold = label_sequences[n_minibatches * self._batch_size + i]
+                    gold = data_batch.label_sequences[i]
                     gold_devices = get_devices(gold)
                     gold_functions = get_functions(gold)
                     gold_function_set = set(gold_functions)
@@ -145,8 +113,8 @@ class Seq2SeqEvaluator(object):
                         
                         decoded_vectors = dict()
                         for key in self.grammar.output_size:
-                            decoded_vectors[key] = sequences[key][i,beam_pos]
-                        decoded = self.grammar.reconstruct_program(input_batch[i], decoded_vectors, ignore_errors=True)
+                            decoded_vectors[key] = predicted_sequences[key][i,beam_pos]
+                        decoded = self.grammar.reconstruct_program(data_batch.input_sequences[i], decoded_vectors, ignore_errors=True)
 
                         if save_to_file:
                             decoded_tuple = tuple(decoded)
@@ -198,7 +166,7 @@ class Seq2SeqEvaluator(object):
                             confusion_matrix[padded_pred,primary_label_batch[i]] += 1
 
                         if beam_pos == 0 and save_to_file:
-                            sentence = ' '.join(self._reverse_dictionary[x] for x in input_batch[i][:input_length_batch[i]])
+                            sentence = ' '.join(data_batch.input_sequences[i])
                             gold_str = ' '.join(gold)
                             decoded_str = ' '.join(decoded)
                             print(sentence, gold_str, decoded_str, is_ok_full,
@@ -281,40 +249,6 @@ class Seq2SeqEvaluator(object):
             print(self.tag, "parse-action min precision:", np.min(parse_action_precision))
             print(self.tag, "parse-action min recall:", np.min(parse_action_recall))
             print(self.tag, "parse-action F1:", overall_parse_action_f1)
-            if self.model.action_counts is not None:
-                action_count_tp = np.ma.asarray(action_count_tp)
-                action_count_tn = np.ma.asarray(action_count_tn)
-                action_count_fp = np.ma.asarray(action_count_fp)
-                action_count_fn = np.ma.asarray(action_count_fn)
-                
-                action_count_precision = action_count_tp / (action_count_tp + action_count_fp)
-                action_count_recall = action_count_tp / (action_count_tp + action_count_fn)
-                if save_to_file:
-                    action_count_f1 = 2 * (action_count_precision * action_count_recall) / (action_count_precision + action_count_recall)
-                    with open(self.tag + '-action-count-f1.tsv', 'w') as out:
-                        for i in range(output_size):
-                            print(i, action_count_precision[i], action_count_recall[i], action_count_f1[i], sep='\t', file=out)
-                
-                action_count_precision = np.ma.masked_invalid(action_count_precision)
-                action_count_avg_precision = np.mean(action_count_precision, dtype=np.float64)
-                action_count_recall = np.ma.masked_invalid(action_count_recall)
-                action_count_avg_recall = np.mean(action_count_recall, dtype=np.float64)
-                print(self.tag, "action-count avg precision:", action_count_avg_precision, "over %d actions" % action_count_precision.count())
-                print(self.tag, "action-count avg recall:", action_count_avg_recall, "over %d actions" % action_count_recall.count())
-                print(self.tag, "action-count min precision:", np.min(action_count_precision))
-                print(self.tag, "action-count min recall:", np.min(action_count_recall))
-                
-                # avoid division by 0
-                if np.abs(action_count_avg_precision + action_count_avg_recall) < 1e-6:
-                    action_count_f1 = 0
-                else:
-                    action_count_f1 = 2 * (action_count_avg_precision * action_count_avg_recall) / \
-                        (action_count_avg_precision + action_count_avg_recall)
-                print(self.tag, "action-count F1:", action_count_f1)
-            else:
-                action_count_avg_precision = 0
-                action_count_avg_recall = 0
-                action_count_f1 = 0
                 
             metrics = {
                 'eval_loss': (sum_eval_loss / n_minibatches),
@@ -328,9 +262,6 @@ class Seq2SeqEvaluator(object):
                 'parse_action_precision': overall_parse_action_precision,
                 'parse_action_recall': overall_parse_action_recall,
                 'parse_action_f1': overall_parse_action_f1,
-                'action_count_precision': action_count_avg_precision,
-                'action_count_recall': action_count_avg_recall,
-                'action_count_f1': action_count_f1
             }
             return metrics
         finally:

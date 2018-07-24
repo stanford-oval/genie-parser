@@ -25,6 +25,7 @@ import json
 import os
 import numpy as np
 import time
+from tensorflow.python.util import nest
 
 from .general_utils import get_minibatches, Progbar
 
@@ -101,7 +102,7 @@ class Trainer(object):
         total_n_minibatches = (len(train_data[0])+self._batch_size-1)//self._batch_size
         progbar = Progbar(total_n_minibatches)
         for data_batch in get_minibatches(train_data, self._batch_size, shuffle=(self._shuffle_data or epoch >= 3)):
-            loss, grad_norm = self.model.train_on_batch(sess, *data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
+            loss, grad_norm = self.model.train_on_batch(sess, data_batch, batch_number=n_minibatches, epoch=epoch, **self._extra_kw)
             total_loss += loss
             self._losses.append(float(loss))
             self._grad_norms.append(float(grad_norm))
@@ -153,18 +154,7 @@ class Trainer(object):
         easy_set_indices = np.random.choice(np.arange(easy_set_size), size=easy_set_target)
         hard_set_indices = np.random.choice(np.arange(hard_set_size), size=hard_set_target)
 
-        def mix_one(easy, hard):
-            if isinstance(easy, dict):
-                mixed = dict()
-                for key in easy:
-                    mixed[key] = np.concatenate((easy[key][easy_set_indices], hard[key][hard_set_indices]), axis=0)
-                return mixed
-            elif isinstance(easy, list):
-                return [easy[i] for i in easy_set_indices] + [hard[i] for i in hard_set_indices]
-            else:
-                return np.concatenate((easy[easy_set_indices], hard[hard_set_indices]), axis=0)
-        
-        return tuple(mix_one(easy, hard) for easy, hard in zip(easy_set, hard_set))
+        return nest.map_structure(lambda easy, hard: np.concatenate((easy[easy_set_indices], hard[hard_set_indices]), axis=0), easy_set, hard_set)
     
     def _fit_curriculum(self, sess):
         for epoch in range(self._n_epochs):

@@ -345,7 +345,7 @@ class SLRParserGenerator():
                 for i in range(len(rule)-1):
                     if _is_nonterminal(rule[i]):
                         if _is_nonterminal(rule[i+1]):
-                            #if '*' in self._first_sets[rule[i+1]]:
+                            #if 'not' in self._first_sets[rule[i+1]]:
                             #    print(rule[i], 'followed by', rule[i+1])
                             progress = _add_all(self._first_sets[rule[i+1]], follow_sets[rule[i]]) or progress
                         else:
@@ -353,7 +353,7 @@ class SLRParserGenerator():
                                 follow_sets[rule[i]].add(rule[i+1])
                                 progress = True
                 if _is_nonterminal(rule[-1]):
-                    #if '*' in follow_sets[lhs]:
+                    #if 'not' in follow_sets[lhs]:
                     #    print(lhs, 'into', rule[-1])
                     progress = _add_all(follow_sets[lhs], follow_sets[rule[-1]]) or progress
                                     
@@ -399,14 +399,14 @@ class SLRParserGenerator():
                                 lhs, _ = self.rules[loop_rule_id]
                                 print(loop_rule_id, lhs, '->', rhs)
                             print()
-                            if self.action_table[item_set.info.id][term][0] == 'shift':
-                                jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
-                                print("Item Set", jump_set.info.id, jump_set.info.intransitions)
-                                for rule in jump_set.rules:
-                                    loop_rule_id, rhs = rule
-                                    lhs, _ = self.rules[loop_rule_id]
-                                    print(loop_rule_id, lhs, '->', rhs)
-                                print()
+                            #if self.action_table[item_set.info.id][term][0] == 'shift':
+                            #    jump_set = self._item_sets[self.action_table[item_set.info.id][term][1]]
+                            #    print("Item Set", jump_set.info.id, jump_set.info.intransitions)
+                            #    for rule in jump_set.rules:
+                            #        loop_rule_id, rhs = rule
+                            #        lhs, _ = self.rules[loop_rule_id]
+                            #        print(loop_rule_id, lhs, '->', rhs)
+                            #    print()
                             
                             raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
                         self.action_table[item_set.info.id][term] = ('reduce', rule_id)
@@ -430,14 +430,7 @@ class ShiftReduceParser:
         self._start_symbol = start_symbol
         
         self._extensible_terminals = extensible_terminals
-        # reverse the extensible terminal dictionary
-        self._reverse_extensible_terminals = dict()
-        for term, values in extensible_terminals.items():
-            for idx, value in enumerate(values):
-                if value in self._reverse_extensible_terminals:
-                    raise ValueError('Ambiguous concrete token ' + value)
-                self._reverse_extensible_terminals[value] = (term, idx)
-        
+
     @property
     def num_rules(self):
         # the last rule is $ROOT -> $input <<EOF>>
@@ -489,33 +482,27 @@ class ShiftReduceParser:
         state = 0
         result = []
         sequence_iter = iter(sequence)
-        token = next(sequence_iter)
+        terminal, token = next(sequence_iter)
         while True:
-            if token in self._reverse_extensible_terminals:
-                terminal, tokenidx = self._reverse_extensible_terminals[token]
-            else:
-                terminal = token
-                tokenidx = 0
-
             if terminal not in self._action_table[state]:
                 raise ValueError(
-                    "Parse error: unexpected token " + token + " in state " + str(state) + ", expected " + str(
+                    "Parse error: unexpected token " + terminal + " in state " + str(state) + ", expected " + str(
                         self._action_table[state].keys()))
             action, param = self._action_table[state][terminal]
             if action == 'accept':
                 return result
-            # if action == 'shift':
+            #if action == 'shift':
             #    print('shift', param, token)
-            # else:
-            #    print('reduce', param, self._rules[param])
+            #else:
+            #    print('reduce', param, self.rules[param])
             if action == 'shift':
                 state = param
-                result.append(('shift', (terminal, tokenidx)))
+                result.append(('shift', (terminal, token)))
                 stack.append(state)
                 try:
-                    token = next(sequence_iter)
+                    terminal, token = next(sequence_iter)
                 except StopIteration:
-                    token = EOF_TOKEN
+                    terminal = EOF_TOKEN
             else:
                 rule_id = param
                 result.append(('reduce', rule_id))
@@ -551,13 +538,12 @@ class ShiftReduceParser:
         stacks = dict()
         for action, param in sequence:
             if action == 'shift':
-                term, tokenidx = param
+                term, token = param
                 if term in self._extensible_terminals:
-                    token = self._extensible_terminals[term][tokenidx]
                     if 'terminal_' + term not in stacks:
-                        stacks['terminal_' + term] = [token]
+                        stacks['terminal_' + term] = [token] if isinstance(token, list) else [[token]]
                     else:
-                        stacks['terminal_' + term].append(token)
+                        stacks['terminal_' + term].append(token if isinstance(token, list) else [token])
             elif action == 'accept':
                 break
             else:
@@ -568,7 +554,7 @@ class ShiftReduceParser:
                     if symbol[0] == '$':
                         new_prog = stacks[symbol].pop() + new_prog
                     elif symbol in self._extensible_terminals:
-                        new_prog.insert(0, stacks['terminal_' + symbol].pop())
+                        new_prog = stacks['terminal_' + symbol].pop() + new_prog
                     else:
                         new_prog.insert(0, symbol)
                 if lhs not in stacks:

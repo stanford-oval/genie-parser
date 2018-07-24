@@ -31,31 +31,44 @@ from util.loader import unknown_tokens, load_data
 from tensorflow.python import debug as tf_debug
 
 def run():
-    if len(sys.argv) < 4:
-        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] <<Train/Dev Sets>>")
+    if len(sys.argv) < 3:
+        print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
         sys.exit(1)
 
     np.random.seed(42)
-    
-    model_dir = sys.argv[1]
-    model_conf = os.path.join(model_dir, 'model.conf')
-    config = Config.load(['./default.conf', model_conf])
-    model = create_model(config)
 
     off = 2
     load_existing = False
     if sys.argv[2] == '--continue':
         load_existing = True
         off = 3
+    load_grammar = False
+    if sys.argv[off] == '--load-grammar':
+        load_grammar = True
+
+    model_dir = sys.argv[1]
+    try:
+        os.mkdir(model_dir)
+    except OSError:
+        pass
+    model_conf = os.path.join(model_dir, 'model.conf')
+    cached_grammar = os.path.join(model_dir, 'grammar.pkl')
+    config = Config.load(['./default.conf', model_conf], load_grammar=load_grammar, cached_grammar=cached_grammar)
+    model = create_model(config)
 
     train_sets = []
     dev_sets = []
     train_data = dict()
     dev_data = dict()
     for what_filename in sys.argv[off:]:
+        if ':' not in what_filename:
+            print('Invalid train/dev input, must be "train:filename.tsv" or "dev:filename.tsv"')
+            print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
+            sys.exit(1)
         what, filename = what_filename.split(':')
         if what not in ('train', 'dev'):
             print('I don\'t know how to use', what)
+            print("** Usage: python3 " + sys.argv[0] + " <<Model Directory>> [--continue] [--load-grammar] <<Train/Dev Sets>>")
             sys.exit(1)
         print('Loading', filename, 'as', what)
         data = load_data(filename, config.dictionary, config.grammar, config.max_length)
@@ -68,11 +81,7 @@ def run():
         else:
             dev_sets.append(key)
             dev_data[key] = data
-    print("unknown", unknown_tokens)
-    try:
-        os.mkdir(model_dir)
-    except OSError:
-        pass
+    print("%d unknown words" % (len(unknown_tokens),))
     if not os.path.exists(model_conf):
         config.save(model_conf)
 
@@ -101,7 +110,9 @@ def run():
                           n_epochs=config.n_epochs,
                           shuffle_data=config.shuffle_training_data,
                           load_existing=load_existing,
-                          dropout=config.dropout)
+                          dropout=config.dropout,
+                          curriculum_schedule=config.curriculum_schedule,
+                          curriculum_max_prob=config.curriculum_max_prob)
 
         tfconfig = tf.ConfigProto()
         #tfconfig.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1

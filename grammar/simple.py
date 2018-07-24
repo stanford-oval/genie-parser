@@ -124,3 +124,10 @@ class SimpleGrammar(AbstractGrammar):
                 return []
             else:
                 raise
+            
+    def print_prediction(self, input_sentence, sequence):
+        for token in sequence['tokens']:
+            print(token, self.tokens[token])
+    
+    def prediction_to_string(self, sequence):
+        return [self.tokens[x] for x in sequence[self.primary_output]]

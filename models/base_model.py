@@ -18,7 +18,7 @@ class BaseModel(object):
         """
         raise NotImplementedError("Each Model must re-implement this method.")
 
-    def create_feed_dict(self, *data, **kw):
+    def create_feed_dict(self, data, **kw):
         """Creates the feed_dict for one step of training.
 
         A feed_dict takes the form of:
@@ -40,7 +40,7 @@ class BaseModel(object):
         """
         raise NotImplementedError("Each Model must re-implement this method.")
 
-    def train_on_batch(self, sess, *data, **kw):
+    def train_on_batch(self, sess, data, **kw):
         """Perform one step of gradient descent on the provided batch of data.
 
         Args:
@@ -50,11 +50,11 @@ class BaseModel(object):
         Returns:
             loss: loss over the batch (a scalar)
         """
-        feed = self.create_feed_dict(*data, **kw)
+        feed = self.create_feed_dict(data, **kw)
         _, loss, grad_norm = sess.run([self.train_op, self.loss, self.grad_norm], feed_dict=feed)
         return loss, grad_norm
 
-    def predict_on_batch(self, sess, *data, **kw):
+    def predict_on_batch(self, sess, data, **kw):
         """Make predictions for the provided batch of data
 
         Args:
@@ -63,23 +63,22 @@ class BaseModel(object):
         Returns:
             predictions: np.ndarray of shape (n_samples, n_classes)
         """
-        feed = self.create_feed_dict(*data, **kw)
+        feed = self.create_feed_dict(data, **kw)
         predictions = sess.run(self.preds, feed_dict=feed)
         return predictions
-
-    def eval_on_batch(self, sess, *data, **kw):
-        """Make predictions and evaluate loss for the provided batch of data
+    
+    def eval_on_batch(self, sess, data, **kw):
+        """Make predictions for the provided batch of data
 
         Args:
             sess: tf.Session()
             input_batch: np.ndarray of shape (n_samples, n_features)
-            labels_batch: np.ndarray of shape (n_samples, n_classes)
         Returns:
             predictions: np.ndarray of shape (n_samples, n_classes)
-            eval_loss : loss on the batch
         """
-        feed = self.create_feed_dict(*data, **kw)
+        feed = self.create_feed_dict(data, **kw)
         return sess.run([self.preds, self.eval_loss], feed_dict=feed)
 
     def build(self):
         raise NotImplementedError("Each Model must implement this method")
+

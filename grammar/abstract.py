@@ -40,6 +40,10 @@ class AbstractGrammar(object):
         self.dictionary = dict()
         self.num_control_tokens = 2
 
+    def set_input_dictionary(self, input_dictionary):
+        # AbstractGrammar does nothing with it
+        pass
+
     @property
     def start(self):
         ''' The ID of the start token when decoding '''
@@ -61,16 +65,16 @@ class AbstractGrammar(object):
     def is_copy_type(self, output):
         return False
     
+    def vectorize_program(self, input_sentence, program, max_length):
+        raise NotImplementedError()
+    
     def reconstruct_program(self, input_sentence, sequence, ignore_errors=False):
         raise NotImplementedError()
     
     def print_prediction(self, input_sentence, sequence):
-        print(' '.join(self.tokens[x] for x in sequence[self.primary_output]))
-    
+        raise NotImplementedError()
+        
     def prediction_to_string(self, sequence):
-        return [self.tokens[x] for x in sequence[self.primary_output]]
-    
-    def vectorize_program(self, input_sentence, program, max_length):
         raise NotImplementedError()
     
     def get_embeddings(self, input_words, input_embeddings):

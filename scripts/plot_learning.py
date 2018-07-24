@@ -20,8 +20,8 @@
 import numpy as np
 
 import sys
-import matplotlib
-matplotlib.use('Gtk3Cairo')
+#import matplotlib
+#matplotlib.use('Gtk3Cairo')
 import matplotlib.pyplot as plt
 
 import json
