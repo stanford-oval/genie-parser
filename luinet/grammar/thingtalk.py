@@ -27,7 +27,7 @@ import ssl
 import re
 import sys
 from .shift_reduce_grammar import ShiftReduceGrammar
-from util.loader import load_dictionary
+from ..util.loader import load_dictionary
 
 from collections import OrderedDict
 from orderedset import OrderedSet
@@ -184,27 +184,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             self._process_entities(json.load(res)['data'])
 
         self.complete()
-    
-    def vectorize_program(self, sentence, program, max_length=60):
-        if not self._split_device:
-            return super().vectorize_program(sentence, program, max_length=max_length)
-        
-        if isinstance(program, str):
-            program = program.split(' ')
-        def program_with_device():
-            for tok in program:
-                if tok.startswith('@'):
-                    device = tok[:tok.rindex('.')]
-                    yield '@' + device
-                yield tok
-        return super().vectorize_program(sentence, program_with_device(), max_length=max_length)
-    
-    def reconstruct_program(self, input_vector, sequences, ignore_errors=False):
-        reconstructed = super().reconstruct_program(input_vector, sequences, ignore_errors=ignore_errors)
-        if not self._split_device:
-            return reconstructed
-        else:
-            return [x for x in reconstructed if not x.startswith('@@')]
     
     def complete(self):
         self.num_functions = len(self.functions['queries']) + len(self.functions['actions'])
@@ -444,7 +423,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         string_end = None
         for i, token in enumerate(program):
             if self._flatten:
-                yield token, 0
+                yield self.dictionary[token], None
                 continue
 
             if token == '"':
@@ -453,18 +432,20 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     string_begin = i+1
                 else:
                     string_end = i
-                    yield 'SPAN', program[string_begin:string_end]
+                    yield self.dictionary['SPAN'], program[string_begin:string_end]
                     string_begin = None
                     string_end = None
-                yield token, None
+                yield self.dictionary[token], None
             elif in_string:
                 continue
+            elif token not in self.dictionary:
+                raise ValueError("Invalid token " + token)
             else:
-                yield token, 0
+                yield self.dictionary[token], None
 
     def set_input_dictionary(self, input_dictionary):
         #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
-        self.tokens += self.construct_parser(self._grammar, copy_terminals={
+        self.construct_parser(self._grammar, copy_terminals={
             'SPAN': []
         })
 
@@ -473,14 +454,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             print('num queries', len(self.functions['queries']))
             print('num actions', len(self.functions['actions']))
             print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
-        
-        self.dictionary = dict()
-        for i, token in enumerate(self.tokens):
-            self.dictionary[token] = i
 
 
 if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], reverse=False, flatten=False)
+    grammar = ThingTalkGrammar(sys.argv[1], flatten=False)
     dictionary, _ = load_dictionary(sys.argv[2], use_types=True, grammar=grammar)
     grammar.set_input_dictionary(dictionary)
     #grammar.dump_tokens()
@@ -489,7 +466,10 @@ if __name__ == '__main__':
         try:
             sentence, program = line.strip().split('\t')[1:3]
             sentence = sentence.split(' ')
-            vector, length = grammar.vectorize_program(sentence, program)
+            
+            tokenized, length = grammar.vectorize_program(sentence, program,
+                                                          direction='tokenizeonly')
+            vector, length = grammar.vectorize_program(sentence, tokenized)
             reconstructed = grammar.reconstruct_program(sentence, vector)
             assert program == ' '.join(reconstructed)
             #print()

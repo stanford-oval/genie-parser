@@ -20,9 +20,26 @@ Created on Nov 30, 2017
 @author: gcampagn
 '''
 
+import itertools
 import sys
+import numpy as np
 
-EOF_TOKEN = '<<EOF>>'
+# special tokens start with a space
+# so they sort earlier than all other tokens
+PAD_TOKEN = ' 0PAD' 
+EOF_TOKEN = ' 1EOF'
+START_TOKEN = ' 2START'
+PAD_ID = 0
+EOF_ID = 1
+START_ID = 2
+
+# codes for actions in the action table
+# the values are chosen to be somewhat compatible with t2t's
+# opinion of what encodings should look like
+INVALID_CODE = PAD_ID
+ACCEPT_CODE = EOF_ID
+SHIFT_CODE = 2
+REDUCE_CODE = 3
 
 class ItemSetInfo:
     def __init__(self):
@@ -54,13 +71,12 @@ class SLRParserGenerator():
     The grammar must be binarized beforehand.
     '''
     
-    def __init__(self, grammar, extensible_terminals, start_symbol):
+    def __init__(self, grammar, start_symbol):
         # optimizations first
         self._start_symbol = start_symbol
         self._optimize_grammar(grammar)
         grammar['$ROOT'] = [(start_symbol, EOF_TOKEN)]
         
-        self._extensible_terminals = extensible_terminals
         self._number_rules(grammar)
         self._extract_terminals_non_terminals()
         self._build_first_sets()
@@ -76,8 +92,9 @@ class SLRParserGenerator():
         # the last rule is $ROOT -> $input <<EOF>>
         # which is a pseudo-rule needed for the SLR generator
         # we ignore it here
-        return ShiftReduceParser(self.rules[:-1], self.action_table, self.goto_table, self._start_symbol,
-                                 self._extensible_terminals)
+        return ShiftReduceParser(self.rules[:-1], self.rule_table, self.action_table, self.goto_table,
+                                 self.terminals, self._all_dictionary,
+                                 self._all_dictionary[self._start_symbol])
     
     def _optimize_grammar(self, grammar):
         progress = True
@@ -166,7 +183,7 @@ class SLRParserGenerator():
                 print("WARNING: non-terminal " + lhs + " cannot be followed by any terminal")
     
     def _extract_terminals_non_terminals(self):
-        terminals = set()
+        terminals = { PAD_TOKEN, EOF_TOKEN, START_TOKEN }
         non_terminals = set()
         for lhs, rule in self.rules:
             non_terminals.add(lhs)
@@ -179,8 +196,14 @@ class SLRParserGenerator():
         
         self.terminals = list(terminals)
         self.terminals.sort()
+        assert self.terminals[PAD_ID] == PAD_TOKEN
+        assert self.terminals[EOF_ID] == EOF_TOKEN
+        assert self.terminals[START_ID] == START_TOKEN
         self.non_terminals = list(non_terminals)
         self.non_terminals.sort()
+        self.dictionary = dict((token, i) for i, token in enumerate(self.terminals))
+        self._all_dictionary = dict((token, i) for i, token in
+                                    enumerate(itertools.chain(self.terminals, self.non_terminals)))
 
     def print_rules(self, fp=sys.stdout):
         for i, (lhs, rhs) in enumerate(self.rules):
@@ -365,24 +388,36 @@ class SLRParserGenerator():
                 print(nonterm, "->", follow_set)
             
     def _build_parse_tables(self):
-        self.goto_table = [dict() for _ in range(self._n_states)]
-        self.action_table = [dict() for _ in range(self._n_states)]
+        self.goto_table = np.full(fill_value=INVALID_CODE,
+                                  shape=(self._n_states, len(self.non_terminals)),
+                                  dtype=np.int32)
+        self.action_table = np.full(fill_value=INVALID_CODE,
+                                    shape=(self._n_states, len(self.terminals) + len(self.non_terminals), 2),
+                                    dtype=np.int32)
         
-        for nonterm in self.non_terminals:
+        self.rule_table = np.empty(shape=(len(self.rules),2), dtype=np.int32)
+        for rule_id, (lhs, rhs) in enumerate(self.rules):
+            self.rule_table[rule_id, 0] = self._all_dictionary[lhs] - len(self.terminals)
+            self.rule_table[rule_id, 1] = len(rhs)
+        
+        for nonterm_id, nonterm in enumerate(self.non_terminals):
             for i in range(self._n_states):
                 if nonterm in self._state_transition_matrix[i]:
-                    self.goto_table[i][nonterm] = self._state_transition_matrix[i][nonterm]
+                    self.goto_table[i, nonterm_id] = self._state_transition_matrix[i][nonterm]
         for term in self.terminals:
             for i in range(self._n_states):
                 if term in self._state_transition_matrix[i]:
-                    self.action_table[i][term] = ('shift', self._state_transition_matrix[i][term])
+                    term_id = self.dictionary[term]
+                    self.action_table[i, term_id, 0] = SHIFT_CODE
+                    self.action_table[i, term_id, 1] = self._state_transition_matrix[i][term]
                     
         for item_set in self._item_sets:
             for item in item_set.rules:
                 _, rhs = item
                 for i in range(len(rhs)-1):
                     if rhs[i] == ITEM_SET_SEP and rhs[i+1] == EOF_TOKEN:
-                        self.action_table[item_set.info.id][EOF_TOKEN] = ('accept', None)
+                        self.action_table[item_set.info.id, EOF_ID, 0] = ACCEPT_CODE
+                        self.action_table[item_set.info.id, EOF_ID, 1] = INVALID_CODE
         
         for item_set in self._item_sets:
             for item in item_set.rules:
@@ -390,9 +425,11 @@ class SLRParserGenerator():
                 if rhs[-1] != ITEM_SET_SEP:
                     continue
                 lhs, _ = self.rules[rule_id]
-                for term in self.terminals:
+                for term_id, term in enumerate(self.terminals):
                     if term in self._follow_sets.get(lhs, set()):
-                        if term in self.action_table[item_set.info.id] and self.action_table[item_set.info.id][term] != ('reduce', rule_id):
+                        if self.action_table[item_set.info.id, term_id, 0] != INVALID_CODE \
+                         and not (self.action_table[item_set.info.id, term_id, 0] == REDUCE_CODE and
+                                  self.action_table[item_set.info.id, term_id, 1] == rule_id):
                             print("Item Set", item_set.info.id, item_set.info.intransitions)
                             for rule in item_set.rules:
                                 loop_rule_id, rhs = rule
@@ -408,8 +445,9 @@ class SLRParserGenerator():
                             #        print(loop_rule_id, lhs, '->', rhs)
                             #    print()
                             
-                            raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id][term])
-                        self.action_table[item_set.info.id][term] = ('reduce', rule_id)
+                            raise ValueError("Conflict for state", item_set.info.id, "terminal", term, "want", ("reduce", rule_id), "have", self.action_table[item_set.info.id, term_id])
+                        self.action_table[item_set.info.id, term_id, 0] = REDUCE_CODE
+                        self.action_table[item_set.info.id, term_id, 1] = rule_id
 
        
 class ShiftReduceParser:
@@ -422,14 +460,15 @@ class ShiftReduceParser:
     a string in the language.
     '''
     
-    def __init__(self, rules, action_table, goto_table, start_symbol, extensible_terminals):
+    def __init__(self, rules, rule_table, action_table, goto_table, terminals, dictionary, start_symbol):
         super().__init__()
         self.rules = rules
+        self.rule_table = rule_table
         self._action_table = action_table
         self._goto_table = goto_table
+        self.terminals = terminals
+        self.dictionary = dictionary
         self._start_symbol = start_symbol
-        
-        self._extensible_terminals = extensible_terminals
 
     @property
     def num_rules(self):
@@ -449,7 +488,7 @@ class ShiftReduceParser:
         reduces = [None] * len(bottom_up_sequence)
         i = 0
         for action,param in bottom_up_sequence:
-            if action == 'shift':
+            if action == SHIFT_CODE:
                 continue
             lhs, rhs = self.rules[param]
             current_child = i-1
@@ -473,44 +512,44 @@ class ShiftReduceParser:
         write_subsequence(i-1, 0)
         return reversed_sequence
 
-    @property
-    def extensible_terminals(self):
-        return self._extensible_terminals
-
     def parse(self, sequence):
         stack = [0]
         state = 0
         result = []
         sequence_iter = iter(sequence)
-        terminal, token = next(sequence_iter)
+        terminal_id, token = next(sequence_iter)
         while True:
-            if terminal not in self._action_table[state]:
+            if self._action_table[state, terminal_id, 0] == INVALID_CODE:
+                expected_token_ids,  = self._action_table[state, :, 0].nonzero()
+                expected_tokens = [self.terminals[i] for i in expected_token_ids]
+                
                 raise ValueError(
-                    "Parse error: unexpected token " + terminal + " in state " + str(state) + ", expected " + str(
-                        self._action_table[state].keys()))
-            action, param = self._action_table[state][terminal]
-            if action == 'accept':
+                    "Parse error: unexpected token " + self.terminals[terminal_id] + " in state " + str(state) + ", expected " + str(
+                        expected_tokens))
+            action, param = self._action_table[state, terminal_id]
+            if action == ACCEPT_CODE:
                 return result
             #if action == 'shift':
             #    print('shift', param, token)
             #else:
             #    print('reduce', param, self.rules[param])
-            if action == 'shift':
+            if action == SHIFT_CODE:
                 state = param
-                result.append(('shift', (terminal, token)))
+                result.append((SHIFT_CODE, (terminal_id, token)))
                 stack.append(state)
                 try:
-                    terminal, token = next(sequence_iter)
+                    terminal_id, token = next(sequence_iter)
                 except StopIteration:
-                    terminal = EOF_TOKEN
+                    terminal_id = EOF_ID
             else:
+                assert action == REDUCE_CODE
                 rule_id = param
-                result.append(('reduce', rule_id))
-                lhs, rhs = self.rules[rule_id]
-                for _ in rhs:
+                result.append((REDUCE_CODE, rule_id))
+                lhs_id, rhssize = self.rule_table[rule_id]
+                for _ in range(rhssize):
                     stack.pop()
                 state = stack[-1]
-                state = self._goto_table[state][lhs]
+                state = self._goto_table[state, lhs_id]
                 stack.append(state)
                 
     def reconstruct_reverse(self, sequence):
@@ -520,7 +559,7 @@ class ShiftReduceParser:
     
         def recurse(start_at):
             action, param = sequence[start_at]
-            if action != 'reduce':
+            if action != REDUCE_CODE:
                 raise ValueError('invalid action')
             _, rhs = self.rules[param]
             length = 1
@@ -535,38 +574,65 @@ class ShiftReduceParser:
         return output_sequence
 
     def reconstruct(self, sequence):
-        stacks = dict()
+        # beware: this code is tricky
+        # don't approach it without patience, pen and paper and
+        # many test cases
+
+        stack = []
+        top_stack_id = None
+        token_map = dict()
         for action, param in sequence:
-            if action == 'shift':
-                term, token = param
-                if term in self._extensible_terminals:
-                    if 'terminal_' + term not in stacks:
-                        stacks['terminal_' + term] = [token] if isinstance(token, list) else [[token]]
-                    else:
-                        stacks['terminal_' + term].append(token if isinstance(token, list) else [token])
-            elif action == 'accept':
+            if action == ACCEPT_CODE:
                 break
+            elif action == SHIFT_CODE:
+                term_id, token = param
+                assert term_id not in token_map
+                token_map[term_id] = token
             else:
+                assert action == REDUCE_CODE
                 rule_id = param
                 lhs, rhs = self.rules[rule_id]
-                new_prog = []
-                for symbol in reversed(rhs):
+                top_stack_id = self.rule_table[rule_id, 0]
+                if len(rhs) == 1:
+                    #print("fast path for", lhs, "->", rhs)
+                    # fast path for unary rules
+                    symbol = rhs[0]
                     if symbol[0] == '$':
-                        new_prog = stacks[symbol].pop() + new_prog
-                    elif symbol in self._extensible_terminals:
-                        new_prog = stacks['terminal_' + symbol].pop() + new_prog
+                        # unary non-term to non-term, no stack manipulation
+                        continue
+                    # unary term to non-term, we push directly to the stack
+                    # a list containing a single item, the terminal and its data
+                    symbol_id = self.dictionary[symbol]
+                    if symbol_id in token_map:
+                        stack.append([(symbol_id, token_map.pop(symbol_id))])
                     else:
-                        new_prog.insert(0, symbol)
-                if lhs not in stacks:
-                    stacks[lhs] = []
-                stacks[lhs].append(new_prog)
+                        stack.append([(symbol_id, None)])
+                else:
+                    #print("slow path for", lhs, "->", rhs)
+                    new_prog = []
+                    for symbol in reversed(rhs):
+                        if symbol[0] == '$':
+                            new_prog.extend(stack.pop())
+                        else:
+                            symbol_id = self.dictionary[symbol]
+                            if symbol_id in token_map:
+                                new_prog.append((symbol_id, token_map.pop(symbol_id)))
+                            else:
+                                new_prog.append((symbol_id, None))
+                    stack.append(new_prog)
         #print("Stacks")
         #for cat, progs in stacks.items():
         #    for prog in progs:
         #        print(cat, ":", prog)
-        if len(stacks.get(self._start_symbol, ())) != 1:
-            raise ValueError("Cannot reconstruct, ambiguous parse")
-        return stacks[self._start_symbol][0]
+        if len(self.terminals) + top_stack_id != self._start_symbol or \
+            len(stack) != 1:
+            raise ValueError("Invalid sequence")
+        
+        assert len(stack) == 1
+        # the program is constructed on the stack in reverse order
+        # bring it back to the right order
+        stack[0].reverse()
+        return stack[0]
 
 
 TEST_GRAMMAR = {
@@ -597,9 +663,9 @@ TEST_GRAMMAR = {
              ('PARAM', '=~', '$string')]
 }
 TEST_TERMINALS = {
-    'PARAM': ['param:number', 'param:text'],
-    'GET': ['xkcd.get_comic', 'thermostat.get_temp', 'twitter.search'],
-    'DO': ['twitter.post']
+    'PARAM': { 'param:number', 'param:text' },
+    'GET': { 'xkcd.get_comic', 'thermostat.get_temp', 'twitter.search' },
+    'DO': { 'twitter.post' }
 }
 
 # The grammar of nesting parenthesis
@@ -628,10 +694,10 @@ PARENTHESIS_GRAMMAR = {
 if __name__ == '__main__':
     if True:
 
-        generator = SLRParserGenerator(TEST_GRAMMAR, TEST_TERMINALS, start_symbol='$prog')
-        print("Action table:")
-        for i, actions in enumerate(generator.action_table):
-            print(i, ":", actions)
+        generator = SLRParserGenerator(TEST_GRAMMAR, start_symbol='$prog')
+        #print("Action table:")
+        #for i, actions in enumerate(generator.action_table):
+        #    print(i, ":", actions)
 
         #print()          
         #print("Goto table:")
@@ -640,8 +706,22 @@ if __name__ == '__main__':
         
         parser = generator.build()
         
+        def tokenize(seq):
+            for token in seq:
+                found = False
+                for test_term, values in TEST_TERMINALS.items():
+                    if token in values:
+                        yield generator.dictionary[test_term], token
+                        found = True
+                        break
+                if not found:
+                    yield generator.dictionary[token], token
 
-        print(parser.parse(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0']))
+        print(parser.parse(tokenize(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'])))
+        
+        def reconstruct(seq):
+            for token_id, token in seq:
+                yield token
         
         TEST_VECTORS = [
             ['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
@@ -650,17 +730,17 @@ if __name__ == '__main__':
         ]
         
         for expected in TEST_VECTORS:
-            assert expected == parser.reconstruct(parser.parse(expected))
+            assert expected == list(reconstruct(parser.reconstruct(parser.parse(tokenize(expected)))))
     else:
-        generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, extensible_terminals=dict(), start_symbol='$S')
-        print("Action table:")
-        for i, actions in enumerate(generator.action_table):
-            print(i, ":", actions)
+        generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, start_symbol='$S')
+        #print("Action table:")
+        #for i, actions in enumerate(generator.action_table):
+        #    print(i, ":", actions)
         
-        print()          
-        print("Goto table:")
-        for i, next_states in enumerate(generator.goto_table):
-            print(i, ":", next_states)
+        #print()          
+        #print("Goto table:")
+        #for i, next_states in enumerate(generator.goto_table):
+        #    print(i, ":", next_states)
         
         parser = generator.build()
         

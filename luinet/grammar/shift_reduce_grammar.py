@@ -24,7 +24,7 @@ import numpy as np
 from collections import OrderedDict
 
 from .abstract import AbstractGrammar
-from .slr import SLRParserGenerator
+from . import slr
 
 def find_substring(sequence, substring):
     for i in range(len(sequence)-len(substring)+1):
@@ -39,10 +39,10 @@ def find_substring(sequence, substring):
 
 class ShiftReduceGrammar(AbstractGrammar):
 
-    def __init__(self, quiet=False, reverse=False, flatten=True, max_input_length=60):
+    def __init__(self, quiet=False, flatten=True, max_input_length=60):
         super().__init__()
         
-        self.tokens = ['</s>', '<s>']
+        self.tokens = ['<pad>', '</s>', '<s>']
         
         self._quiet = quiet
         self._parser = None
@@ -51,15 +51,9 @@ class ShiftReduceGrammar(AbstractGrammar):
         self._extensible_terminal_indices = dict()
         self._copy_terminals = []
         self._copy_terminal_indices = dict()
-        self._copy_tokens = []
         self._flatten = flatten
-        self._reverse = reverse
         self._max_input_length = max_input_length
 
-    @property
-    def copy_tokens(self):
-        return self._copy_tokens
-    
     @property
     def copy_terminal_list(self):
         return ['COPY_' + x for x in self._copy_terminals]
@@ -93,42 +87,41 @@ class ShiftReduceGrammar(AbstractGrammar):
             self._extensible_terminals.sort()
             self._copy_terminals = list(copy_terminals.keys())
             self._copy_terminals.sort()
-            for copy_term, values in copy_terminals.items():
-                for v in values:
-                    self._copy_tokens.append(v)
-            self._copy_tokens.sort()
 
         all_extensible_terminals = dict()
         all_extensible_terminals.update(extensible_terminals)
         all_extensible_terminals.update(copy_terminals)
-        generator = SLRParserGenerator(grammar, all_extensible_terminals, '$input')
+        generator = slr.SLRParserGenerator(grammar, '$input')
         self._parser = generator.build()
-
-        for i, term in enumerate(self._extensible_terminals):
-            self._extensible_terminal_indices[term] = i
-        for i, term in enumerate(self._copy_terminals):
-            self._copy_terminal_indices[term] = i
         
-        if not self._quiet and self._reverse:
-            print('using reversed grammar')
         if not self._quiet:
             print('num rules', self._parser.num_rules)
             print('num states', self._parser.num_states)
             print('num shifts', len(self._extensible_terminals) + 1)
 
         self._output_size = OrderedDict()
-        self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
+        self._output_size['targets'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
         for term in self._extensible_terminals:
-            self._output_size[term] = len(self._parser.extensible_terminals[term])
+            self._output_size[term] = len(extensible_terminals[term])
         for term in self._copy_terminals:
             self._output_size['COPY_' + term + '_begin'] = self._max_input_length
             self._output_size['COPY_' + term + '_end'] = self._max_input_length
         
-        return generator.terminals
+        self.dictionary = generator.dictionary
+        # add synonyms that AbstractGrammar likes
+        self.dictionary['<s>'] = slr.START_ID
+        self.dictionary['</s>'] = slr.EOF_ID
+        
+        for i, term in enumerate(self._extensible_terminals):
+            self._extensible_terminal_indices[self.dictionary[term]] = i
+        for i, term in enumerate(self._copy_terminals):
+            self._copy_terminal_indices[self.dictionary[term]] = i
+        
+        self.tokens = generator.terminals
     
     @property
     def primary_output(self):
-        return 'actions'
+        return 'targets'
     
     def is_copy_type(self, output):
         return output.startswith('COPY_')
@@ -141,43 +134,127 @@ class ShiftReduceGrammar(AbstractGrammar):
         if isinstance(program, str):
             program = program.split(' ')
         for token in program:
-            yield token, 0
+            yield self.dictionary[token], None
 
-    def vectorize_program(self, input_sentence, program, max_length=60):
-        if self._reverse:
-            parsed = self._parser.parse_reverse(self.tokenize_program(program))
+    def _find_span(self, input_sentence, span):
+        # add one to account for <s> at the front
+        input_position = 1 + find_substring(input_sentence, span)
+        if input_position == 0 or input_position > self._max_input_length:
+            # last position in the sentence
+            return self._max_input_length-1, self._max_input_length-1
         else:
-            parsed = self._parser.parse(self.tokenize_program(program))
+            # NOTE: the boundaries are inclusive (so that we always point
+            # inside the span)
+            return input_position, input_position + len(span)-1
+
+    def _tokenize_program_to_np_array(self, input_sentence, program, max_length=60):
+        output = np.zeros((max_length,), dtype=np.int32)
+        
+        i = 0
+        for term_id, payload in self.tokenize_program(program):
+            if term_id in self._copy_terminal_indices:
+                span = payload
+                begin, end = self._find_span(input_sentence, span)
+                if i > max_length-3:
+                    raise ValueError("Truncated tokenization of " + str(program))
+                output[i] = term_id
+                output[i+1] = begin
+                output[i+2] = end
+                i += 3
+            elif term_id in self._extensible_terminal_indices:
+                tokenid = payload
+                if i > max_length-2:
+                    raise ValueError("Truncated tokenization of " + str(program))
+                output[i] = term_id
+                output[i+1] = tokenid
+                i += 2
+            else:
+                if i > max_length-1:
+                    raise ValueError("Truncated tokenization of " + str(program))
+                output[i] = term_id
+                i += 1
+        if i < max_length:
+            output[i] = slr.EOF_ID
+        return output, i
+
+    def _np_array_tokenizer(self, token_array):
+        i = 0
+        while i < len(token_array):
+            term_id = token_array[i]
+            if term_id in (slr.EOF_ID, slr.PAD_ID):
+                break
+            if term_id in self._copy_terminal_indices:
+                begin, end = token_array[i+1:i+3]
+                yield term_id, (begin, end)
+                i += 3
+            elif term_id in self._extensible_terminal_indices:
+                tokenid = token_array[i+1]
+                yield term_id, tokenid
+                i += 2
+            else:
+                yield term_id, None
+                i += 1
+
+    def verify_program(self, program):
+        assert isinstance(program, np.ndarray)
+        # run the parser
+        # if nothing happens, we're good
+        self._parser.parse(self._np_array_tokenizer(program))
+
+    def vectorize_program(self, input_sentence, program,
+                          direction='bottomup',
+                          max_length=60):
+        assert direction in ('tokenizeonly', 'linear', 'bottomup', 'topdown')
+        
+        if direction == 'tokenizeonly':
+            return self._tokenize_program_to_np_array(input_sentence, program, max_length)
+        
+        if direction == 'linear':
+            return super().vectorize_program(input_sentence, program, max_length)
+
+        if isinstance(program, np.ndarray):
+            tokenizer = self._np_array_tokenizer(program)
+        else:
+            tokenizer = self.tokenize_program(program)
+
+        if direction == 'topdown':
+            parsed = self._parser.parse_reverse(tokenizer)
+        else:
+            parsed = self._parser.parse(tokenizer)
 
         vectors = dict()
-        vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
+        vectors['targets'] = np.zeros((max_length,), dtype=np.int32)
         for term in self._extensible_terminals:
             vectors[term] = np.ones((max_length,), dtype=np.int32) * -1
         for term in self._copy_terminals:
             vectors['COPY_' + term + '_begin'] = np.ones((max_length,), dtype=np.int32) * -1
             vectors['COPY_' + term + '_end'] = np.ones((max_length,), dtype=np.int32) * -1
-        action_vector = vectors['actions']
+        action_vector = vectors['targets']
         i = 0
 
         for action, param in parsed:
-            if action == 'shift':
-                term, payload = param
-                if term in self._copy_terminal_indices:
+            assert action in (slr.SHIFT_CODE, slr.REDUCE_CODE)
+            if action == slr.SHIFT_CODE:
+                term_id, payload = param
+                term = self.tokens[term_id]
+                if term_id in self._copy_terminal_indices:
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
-                                       self._copy_terminal_indices[term]
+                                       self._copy_terminal_indices[term_id]
                     span = payload
-                    # add one to account for <s> at the front
-                    input_position = 1 + find_substring(input_sentence, span)
-                    if input_position == 0 or input_position > self._max_input_length:
-                        vectors['COPY_' + term + '_begin'][i] = self._max_input_length-1 # last position in the sentence
-                        vectors['COPY_' + term + '_end'][i] = self._max_input_length-1
+                    if isinstance(span, tuple):
+                        assert not isinstance(span[0], str)
+                        assert not isinstance(span[1], str)
+                        begin, end = span
                     else:
-                        vectors['COPY_' + term + '_begin'][i] = input_position
-                        vectors['COPY_' + term + '_end'][i] = input_position + len(span)-1
-                elif term in self._extensible_terminal_indices:
+                        assert isinstance(span, list)
+                        begin, end = self._find_span(input_sentence, span)
+                    vectors['COPY_' + term + '_begin'][i] = begin
+                    vectors['COPY_' + term + '_end'][i] = end
+                elif term_id in self._extensible_terminal_indices:
                     tokenid = payload
-                    assert tokenid < self._output_size[term]
-                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + self._extensible_terminal_indices[term]
+                    assert 0 <= tokenid < self._output_size[term]
+                    action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
+                        len(self._copy_terminals) + self._extensible_terminal_indices[term_id]
                     vectors[term][i] = tokenid
                 else:
                     continue
@@ -194,28 +271,56 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         return vectors, i
 
-    def reconstruct_program(self, input_sentence, sequences, ignore_errors=False):
-        actions = sequences['actions']
+    def reconstruct_program(self, input_sentence, sequences,
+                            direction='bottomup',
+                            ignore_errors=False):
+        if direction == 'linear':
+            reconstructed = super().reconstruct_program(input_sentence, sequences, direction, ignore_errors)
+            try:
+                # try parsing again to check if it is correct or not
+                self.vectorize_program(input_sentence, reconstructed, direction='bottomup', max_length=60)
+            except:
+                if ignore_errors: 
+                    return True
+                else:
+                    raise
+        
+        actions = sequences['targets']
         try:
             def gen_action(i):
                 x = actions[i]
                 if x <= self.end:
-                    return ('accept', None)
+                    return (slr.ACCEPT_CODE, None)
                 elif x < self.num_control_tokens + self._parser.num_rules:
-                    return ('reduce', x - self.num_control_tokens)
+                    return (slr.REDUCE_CODE, x - self.num_control_tokens)
                 elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                     term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
+                    term_id = self.dictionary[term]
                     begin_position = sequences['COPY_' + term + '_begin'][i]-1
                     end_position = sequences['COPY_' + term + '_end'][i]-1
                     input_span = input_sentence[begin_position:end_position+1]
-                    return ('shift', (term, input_span))
+                    return (slr.SHIFT_CODE, (term_id, input_span))
                 else:
                     term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
-                    return ('shift', (term, sequences[term][i]))
-            if self._reverse:
-                return self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
+                    term_id = self.dictionary[term]
+                    return (slr.SHIFT_CODE, (term_id, sequences[term][i]))
+            
+            if direction == 'topdown':
+                token_ids = self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
             else:
-                return self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
+                token_ids = self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
+            
+            program = []
+            for token_id, payload in token_ids:
+                if payload is not None:
+                    if isinstance(payload, list):
+                        program.extend(payload)
+                    else:
+                        program.append(payload)
+                else:
+                    program.append(self.tokens[token_id])
+            return program
+            
         except (KeyError, TypeError, IndexError, ValueError):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
@@ -250,7 +355,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             return ('shift', term)
 
     def output_to_print_full(self, key, output):
-        if key == 'actions':
+        if key == 'targets':
             return self._action_to_print_full(output)
         elif key.startswith('COPY_'):
             if output <= 0:
@@ -264,7 +369,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 return (self._parser.extensible_terminals[key][output],)
 
     def print_prediction(self, input_sentence, sequences):
-        actions = sequences['actions']
+        actions = sequences['targets']
         for i, action in enumerate(actions):
             if action == 0:
 

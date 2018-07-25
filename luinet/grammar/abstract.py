@@ -32,13 +32,14 @@ class AbstractGrammar(object):
         - tokens: the list of string tokens in the grammar
         - dictionary: a mapping from token to its ID
 
-    All Grammars must include a mapping for <s> and </s>
+    All Grammars must include a mapping for <pad>, <s> and </s>
+    Furthermore, <pad> must have ID 0 and </s> must have ID 1
     '''
 
     def __init__(self, **kw):
         self.tokens = []
         self.dictionary = dict()
-        self.num_control_tokens = 2
+        self.num_control_tokens = 3
 
     def set_input_dictionary(self, input_dictionary):
         # AbstractGrammar does nothing with it
@@ -65,10 +66,14 @@ class AbstractGrammar(object):
     def is_copy_type(self, output):
         return False
     
-    def vectorize_program(self, input_sentence, program, max_length):
+    def verify_program(self, program):
+        # nothing to do by default
+        pass
+    
+    def vectorize_program(self, input_sentence, program, direction, max_length):
         raise NotImplementedError()
     
-    def reconstruct_program(self, input_sentence, sequence, ignore_errors=False):
+    def reconstruct_program(self, input_sentence, sequence, direction, ignore_errors=False):
         raise NotImplementedError()
     
     def print_prediction(self, input_sentence, sequence):

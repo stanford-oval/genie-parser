@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University
+#                Google LLC
+#
+# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
+Tiny wrapper for t2t-datagen that allows some
+extra flags to be passed.
+
+Created on Jul 24, 2018
+
+@author: gcampagn
+'''
+
+from tensor2tensor.bin import t2t_datagen
+import tensorflow as tf
+
+import luinet
+
+flags = tf.flags
+flags.DEFINE_string("src_data_dir", "", "Source data directory.")
+
+
+def main(argv):
+  t2t_datagen.main(argv)
+
+
+if __name__ == "__main__":
+    tf.app.run()
