@@ -22,6 +22,7 @@ Created on Dec 22, 2017
 
 import tensorflow as tf
 from tensorflow.python.util import nest
+from tensor2tensor.layers import common_layers
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
@@ -113,6 +114,7 @@ def make_rnn_cell(cell_type, hidden_size, dropout):
 def make_multi_rnn_cell(num_layers, cell_type, hidden_size, dropout):
     return tf.contrib.rnn.MultiRNNCell([make_rnn_cell(cell_type, hidden_size, dropout) for _ in range(num_layers)])
 
+
 class DotProductLayer(tf.layers.Layer):
     def __init__(self, against):
         super().__init__()
@@ -171,7 +173,7 @@ class EmbeddingPointerLayer(tf.layers.Layer):
         super().__init__()
         
         self._embeddings = embeddings
-        self._embedding_size = embeddings.get_shape()[-1]
+        self._embedding_size = embeddings.shape[-1]
         self._hidden_size = hidden_size
         self._activation = activation
         self._dropout = dropout
@@ -224,28 +226,24 @@ class AttentivePointerLayer(tf.layers.Layer):
         
         self._enc_hidden_states = enc_hidden_states
         self._num_units = enc_hidden_states.shape[-1]
-        
-    def build(self, input_shape):
-        self.kernel = self.add_variable('kernel', (self._num_units, self._num_units), dtype=self.dtype)
-        self.built = True
-        
+
     def call(self, inputs):
-        with tf.name_scope('AttentivePointerLayer', (inputs,)):
-            is_2d = False
-            if inputs.shape.ndims < 3:
-                is_2d = True
-                inputs = tf.expand_dims(inputs, axis=1)
-            
-            score = tf.matmul(inputs, self._enc_hidden_states, transpose_b=True)
-            if is_2d:
-                score = tf.squeeze(score, axis=1)
-            return score
+        original_shape = common_layers.shape_list(inputs)
+        flattened_inputs = common_layers.flatten4d3d(inputs)
+        projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
+                                           use_bias=False)
+        
+        enc_time = tf.shape(self._enc_hidden_states)[1]
+        
+        score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
+        
+        return tf.reshape(score, original_shape[:-1] + [enc_time])
 
-    def compute_output_shape(self, *args):
-        raise TypeError("this one")
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1].concatenate(tf.TensorShape([self._enc_hidden_states.shape[1]]))
 
 
-class ImprovedAttentivePointerLayer(tf.layers.Layer):
+class DecayingAttentivePointerLayer(tf.layers.Layer):
     """
     A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
     """
@@ -300,6 +298,7 @@ class ImprovedAttentivePointerLayer(tf.layers.Layer):
     def compute_output_shape(self, *args):
         return tf.TensorShape([None, self._max_input_length])
 
+
 class DNNPointerLayer(tf.layers.Layer):
     def __init__(self, enc_hidden_states):
         super().__init__()
@@ -345,6 +344,7 @@ def pad_up_to(vector, size):
         padding = tf.reshape(tf.concat([[0, 0, 0], length_diff, [0,0]*(rank-1)], axis=0), shape=((rank+1), 2))
         return tf.pad(vector, padding, mode='constant')
 
+
 class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
     '''
     A cell wrapper that concatenates a fixed Tensor to the input
@@ -366,6 +366,7 @@ class ParentFeedingCellWrapper(tf.contrib.rnn.RNNCell):
     @property
     def state_size(self):
         return self._wrapped.state_size
+
 
 class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
     '''
@@ -414,6 +415,7 @@ def _enumerated_map_structure_up_to(shallow_structure, map_fn, *args, **kwargs):
         ix[0] += 1
         return r
     return nest.map_structure_up_to(shallow_structure, enumerated_fn, *args, **kwargs)
+
 
 class NotBrokenDropoutWrapper(tf.contrib.rnn.DropoutWrapper):
     def __init__(self, cell, output_keep_prob):

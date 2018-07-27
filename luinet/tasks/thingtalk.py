@@ -110,9 +110,12 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
         with open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
             json.dump(output, fp, indent=2)
 
-
     def begin_data_generation(self, data_dir):
         self._get_thingpedia(data_dir)
+
+    @property
+    def use_typed_embeddings(self):
+        return True
 
 
 @registry.register_problem("semparse_thingtalk")

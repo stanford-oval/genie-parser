@@ -19,4 +19,6 @@
 
 # import to force registration with t2t
 from . import util
+from . import layers
+from . import models
 from . import tasks

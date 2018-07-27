@@ -23,16 +23,33 @@ Created on Jul 24, 2018
 '''
 
 import os
+import sys
+import json
+import urllib.request
+import ssl
+import zipfile
+import re
+import tempfile
+import shutil
+import numpy as np
+import configparser
 
+import numpy as np
 import tensorflow as tf
 
+from tensor2tensor.utils import registry
 from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import text_encoder
 
+from ..layers.modalities import PretrainedEmbeddingModality, PointerModality
 from ..grammar.abstract import AbstractGrammar
 
 FLAGS = tf.flags.FLAGS
+
+START_TOKEN = '<s>'
+START_ID = text_encoder.EOS_ID + 1
+
 
 class IdentityEncoder(object):
     def __init__(self, vocab_size):
@@ -43,6 +60,27 @@ class IdentityEncoder(object):
     
     def decode(self, x):
         return x
+
+
+def _make_pointer_modality(name):
+    return lambda model_hparams, vocab_size=None: \
+        PointerModality(name, model_hparams, vocab_size=vocab_size)
+
+
+ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
+            'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
+            'TIME', 'URL', 'USERNAME', 'PATH_NAME', 'CURRENCY']
+MAX_ARG_VALUES = 5
+
+
+HACK_REPLACEMENT = {
+    # onedrive is the new name of skydrive
+    'onedrive': 'skydrive',
+
+    # imgflip is kind of the same as imgur (or 9gag)
+    # until we have either in thingpedia, it's fine to reuse the word vector
+    'imgflip': 'imgur'
+}
 
 
 class SemanticParsingProblem(text_problems.Text2TextProblem):
@@ -87,9 +125,20 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         hp.stop_at_eos = True
         hp.add_hparam("grammar_direction", "bottomup")
         
+        modality_name_prefix = self.name + "_"
+        
         source_vocab_size = self._encoders["inputs"].vocab_size
+        
+        with tf.gfile.Open(os.path.join(model_hparams.data_dir,
+                                        "input_embeddings.npy"), "rb") as fp:
+            pretrained_input_embeddings = np.load(fp)
+        pretrained_modality = lambda model_hparams, vocab_size=None: \
+            PretrainedEmbeddingModality("inputs", pretrained_input_embeddings,
+                                        model_hparams)
+        registry.register_symbol_modality(modality_name_prefix + "pretrained_inputs")(pretrained_modality)
         hp.input_modality = {
-            "inputs": ("symbol:default", source_vocab_size)
+            "inputs": ("symbol:" + modality_name_prefix + "pretrained_inputs",
+                       source_vocab_size)
         }
         
         data_dir = (model_hparams and hasattr(model_hparams, "data_dir") and
@@ -106,11 +155,13 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             hp.target_modality = {}
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
-                    hp.target_modality[key] = ("symbol:default", size)
+                    hp.target_modality["targets"] = ("symbol:default", size)
                 elif grammar.is_copy_type(key):
-                    hp.target_modality[key] = ("symbol:copy", size)
-                else:
-                    hp.target_modality[key] = ("symbol:identity", size)
+                    hp.target_modality["targets_" + key] = ("symbol:copy", size)
+                else:       
+                    modality_name = modality_name_prefix + "pointer_" + key
+                    registry.register_symbol_modality(modality_name)(_make_pointer_modality(modality_name))
+                    hp.target_modality["targets_" + key] = ("symbol:" + modality_name, size)
   
     @property
     def is_generate_per_split(self):
@@ -217,13 +268,143 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                     sentence = line.strip().split('\t')[1]
                     self._add_words_to_dictionary(sentence)
     
+    def _download_glove(self, glove, embed_size):
+        if tf.gfile.Exists(glove):
+            return
+    
+        tf.logging.info('Downloading pretrained GloVe vectors into %s', glove)
+        with tempfile.TemporaryFile() as tmp:
+            with urllib.request.urlopen('https://nlp.stanford.edu/data/glove.42B.' + str(embed_size) + 'd.zip') as res:
+                shutil.copyfileobj(res, tmp)
+            with zipfile.ZipFile(tmp, 'r') as glove_zip:
+                glove_zip.extract('glove.42B.' + str(embed_size) + 'd.txt', path=os.path.dirname(glove))
+        tf.logging.info('Done downloading GloVe')
+    
+    @property
+    def use_typed_embeddings(self):
+        return False
+    
+    def _convert_glove_to_numpy(self, glove, data_dir,
+                                dictionary, grammar, embed_size):
+        original_embed_size = embed_size
+        if self.use_typed_embeddings:
+            num_entities = len(ENTITIES) + len(grammar.entities)
+            embed_size += num_entities + MAX_ARG_VALUES + 2
+        else:
+            embed_size += 2
+        
+        # there are 4 reserved tokens: pad, eos, start and unk
+        embedding_matrix = np.zeros((4 + len(dictionary), embed_size),
+                                    dtype=np.float32)
+        # careful here! various places in t2t assume that padding
+        # will have a all-zero embedding
+        # we also use all-zero for <unk>
+        embedding_matrix[text_encoder.EOS_ID, embed_size-1] = 1.
+        embedding_matrix[START_ID, embed_size-2] = 1.
+
+        trimmed_glove = dict()
+        hack_values = HACK_REPLACEMENT.values()
+        with tf.gfile.Open(glove, "r") as fp:
+            for line in fp:
+                line = line.strip()
+                vector = line.split(' ')
+                word, vector = vector[0], vector[1:]
+                if not word in dictionary and word not in hack_values:
+                    continue
+                vector = np.array(list(map(float, vector)))
+                trimmed_glove[word] = vector
+        
+        BLANK = re.compile('^_+$')
+        for word, word_id in dictionary.items():
+            assert isinstance(word, str), (word, word_id)
+            if self.use_typed_embeddings and word[0].isupper():
+                continue
+            if word in trimmed_glove:
+                embedding_matrix[word_id, :original_embed_size] = trimmed_glove[word]
+                continue
+            
+            if not word or re.match('\s+', word):
+                raise ValueError('Invalid word "%s"' % (word,))
+            vector = None
+            if BLANK.match(word):
+                # normalize blanks
+                vector = trimmed_glove['____']
+            elif word.endswith('s') and word[:-1] in trimmed_glove:
+                vector = trimmed_glove[word[:-1]]
+            elif (word.endswith('ing') or word.endswith('api')) and word[:-3] in trimmed_glove:
+                vector = trimmed_glove[word[:-3]]
+            elif word in HACK_REPLACEMENT:
+                vector = trimmed_glove[HACK_REPLACEMENT[word]]
+            elif '-' in word:
+                vector = np.zeros(shape=(original_embed_size,), dtype=np.float64)
+                for w in word.split('-'):
+                    if w in trimmed_glove:
+                        vector += trimmed_glove[w]
+                    else:
+                        vector = None
+                        break
+            if vector is not None:
+                embedding_matrix[word_id, :original_embed_size] = vector
+            else:
+                tf.logging.warn("missing word from GloVe: %s", word)
+                embedding_matrix[word_id, :original_embed_size] = np.random.normal(0, 0.9, (original_embed_size,))
+        del trimmed_glove
+        
+        if self.use_typed_embeddings:
+            for i, entity in enumerate(ENTITIES):
+                for j in range(MAX_ARG_VALUES):
+                    token_id = dictionary[entity + '_' + str(j)]
+                    embedding_matrix[token_id, original_embed_size + i] = 1.
+                    embedding_matrix[token_id, original_embed_size + num_entities + j] = 1.
+            for i, (entity, has_ner) in enumerate(grammar.entities):
+                if not has_ner:
+                    continue
+                for j in range(MAX_ARG_VALUES):
+                    token_id = dictionary['GENERIC_ENTITY_' + entity + '_' + str(j)]
+                    embedding_matrix[token_id, original_embed_size + len(ENTITIES) + i] = 1.
+                    embedding_matrix[token_id, original_embed_size + num_entities + j] = 1.
+    
+        with tf.gfile.Open(os.path.join(data_dir, "input_embeddings.npy"), "wb") as fp:
+            np.save(fp, embedding_matrix)
+    
     def _create_input_vocab(self, data_dir):
+        dictionary = dict()
+        grammar = self.get_grammar(data_dir)
+        
         with tf.gfile.Open(os.path.join(data_dir, self.vocab_filename), 'w') as fp:
             print(text_encoder.PAD, file=fp)
             print(text_encoder.EOS, file=fp)
+            print(START_TOKEN, file=fp)
             print(self.oov_token, file=fp)
-            for i, word in enumerate(sorted(self._building_dictionary)):
+            
+            token_id = 4
+            if self.use_typed_embeddings:
+                for i, entity in enumerate(ENTITIES):
+                    for j in range(MAX_ARG_VALUES):
+                        token = entity + '_' + str(j)
+                        dictionary[token] = token_id
+                        print(token, file=fp)
+                        token_id += 1
+                for i, (entity, has_ner) in enumerate(grammar.entities):
+                    if not has_ner:
+                        continue
+                    for j in range(MAX_ARG_VALUES):
+                        token = 'GENERIC_ENTITY_' + entity + '_' + str(j)
+                        dictionary[token] = token_id
+                        print(token, file=fp)
+                        token_id += 1
+            
+            for word in sorted(self._building_dictionary):
+                if word in dictionary:
+                    continue
+                dictionary[word] = token_id
                 print(word, file=fp)
+                token_id += 1
+                
+        glove = os.getenv('GLOVE', os.path.join(data_dir, 'glove.42B.300d.txt'))    
+        self._download_glove(glove, embed_size=300)
+        self._convert_glove_to_numpy(glove, data_dir,
+                                     dictionary, grammar, embed_size=300)
         
         self._building_dictionary = None
     
@@ -242,14 +423,16 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                                                                direction='tokenizeonly')
                 grammar.verify_program(vectorized)
                 
-                sample = {
-                    "inputs": input_vocabulary.encode(sentence),
+                encoded_input : list = input_vocabulary.encode(sentence)
+                encoded_input.insert(START_ID, 0)
+                encoded_input.append(text_encoder.EOS_ID)
+                
+                yield {
+                    "inputs": encoded_input,
                     
                     # t2t explicitly wants a list of python integers, just to convert
                     # it back to a packed representation immediately after
                     # because
                     "targets": list(map(int, vectorized[:length]))
                 }
-                sample["inputs"].append(text_encoder.EOS_ID)
-                yield sample
     

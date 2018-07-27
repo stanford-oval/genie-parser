@@ -14,48 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
-'''
-Created on Jul 20, 2017
 
-@author: gcampagn
-'''
-
-import tensorflow as tf
-
-from .seq2seq_aligner import Seq2SeqAligner
-from .beam_aligner import BeamAligner
-from .rpag_aligner import RPAGAligner
-from .beamdecode_aligner import BeamDecodeAligner
-
-import importlib 
-
-from .config import Config
-    
-def create_model(config):
-    pkg = None
-    class_name = None
-
-    # for compat with existing configuration files
-    if config.model_type == 'seq2seq':
-        pkg = 'seq2seq_aligner'
-        class_name = 'Seq2SeqAligner'
-    elif config.model_type == 'beamdecode':
-        pkg = 'beamdecode_aligner'
-        class_name = 'BeamDecodeAligner'
-    elif config.model_type == 'beamsearch':
-        pkg = 'beamsearch'
-        class_name = 'BeamAligner'
-    elif config.model_type == 'rpag':
-        pkg = 'rpag_aligner'
-        class_name = 'RPAGAligner'
-    elif config.model_type == 'extensible':
-        pkg = 'extensible_aligner'
-        class_name = 'ExtensibleGrammarAligner'
-    elif config.model_type == 'transformer':
-        pkg = 'transformer_aligner'
-        class_name = 'TransformerAligner'
-    else:
-        raise ValueError("Invalid model type %s" % (config.model_type,))
-    
-    module = importlib.import_module('models.' + pkg)
-    return getattr(module, class_name)(config)
+# imports to force registration with t2t
+from . import copy_transformer
+from . import transformer

@@ -102,8 +102,12 @@ class ShiftReduceGrammar(AbstractGrammar):
         self._output_size = OrderedDict()
         self._output_size['targets'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
         for term in self._extensible_terminals:
-            self._output_size[term] = len(extensible_terminals[term])
+            # add one to account for pad_id
+            self._output_size[term] = 1 + len(extensible_terminals[term])
         for term in self._copy_terminals:
+            # copy terminals don't need 1 to account for pad_id
+            # because we already consider <s> at the beginning
+            # of the sentence
             self._output_size['COPY_' + term + '_begin'] = self._max_input_length
             self._output_size['COPY_' + term + '_end'] = self._max_input_length
         
@@ -225,10 +229,10 @@ class ShiftReduceGrammar(AbstractGrammar):
         vectors = dict()
         vectors['targets'] = np.zeros((max_length,), dtype=np.int32)
         for term in self._extensible_terminals:
-            vectors[term] = np.ones((max_length,), dtype=np.int32) * -1
+            vectors[term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         for term in self._copy_terminals:
-            vectors['COPY_' + term + '_begin'] = np.ones((max_length,), dtype=np.int32) * -1
-            vectors['COPY_' + term + '_end'] = np.ones((max_length,), dtype=np.int32) * -1
+            vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         action_vector = vectors['targets']
         i = 0
 
