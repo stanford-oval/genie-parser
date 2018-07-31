@@ -22,6 +22,7 @@ Created on Jul 20, 2017
 
 import tensorflow as tf
 import numpy as np
+from tensor2tensor.layers import common_layers
 
 class AbstractGrammar(object):
     '''
@@ -70,11 +71,26 @@ class AbstractGrammar(object):
         # nothing to do by default
         pass
     
+    def tokenize_to_vector(self, input_sentence, program, max_length):
+        raise NotImplementedError()
+    
     def vectorize_program(self, input_sentence, program, direction, max_length):
         raise NotImplementedError()
     
-    def reconstruct_program(self, input_sentence, sequence, direction, ignore_errors=False):
+    def reconstruct_to_vector(self, sequences, direction, ignore_errors=False):
         raise NotImplementedError()
+    
+    def reconstruct_program(self, input_sentence, sequence, direction, ignore_errors=False):
+        if direction != 'linear':
+            raise ValueError("Invalid " + direction + " direction for simple grammar")
+        if isinstance(sequence, dict):
+            sequence = sequence['targets']
+        program = []
+        for x in sequence:
+            if x == self.end:
+                break
+            program.append(self.tokens[x])
+        return program
     
     def print_prediction(self, input_sentence, sequence):
         raise NotImplementedError()
@@ -88,11 +104,23 @@ class AbstractGrammar(object):
             embeddings[key] = np.identity(size, dtype=np.float32)
         return embeddings
 
-    def compare(self, seq1, seq2):
-        '''
-        Compare two sequence, to check if they represent semantically equivalent outputs
-        '''
-        return seq1 == seq2
-
-    def normalize_sequence(self, seq):
-        pass
+    def eval_metrics(self):
+        def accuracy(predictions, labels, features):
+            batch_size = tf.shape(predictions)[0]
+            predictions, labels = common_layers.pad_with_zeros(predictions, labels)
+            weights = tf.ones((batch_size,), dtype=tf.float32)
+            ok = tf.to_float(tf.reduce_all(tf.equal(predictions, labels, axis=1), axis=1))
+            return ok, weights
+        
+        def grammar_accuracy(predictions, labels, features):
+            batch_size = tf.shape(predictions)[0]
+            weights = tf.ones((batch_size,), dtype=tf.float32)
+            
+            return tf.cond(tf.shape(predictions)[1] > 0,
+                           lambda: tf.to_float(predictions[:,0] > 0),
+                           lambda: tf.zeros_like(weights)), weights
+        
+        return {
+            "accuracy": accuracy,
+            "grammar_accuracy": grammar_accuracy 
+        }

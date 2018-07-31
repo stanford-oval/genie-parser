@@ -1,0 +1,61 @@
+#!/usr/bin/python3
+# Copyright 2018 Google LLC
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""Tiny wrapper for t2t-trainer that automatically loads luinet.
+
+Usage:
+luinet-trainer
+  --data_dir ./workdir
+  --problem semparse_thingtalk_noquote
+  --model luinet_copy_transformer
+  --hparams_set transformer_tiny_luinet
+  --output_dir ./workdir-small/model
+  --t2t_usr_dir ./luinet
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# Part of this code is derived from Tensor2Tensor, which is:
+# Copyright 2018 The Tensor2Tensor Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from tensor2tensor.bin import t2t_trainer
+
+import tensorflow as tf
+
+import luinet
+
+
+def main(argv):
+  	# FIXME: we should validate the --problem and --model flag for
+  	# compatibility here, and require that LUINetProblems use LUINetModels
+  	# (while regular t2t.Problems can use t2t.Models)
+    t2t_trainer.main(argv)
+
+
+if __name__ == "__main__":
+  tf.app.run()

@@ -26,11 +26,14 @@ import urllib.request
 import ssl
 import re
 import sys
-from .shift_reduce_grammar import ShiftReduceGrammar
-from ..util.loader import load_dictionary
 
 from collections import OrderedDict
 from orderedset import OrderedSet
+
+from .shift_reduce_grammar import ShiftReduceGrammar
+from ..util.loader import load_dictionary
+from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy
+
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed', 'special:help',
@@ -92,13 +95,16 @@ UNITS = dict(C=["C", "F"],
 MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
 
+
 def clean(name):
     if name.startswith('v_'):
         name = name[len('v_'):]
     return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
+
 def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+
 
 class ThingTalkGrammar(ShiftReduceGrammar):
     '''
@@ -455,6 +461,17 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             print('num actions', len(self.functions['actions']))
             print('num other', len(self.tokens) - self.num_functions - self.num_control_tokens)
 
+    def eval_metrics(self):
+        def get_functions(program, what=None):
+            return [x for x in program[:, 0] if self.tokens[x].startswith('@')]
+        
+        return {
+            "accuracy": accuracy,
+            "grammar_accuracy": grammar_accuracy,
+            "function_accuracy": make_pyfunc_metric_fn(
+                lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')), 
+        }
+
 
 if __name__ == '__main__':
     grammar = ThingTalkGrammar(sys.argv[1], flatten=False)
@@ -467,8 +484,7 @@ if __name__ == '__main__':
             sentence, program = line.strip().split('\t')[1:3]
             sentence = sentence.split(' ')
             
-            tokenized, length = grammar.vectorize_program(sentence, program,
-                                                          direction='tokenizeonly')
+            tokenized, length = grammar.tokenize_to_vector(sentence, program)
             vector, length = grammar.vectorize_program(sentence, tokenized)
             reconstructed = grammar.reconstruct_program(sentence, vector)
             assert program == ' '.join(reconstructed)

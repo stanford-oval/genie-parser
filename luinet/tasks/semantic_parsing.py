@@ -41,6 +41,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import text_encoder
+from tensor2tensor.layers import common_layers
 
 from ..layers.modalities import PretrainedEmbeddingModality, PointerModality
 from ..grammar.abstract import AbstractGrammar
@@ -155,7 +156,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             hp.target_modality = {}
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
-                    hp.target_modality["targets"] = ("symbol:default", size)
+                    hp.target_modality["targets_" + key] = ("symbol:default", size)
                 elif grammar.is_copy_type(key):
                     hp.target_modality["targets_" + key] = ("symbol:copy", size)
                 else:       
@@ -179,7 +180,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     def vocab_type(self):
         return text_problems.VocabType.TOKEN
     
-    def get_grammar(self, out_dir) -> AbstractGrammar:
+    def get_grammar(self, out_dir=None) -> AbstractGrammar:
         if self._grammar:
             return self._grammar
         
@@ -192,11 +193,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         def parse_program_pyfunc(program_nparray):
             # we don't need to pass the input sentence, the program
             # was tokenized already
-            vectors, length = grammar.vectorize_program([], program_nparray,
+            vectors, length = grammar.vectorize_program(None, program_nparray,
                                                         direction=our_hparams.grammar_direction,
-                                                        # pass a large max length, we'll
-                                                        # truncate if necessary
-                                                        max_length=100)
+                                                        max_length=None)
             for key in vectors:
                 vectors[key] = vectors[key][:length]
             return vectors
@@ -218,16 +217,61 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     
     def preprocess_example(self, example, mode, model_hparams):
         output_example = {
-            "inputs": example["inputs"]
+            "inputs": example["inputs"],
+            "targets": example["targets"]
         }
         
         grammar = self.get_grammar(model_hparams.data_dir)
+        
         parsed = self._parse_program(example["targets"], model_hparams, grammar)
         for key, value in parsed.items():
-            processed_key = "targets" if key == grammar.primary_output else \
-                    "targets_" + key
-            output_example[processed_key] = value
+            output_example["targets_" + key] = value
         return output_example
+    
+    def eval_metrics(self):
+        grammar = self.get_grammar()
+        return grammar.eval_metrics()
+    
+    def compute_predictions(self, logits, features, model_hparams=None):
+        grammar = self.get_grammar(model_hparams.data_dir)
+        our_hparams = self.get_hparams(model_hparams)
+
+        sample_ids = dict()
+        for key in logits:
+            assert key.startswith("targets_")
+            grammar_key = key[len("targets_"):]
+            sample_ids[grammar_key] = tf.argmax(logits[key], axis=-1)
+            #sample_ids[grammar_key] = common_layers.flatten4d3d(sample_ids[grammar_key])
+            sample_ids[grammar_key] = tf.squeeze(sample_ids[grammar_key], axis=[2, 3])
+        
+        def compute_prediction_pyfunc(sample_ids):
+            batch_size = len(sample_ids[grammar.primary_output])
+            
+            outputs = []
+            output_len = None
+            for i in range(batch_size):
+                decoded_vectors = dict()
+                for key in grammar.output_size:
+                    decoded_vectors[key] = sample_ids[key][i]
+                outputs.append(grammar.reconstruct_to_vector(decoded_vectors,
+                                                             direction=our_hparams.grammar_direction,
+                                                             ignore_errors=True))
+                if output_len is None or len(outputs[-1]) > output_len:
+                    output_len = len(outputs[-1])
+                    
+            output_matrix = np.empty((batch_size, output_len), dtype=np.int32)
+            for i in range(batch_size):
+                item_len = len(outputs[i])
+                output_matrix[i, :item_len] = outputs[i]
+                output_matrix[i, item_len:] = np.zeros((output_len - item_len,),
+                                                       dtype=np.int32)
+            return output_matrix
+        
+        return tf.contrib.framework.py_func(compute_prediction_pyfunc,
+                                            [sample_ids],
+                                            output_shapes=tf.TensorShape([None, None]),
+                                            output_types=tf.int32,
+                                            stateful=False)
     
     def begin_data_generation(self, data_dir):
         # nothing to do
@@ -298,9 +342,14 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                                     dtype=np.float32)
         # careful here! various places in t2t assume that padding
         # will have a all-zero embedding
-        # we also use all-zero for <unk>
+        # and nothing else will have all-zero
+        # (eg. common_attention.embedding_to_padding, which
+        # is called by transformer_prepare_encoder)
+        
+        # we also use all-one for <unk>
         embedding_matrix[text_encoder.EOS_ID, embed_size-1] = 1.
         embedding_matrix[START_ID, embed_size-2] = 1.
+        embedding_matrix[3, :original_embed_size] = np.ones((original_embed_size,))
 
         trimmed_glove = dict()
         hack_values = HACK_REPLACEMENT.values()
@@ -418,13 +467,12 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 # forget about constituency parses, they were a bad idea
                 _id, sentence, program = line.strip().split('\t')[:3]
                 
-                vectorized, length = grammar.vectorize_program(sentence.split(' '),
-                                                               program,
-                                                               direction='tokenizeonly')
+                vectorized = grammar.tokenize_to_vector(sentence.split(' '), program)
                 grammar.verify_program(vectorized)
                 
                 encoded_input : list = input_vocabulary.encode(sentence)
-                encoded_input.insert(START_ID, 0)
+                assert text_encoder.PAD_ID not in encoded_input
+                encoded_input.insert(0, START_ID)
                 encoded_input.append(text_encoder.EOS_ID)
                 
                 yield {
@@ -433,6 +481,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                     # t2t explicitly wants a list of python integers, just to convert
                     # it back to a packed representation immediately after
                     # because
-                    "targets": list(map(int, vectorized[:length]))
+                    "targets": list(map(int, vectorized))
                 }
     

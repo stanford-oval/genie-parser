@@ -38,7 +38,6 @@ Created on Jul 26, 2018
 import tensorflow as tf
 
 from tensor2tensor.utils import registry
-from tensor2tensor.models.transformer import Transformer
 from tensor2tensor.models.transformer import features_to_nonpadding
 from tensor2tensor.models.transformer import transformer_prepare_decoder
 from tensor2tensor.layers import common_attention
@@ -48,14 +47,51 @@ from ..layers.modalities import CopyModality
 from ..layers.common import AttentivePointerLayer,\
     DecayingAttentivePointerLayer, EmbeddingPointerLayer
 
-from .base_model import LUINetModel
+from .transformer import Transformer
 
 @registry.register_model("luinet_copy_transformer")
-class CopyTransformer(Transformer, LUINetModel):
+class CopyTransformer(Transformer):
     '''
     A Transformer subclass that supports copying from the inputs.
     '''
-             
+    
+    def _fast_decode(self, 
+                    features, 
+                    decode_length, 
+                    beam_size=1, 
+                    top_beams=1, 
+                    alpha=1.0):
+        
+        ret = super()._fast_decode(features,
+                                   decode_length,
+                                   beam_size=beam_size,
+                                   top_beams=top_beams,
+                                   alpha=alpha)
+        
+        encoder_output = ret["encoder_output"]
+        encoder_decoder_attention_bias = ret["encoder_decoder_attention_bias"]
+        decoder_output = ret["body_output"]
+        with tf.variable_scope("body"):
+            body_output = dict()
+            target_modality = self._problem_hparams.target_modality \
+                if self._problem_hparams else {"targets": None} 
+            for key, modality in target_modality.items():
+                if isinstance(modality, CopyModality):
+                    with tf.variable_scope("copy_layer/" + key):
+                        output_layer = AttentivePointerLayer(encoder_output)
+                        scores = output_layer(decoder_output)
+                        scores += encoder_decoder_attention_bias
+                        body_output[key] = scores
+                else:
+                    body_output[key] = decoder_output
+        
+        # ret["outputs"] cannot be used directly
+        del ret["outputs"]
+        inputs_shape = common_layers.shape_list(features["inputs"])
+        body_output = tf.reshape(body_output, inputs_shape)
+        ret["logits"] = self.top(body_output, features)
+        return ret
+
     def body(self, features):
         """CopyTransformer main model_fn.
     
@@ -76,13 +112,17 @@ class CopyTransformer(Transformer, LUINetModel):
         losses = []
     
         inputs = features["inputs"]
-        inputs_3d = common_layers.flatten4d3d(inputs)
         
         target_space = features["target_space_id"]
         encoder_output, encoder_decoder_attention_bias = self.encode(
             inputs, target_space, hparams, features=features, losses=losses)
     
-        targets = features["targets"]
+        if "targets_actions" in features:
+            targets = features["targets_actions"]
+        else:
+            tf.logging.warn("CopyTransformer must be used with a SemanticParsing problem with a ShiftReduceGrammar; bad things will happen otherwise")
+            targets = features["targets"]
+        
         targets_shape = common_layers.shape_list(targets)
         targets = common_layers.flatten4d3d(targets)
     
@@ -100,11 +140,11 @@ class CopyTransformer(Transformer, LUINetModel):
     
         expected_attentions = features.get("expected_attentions")
         if expected_attentions is not None:
-          attention_loss = common_attention.encoder_decoder_attention_loss(
-              expected_attentions, self.attention_weights,
-              hparams.expected_attention_loss_type,
-              hparams.expected_attention_loss_multiplier)
-          return decoder_output, {"attention_loss": attention_loss}
+            attention_loss = common_attention.encoder_decoder_attention_loss(
+                expected_attentions, self.attention_weights,
+                hparams.expected_attention_loss_type,
+                hparams.expected_attention_loss_multiplier)
+            return decoder_output, {"attention_loss": attention_loss}
     
         decoder_output = tf.reshape(decoder_output, targets_shape)
         
@@ -112,9 +152,7 @@ class CopyTransformer(Transformer, LUINetModel):
         target_modality = self._problem_hparams.target_modality \
             if self._problem_hparams else {"targets": None} 
         for key, modality in target_modality.items():
-            if key == "targets":
-                body_output[key] = decoder_output
-            elif isinstance(modality, CopyModality):
+            if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
                     output_layer = AttentivePointerLayer(encoder_output)
                     scores = output_layer(decoder_output)
@@ -124,6 +162,6 @@ class CopyTransformer(Transformer, LUINetModel):
                 body_output[key] = decoder_output
         
         if losses:
-          return body_output, {"extra_loss": tf.add_n(losses)}
+            return body_output, {"extra_loss": tf.add_n(losses)}
         else:
-          return body_output
+            return body_output

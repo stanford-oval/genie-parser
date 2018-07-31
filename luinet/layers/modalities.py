@@ -54,8 +54,11 @@ class CopyModality(IdentitySymbolModality):
         return tf.expand_dims(body_output, 3)
 
     def loss(self, top_out, targets):
-        targets = tf.Print(targets, data=(targets,))
-        return super().loss(top_out, targets)
+        #targets = tf.Print(targets, data=(top_out, targets, tf.shape(top_out), tf.shape(targets)), summarize=10000)
+        n, d = super().loss(top_out, targets)
+        # add a small amount to the denominator to avoid 0/0 division
+        # if there is nothing to copy
+        return n, 1e-8 + d
 
 
 # do not register this one, it is registered on demand by
@@ -93,7 +96,7 @@ class PretrainedEmbeddingModality(SymbolModality):
             # so we linearly project it to the correct expected size
             # bad things happen if we don't
             y = tf.layers.dense(y, self._model_hparams.hidden_size,
-                                use_bias=True,
+                                use_bias=False,
                                 reuse=reuse,
                                 name=name + "_projection")
         return y

@@ -64,37 +64,34 @@ class SimpleGrammar(AbstractGrammar):
 
     @property
     def primary_output(self):
-        return 'targets'
+        return 'tokens'
 
     @property
     def output_size(self):
         return {
-            'targets': len(self.tokens)
+            'tokens': len(self.tokens)
         }
+        
+    def tokenize_to_vector(self, input_sentence, program):
+        vector, vlen = vectorize(program, self.dictionary, max_length=None, add_eos=True, add_start=False)
+        return vector[:vlen]
 
     def vectorize_program(self, input_sentence, program, direction='linear', max_length=60):
-        if direction not in ('linear', 'tokenizeonly'):
-            raise ValueError("Unsupported " + direction + " direction for simple grammar")
+        if direction != 'linear':
+            raise ValueError("Invalid " + direction + " direction for simple grammar")
         if isinstance(program, np.array):
-            return { 'targets': program }, len(program)
+            return { 'tokens': program }, len(program)
 
         del input_sentence
-        vector, len = vectorize(program, self.dictionary, max_length, add_eos=True)
+        vector, vlen = vectorize(program, self.dictionary, max_length, add_eos=True, add_start=False)
         return {
-            'targets': vector
-        }, len
+            'tokens': vector
+        }, vlen
         
-    def reconstruct_program(self, input_vector, sequence, direction='linear', ignore_errors=False):
-        if direction not in ('linear',):
-            raise ValueError("Unsupported " + direction + " direction for simple grammar")
-        if isinstance(sequence, dict):
-            sequence = sequence['targets']
-        program = []
-        for x in sequence:
-            if x == self.end:
-                break
-            program.append(self.tokens[x])
-        return program
+    def reconstruct_to_vector(self, sequences, direction, ignore_errors=False):
+        if direction != 'linear':
+            raise ValueError("Invalid " + direction + " direction for simple grammar")
+        return sequences['tokens']
 
     def print_prediction(self, input_sentence, sequence):
         for token in sequence['tokens']:

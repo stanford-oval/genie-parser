@@ -24,6 +24,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.models.transformer import transformer_tiny
 
 def luinet_extra_hparams(hp):
+    hp.eval_autoregressive = True
     hp.add_hparam("train_input_embeddings", False)
 
 @registry.register_hparams

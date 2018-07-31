@@ -26,6 +26,8 @@ from collections import OrderedDict
 from .abstract import AbstractGrammar
 from . import slr
 
+from ..util.loader import vectorize
+
 def find_substring(sequence, substring):
     for i in range(len(sequence)-len(substring)+1):
         found = True
@@ -49,6 +51,7 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         self._extensible_terminals = []
         self._extensible_terminal_indices = dict()
+        self._extensible_terminal_maps = dict()
         self._copy_terminals = []
         self._copy_terminal_indices = dict()
         self._flatten = flatten
@@ -83,14 +86,12 @@ class ShiftReduceGrammar(AbstractGrammar):
             extensible_terminals = dict()
             copy_terminals = dict()
         else:
+            self._extensible_terminal_maps = extensible_terminals
             self._extensible_terminals = list(extensible_terminals.keys())
             self._extensible_terminals.sort()
             self._copy_terminals = list(copy_terminals.keys())
             self._copy_terminals.sort()
 
-        all_extensible_terminals = dict()
-        all_extensible_terminals.update(extensible_terminals)
-        all_extensible_terminals.update(copy_terminals)
         generator = slr.SLRParserGenerator(grammar, '$input')
         self._parser = generator.build()
         
@@ -98,9 +99,10 @@ class ShiftReduceGrammar(AbstractGrammar):
             print('num rules', self._parser.num_rules)
             print('num states', self._parser.num_states)
             print('num shifts', len(self._extensible_terminals) + 1)
+            print('num terminals', len(generator.terminals))
 
         self._output_size = OrderedDict()
-        self._output_size['targets'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
+        self._output_size['actions'] = self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals) + len(self._extensible_terminals)
         for term in self._extensible_terminals:
             # add one to account for pad_id
             self._output_size[term] = 1 + len(extensible_terminals[term])
@@ -125,7 +127,7 @@ class ShiftReduceGrammar(AbstractGrammar):
     
     @property
     def primary_output(self):
-        return 'targets'
+        return 'actions'
     
     def is_copy_type(self, output):
         return output.startswith('COPY_')
@@ -151,53 +153,48 @@ class ShiftReduceGrammar(AbstractGrammar):
             # inside the span)
             return input_position, input_position + len(span)-1
 
-    def _tokenize_program_to_np_array(self, input_sentence, program, max_length=60):
-        output = np.zeros((max_length,), dtype=np.int32)
+    def tokenize_to_vector(self, input_sentence, program):
+        if isinstance(program, str):
+            program = program.split(' ')
+        max_length = len(program)
+        output = np.zeros((max_length, 3), dtype=np.int32)
         
-        i = 0
-        for term_id, payload in self.tokenize_program(program):
+        for i, (term_id, payload) in enumerate(self.tokenize_program(program)):
+            assert 0 <= term_id < len(self.tokens)
             if term_id in self._copy_terminal_indices:
                 span = payload
                 begin, end = self._find_span(input_sentence, span)
-                if i > max_length-3:
-                    raise ValueError("Truncated tokenization of " + str(program))
-                output[i] = term_id
-                output[i+1] = begin
-                output[i+2] = end
-                i += 3
+                output[i, 0] = term_id
+                output[i, 1] = begin
+                output[i, 2] = end
             elif term_id in self._extensible_terminal_indices:
                 tokenid = payload
                 if i > max_length-2:
                     raise ValueError("Truncated tokenization of " + str(program))
-                output[i] = term_id
-                output[i+1] = tokenid
-                i += 2
+                output[i, 0] = term_id
+                output[i, 1] = tokenid
             else:
                 if i > max_length-1:
                     raise ValueError("Truncated tokenization of " + str(program))
-                output[i] = term_id
-                i += 1
-        if i < max_length:
-            output[i] = slr.EOF_ID
-        return output, i
+                output[i, 0] = term_id
+        return np.reshape(output, (-1,))
 
     def _np_array_tokenizer(self, token_array):
-        i = 0
-        while i < len(token_array):
-            term_id = token_array[i]
+        if len(token_array.shape) == 1:
+            token_array = np.reshape(token_array, (-1, 3))
+        
+        for i in range(len(token_array)):
+            term_id = token_array[i, 0]
             if term_id in (slr.EOF_ID, slr.PAD_ID):
                 break
             if term_id in self._copy_terminal_indices:
-                begin, end = token_array[i+1:i+3]
+                begin, end = token_array[i, 1:3]
                 yield term_id, (begin, end)
-                i += 3
             elif term_id in self._extensible_terminal_indices:
-                tokenid = token_array[i+1]
+                tokenid = token_array[i, 1]
                 yield term_id, tokenid
-                i += 2
             else:
                 yield term_id, None
-                i += 1
 
     def verify_program(self, program):
         assert isinstance(program, np.ndarray)
@@ -207,14 +204,17 @@ class ShiftReduceGrammar(AbstractGrammar):
 
     def vectorize_program(self, input_sentence, program,
                           direction='bottomup',
-                          max_length=60):
-        assert direction in ('tokenizeonly', 'linear', 'bottomup', 'topdown')
-        
-        if direction == 'tokenizeonly':
-            return self._tokenize_program_to_np_array(input_sentence, program, max_length)
+                          max_length=None):
+        assert direction in ('linear', 'bottomup', 'topdown')
         
         if direction == 'linear':
-            return super().vectorize_program(input_sentence, program, max_length)
+            if isinstance(program, np.ndarray):
+                if len(program.shape) == 1:
+                    program = np.reshape(program, (-1, 3))
+                return {'actions': program}, len(program)
+            else:
+                vec, vlen = vectorize(program, self.dictionary, max_length, add_eos=True, add_start=False)
+                return {'actions': vec}, vlen
 
         if isinstance(program, np.ndarray):
             tokenizer = self._np_array_tokenizer(program)
@@ -226,14 +226,19 @@ class ShiftReduceGrammar(AbstractGrammar):
         else:
             parsed = self._parser.parse(tokenizer)
 
+        if max_length is None:
+            # conservative estimate: the actual length will be smaller
+            # because we don't need as many shifts
+            max_length = len(parsed) + 1
+
         vectors = dict()
-        vectors['targets'] = np.zeros((max_length,), dtype=np.int32)
+        vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
         for term in self._extensible_terminals:
             vectors[term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         for term in self._copy_terminals:
             vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
             vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
-        action_vector = vectors['targets']
+        action_vector = vectors['actions']
         i = 0
 
         for action, param in parsed:
@@ -274,64 +279,91 @@ class ShiftReduceGrammar(AbstractGrammar):
         i += 1
 
         return vectors, i
-
-    def reconstruct_program(self, input_sentence, sequences,
-                            direction='bottomup',
-                            ignore_errors=False):
+    
+    def _do_reconstruct(self, sequences, direction='bottomup', input_sentence=None, ignore_errors=False):
         if direction == 'linear':
-            reconstructed = super().reconstruct_program(input_sentence, sequences, direction, ignore_errors)
+            if input_sentence is not None:
+                reconstructed = super().reconstruct_program(input_sentence, sequences, direction, ignore_errors)
+            else:
+                reconstructed = super().reconstruct_to_vector(sequences, direction, ignore_errors)
             try:
                 # try parsing again to check if it is correct or not
                 self.vectorize_program(input_sentence, reconstructed, direction='bottomup', max_length=60)
+                return reconstructed
             except:
                 if ignore_errors: 
-                    return True
+                    return []
                 else:
                     raise
         
-        actions = sequences['targets']
-        try:
-            def gen_action(i):
-                x = actions[i]
-                if x <= self.end:
-                    return (slr.ACCEPT_CODE, None)
-                elif x < self.num_control_tokens + self._parser.num_rules:
-                    return (slr.REDUCE_CODE, x - self.num_control_tokens)
-                elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
-                    term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
-                    term_id = self.dictionary[term]
-                    begin_position = sequences['COPY_' + term + '_begin'][i]-1
-                    end_position = sequences['COPY_' + term + '_end'][i]-1
-                    input_span = input_sentence[begin_position:end_position+1]
-                    return (slr.SHIFT_CODE, (term_id, input_span))
-                else:
-                    term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
-                    term_id = self.dictionary[term]
-                    return (slr.SHIFT_CODE, (term_id, sequences[term][i]))
-            
-            if direction == 'topdown':
-                token_ids = self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
+        actions = sequences['actions']
+        def gen_action(i):
+            x = actions[i]
+            if x <= self.end:
+                return (slr.ACCEPT_CODE, None)
+            elif x < self.num_control_tokens + self._parser.num_rules:
+                return (slr.REDUCE_CODE, x - self.num_control_tokens)
+            elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
+                term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
+                term_id = self.dictionary[term]
+                begin_position = sequences['COPY_' + term + '_begin'][i]-1
+                end_position = sequences['COPY_' + term + '_end'][i]-1
+                return (slr.SHIFT_CODE, (term_id, (begin_position, end_position)))
             else:
-                token_ids = self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
-            
-            program = []
-            for token_id, payload in token_ids:
-                if payload is not None:
-                    if isinstance(payload, list):
-                        program.extend(payload)
-                    else:
-                        program.append(payload)
-                else:
-                    program.append(self.tokens[token_id])
-            return program
-            
+                term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
+                term_id = self.dictionary[term]
+                return (slr.SHIFT_CODE, (term_id, sequences[term][i]))
+        
+        try:
+            if direction == 'topdown':
+                term_ids = self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
+            else:
+                term_ids = self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
         except (KeyError, TypeError, IndexError, ValueError):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
                 # ignore it
-                return []
+                if input_sentence is not None:
+                    return []
+                else:
+                    return np.zeros((0, 3), dtype=np.int32)
             else:
                 raise
+            
+        if input_sentence is not None:
+            program = []
+            for term_id, payload in term_ids:
+                if payload is not None:
+                    if term_id in self._copy_terminal_indices:
+                        begin_position, end_position = payload
+                        input_span = input_sentence[begin_position:end_position+1]
+                        program.extend(input_span)
+                    else:
+                        tokenid = payload
+                        program.append(self._extensible_terminals_maps[self.tokens[term_id]][tokenid])
+                else:
+                    program.append(self.tokens[term_id])
+            return program
+        else:
+            vector = np.zeros((len(term_ids), 3), dtype=np.int32)
+            for i, (term_id, payload) in enumerate(term_ids):
+                vector[i, 0] = term_id
+                if payload is not None:
+                    if term_id in self._copy_terminal_indices:
+                        vector[i, 1:3] = payload
+                    else:
+                        vector[i, 1] = payload
+            return vector
+
+    
+    def reconstruct_to_vector(self, sequences, direction, ignore_errors=False):
+        return np.reshape(self._do_reconstruct(sequences, direction, input_sentence=None, ignore_errors=ignore_errors),
+                          (-1,))
+
+    def reconstruct_program(self, input_sentence, sequences,
+                            direction='bottomup',
+                            ignore_errors=False):
+        return self._do_reconstruct(sequences, direction, input_sentence, ignore_errors)        
 
     def print_all_actions(self):
         print(0, 'accept')
@@ -373,7 +405,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 return (self._parser.extensible_terminals[key][output],)
 
     def print_prediction(self, input_sentence, sequences):
-        actions = sequences['targets']
+        actions = sequences['actions']
         for i, action in enumerate(actions):
             if action == 0:
 
