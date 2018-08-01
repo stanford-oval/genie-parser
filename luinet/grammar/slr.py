@@ -23,6 +23,7 @@ Created on Nov 30, 2017
 import itertools
 import sys
 import numpy as np
+from collections import defaultdict
 
 # special tokens start with a space
 # so they sort earlier than all other tokens
@@ -580,14 +581,13 @@ class ShiftReduceParser:
 
         stack = []
         top_stack_id = None
-        token_map = dict()
+        token_stacks = defaultdict(list)
         for action, param in sequence:
             if action == ACCEPT_CODE:
                 break
             elif action == SHIFT_CODE:
                 term_id, token = param
-                assert term_id not in token_map
-                token_map[term_id] = token
+                token_stacks[term_id].append(token)
             else:
                 assert action == REDUCE_CODE
                 rule_id = param
@@ -603,8 +603,11 @@ class ShiftReduceParser:
                     # unary term to non-term, we push directly to the stack
                     # a list containing a single item, the terminal and its data
                     symbol_id = self.dictionary[symbol]
-                    if symbol_id in token_map:
-                        stack.append([(symbol_id, token_map.pop(symbol_id))])
+                    if symbol_id in token_stacks and token_stacks[symbol_id]:
+                        token_stack = token_stacks[symbol_id]
+                        stack.append([(symbol_id, token_stack.pop())])
+                        if not token_stack:
+                            del token_stacks[symbol_id]
                     else:
                         stack.append([(symbol_id, None)])
                 else:
@@ -615,10 +618,13 @@ class ShiftReduceParser:
                             new_prog.extend(stack.pop())
                         else:
                             symbol_id = self.dictionary[symbol]
-                            if symbol_id in token_map:
-                                new_prog.append((symbol_id, token_map.pop(symbol_id)))
+                            if symbol_id in token_stacks and token_stacks[symbol_id]:
+                                token_stack = token_stacks[symbol_id]
+                                stack.append([(symbol_id, token_stack.pop())])
+                                if not token_stack:
+                                    del token_stacks[symbol_id]
                             else:
-                                new_prog.append((symbol_id, None))
+                                stack.append([(symbol_id, None)])
                     stack.append(new_prog)
         #print("Stacks")
         #for cat, progs in stacks.items():
