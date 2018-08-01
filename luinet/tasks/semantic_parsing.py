@@ -151,12 +151,18 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 tgt_vocab_size = len(grammar.tokens)
             else:
                 tgt_vocab_size = grammar.output_size[grammar.primary_output]
-            hp.target_modality = ("symbol:default", tgt_vocab_size)
+            if model_hparams.use_margin_loss:
+                hp.target_modality = ("symbol:max_margin", tgt_vocab_size)
+            else:
+                hp.target_modality = ("symbol:default", tgt_vocab_size)
         else:
             hp.target_modality = {}
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
-                    hp.target_modality["targets_" + key] = ("symbol:default", size)
+                    if model_hparams.use_margin_loss:
+                        hp.target_modality["targets_" + key] = ("symbol:max_margin", size)
+                    else:
+                        hp.target_modality["targets_" + key] = ("symbol:default", size)
                 elif grammar.is_copy_type(key):
                     hp.target_modality["targets_" + key] = ("symbol:copy", size)
                 else:       

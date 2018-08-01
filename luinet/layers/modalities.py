@@ -31,6 +31,53 @@ from tensor2tensor.layers.modalities import IdentitySymbolModality,\
 from .common import EmbeddingPointerLayer
 
 
+def pad_to_length(logits, targets):
+    length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
+    padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
+    
+    orig_shape = logits.shape
+    logits = tf.pad(logits, padding, mode='constant')
+    logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
+    return logits
+
+@registry.register_symbol_modality("max_margin")
+class MaxMarginModality(SymbolModality):
+    @property
+    def name(self):
+        return super().name + "_maxmargin"
+    
+    def loss(self, logits, targets):
+        # top_out is [batch, time, width, height, depth]
+        # (to support videos)
+        # remove width and height
+        logits = tf.squeeze(logits, axis=[2, 3])
+
+        logits = pad_to_length(logits, targets)
+        batch_size, max_length, num_classes = common_layers.shape_list(logits)
+
+        targets_mask = tf.to_float(tf.not_equal(targets, 0))
+
+        with tf.name_scope("max_margin_loss", values=[logits, targets]):
+            flat_mask = tf.reshape(targets_mask, (batch_size * max_length,))
+
+            flat_preds = tf.reshape(logits, (batch_size * max_length, num_classes))
+            flat_gold = tf.reshape(targets, (batch_size * max_length,))
+
+            flat_indices = tf.range(batch_size * max_length, dtype=tf.int32)
+            flat_gold_indices = tf.stack((flat_indices, flat_gold), axis=1)
+
+            one_hot_gold = tf.one_hot(targets, depth=num_classes, dtype=tf.float32)
+            marginal_scores = logits - one_hot_gold + 1
+
+            marginal_scores = tf.reshape(marginal_scores, (batch_size * max_length, num_classes))
+            max_margin = tf.reduce_max(marginal_scores, axis=1)
+
+            gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
+            margin = max_margin - gold_score
+
+            return tf.reduce_sum(margin * flat_mask), tf.reduce_sum(flat_mask)
+
+
 @registry.register_symbol_modality("copy")
 class CopyModality(IdentitySymbolModality):
     '''
