@@ -1,4 +1,5 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University
+#                Google LLC
 #
 # Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
 #
@@ -53,12 +54,24 @@ class CopyModality(IdentitySymbolModality):
         # expand the dimensions to be compatible with top_is_pointwise
         return tf.expand_dims(body_output, 3)
 
-    def loss(self, top_out, targets):
-        #targets = tf.Print(targets, data=(top_out, targets, tf.shape(top_out), tf.shape(targets)), summarize=10000)
-        n, d = super().loss(top_out, targets)
+    def loss(self, logits, targets):
+        # top_out is [batch, time, width, height, depth]
+        # (to support videos)
+        # remove width and height
+        logits = tf.squeeze(logits, axis=[2, 3])
+        length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
+        padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
+        
+        orig_shape = logits.shape
+        logits = tf.pad(logits, padding, mode='constant')
+        logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
+        
+        mask = tf.to_float(tf.not_equal(targets, 0))
+        xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
+        
         # add a small amount to the denominator to avoid 0/0 division
         # if there is nothing to copy
-        return n, 1e-8 + d
+        return tf.reduce_sum(xent * mask), tf.reduce_sum(mask) + 1e-8
 
 
 # do not register this one, it is registered on demand by
