@@ -35,12 +35,16 @@ Created on Jul 26, 2018
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import tensorflow as tf
 
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils.t2t_model import T2TModel
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils.t2t_model import _remove_summaries
+from tensor2tensor.utils.t2t_model import _remove_summaries, log_info
+from tensor2tensor.utils import learning_rate
+from tensor2tensor.utils.optimize import log_variable_sizes, \
+    weight_decay_and_noise, ConditionalOptimizer
 
 
 class LUINetModel(T2TModel):
@@ -50,6 +54,166 @@ class LUINetModel(T2TModel):
     
     All models in LUINet should inherit from LUINetModel
     '''
+    
+    def model_fn(self, features):
+        with tf.variable_scope(tf.get_variable_scope(), use_resource=True):
+            transformed_features = self.bottom(features)
+    
+            if self.hparams.activation_dtype == "bfloat16":
+                for k, v in transformed_features.items():
+                    if v.dtype == tf.float32:
+                        transformed_features[k] = tf.cast(v, tf.bfloat16)
+    
+            with tf.variable_scope("body"):
+                log_info("Building model body")
+                body_out = self.body(transformed_features)
+            output, losses = self._normalize_body_output(body_out)
+    
+            if "training" in losses:
+                log_info("Skipping T2TModel top and loss because training loss "
+                         "returned from body")
+                logits = output
+            else:
+                logits = self.top(output, features)
+                losses["training"] = 0.0
+                if self._hparams.mode != tf.estimator.ModeKeys.PREDICT:
+                    training_loss = self.loss(logits, features)
+                    if isinstance(training_loss, dict):
+                        assert "training" in training_loss
+                        losses.update(training_loss)
+                    else:
+                        losses["training"] = training_loss
+    
+            return logits, losses
+        
+    def loss(self, logits, features):
+        if isinstance(logits, dict):
+            if self._problem_hparams:
+                target_modality = self._problem_hparams.target_modality
+            else:
+                target_modality = {k: None for k in logits.keys()}
+            for k in logits.keys():
+                assert k in target_modality.keys(), (
+                    "The key %s of model_body's returned logits dict must be in "
+                    "problem_hparams.target_modality's dict." % k)
+            losses = {}
+            for k, v in logits.items():
+                n, d = self._loss_single(v, target_modality[k], features[k])
+                losses[k] = n / d
+            losses["training"] = tf.add_n(list(losses.values()))
+            return losses
+        else:
+            if self._problem_hparams:
+                target_modality = self._problem_hparams.target_modality
+            else:
+                target_modality = None
+            if isinstance(target_modality, dict):
+                assert "targets" in target_modality, (
+                    "model_body returned single logits so 'targets' must be a key "
+                    "since problem_hparams.target_modality is a dict.")
+            target_modality = target_modality["targets"]
+            return self._loss_single(logits, target_modality, features["targets"])
+
+    def optimize(self, loss, num_async_replicas=1):
+        """Return a training op minimizing loss."""
+        hparams = self.hparams
+        
+        lr = learning_rate.learning_rate_schedule(hparams)
+        if num_async_replicas > 1:
+            log_info("Dividing learning rate by num_async_replicas: %d",
+                     num_async_replicas)
+        lr /= tf.sqrt(float(num_async_replicas))
+        
+        loss = weight_decay_and_noise(loss, hparams, lr)
+        loss = tf.identity(loss, name="total_loss")
+        log_variable_sizes(verbose=hparams.summarize_vars)
+        opt = ConditionalOptimizer(hparams.optimizer, lr, hparams)
+
+        opt_summaries = ["loss", "learning_rate", "global_gradient_norm"]
+        
+        if hparams.clip_grad_norm:
+            tf.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)
+        if hparams.grad_noise_scale:
+            tf.logging.info("Adding noise to gradients, noise scale: %0.5f",
+                            hparams.grad_noise_scale)
+        
+        return tf.contrib.layers.optimize_loss(
+              name="training",
+              loss=loss,
+              global_step=tf.train.get_or_create_global_step(),
+              learning_rate=lr,
+              clip_gradients=hparams.clip_grad_norm or None,
+              gradient_noise_scale=hparams.grad_noise_scale or None,
+              optimizer=opt,
+              summaries=opt_summaries,
+              colocate_gradients_with_ops=True)
+
+    @classmethod
+    def estimator_model_fn(cls,
+                         hparams,
+                         features,
+                         labels,
+                         mode,
+                         config=None,
+                         params=None,
+                         decode_hparams=None,
+                         use_tpu=False):
+        """Model fn for Estimator.
+    
+        Args:
+          hparams: HParams, model hyperparameters
+          features: dict<str name, Tensor feature>
+          labels: Tensor
+          mode: tf.estimator.ModeKeys
+          config: RunConfig, possibly with data_parallelism attribute
+          params: dict, may include batch_size
+          decode_hparams: HParams, used when mode == PREDICT.
+          use_tpu: bool, whether using TPU
+    
+        Returns:
+          TPUEstimatorSpec if use tpu else EstimatorSpec
+        """
+        hparams = copy.deepcopy(hparams)
+
+        # Instantiate model
+        data_parallelism = None
+        if not use_tpu and config:
+            data_parallelism = config.data_parallelism
+        model = cls(
+            hparams,
+            mode,
+            data_parallelism=data_parallelism,
+            decode_hparams=decode_hparams)
+
+        # PREDICT mode
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return model.estimator_spec_predict(features, use_tpu=use_tpu)
+
+        # TRAIN and EVAL modes
+        if hparams.eval_run_autoregressive and mode == tf.estimator.ModeKeys.EVAL:
+            logits, losses_dict = model.eval_autoregressive(features)
+        else:
+            logits, losses_dict = model(features)  # pylint: disable=not-callable
+
+        assert "training" in losses_dict
+        loss = losses_dict["training"]
+
+        # Summarize losses
+        with tf.name_scope("losses"):
+            for loss_name, loss_val in sorted(losses_dict.items()):
+                tf.summary.scalar(loss_name, loss_val)
+
+        # EVAL mode
+        if mode == tf.estimator.ModeKeys.EVAL:
+            return model.estimator_spec_eval(features, logits, labels, loss,
+                                             losses_dict)
+
+        # TRAIN mode
+        assert mode == tf.estimator.ModeKeys.TRAIN
+        num_async_replicas = (1 if (use_tpu or not config) else
+                              config.t2t_device_info["num_async_replicas"])
+        return model.estimator_spec_train(
+            loss, num_async_replicas=num_async_replicas)
     
     def estimator_spec_eval(self, features, logits, labels, loss, losses_dict):
         """Construct EstimatorSpec for EVAL mode."""
