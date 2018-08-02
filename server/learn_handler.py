@@ -63,7 +63,7 @@ class LearnHandler(tornado.web.RequestHandler):
             self.finish(dict(result="Learnt successfully"))
             return
         
-        if not store in ('automatic', 'online'):
+        if not store in ('automatic', 'online', 'commandpedia'):
             raise tornado.web.HTTPError(400, reason="Invalid store parameter")
         if store == 'online' and sequence[0] == 'bookkeeping':
             store = 'online-bookkeeping'
