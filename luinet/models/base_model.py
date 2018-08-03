@@ -41,11 +41,12 @@ import tensorflow as tf
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils.t2t_model import T2TModel
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils.t2t_model import _remove_summaries, log_info
 from tensor2tensor.utils import learning_rate
 from tensor2tensor.utils.optimize import log_variable_sizes, \
     weight_decay_and_noise, ConditionalOptimizer
 
+from tensor2tensor.utils.t2t_model import _remove_summaries, \
+    log_info, log_warn, set_custom_getter_compose
 
 class LUINetModel(T2TModel):
     '''
@@ -55,6 +56,62 @@ class LUINetModel(T2TModel):
     All models in LUINet should inherit from LUINetModel
     '''
     
+    def infer(self, 
+        features=None, 
+        decode_length=50, 
+        beam_size=1, 
+        top_beams=1, 
+        alpha=0.0, 
+        use_tpu=False):
+        """A inference method.
+
+        Quadratic time in decode_length.
+    
+        Args:
+          features: an map of string to `Tensor`
+          decode_length: an integer.  How many additional timesteps to decode.
+          beam_size: number of beams.
+          top_beams: an integer. How many of the beams to return.
+          alpha: Float that controls the length penalty. larger the alpha, stronger
+            the preference for longer translations.
+          use_tpu: bool, whether to build the inference graph for TPU.
+    
+        Returns:
+          A dict of decoding results {
+              "outputs": integer `Tensor` of decoded ids of shape
+                  [batch_size, <= decode_length] if beam_size == 1 or
+                  [batch_size, top_beams, <= decode_length]
+              "scores": decoding log probs from the beam search,
+                  None if using greedy decoding (beam_size=1)
+          }
+          if slow greedy decoding is used then the dict will also contain {
+              "logits": `Tensor` of shape [batch_size, time, 1, 1, vocab_size].
+              "losses": a dictionary: {loss-name (string): floating point `Scalar`
+          }
+        """
+        set_custom_getter_compose(self._custom_getter)
+        with self._eager_var_store.as_default():
+            self.prepare_features_for_infer(features)
+            if not self.has_input and beam_size > 1:
+                log_warn("Beam searching for a model with no inputs.")
+            if not self.has_input and self.hparams.sampling_method != "random":
+                log_warn("Non-random sampling for a model with no inputs.")
+            self._fill_problem_hparams_features(features)
+    
+            if self._problem_hparams:
+                target_modality = self._problem_hparams.target_modality
+                if not isinstance(target_modality, dict) and target_modality.is_class_modality:
+                    beam_size = 1  # No use to run beam-search for a single class.
+            if beam_size == 1:
+                log_info("Greedy Decoding")
+                results = self._greedy_infer(features, decode_length, use_tpu)
+            else:
+                log_info("Beam Decoding with beam size %d" % beam_size)
+                results = self._beam_decode(features, decode_length, beam_size,
+                                            top_beams, alpha)
+    
+            return results
+
     def model_fn(self, features):
         with tf.variable_scope(tf.get_variable_scope(), use_resource=True):
             transformed_features = self.bottom(features)
@@ -224,11 +281,13 @@ class LUINetModel(T2TModel):
         if common_layers.is_on_tpu():
             raise NotImplementedError("TPU usage is not supported")
       
+        outputs = tf.contrib.framework.nest.map_structure(lambda x: tf.argmax(x, axis=-1),
+                                                          logits)
+      
         if hasattr(problem, "compute_predictions"):
-            predictions = problem.compute_predictions(logits, features, hparams)
+            predictions = problem.compute_predictions(outputs, features, hparams)
         else:
-            predictions = tf.contrib.framework.nest.map_structure(lambda x: tf.argmax(x, axis=-1),
-                                                                  logits)
+            predictions = outputs
         
         problem_metrics = problem.eval_metrics()
         if isinstance(problem_metrics, list):
@@ -272,20 +331,17 @@ class LUINetModel(T2TModel):
             decode_length=decode_hparams.extra_length,
             use_tpu=use_tpu)
         
-        problem = decode_hparams.problem
+        problem = self.hparams.problem
         if isinstance(infer_out, dict):
-            if "outputs" in infer_out:
-                outputs = infer_out["outputs"]
-            elif hasattr(problem, "compute_predictions"):
-                outputs = problem.compute_predictions(infer_out["logits"], features,
-                                                      model_hparams=self._hparams)
-            else:
-                outputs = tf.contrib.framework.nest.map_structure(lambda x: tf.argmax(x, axis=-1),
-                                                                  infer_out["logits"])
+            outputs = infer_out["outputs"]
             scores = infer_out["scores"]
         else:
             outputs = infer_out
             scores = None
+        
+        if hasattr(problem, "compute_predictions"):
+            outputs = problem.compute_predictions(outputs, features,
+                                                  model_hparams=self._hparams)    
     
         inputs = features.get("inputs")
         if inputs is None:

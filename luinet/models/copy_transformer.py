@@ -35,6 +35,7 @@ Created on Jul 26, 2018
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
 import tensorflow as tf
 
 from tensor2tensor.utils import registry
@@ -49,47 +50,99 @@ from ..layers.common import AttentivePointerLayer,\
 
 from .transformer import Transformer
 
+
 @registry.register_model("luinet_copy_transformer")
 class CopyTransformer(Transformer):
     '''
     A Transformer subclass that supports copying from the inputs.
     '''
     
-    def _fast_decode(self, 
-                    features, 
-                    decode_length, 
-                    beam_size=1, 
-                    top_beams=1, 
-                    alpha=1.0):
+    def _symbols_to_logits_fn(self,
+                              targets,
+                              features,
+                              bias,
+                              cache):
+        with tf.variable_scope("body"):
+            decoder_outputs = self._data_parallelism(
+                self.decode,
+                targets,
+                cache.get("encoder_output"),
+                cache.get("encoder_decoder_attention_bias"),
+                bias,
+                self.hparams,
+                cache,
+                nonpadding=features_to_nonpadding(features, "targets"))
+
+        logits = dict()
+        target_modality = self._problem_hparams.target_modality
+            
+        def copy_sharded(decoder_output):
+            output_layer = AttentivePointerLayer(cache.get("encoder_output"))
+            scores = output_layer(decoder_output)
+            scores += cache.get("encoder_decoder_attention_bias")
+            return scores
+
+        for key, modality in target_modality.items():
+            if isinstance(modality, CopyModality):
+                with tf.variable_scope("body"):
+                    with tf.variable_scope("copy_layer/" + key):
+                        body_outputs = self._data_parallelism(copy_sharded,
+                                                              decoder_outputs)
+            else:
+                body_outputs = decoder_outputs
+
+            with tf.variable_scope(key):
+                with tf.variable_scope(modality.name):
+                    logits[key] = modality.top_sharded(body_outputs, None,
+                                                       self._data_parallelism)[0]
+            
+            cache["logits"][key] = tf.concat((cache["logits"][key], logits[key]), axis=1)
+            if key != self._problem_hparams.primary_target_modality:
+                squeezed_logits = tf.squeeze(logits[key], axis=[1,2,3])
+                current_sample = tf.argmax(squeezed_logits, axis=-1)
+                current_sample = tf.expand_dims(current_sample, axis=1)
+                current_sample = tf.expand_dims(current_sample, axis=2)
+                
+                cache["outputs_" + key] = tf.concat((cache["outputs_" + key], current_sample),
+                                                    axis=1)
         
-        ret = super()._fast_decode(features,
-                                   decode_length,
+        return logits[self._problem_hparams.primary_target_modality]
+    
+    def _prepare_decoder_cache(self,
+                               batch_size,
+                               beam_size,
+                               cache):
+        cache["logits"] = dict()
+        target_modality = self._problem_hparams.target_modality
+        
+        for key, modality in target_modality.items():
+            cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
+            # the last dimension of all cache tensors must be defined and fixed in the loop
+            cache["outputs_" + key] = tf.zeros((batch_size * beam_size, 0, 1), dtype=tf.int64)
+
+    def _fast_decode(self, 
+        features, 
+        decode_length, 
+        beam_size=1, 
+        top_beams=1, 
+        alpha=1.0):
+        ret = super()._fast_decode(features, decode_length,
                                    beam_size=beam_size,
                                    top_beams=top_beams,
                                    alpha=alpha)
         
-        encoder_output = ret["encoder_output"]
-        encoder_decoder_attention_bias = ret["encoder_decoder_attention_bias"]
-        decoder_output = ret["body_output"]
-        with tf.variable_scope("body"):
-            body_output = dict()
-            target_modality = self._problem_hparams.target_modality \
-                if self._problem_hparams else {"targets": None} 
-            for key, modality in target_modality.items():
-                if isinstance(modality, CopyModality):
-                    with tf.variable_scope("copy_layer/" + key):
-                        output_layer = AttentivePointerLayer(encoder_output)
-                        scores = output_layer(decoder_output)
-                        scores += encoder_decoder_attention_bias
-                        body_output[key] = scores
-                else:
-                    body_output[key] = decoder_output
-        
-        # ret["outputs"] cannot be used directly
-        del ret["outputs"]
-        inputs_shape = common_layers.shape_list(features["inputs"])
-        body_output = tf.reshape(body_output, inputs_shape)
-        ret["logits"] = self.top(body_output, features)
+        new_outputs = dict()
+        target_modality = self._problem_hparams.target_modality
+        for key in target_modality:
+            if key == self._problem_hparams.primary_target_modality:
+                new_outputs[key] = ret["outputs"]
+                del ret["outputs"]
+            else:
+                # remove the extra dimension that was added to appease the shape
+                # invariants
+                new_outputs[key] = tf.squeeze(ret["outputs_" + key], axis=2)
+                del ret["outputs_" + key]
+        ret["outputs"] = new_outputs
         return ret
 
     def body(self, features):

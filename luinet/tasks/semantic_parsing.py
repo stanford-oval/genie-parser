@@ -157,6 +157,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 hp.target_modality = ("symbol:default", tgt_vocab_size)
         else:
             hp.target_modality = {}
+            hp.add_hparam("primary_target_modality", "targets_" + grammar.primary_output)
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
                     if model_hparams.use_margin_loss:
@@ -238,17 +239,15 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         grammar = self.get_grammar()
         return grammar.eval_metrics()
     
-    def compute_predictions(self, logits, features, model_hparams=None):
+    def compute_predictions(self, outputs, features, model_hparams=None):
         grammar = self.get_grammar(model_hparams.data_dir)
         our_hparams = self.get_hparams(model_hparams)
 
         sample_ids = dict()
-        for key in logits:
+        for key in outputs:
             assert key.startswith("targets_")
             grammar_key = key[len("targets_"):]
-            sample_ids[grammar_key] = tf.argmax(logits[key], axis=-1)
-            #sample_ids[grammar_key] = common_layers.flatten4d3d(sample_ids[grammar_key])
-            sample_ids[grammar_key] = tf.squeeze(sample_ids[grammar_key], axis=[2, 3])
+            sample_ids[grammar_key] = outputs[key]
         
         def compute_prediction_pyfunc(sample_ids):
             batch_size = len(sample_ids[grammar.primary_output])
