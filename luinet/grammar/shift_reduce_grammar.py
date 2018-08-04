@@ -290,7 +290,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 # try parsing again to check if it is correct or not
                 self.vectorize_program(input_sentence, reconstructed, direction='bottomup', max_length=60)
                 return reconstructed
-            except:
+            except ValueError:
                 if ignore_errors: 
                     return []
                 else:
@@ -319,7 +319,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 term_ids = self._parser.reconstruct_reverse((gen_action(x) for x in range(len(actions))))
             else:
                 term_ids = self._parser.reconstruct((gen_action(x) for x in range(len(actions))))
-        except (KeyError, TypeError, IndexError, ValueError):
+        except (KeyError, IndexError, ValueError):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
                 # ignore it
@@ -366,8 +366,9 @@ class ShiftReduceGrammar(AbstractGrammar):
         return self._do_reconstruct(sequences, direction, input_sentence, ignore_errors)        
 
     def print_all_actions(self):
-        print(0, 'accept')
-        print(1, 'start')
+        print(0, 'pad')
+        print(1, 'accept')
+        print(2, 'start')
         for i, (lhs, rhs) in enumerate(self._parser.rules):
             print(i+self.num_control_tokens, 'reduce', lhs, '->', ' '.join(rhs))
         for i, term in enumerate(self._copy_terminals):
@@ -376,9 +377,11 @@ class ShiftReduceGrammar(AbstractGrammar):
             print(i+self.num_control_tokens+len(self._copy_terminals)+self._parser.num_rules, 'shift', term)
 
     def _action_to_print_full(self, action):
-        if action == 0:
+        if action == slr.PAD_ID:
+            return ('pad',)
+        elif action == slr.EOF_ID:
             return ('accept',)
-        elif action == 1:
+        elif action == slr.START_ID:
             return ('start',)
         elif action - self.num_control_tokens < self._parser.num_rules:
             lhs, rhs = self._parser.rules[action - self.num_control_tokens]
@@ -407,11 +410,13 @@ class ShiftReduceGrammar(AbstractGrammar):
     def print_prediction(self, input_sentence, sequences):
         actions = sequences['actions']
         for i, action in enumerate(actions):
-            if action == 0:
-
-                print(action, 'accept')
+            if action == slr.PAD_ID:
+                print(action, 'pad')
                 break
-            elif action == 1:
+            elif action == slr.EOF_ID:
+                print(action, 'accept') 
+                break
+            elif action == slr.START_ID:
                 print(action, 'start')
             elif action - self.num_control_tokens < self._parser.num_rules:
                 lhs, rhs = self._parser.rules[action - self.num_control_tokens]
@@ -420,7 +425,10 @@ class ShiftReduceGrammar(AbstractGrammar):
                 term = self._copy_terminals[action - self.num_control_tokens - self._parser.num_rules]
                 begin_position = sequences['COPY_' + term + '_begin'][i]-1
                 end_position = sequences['COPY_' + term + '_end'][i]-1
-                input_span = input_sentence[begin_position:end_position+1]
+                if input_sentence:
+                    input_span = input_sentence[begin_position:end_position+1]
+                else:
+                    input_span = '<omitted>'
                 print(action, 'copy', term, input_span)
             else:
                 term = self._extensible_terminals[action - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
@@ -428,9 +436,11 @@ class ShiftReduceGrammar(AbstractGrammar):
     
     def prediction_to_string(self, sequences):
         def action_to_string(action):
-            if action == 0:
+            if action == slr.PAD_ID:
+                return 'P'
+            elif action == slr.EOF_ID:
                 return 'A'
-            elif action == 1:
+            elif action == slr.START_ID:
                 return 'G'
             elif action - self.num_control_tokens < self._parser.num_rules:
                 return 'R' + str(action - self.num_control_tokens)
@@ -442,10 +452,12 @@ class ShiftReduceGrammar(AbstractGrammar):
 
     def string_to_prediction(self, strings):
         def string_to_action(string):
-            if string == 'A':
-                return 0
+            if string == 'P':
+                return slr.PAD_ID
+            elif string == 'A':
+                return slr.EOF_ID
             elif string == 'G':
-                return 1
+                return slr.START_ID
             elif string.startswith('R'):
                 action = int(string[1:]) + self.num_control_tokens
                 assert action - self.num_control_tokens < self._parser.num_rules

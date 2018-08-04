@@ -610,6 +610,7 @@ class ShiftReduceParser:
                             del token_stacks[symbol_id]
                     else:
                         stack.append([(symbol_id, None)])
+                    #print(stack)
                 else:
                     #print("slow path for", lhs, "->", rhs)
                     new_prog = []
@@ -620,16 +621,14 @@ class ShiftReduceParser:
                             symbol_id = self.dictionary[symbol]
                             if symbol_id in token_stacks and token_stacks[symbol_id]:
                                 token_stack = token_stacks[symbol_id]
-                                stack.append([(symbol_id, token_stack.pop())])
+                                new_prog.append((symbol_id, token_stack.pop()))
                                 if not token_stack:
                                     del token_stacks[symbol_id]
                             else:
-                                stack.append([(symbol_id, None)])
+                                new_prog.append((symbol_id, None))
                     stack.append(new_prog)
-        #print("Stacks")
-        #for cat, progs in stacks.items():
-        #    for prog in progs:
-        #        print(cat, ":", prog)
+                    #print(stack)
+        #print("Stack", stack)
         if len(self.terminals) + top_stack_id != self._start_symbol or \
             len(stack) != 1:
             raise ValueError("Invalid sequence")

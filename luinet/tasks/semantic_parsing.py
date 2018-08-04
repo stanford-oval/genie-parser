@@ -258,6 +258,12 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 decoded_vectors = dict()
                 for key in grammar.output_size:
                     decoded_vectors[key] = sample_ids[key][i]
+                    
+                for key in grammar.output_size:
+                    assert decoded_vectors[key].shape == decoded_vectors["actions"].shape, \
+                        (key, decoded_vectors[key].shape)
+                
+                #grammar.print_prediction([], decoded_vectors)
                 outputs.append(grammar.reconstruct_to_vector(decoded_vectors,
                                                              direction=our_hparams.grammar_direction,
                                                              ignore_errors=True))
@@ -270,6 +276,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 output_matrix[i, :item_len] = outputs[i]
                 output_matrix[i, item_len:] = np.zeros((output_len - item_len,),
                                                        dtype=np.int32)
+                
             return output_matrix
         
         return tf.contrib.framework.py_func(compute_prediction_pyfunc,

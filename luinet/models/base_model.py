@@ -56,6 +56,13 @@ class LUINetModel(T2TModel):
     All models in LUINet should inherit from LUINetModel
     '''
     
+    @property
+    def _target_modality_is_real(self):
+        """Whether the target modality is real-valued."""
+        target_modality = self._problem_hparams.target_modality
+        return not isinstance(target_modality, dict) and \
+             target_modality.name.startswith("real_")
+    
     def infer(self, 
         features=None, 
         decode_length=50, 
@@ -281,7 +288,7 @@ class LUINetModel(T2TModel):
         if common_layers.is_on_tpu():
             raise NotImplementedError("TPU usage is not supported")
       
-        outputs = tf.contrib.framework.nest.map_structure(lambda x: tf.argmax(x, axis=-1),
+        outputs = tf.contrib.framework.nest.map_structure(lambda x: tf.squeeze(tf.argmax(x, axis=-1), axis=[2, 3]),
                                                           logits)
       
         if hasattr(problem, "compute_predictions"):

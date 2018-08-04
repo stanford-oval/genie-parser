@@ -27,12 +27,15 @@ import ssl
 import re
 import sys
 
+import tensorflow as tf
+
 from collections import OrderedDict
 from orderedset import OrderedSet
 
 from .shift_reduce_grammar import ShiftReduceGrammar
 from ..util.loader import load_dictionary
-from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy
+from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
+    adjust_predictions_labels
 
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
@@ -465,11 +468,19 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         def get_functions(program, what=None):
             return [x for x in program[:, 0] if self.tokens[x].startswith('@')]
         
+        def accuracy_without_parameters(predictions, labels, features):
+            batch_size, predictions, labels = adjust_predictions_labels(predictions, labels,
+                                                                        num_elements_per_time=3)
+            weights = tf.ones((batch_size,), dtype=tf.float32)
+            ok = tf.to_float(tf.reduce_all(tf.equal(predictions[:,:,0], labels[:,:,0]), axis=1))
+            return ok, weights
+        
         return {
             "accuracy": accuracy,
             "grammar_accuracy": grammar_accuracy,
             "function_accuracy": make_pyfunc_metric_fn(
-                lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')), 
+                lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')),
+            "accuracy_without_parameters": accuracy_without_parameters
         }
 
 

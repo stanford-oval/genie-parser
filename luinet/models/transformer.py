@@ -182,7 +182,7 @@ def fast_decode(encoder_output,
         hit_eos = tf.fill([batch_size], False)
         next_id = tf.zeros([batch_size, 1], dtype=tf.int64)
         initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
-        _, _, _, decoded_ids, _, log_prob = tf.while_loop(
+        _, _, _, decoded_ids, cache, log_prob = tf.while_loop(
             is_not_finished,
             inner_loop, [
                 tf.constant(0), hit_eos, next_id, decoded_ids, cache,
@@ -228,6 +228,7 @@ class Transformer(OriginalTransformer, LUINetModel):
           losses: a dictionary: {loss-name (string): floating point `Scalar`}.
               Contains a single key "training".
         """
+        tf.logging.info("Using autoregressive decoder for evaluation")
         results = self._greedy_infer(features, decode_length=decode_length)
         return results["logits"], results["losses"]
     
