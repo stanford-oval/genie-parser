@@ -201,6 +201,7 @@ class LUINetModel(T2TModel):
             tf.logging.info("Adding noise to gradients, noise scale: %0.5f",
                             hparams.grad_noise_scale)
         
+        tf.summary.scalar("training/learning_rate", lr)
         return tf.contrib.layers.optimize_loss(
               name="training",
               loss=loss,
