@@ -22,6 +22,7 @@ Created on Mar 1, 2018
 
 import tornado.web
 
+
 class BaseAdminHandler(tornado.web.RequestHandler):
     def check_authenticated(self):
         if not self.application.config.admin_token:
@@ -30,6 +31,7 @@ class BaseAdminHandler(tornado.web.RequestHandler):
         admin_token = self.get_query_argument('admin_token')
         if admin_token != self.application.config.admin_token:
             raise tornado.web.HTTPError(401, "Unauthorized")
+
 
 class ReloadHandler(BaseAdminHandler):
     def post(self, locale='en-US', **kw):

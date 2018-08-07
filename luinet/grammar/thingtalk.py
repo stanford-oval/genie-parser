@@ -33,6 +33,7 @@ import tensorflow as tf
 from collections import OrderedDict
 from orderedset import OrderedSet
 
+from . import slr
 from .shift_reduce_grammar import ShiftReduceGrammar
 from ..util.loader import load_dictionary
 from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
@@ -492,6 +493,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         
         for i in range(len(tokenized_program)):
             token = tokenized_program[i, 0]
+            if token == slr.EOF_ID:
+                break
             if token == self._span_id:
                 begin_position = tokenized_program[i, 1]
                 end_position = tokenized_program[i, 2]

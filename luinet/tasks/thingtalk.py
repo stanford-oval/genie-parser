@@ -117,6 +117,12 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
     def use_typed_embeddings(self):
         return True
 
+    @property
+    def export_assets(self):
+        assets = super().export_assets
+        assets['thingpedia.json'] = os.path.join(self._data_dir, 'thingpedia.json')
+        return assets
+
 
 @registry.register_problem("semparse_thingtalk")
 class ThingTalkProblem(AbstractThingTalkProblem):

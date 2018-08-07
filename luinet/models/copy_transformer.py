@@ -151,11 +151,7 @@ class CopyTransformer(Transformer):
                 # invariants
                 new_outputs[key] = tf.squeeze(ret["outputs_" + key], axis=2)
                 del ret["outputs_" + key]
-                
-        new_outputs[self._problem_hparams.primary_target_modality] = \
-            tf.Print(new_outputs[self._problem_hparams.primary_target_modality],
-                     data=(tf.shape(new_outputs[self._problem_hparams.primary_target_modality]),
-                           tf.shape(new_outputs['targets_COPY_SPAN_begin'])))
+
         ret["outputs"] = new_outputs
         return ret
 

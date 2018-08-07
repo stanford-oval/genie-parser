@@ -21,6 +21,7 @@ Created on Aug 2, 2017
 '''
 
 import configparser
+import tensorflow as tf
 
 class ServerConfig():
     def __init__(self):
@@ -82,11 +83,11 @@ class ServerConfig():
         if language in self._config['models']:
             return self._config['models'][language]
         else:
-            return './' + language + '/model'
+            return './' + language
 
     @staticmethod
     def load(filenames):
         self = ServerConfig()
-        print('Loading server configuration from', filenames)
+        tf.logging.info('Loading server configuration from %s', filenames)
         self._config.read(filenames)
         return self

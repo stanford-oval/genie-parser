@@ -13,37 +13,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-Tiny wrapper for t2t-datagen that allows some
-extra flags to be passed.
+"""Tiny wrapper for t2t-trainer that automatically loads luinet.
 
 Usage:
-luinet-datagen
-  --src_data_dir ./dataset/
-  --data_dir ./workdir
-  --problem semparse_thingtalk_noquote
-  --model luinet_copy_transformer
-  --output_dir ./workdir-small/model
-  --thingpedia_snapshot 7
+luinet-server
 
-Created on Jul 24, 2018
+The server is configured using files; see data/server.conf for an example.
+"""
 
-@author: gcampagn
-'''
-
-from tensor2tensor.bin import t2t_datagen
 import tensorflow as tf
-
-import luinet
-
-flags = tf.flags
-flags.DEFINE_string("src_data_dir", "", "Source data directory.")
-
+import luinet.server.main
 
 def main(argv):
-    tf.logging.set_verbosity(tf.logging.INFO)
-    t2t_datagen.main(argv)
-
+    luinet.server.main.main(argv)
 
 if __name__ == "__main__":
-    tf.app.run()
+  tf.app.run()

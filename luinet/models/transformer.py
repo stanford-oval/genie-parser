@@ -463,6 +463,13 @@ class Transformer(OriginalTransformer, LUINetModel):
             return logits, cache
     
         cache = dict()
+        infer_out = dict()
+        if encoder_output is not None:
+            padding_mask = 1. - common_attention.attention_bias_to_padding(encoder_decoder_attention_bias)
+            masked_encoded_output = encoder_output * tf.expand_dims(padding_mask, axis=2)
+
+            infer_out["encoded_inputs"] = tf.reduce_sum(masked_encoded_output, axis=1)
+
         self._prepare_decoder_cache(batch_size, beam_size, features, cache)
 
         ret = fast_decode(
@@ -478,11 +485,13 @@ class Transformer(OriginalTransformer, LUINetModel):
             batch_size=batch_size,
             force_decode_length=self._decode_hparams.force_decode_length,
             cache=cache)
+        infer_out.update(ret)
+        
         if partial_targets is not None:
             if beam_size <= 1 or top_beams <= 1:
-                ret["outputs"] = ret["outputs"][:, partial_targets_length:]
+                infer_out["outputs"] = infer_out["outputs"][:, partial_targets_length:]
             else:
-                ret["outputs"] = ret["outputs"][:, :, partial_targets_length:]
+                infer_out["outputs"] = infer_out["outputs"][:, :, partial_targets_length:]
         
-        return ret
+        return infer_out
     
