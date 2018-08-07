@@ -1,0 +1,12 @@
+branches:
+  except:
+  - /^wip/
+language: python
+python:
+    - "3.6"
+install:
+    - pip install pipenv
+    - pipenv install --dev
+script:
+    - pipenv run ./luinet-datagen --problem semparse_thingtalk_noquote --src_data_dir ./tests/dataset --data_dir ./workdir --thingpedia_snapshot 6
+    - pipenv run ./luinet-trainer --problem semparse_thingtalk_noquote --data_dir ./workdir --output_dir ./workdir/model.test --model luinet_copy_transformer --hparams_set transformer_tiny_luinet --export_saved_model --schedule test
