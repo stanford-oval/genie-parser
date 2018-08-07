@@ -25,6 +25,7 @@ from collections import OrderedDict
 
 from .abstract import AbstractGrammar
 from . import slr
+from .slr import generator as slr_generator 
 
 from ..util.loader import vectorize
 
@@ -92,7 +93,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             self._copy_terminals = list(copy_terminals.keys())
             self._copy_terminals.sort()
 
-        generator = slr.SLRParserGenerator(grammar, '$input')
+        generator = slr_generator.SLRParserGenerator(grammar, '$input')
         self._parser = generator.build()
         
         if not self._quiet:
