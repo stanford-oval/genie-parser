@@ -261,7 +261,6 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
         self.dec_num_units = input_shape[-1]
         self.kernel_encode = self.add_variable('kernel_encode', (self.dec_num_units, self.enc_num_units), dtype=self.dtype)
         self.kernel_decode = self.add_variable('kernel_decode', (self.dec_num_units, self.dec_num_units), dtype=self.dtype)
-
         self.built = True
 
     def _matmul(self, a, b):
@@ -287,7 +286,11 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
             alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_len)
 
             enc_time = tf.shape(self._enc_hidden_states)[1]
+<<<<<<< HEAD
             return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_len)
+=======
+            return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time])
+>>>>>>> 5651a1cbd1ba3db900bca7d0e2c12aed3964be36
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1].concatenate(tf.TensorShape([self._enc_hidden_states.shape[1]]))
