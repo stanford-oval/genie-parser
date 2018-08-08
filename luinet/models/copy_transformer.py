@@ -77,7 +77,7 @@ class CopyTransformer(Transformer):
         target_modality = self._problem_hparams.target_modality
             
         def copy_sharded(decoder_output):
-            output_layer = AttentivePointerLayer(cache.get("encoder_output"))
+            output_layer = DecayingAttentivePointerLayer(cache.get("encoder_output"))
             scores = output_layer(decoder_output)
             scores += cache.get("encoder_decoder_attention_bias")
             return scores
@@ -213,7 +213,7 @@ class CopyTransformer(Transformer):
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
-                    output_layer = AttentivePointerLayer(encoder_output)
+                    output_layer = DecayingAttentivePointerLayer(encoder_output)
                     scores = output_layer(decoder_output)
                     scores += encoder_decoder_attention_bias
                     body_output[key] = scores
