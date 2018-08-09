@@ -46,6 +46,9 @@ from tensor2tensor.layers import common_layers
 from ..layers.modalities import PretrainedEmbeddingModality, PointerModality
 from ..grammar.abstract import AbstractGrammar
 
+from tensor2tensor.data_generators import problem
+
+
 FLAGS = tf.flags.FLAGS
 
 START_TOKEN = '<s>'
@@ -303,7 +306,20 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             if word[0].isupper():
                 continue
             self._building_dictionary.add(word)
-    
+    @property
+    def dataset_splits(self):
+        """Splits of data to produce and number of output shards for each."""
+        return [{
+            "split": problem.DatasetSplit.TRAIN,
+            "shards": 100,
+        }, {
+            "split": problem.DatasetSplit.EVAL,
+            "shards": 1,
+        }, {
+            "split": problem.DatasetSplit.TEST,
+            "shards": 1,
+        }]
+
     def generate_data(self, data_dir, tmp_dir, task_id=-1):
         # override to call begin_data_generation and build the dictionary
         
@@ -315,7 +331,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         self._create_input_vocab(data_dir)
         
         super().generate_data(data_dir, tmp_dir, task_id=task_id)
-    
+
     def _load_words_from_files(self, data_dir):
         filepattern = os.path.join(data_dir, '*.tsv')
         for filename in tf.contrib.slim.parallel_reader.get_data_files(filepattern):
@@ -482,7 +498,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 vectorized = grammar.tokenize_to_vector(sentence.split(' '), program)
                 grammar.verify_program(vectorized)
                 
-                encoded_input : list = input_vocabulary.encode(sentence)
+                encoded_input: list = input_vocabulary.encode(sentence)
                 assert text_encoder.PAD_ID not in encoded_input
                 encoded_input.insert(0, START_ID)
                 encoded_input.append(text_encoder.EOS_ID)

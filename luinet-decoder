@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 # Copyright 2018 Google LLC
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,16 @@
 """Tiny wrapper for t2t-trainer that automatically loads luinet.
 
 Usage:
-luinet-trainer
-  --data_dir ./workdir
-  --problem semparse_thingtalk_noquote
-  --model luinet_copy_transformer
-  --hparams_set transformer_tiny_luinet
-  --output_dir ./workdir-small/model
-  --t2t_usr_dir ./luinet
-  --train-steps 250000
-  --eval-steps 100
+luinet-decoder
+--t2t_usr_dir almond-nnparser-private/luinet
+--data_dir workdir/t2_copy_data_generated/
+--problem semparse_thingtalk_noquote
+--model luinet_copy_transformer
+--hparams_set transformer_tiny_luinet
+--decode_hparams 'beam_size=10,alpha=0.6'
+--decode_from_file dataset/t2t_copy_data/te_x.tsv
+--decode_to_file workdir/eval_results/translation.tt
+--checkpoint_path ./workdir/train_results/model.ckpt-???
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -65,7 +66,7 @@ if LUI_prob != LUI_model:
 
 def main(argv):
 
-    t2t_trainer.main(argv)
+    t2t_decoder.main(argv)
 
 if __name__ == "__main__":
 
