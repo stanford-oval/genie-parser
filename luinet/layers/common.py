@@ -248,27 +248,25 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
     """
     A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
     """
-
     def __init__(self, enc_hidden_states):
         super().__init__()
 
         self._enc_hidden_states = enc_hidden_states # (?, ?, 128)
         self.enc_num_units = enc_hidden_states.shape[-1]
 
-
     def build(self, input_shape):
         input_shape = tf.TensorShape(input_shape)
         self.dec_num_units = input_shape[-1]
         self.kernel_encode = self.add_variable('kernel_encode', (self.dec_num_units, self.enc_num_units), dtype=self.dtype)
-        self.kernel_decode = self.add_variable('kernel_decode', (self.dec_num_units, self.dec_num_units), dtype=self.dtype)
         self.built = True
 
-    def _matmul(self, a, b):
+    def _matmul(self, a, b): # (?, m, n) @ (n, p) -- > (?, m, p)
         return tf.reshape(tf.reshape(a, [-1, tf.shape(a)[-1]]) @ b, [-1, tf.shape(a)[1], tf.shape(b)[-1]])
 
     def call(self, inputs):
+
         original_shape = common_layers.shape_list(inputs)
-        inputs = common_layers.flatten4d3d(inputs) # # (?, ?, 1, 128) -- > (?, ?, 128)
+        inputs = common_layers.flatten4d3d(inputs) # (?, ?, 1, 128) -- > (?, ?, 128)
 
         time = tf.shape(inputs)[1]
 
@@ -283,10 +281,10 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
                 e_ti_prime = tf.divide(e_ti_exp, sum_e)
 
             sum_e_prime = tf.reduce_sum(e_ti_prime, axis=1, keepdims=True)
-            alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_len)
+            alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_length)
 
             enc_time = tf.shape(self._enc_hidden_states)[1]
-            return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_len)
+            return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
 
     def compute_output_shape(self, input_shape):
@@ -382,7 +380,7 @@ class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
     @property
     def state_size(self):
         return self._wrapped.state_size
-    
+
 def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
     encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
     decoder_hidden_size = int(cell_dec.output_size)
