@@ -293,7 +293,8 @@ class LUINetModel(T2TModel):
                                                           logits)
       
         if hasattr(problem, "compute_predictions"):
-            predictions = problem.compute_predictions(outputs, features, hparams)
+            predictions = problem.compute_predictions(outputs, features, hparams,
+                                                      decode=False)
         else:
             predictions = outputs
         
@@ -349,17 +350,24 @@ class LUINetModel(T2TModel):
         
         if hasattr(problem, "compute_predictions"):
             outputs = problem.compute_predictions(outputs, features,
-                                                  model_hparams=self._hparams)    
+                                                  model_hparams=self._hparams,
+                                                  decode=True)    
     
         inputs = features.get("inputs")
         if inputs is None:
             inputs = features["targets"]
+            
+        infer_targets = features.get("infer_targets")
+        if infer_targets is not None and \
+            hasattr(problem, "decode_targets"):
+            infer_targets = problem.decode_targets(infer_targets, features,
+                                                   model_hparams=self._hparams)
     
         predictions = {
             "outputs": outputs,
             "scores": scores,
             "inputs": inputs,
-            "targets": features.get("infer_targets"),
+            "targets": infer_targets,
             "batch_prediction_key": features.get("batch_prediction_key"),
         }
         for k in list(predictions.keys()):

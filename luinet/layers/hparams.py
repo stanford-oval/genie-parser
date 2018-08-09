@@ -27,6 +27,7 @@ def luinet_extra_hparams(hp):
     hp.eval_autoregressive = True
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
+    hp.add_hparam("pointer_layer", "decaying_attentive")
 
 @registry.register_hparams
 def transformer_tiny_luinet():

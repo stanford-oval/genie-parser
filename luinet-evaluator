@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-# Copyright 2018 Google LLC
+#!/usr/bin/env python3
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,9 +29,6 @@ luinet-evaluator
   --eval_on_test_data
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 # Part of this code is derived from Tensor2Tensor, which is:
 # Copyright 2018 The Tensor2Tensor Authors.
@@ -47,6 +44,7 @@ from __future__ import print_function
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import sys
 import os
 import fnmatch
@@ -54,6 +52,7 @@ import fnmatch
 from tensor2tensor.bin import t2t_trainer
 import tensorflow as tf
 
+import luinet
 
 flags = tf.flags
 FLAGS = flags.FLAGS

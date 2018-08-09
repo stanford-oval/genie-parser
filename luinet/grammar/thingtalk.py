@@ -27,6 +27,7 @@ import ssl
 import re
 import sys
 
+import numpy as np
 import tensorflow as tf
 
 from collections import OrderedDict
@@ -116,6 +117,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     
     def __init__(self, filename=None, split_device=False, **kw):
         super().__init__(**kw)
+        self._input_dictionary = None
         self._split_device = split_device
         if filename is not None:
             self.init_from_file(filename)
@@ -441,7 +443,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     string_begin = i+1
                 else:
                     string_end = i
-                    yield self.dictionary['SPAN'], program[string_begin:string_end]
+                    yield self._span_id, program[string_begin:string_end]
                     string_begin = None
                     string_end = None
                 yield self.dictionary[token], None
@@ -452,11 +454,29 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             else:
                 yield self.dictionary[token], None
 
+    def decode_program(self, input_sentence, tokenized_program):
+        program = []
+        tokenized_program = np.reshape(tokenized_program, (-1, 3))
+        
+        for i in range(len(tokenized_program)):
+            token = tokenized_program[i, 0]
+            if token == self._span_id:
+                begin_position = tokenized_program[i, 1]
+                end_position = tokenized_program[i, 2]
+                input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
+                program.extend(input_span)
+            else:
+                program.append(self.tokens[token])
+        return program
+
     def set_input_dictionary(self, input_dictionary):
         #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
+        self._input_dictionary = input_dictionary
+        
         self.construct_parser(self._grammar, copy_terminals={
             'SPAN': []
         })
+        self._span_id = self.dictionary['SPAN']
 
         if not self._quiet:
             print('num functions', self.num_functions)

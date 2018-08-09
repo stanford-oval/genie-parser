@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-# Copyright 2018 Google LLC
+#!/usr/bin/env python3
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University 
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,19 +17,13 @@
 
 Usage:
 luinet-decoder
---t2t_usr_dir almond-nnparser-private/luinet
---data_dir workdir/t2_copy_data_generated/
+--data_dir workdir/
 --problem semparse_thingtalk_noquote
 --model luinet_copy_transformer
 --hparams_set transformer_tiny_luinet
---decode_hparams 'beam_size=10,alpha=0.6'
---decode_from_file dataset/t2t_copy_data/te_x.tsv
---decode_to_file workdir/eval_results/translation.tt
---checkpoint_path ./workdir/train_results/model.ckpt-???
+--decode_hparams 'beam_size=1,alpha=0.6'
+--output_dir ./workdir/model
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 # Part of this code is derived from Tensor2Tensor, which is:
 # Copyright 2018 The Tensor2Tensor Authors.
@@ -45,10 +39,12 @@ from __future__ import print_function
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import sys
-from tensor2tensor.bin import t2t_trainer
+from tensor2tensor.bin import t2t_decoder
 import tensorflow as tf
 
+import luinet
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -65,7 +61,6 @@ if LUI_prob != LUI_model:
     sys.exit(1)
 
 def main(argv):
-
     t2t_decoder.main(argv)
 
 if __name__ == "__main__":
