@@ -45,7 +45,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 
 from ..layers.modalities import CopyModality
-from ..layers.common import AttentivePointerLayer,\
+from ..layers.common import AttentivePointerLayer, \
     DecayingAttentivePointerLayer, EmbeddingPointerLayer
 
 from .transformer import Transformer
@@ -56,14 +56,12 @@ class CopyTransformer(Transformer):
     '''
     A Transformer subclass that supports copying from the inputs.
     '''
-    
+
     def _symbols_to_logits_fn(self,
                               targets,
                               features,
                               bias,
                               cache):
-        cache['decode_for_decayPtr'] = []
-        task = 'decode'
         with tf.variable_scope("body"):
             decoder_outputs = self._data_parallelism(
                 self.decode,
@@ -74,19 +72,22 @@ class CopyTransformer(Transformer):
                 self.hparams,
                 cache,
                 nonpadding=features_to_nonpadding(features, "targets"))
-
+        task = 'test'
+        cache['decode_for_decayPtr'] = []
         logits = dict()
         target_modality = self._problem_hparams.target_modality
-            
+
         assert self.hparams.pointer_layer in ("attentive", "decaying_attentive")
+
         def copy_sharded(decoder_output):
             encoder_output = cache.get("encoder_output")
             if self.hparams.pointer_layer == "decaying_attentive":
+                cache['decode_for_decayPtr'].append(decoder_output)
                 output_layer = DecayingAttentivePointerLayer(encoder_output, task)
-                cache['decode_for_decayPtr'].append(decoder_outputs)
+                scores = output_layer(tf.concat(cache['decode_for_decayPtr'], axis=1))
             else:
                 output_layer = AttentivePointerLayer(encoder_output)
-            scores = output_layer(cache)
+                scores = output_layer(decoder_output)
             scores += cache.get("encoder_decoder_attention_bias")
             return scores
 
@@ -103,42 +104,42 @@ class CopyTransformer(Transformer):
                 with tf.variable_scope(modality.name):
                     logits[key] = modality.top_sharded(body_outputs, None,
                                                        self._data_parallelism)[0]
-            
+
             cache["logits"][key] = tf.concat((cache["logits"][key], logits[key]), axis=1)
             if key != self._problem_hparams.primary_target_modality:
-                squeezed_logits = tf.squeeze(logits[key], axis=[1,2,3])
+                squeezed_logits = tf.squeeze(logits[key], axis=[1, 2, 3])
                 current_sample = tf.argmax(squeezed_logits, axis=-1)
                 current_sample = tf.expand_dims(current_sample, axis=1)
                 current_sample = tf.expand_dims(current_sample, axis=2)
-                
+
                 cache["outputs_" + key] = tf.concat((cache["outputs_" + key], current_sample),
                                                     axis=1)
-        
+
         return logits[self._problem_hparams.primary_target_modality]
-    
+
     def _prepare_decoder_cache(self,
                                batch_size,
                                beam_size,
                                cache):
         cache["logits"] = dict()
         target_modality = self._problem_hparams.target_modality
-        
+
         for key, modality in target_modality.items():
             cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
             # the last dimension of all cache tensors must be defined and fixed in the loop
             cache["outputs_" + key] = tf.zeros((batch_size * beam_size, 0, 1), dtype=tf.int64)
 
-    def _fast_decode(self, 
-        features, 
-        decode_length, 
-        beam_size=1, 
-        top_beams=1, 
-        alpha=1.0):
+    def _fast_decode(self,
+                     features,
+                     decode_length,
+                     beam_size=1,
+                     top_beams=1,
+                     alpha=1.0):
         ret = super()._fast_decode(features, decode_length,
                                    beam_size=beam_size,
                                    top_beams=top_beams,
                                    alpha=alpha)
-        
+
         new_outputs = dict()
         target_modality = self._problem_hparams.target_modality
         for key in target_modality:
@@ -150,7 +151,7 @@ class CopyTransformer(Transformer):
                 # invariants
                 new_outputs[key] = tf.squeeze(ret["outputs_" + key], axis=2)
                 del ret["outputs_" + key]
-                
+
         new_outputs[self._problem_hparams.primary_target_modality] = \
             tf.Print(new_outputs[self._problem_hparams.primary_target_modality],
                      data=(tf.shape(new_outputs[self._problem_hparams.primary_target_modality]),
@@ -160,7 +161,7 @@ class CopyTransformer(Transformer):
 
     def body(self, features):
         """CopyTransformer main model_fn.
-    
+
         Args:
           features: Map of features to the model. Should contain the following:
               "inputs": Transformer inputs [batch_size, input_length, hidden_dim]
@@ -169,33 +170,34 @@ class CopyTransformer(Transformer):
               "targets_*": Additional decoder outputs to generate, for copying
                   and pointing; [batch_size, decoder_length]
               "target_space_id": A scalar int from data_generators.problem.SpaceID.
-    
+
         Returns:
           Final decoder representation. [batch_size, decoder_length, hidden_dim]
         """
-        task ='train'
+        task = 'train'
         hparams = self._hparams
-    
+
         losses = []
-    
+
         inputs = features["inputs"]
-        
+
         target_space = features["target_space_id"]
         encoder_output, encoder_decoder_attention_bias = self.encode(
             inputs, target_space, hparams, features=features, losses=losses)
-    
+
         if "targets_actions" in features:
             targets = features["targets_actions"]
         else:
-            tf.logging.warn("CopyTransformer must be used with a SemanticParsing problem with a ShiftReduceGrammar; bad things will happen otherwise")
+            tf.logging.warn(
+                "CopyTransformer must be used with a SemanticParsing problem with a ShiftReduceGrammar; bad things will happen otherwise")
             targets = features["targets"]
-        
+
         targets_shape = common_layers.shape_list(targets)
         targets = common_layers.flatten4d3d(targets)
-    
+
         decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
             targets, hparams, features=features)
-    
+
         decoder_output = self.decode(
             decoder_input,
             encoder_output,
@@ -204,7 +206,7 @@ class CopyTransformer(Transformer):
             hparams,
             nonpadding=features_to_nonpadding(features, "targets"),
             losses=losses)
-    
+
         expected_attentions = features.get("expected_attentions")
         if expected_attentions is not None:
             attention_loss = common_attention.encoder_decoder_attention_loss(
@@ -212,13 +214,13 @@ class CopyTransformer(Transformer):
                 hparams.expected_attention_loss_type,
                 hparams.expected_attention_loss_multiplier)
             return decoder_output, {"attention_loss": attention_loss}
-    
+
         decoder_output = tf.reshape(decoder_output, targets_shape)
-        
+
         body_output = dict()
         target_modality = self._problem_hparams.target_modality \
-            if self._problem_hparams else {"targets": None} 
-        
+            if self._problem_hparams else {"targets": None}
+
         assert hparams.pointer_layer in ("attentive", "decaying_attentive")
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
@@ -232,7 +234,7 @@ class CopyTransformer(Transformer):
                     body_output[key] = scores
             else:
                 body_output[key] = decoder_output
-        
+
         if losses:
             return body_output, {"extra_loss": tf.add_n(losses)}
         else:

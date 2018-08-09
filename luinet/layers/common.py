@@ -228,8 +228,9 @@ class AttentivePointerLayer(tf.layers.Layer):
         self._enc_hidden_states = enc_hidden_states
         self._num_units = enc_hidden_states.shape[-1]
 
-    def call(self, cache):
-        inputs = cache['decode_for_decayPtr'][-1]
+    def call(self, decode_list):
+        inputs = decode_list
+
         original_shape = common_layers.shape_list(inputs)
         flattened_inputs = common_layers.flatten4d3d(inputs)
         
@@ -274,11 +275,8 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
 
         return inp
 
-    def call(self, cache):
-        if self.task == 'test':
-            inputs = tf.concat(cache['decode_for_decayPtr'], axis=1)
-        elif self.task == 'train':
-            inputs = cache
+    def call(self, decode_list):
+        inputs = decode_list
 
         original_shape = common_layers.shape_list(inputs)
         inputs = common_layers.flatten4d3d(inputs) # (?, ?, 1, 128) -- > (?, ?, 128)
@@ -291,12 +289,6 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
 
 
             e_ti_prime = tf.py_func(self.inc_normalize, [e_ti_exp], e_ti_exp.dtype)
-
-            # if time == 0:
-            #     e_ti_prime = e_ti_exp
-            # else:
-            #     sum_e = tf.reduce_sum(e_ti_exp, axis=0, keepdims=True)
-            #     e_ti_prime = tf.divide(e_ti_exp, sum_e)
 
             sum_e_prime = tf.reduce_sum(e_ti_prime, axis=2, keepdims=True)
             alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_length)
