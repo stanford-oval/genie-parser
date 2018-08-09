@@ -10,3 +10,4 @@ install:
 script:
     - pipenv run ./luinet-datagen --problem semparse_thingtalk_noquote --src_data_dir ./tests/dataset --data_dir ./workdir --thingpedia_snapshot 6
     - pipenv run ./luinet-trainer --problem semparse_thingtalk_noquote --data_dir ./workdir --output_dir ./workdir/model.test --model luinet_copy_transformer --hparams_set transformer_tiny_luinet --t2t_usr_dir ./luinet --export_saved_model --schedule test
+    - pipenv run ./luinet-decoder --data_dir workdir/ --problem semparse_thingtalk_noquote --model luinet_copy_transformer --hparams_set transformer_tiny_luinet --decode_hparams "beam_size=1,alpha=0.6" --output_dir ./workdir/model
