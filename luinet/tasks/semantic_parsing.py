@@ -53,6 +53,8 @@ FLAGS = tf.flags.FLAGS
 
 START_TOKEN = '<s>'
 START_ID = text_encoder.EOS_ID + 1
+UNK_TOKEN = '<unk>'
+UNK_ID = text_encoder.EOS_ID + 2
 
 
 class IdentityEncoder(object):
@@ -63,7 +65,7 @@ class IdentityEncoder(object):
         return x
     
     def decode(self, x):
-        return x
+        return ' '.join(map(lambda x: x.decode('utf-8'), x)).strip()
 
 
 def _make_pointer_modality(name):
@@ -184,7 +186,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     
     @property
     def oov_token(self):
-        return '<unk>'
+        return UNK_TOKEN
     
     @property
     def vocab_type(self):
@@ -242,7 +244,36 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         grammar = self.get_grammar()
         return grammar.eval_metrics()
     
-    def compute_predictions(self, outputs, features, model_hparams=None):
+    def decode_targets(self, targets, features, model_hparams=None):
+        grammar = self.get_grammar(model_hparams.data_dir)
+        targets = tf.squeeze(targets, axis=[2, 3])
+        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+        
+        def decode_pyfunc(program_batch, input_sentence_batch):
+            batch_size = len(program_batch)
+            output_len = None
+            outputs = []
+            for i in range(batch_size):
+                vector = grammar.decode_program(input_sentence_batch[i], program_batch[i])
+                outputs.append(vector)
+                if output_len is None or len(vector) > output_len:
+                    output_len = len(vector)
+            output_matrix = np.empty((batch_size, output_len), dtype=object)
+            for i in range(batch_size):
+                item_len = len(outputs[i])
+                output_matrix[i, :item_len] = outputs[i]
+                output_matrix[i, item_len:] = np.zeros((output_len - item_len,),
+                                                       dtype=np.str)
+            return output_matrix
+        
+        return tf.contrib.framework.py_func(decode_pyfunc,
+                                            [targets, input_sentence],
+                                            output_shapes=tf.TensorShape([None, None]),
+                                            output_types=tf.string,
+                                            stateful=False)
+    
+    def compute_predictions(self, outputs, features, model_hparams=None,
+                            decode=False):
         grammar = self.get_grammar(model_hparams.data_dir)
         our_hparams = self.get_hparams(model_hparams)
 
@@ -251,8 +282,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             assert key.startswith("targets_")
             grammar_key = key[len("targets_"):]
             sample_ids[grammar_key] = outputs[key]
+        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
         
-        def compute_prediction_pyfunc(sample_ids):
+        def compute_prediction_pyfunc(sample_ids, input_sentence_batch):
             batch_size = len(sample_ids[grammar.primary_output])
             
             outputs = []
@@ -267,25 +299,29 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                         (key, decoded_vectors[key].shape)
                 
                 #grammar.print_prediction([], decoded_vectors)
-                outputs.append(grammar.reconstruct_to_vector(decoded_vectors,
-                                                             direction=our_hparams.grammar_direction,
-                                                             ignore_errors=True))
-                if output_len is None or len(outputs[-1]) > output_len:
-                    output_len = len(outputs[-1])
+                vector = grammar.reconstruct_to_vector(decoded_vectors,
+                                                       direction=our_hparams.grammar_direction,
+                                                       ignore_errors=True)
+                if decode:
+                    vector = grammar.decode_program(input_sentence_batch[i], vector)
+                outputs.append(vector)
+                if output_len is None or len(vector) > output_len:
+                    output_len = len(vector)
                     
-            output_matrix = np.empty((batch_size, output_len), dtype=np.int32)
+            output_matrix = np.empty((batch_size, output_len),
+                                     dtype=object if decode else np.int32)
             for i in range(batch_size):
                 item_len = len(outputs[i])
                 output_matrix[i, :item_len] = outputs[i]
                 output_matrix[i, item_len:] = np.zeros((output_len - item_len,),
-                                                       dtype=np.int32)
+                                                       dtype=np.str if decode else np.int32)
                 
             return output_matrix
         
         return tf.contrib.framework.py_func(compute_prediction_pyfunc,
-                                            [sample_ids],
+                                            [sample_ids, input_sentence],
                                             output_shapes=tf.TensorShape([None, None]),
-                                            output_types=tf.int32,
+                                            output_types=(tf.string if decode else tf.int32),
                                             stateful=False)
     
     def begin_data_generation(self, data_dir):
@@ -301,7 +337,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             sequence = canonical
         for word in sequence:
             if not word or word != '$' and word.startswith('$'):
-                print('Invalid word "%s" in phrase "%s"' % (word, canonical,))
+                tf.logging.warn('Invalid word "%s" in phrase "%s"' % (word, canonical,))
                 continue
             if word[0].isupper():
                 continue

@@ -76,8 +76,13 @@ class CopyTransformer(Transformer):
         logits = dict()
         target_modality = self._problem_hparams.target_modality
             
+        assert self.hparams.pointer_layer in ("attentive", "decaying_attentive")
         def copy_sharded(decoder_output):
-            output_layer = DecayingAttentivePointerLayer(cache.get("encoder_output"))
+            encoder_output = cache.get("encoder_output")
+            if self.hparams.pointer_layer == "decaying_attentive":
+                output_layer = DecayingAttentivePointerLayer(encoder_output)
+            else:
+                output_layer = AttentivePointerLayer(encoder_output)
             scores = output_layer(decoder_output)
             scores += cache.get("encoder_decoder_attention_bias")
             return scores
@@ -143,7 +148,6 @@ class CopyTransformer(Transformer):
                 new_outputs[key] = tf.squeeze(ret["outputs_" + key], axis=2)
                 del ret["outputs_" + key]
                 
-        print(new_outputs)
         new_outputs[self._problem_hparams.primary_target_modality] = \
             tf.Print(new_outputs[self._problem_hparams.primary_target_modality],
                      data=(tf.shape(new_outputs[self._problem_hparams.primary_target_modality]),
@@ -210,10 +214,15 @@ class CopyTransformer(Transformer):
         body_output = dict()
         target_modality = self._problem_hparams.target_modality \
             if self._problem_hparams else {"targets": None} 
+        
+        assert hparams.pointer_layer in ("attentive", "decaying_attentive")
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
-                    output_layer = DecayingAttentivePointerLayer(encoder_output)
+                    if hparams.pointer_layer == "decaying_attentive":
+                        output_layer = DecayingAttentivePointerLayer(encoder_output)
+                    else:
+                        output_layer = AttentivePointerLayer(encoder_output)
                     scores = output_layer(decoder_output)
                     scores += encoder_decoder_attention_bias
                     body_output[key] = scores
