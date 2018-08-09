@@ -280,15 +280,12 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         return vectors, i
     
-    def _do_reconstruct(self, sequences, direction='bottomup', input_sentence=None, ignore_errors=False):
+    def reconstruct_to_vector(self, sequences, direction='bottomup', ignore_errors=False):
         if direction == 'linear':
-            if input_sentence is not None:
-                reconstructed = super().reconstruct_program(input_sentence, sequences, direction, ignore_errors)
-            else:
-                reconstructed = super().reconstruct_to_vector(sequences, direction, ignore_errors)
+            reconstructed = super().reconstruct_to_vector(sequences, direction, ignore_errors)
             try:
                 # try parsing again to check if it is correct or not
-                self.vectorize_program(input_sentence, reconstructed, direction='bottomup', max_length=60)
+                self.vectorize_program(None, reconstructed, direction='bottomup', max_length=60)
                 return reconstructed
             except ValueError:
                 if ignore_errors: 
@@ -323,47 +320,28 @@ class ShiftReduceGrammar(AbstractGrammar):
             if ignore_errors:
                 # the NN generated something that does not conform to the grammar,
                 # ignore it
-                if input_sentence is not None:
-                    return []
-                else:
-                    return np.zeros((0, 3), dtype=np.int32)
+                return np.zeros((0,), dtype=np.int32)
             else:
                 raise
             
-        if input_sentence is not None:
-            program = []
-            for term_id, payload in term_ids:
-                if payload is not None:
-                    if term_id in self._copy_terminal_indices:
-                        begin_position, end_position = payload
-                        input_span = input_sentence[begin_position:end_position+1]
-                        program.extend(input_span)
-                    else:
-                        tokenid = payload
-                        program.append(self._extensible_terminals_maps[self.tokens[term_id]][tokenid])
+        vector = np.zeros((len(term_ids), 3), dtype=np.int32)
+        for i, (term_id, payload) in enumerate(term_ids):
+            vector[i, 0] = term_id
+            if payload is not None:
+                if term_id in self._copy_terminal_indices:
+                    vector[i, 1:3] = payload
                 else:
-                    program.append(self.tokens[term_id])
-            return program
-        else:
-            vector = np.zeros((len(term_ids), 3), dtype=np.int32)
-            for i, (term_id, payload) in enumerate(term_ids):
-                vector[i, 0] = term_id
-                if payload is not None:
-                    if term_id in self._copy_terminal_indices:
-                        vector[i, 1:3] = payload
-                    else:
-                        vector[i, 1] = payload
-            return vector
-
-    
-    def reconstruct_to_vector(self, sequences, direction, ignore_errors=False):
-        return np.reshape(self._do_reconstruct(sequences, direction, input_sentence=None, ignore_errors=ignore_errors),
-                          (-1,))
+                    vector[i, 1] = payload
+        return np.reshape(vector, (-1,))
+        
+    def decode_program(self, input_sentence, tokenized_program):
+        return [self.tokens[x] for x in tokenized_program[::3]]
 
     def reconstruct_program(self, input_sentence, sequences,
                             direction='bottomup',
                             ignore_errors=False):
-        return self._do_reconstruct(sequences, direction, input_sentence, ignore_errors)        
+        tokenized_program = self.reconstruct_to_vector(sequences, direction, ignore_errors)
+        return self.decode_program(input_sentence, tokenized_program)
 
     def print_all_actions(self):
         print(0, 'pad')
