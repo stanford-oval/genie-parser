@@ -62,6 +62,8 @@ class CopyTransformer(Transformer):
                               features,
                               bias,
                               cache):
+        cache['decode_for_decayPtr'] = []
+        task = 'decode'
         with tf.variable_scope("body"):
             decoder_outputs = self._data_parallelism(
                 self.decode,
@@ -80,10 +82,11 @@ class CopyTransformer(Transformer):
         def copy_sharded(decoder_output):
             encoder_output = cache.get("encoder_output")
             if self.hparams.pointer_layer == "decaying_attentive":
-                output_layer = DecayingAttentivePointerLayer(encoder_output)
+                output_layer = DecayingAttentivePointerLayer(encoder_output, task)
+                cache['decode_for_decayPtr'].append(decoder_outputs)
             else:
                 output_layer = AttentivePointerLayer(encoder_output)
-            scores = output_layer(decoder_output)
+            scores = output_layer(cache)
             scores += cache.get("encoder_decoder_attention_bias")
             return scores
 
@@ -170,6 +173,7 @@ class CopyTransformer(Transformer):
         Returns:
           Final decoder representation. [batch_size, decoder_length, hidden_dim]
         """
+        task ='train'
         hparams = self._hparams
     
         losses = []
@@ -220,7 +224,7 @@ class CopyTransformer(Transformer):
             if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
                     if hparams.pointer_layer == "decaying_attentive":
-                        output_layer = DecayingAttentivePointerLayer(encoder_output)
+                        output_layer = DecayingAttentivePointerLayer(encoder_output, task)
                     else:
                         output_layer = AttentivePointerLayer(encoder_output)
                     scores = output_layer(decoder_output)
