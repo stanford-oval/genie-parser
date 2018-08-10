@@ -61,12 +61,13 @@ class RetrievalModel(BaseModel):
         distances /= tf.reshape(test_norm, (-1, 1))
         indices = tf.argmax(distances, axis=1)
         
-        self.pred = tf.gather(train_data[3], indices)
+        self.pred = tf.gather(train_data[4][self.config.grammar.primary_output], indices)
         print(self.pred)
         # add a dimension of one
-        self.pred = tf.expand_dims(self.pred, axis=1)
+        self.preds = {
+            self.config.grammar.primary_output: tf.expand_dims(self.pred, axis=1)
+        }
         self.eval_loss = tf.reduce_sum(tf.reduce_max(distances, axis=1), axis=0)
-        self.action_counts = None
         
     def create_feed_dict(self, inputs_batch, *args, **kw):
         return { self.input_placeholder: inputs_batch }

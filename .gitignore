@@ -1,2 +1,7 @@
 *.pyc
 .DS_Store
+.idea/
+.project
+.pydevproject
+glove.42B.300d.txt
+workdir/*

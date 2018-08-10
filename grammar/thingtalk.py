@@ -26,9 +26,8 @@ import urllib.request
 import ssl
 import re
 import sys
-import itertools
-import numpy as np
 from .shift_reduce_grammar import ShiftReduceGrammar
+from util.loader import load_dictionary
 
 from collections import OrderedDict
 from orderedset import OrderedSet
@@ -40,7 +39,7 @@ SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
     'Boolean':  ([], []), # booleans are handled per-parameter, like enums
-    'String': (['==', '=~', '~=', 'starts_with', 'ends_with'], ['""', 'QUOTED_STRING']),
+    'String': (['==', '=~', '~=', 'starts_with', 'ends_with'], ['""', ('"', '$word_list', '"'), 'QUOTED_STRING']),
     'Date': (['==', '>=', '<='], [
         'DATE',
         'now',
@@ -61,11 +60,11 @@ TYPES = {
     'Time': (['=='], ['TIME']),
     'Currency': (['==', '>=', '<='], ['CURRENCY']),
     'Number': (['==', '>=', '<='], ['NUMBER', '1', '0']),
-    'Entity(tt:username)': (['=='], ['USERNAME', ('$constant_String',) ]),
+    'Entity(tt:username)': (['=='], ['USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
     'Entity(tt:contact)': (['=='], [('$constant_Entity(tt:username)',) ]),
-    'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('$constant_String',) ]),
-    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('$constant_String',) ]),
-    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('$constant_String',) ]),
+    'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('"', '$word_list', '"', '^^tt:hashtag'), ('$constant_String',) ]),
+    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
+    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
     'Entity(tt:url)': (['=='], ['URL', ('$constant_String',) ]),
     'Entity(tt:path_name)': (['=='], ['PATH_NAME', ('$constant_String',) ]),
     'Entity(tt:picture)': (['=='], []),
@@ -121,6 +120,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self.entities = []
         self._enum_types = OrderedDict()
         self.devices = []
+        self._grammar = None
     
     def _process_devices(self, devices):
         for device in devices:
@@ -170,6 +170,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self.complete()
 
     def init_from_url(self, snapshot=-1, thingpedia_url=None):
+        self.reset()
+
         if thingpedia_url is None:
             thingpedia_url = os.getenv('THINGPEDIA_URL', 'https://thingpedia.stanford.edu/thingpedia')
         ssl_context = ssl.create_default_context()
@@ -180,6 +182,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
 
         with urllib.request.urlopen(thingpedia_url + '/api/entities?snapshot=' + str(snapshot), context=ssl_context) as res:
             self._process_entities(json.load(res)['data'])
+
+        self.complete()
     
     def vectorize_program(self, sentence, program, max_length=60):
         if not self._split_device:
@@ -284,6 +288,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             '$constant_array_values': [('$constant_Any',),
                                        ('$constant_array_values', ',', '$constant_Any')],
             '$constant_Any': OrderedSet(),
+
+            '$word_list': [('SPAN',),],
+                           #('WORD',),
+                           #('$word_list', 'WORD',)]
         })
         
         def add_type(type, value_rules, operators):
@@ -334,6 +342,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             if has_ner:
                 value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
                 value_rules.append(('$constant_String',))
+                value_rules.append(('"', '$word_list', '"', '^^' + generic_entity,))
             else:
                 value_rules = []
             add_type('Entity(' + generic_entity + ')', value_rules, ['=='])
@@ -424,7 +433,41 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'true'))
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'false'))
 
-        self.tokens += self.construct_parser(GRAMMAR)
+        self._grammar = GRAMMAR
+
+    def tokenize_program(self, program):
+        if isinstance(program, str):
+            program = program.split(' ')
+
+        in_string = False
+        string_begin = None
+        string_end = None
+        for i, token in enumerate(program):
+            if self._flatten:
+                yield token, 0
+                continue
+
+            if token == '"':
+                in_string = not in_string
+                if in_string:
+                    string_begin = i+1
+                else:
+                    string_end = i
+                    yield 'SPAN', program[string_begin:string_end]
+                    string_begin = None
+                    string_end = None
+                yield token, None
+            elif in_string:
+                continue
+            else:
+                yield token, 0
+
+    def set_input_dictionary(self, input_dictionary):
+        #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
+        self.tokens += self.construct_parser(self._grammar, copy_terminals={
+            'SPAN': []
+        })
+
         if not self._quiet:
             print('num functions', self.num_functions)
             print('num queries', len(self.functions['queries']))
@@ -435,8 +478,11 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         for i, token in enumerate(self.tokens):
             self.dictionary[token] = i
 
+
 if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], reverse=False)
+    grammar = ThingTalkGrammar(sys.argv[1], reverse=False, flatten=False)
+    dictionary, _ = load_dictionary(sys.argv[2], use_types=True, grammar=grammar)
+    grammar.set_input_dictionary(dictionary)
     #grammar.dump_tokens()
     #grammar.normalize_all(sys.stdin)
     for line in sys.stdin:
@@ -448,7 +494,7 @@ if __name__ == '__main__':
             assert program == ' '.join(reconstructed)
             #print()
             #print(program)
-            #grammar.print_prediction(vector)
+            #grammar.print_prediction(sentence_vector, vector)
         except:
             print(line.strip())
             grammar.print_prediction(sentence, vector)

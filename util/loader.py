@@ -23,6 +23,12 @@ Created on Mar 16, 2017
 import numpy as np
 import time
 
+from collections import namedtuple
+from .general_utils import logged_loop
+
+Dataset = namedtuple('Dataset', ('input_sequences', 'input_vectors', 'input_lengths',
+    'constituency_parse', 'label_sequences', 'label_vectors', 'label_lengths'))
+
 unknown_tokens = set()
 
 def vectorize_constituency_parse(parse, max_length, expect_length):
@@ -65,6 +71,8 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
         word = word.strip()
         if len(word) == 0:
             raise ValueError("empty token in " + str(sentence))
+        if word[0].isupper() and '*' in word:
+            word, _ = word.rsplit('*', maxsplit=1)
         if word in words:
             vector[i] = words[word]
         elif '<unk>' in words:
@@ -153,14 +161,14 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     embeddings_matrix[words['</s>'], embed_size-1] = 1.
     embeddings_matrix[words['<s>'], embed_size-2] = 1.
 
-    for token, id in words.items():
+    for token, token_id in words.items():
         if token in ('<unk>', '</s>', '<s>'):
             continue
         if use_types and token[0].isupper():
             continue
         if token in word_vectors:
             vec = word_vectors[token]
-            embeddings_matrix[id, 0:len(vec)] = vec
+            embeddings_matrix[token_id, 0:len(vec)] = vec
         else:
             raise ValueError("missing vector for", token)
     if use_types:
@@ -180,7 +188,24 @@ def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=
     print("took {:.2f} seconds".format(time.time() - start))
     return embeddings_matrix, embed_size
 
+# A custom list-like object that can be also indexed by a numpy array
+# This object exists for compatibility with get_minibatches, for cases
+# where the full numpy array would be too heavy
+class CustomList(object):
+    __slots__ = ['_data']
+
+    def __init__(self, iterable):
+        self._data = list(iterable)
+    def __len__(self):
+        return len(self._data)
+    def __getitem__(self, key):
+        if isinstance(key, np.ndarray):
+            return CustomList(self._data[x] for x in key)
+        else:
+            return self._data[key]
+
 def load_data(from_file, input_words, grammar, max_length):
+    input_sequences = []
     inputs = []
     input_lengths = []
     parses = []
@@ -189,38 +214,57 @@ def load_data(from_file, input_words, grammar, max_length):
         labels[key] = []
     label_lengths = []
     label_sequences = []
+    total_label_len = 0
 
+    N = 0
     with open(from_file, 'r') as data:
         for line in data:
+            N += 1
+
+        data.seek(0)
+        for line in logged_loop(data, N):
+            #print(line)
             split = line.strip().split('\t')
             if len(split) == 4:
-                _, sentence, canonical, parse = split
+                _, sentence, label, parse = split
             else:
-                _, sentence, canonical = split
+                _, sentence, label = split
                 parse = None
+
+            input_vector, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
+            
             sentence = sentence.split(' ')
+            input_sequences.append(sentence)
 
-            input, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
-
-            inputs.append(input)
+            inputs.append(input_vector)
             input_lengths.append(in_len)
-            label_sequence = canonical.split(' ')
+            label_sequence = label.split(' ')
+            label_vector, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+
             label_sequences.append(label_sequence)
-            label, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
+            total_label_len += label_len
             for key in grammar.output_size:
-                labels[key].append(label[key])
+                labels[key].append(label_vector[key])
             label_lengths.append(label_len)
             if parse is not None:
                 parses.append(vectorize_constituency_parse(parse, max_length, in_len-2))
             else:
                 parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
+    print('avg label productions', total_label_len/len(inputs))
 
-
-    # FIXME remove
+    input_sequences = CustomList(input_sequences)
+    label_sequences = CustomList(label_sequences)
     inputs = np.array(inputs)
     input_lengths = np.array(input_lengths)
     parses = np.array(parses)
     for key in grammar.output_size:
         labels[key] = np.array(labels[key])
+    label_lengths = np.array(label_lengths)
 
-    return inputs, input_lengths, parses, label_sequences, labels, label_lengths
+    return Dataset(input_sequences=input_sequences,
+                   input_vectors=inputs,
+                   input_lengths=input_lengths,
+                   constituency_parse=parses,
+                   label_sequences=label_sequences,
+                   label_vectors=labels,
+                   label_lengths=label_lengths)

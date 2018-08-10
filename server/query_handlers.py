@@ -27,7 +27,7 @@ import tornado.concurrent
 import sys
 import datetime
 
-from util.loader import vectorize, vectorize_constituency_parse
+from util.loader import Dataset, vectorize, vectorize_constituency_parse
 
 class TokenizeHandler(tornado.web.RequestHandler):
     '''
@@ -52,6 +52,12 @@ class TokenizeHandler(tornado.web.RequestHandler):
         self.write(dict(tokens=tokenized.tokens, entities=tokenized.values))
         self.finish()
 
+def clean_tokens(tokens):
+    for t in tokens:
+        if t[0].isupper() and '*' in t:
+            yield t.rsplit('*', maxsplit=1)[0]
+        else:
+            yield t
 
 class QueryHandler(tornado.web.RequestHandler):
     '''
@@ -64,7 +70,7 @@ class QueryHandler(tornado.web.RequestHandler):
     
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
-        tokens = tokenized.tokens
+        tokens = list(clean_tokens(tokenized.tokens))
         parse = tokenized.constituency_parse
 
         results = []
@@ -72,23 +78,30 @@ class QueryHandler(tornado.web.RequestHandler):
         grammar = config.grammar
         with language.session.as_default():
             with language.session.graph.as_default():
-                input, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+                input_vector, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
                 #print('Vectorized', input, input_len)
                 if parse:
                     parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
                 else:
                     parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
-                input_batch, input_length_batch, parse_batch = [input], [input_len], [parse_vector]
-                sequences = language.model.predict_on_batch(language.session, input_batch, input_length_batch, parse_batch)
+                data = Dataset(input_sequences=[tokens],
+                               input_vectors=[input_vector],
+                               input_lengths=[input_len],
+                               constituency_parse=[parse_vector],
+                               label_sequences=None,
+                               label_vectors=None,
+                               label_lengths=None
+                               )
+                sequences = language.model.predict_on_batch(language.session, data)
 
                 primary_sequences = sequences[grammar.primary_output]                
                 assert len(primary_sequences) == 1
                 for i in range(len(primary_sequences[0])):
-                    vectors = dict()
+                    prediction = dict()
                     for key in sequences:
-                        vectors[key] = sequences[key][0,i]
+                        prediction[key] = sequences[key][0,i]
 
-                    decoded = grammar.reconstruct_program(input, vectors, ignore_errors=True)
+                    decoded = grammar.reconstruct_program(tokens, prediction, ignore_errors=True)
                     #print("Beam", i+1, decoded if decoded else 'failed to predict')
                     if not decoded:
                         continue

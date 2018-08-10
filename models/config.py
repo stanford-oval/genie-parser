@@ -22,9 +22,11 @@ Created on Jul 20, 2017
 
 import configparser
 import importlib
+import pickle
 
 from util.loader import load_dictionary, load_embeddings
 from collections import OrderedDict
+
 
 def create_grammar(grammar_type, *args, **kw):
     pkg = None
@@ -53,6 +55,13 @@ def create_grammar(grammar_type, *args, **kw):
         pkg = 'simple'
         class_name = 'SimpleGrammar'
         kw['split_device'] = True
+    elif grammar_type == 'django-BU':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
+    elif grammar_type == 'django-TD':
+        pkg = 'django'
+        class_name = 'DjangoGrammar'
+        kw['reverse'] = True
     else:
         pkg, class_name = grammar_type.rsplit('.', maxsplit=1)
     module = importlib.import_module('grammar.' + pkg)
@@ -66,8 +75,8 @@ class Config(object):
         self._config['model'] = OrderedDict(
             model_type='seq2seq',
             encoder_type='birnn',
-            encoder_hidden_size=35,
-            decoder_hidden_size=70,
+            encoder_hidden_size=125,
+            decoder_hidden_size=250,
             rnn_cell_type='lstm',
             rnn_layers=1,
             apply_attention='true',
@@ -84,11 +93,11 @@ class Config(object):
             l1_regularization=0.0,
             embedding_l2_regularization=0.0,
             scheduled_sampling=0.0,
-            decoder_action_count_loss=0.0,
-            decoder_sequence_loss=1.0,
             optimizer='RMSProp',
             shuffle_data='true',
-            use_margin_loss='true'
+            use_margin_loss='true',
+            curriculum_schedule=0.05,
+            curriculum_max_prob=0.7
         )
         self._config['input'] = OrderedDict(
             input_words='./en/input_words.txt',
@@ -172,14 +181,6 @@ class Config(object):
             return int(model_conf['decoder_hidden_size'])
     
     @property
-    def decoder_action_count_loss(self):
-        return float(self._config['training']['decoder_action_count_loss'])
-    
-    @property
-    def decoder_sequence_loss(self):
-        return float(self._config['training']['decoder_sequence_loss'])
-    
-    @property
     def scheduled_sampling(self):
         return float(self._config['training']['scheduled_sampling'])
     
@@ -240,6 +241,14 @@ class Config(object):
     @property
     def use_margin_loss(self):
         return self._config['training'].getboolean('use_margin_loss')
+
+    @property
+    def curriculum_schedule(self):
+        return float(self._config['training']['curriculum_schedule'])
+
+    @property
+    def curriculum_max_prob(self):
+        return float(self._config['training']['curriculum_max_prob'])
     
     @property
     def train_input_embeddings(self):
@@ -298,21 +307,32 @@ class Config(object):
             self._config.write(fp)
         
     @staticmethod
-    def load(filenames):
+    def load(filenames, load_grammar=False, cached_grammar=None):
         self = Config()
         print('Loading configuration from', filenames)
         self._config.read(filenames)
         self._input_embed_size = int(self._config['input']['input_embed_size'])
         
         flatten_grammar = self.model_type != 'extensible'
-        self._grammar = create_grammar(self._config['output']['grammar'],
-                                       self._config['output']['grammar_input_file'],
-                                       flatten=flatten_grammar,
-                                       max_input_length=self.max_length)
-        
+
+        if load_grammar:
+            with open(cached_grammar, 'rb') as fp:
+                self._grammar = pickle.load(fp)
+        else:
+            self._grammar = create_grammar(self._config['output']['grammar'],
+                                           self._config['output']['grammar_input_file'],
+                                           flatten=flatten_grammar,
+                                           max_input_length=self.max_length)
+
         words, reverse = load_dictionary(self._config['input']['input_words'],
                                          use_types=self.typed_input_embeddings,
                                          grammar=self._grammar)
+        if not load_grammar:
+            self._grammar.set_input_dictionary(words)
+            if cached_grammar is not None:
+                with open(cached_grammar, 'wb') as fp:
+                    pickle.dump(self._grammar, fp, pickle.HIGHEST_PROTOCOL)
+
         self._words = words
         self._reverse = reverse
         print("%d words in dictionary" % (self.dictionary_size,))
@@ -339,5 +359,5 @@ class Config(object):
         else:
             self._output_embeddings_matrix = self._grammar.get_embeddings(words, self._embeddings_matrix)
         print("Output embed size", self.output_embed_size)
-        
+
         return self
