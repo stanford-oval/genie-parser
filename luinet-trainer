@@ -23,12 +23,7 @@ luinet-trainer
   --hparams_set transformer_tiny_luinet
   --output_dir ./workdir-small/model
   --t2t_usr_dir ./luinet
-  --train-steps 250000
-  --eval-steps 100
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 # Part of this code is derived from Tensor2Tensor, which is:
 # Copyright 2018 The Tensor2Tensor Authors.
@@ -44,16 +39,14 @@ from __future__ import print_function
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
+
 from tensor2tensor.bin import t2t_trainer
+
 import tensorflow as tf
-
-
 flags = tf.flags
 FLAGS = flags.FLAGS
 
-LUI_prob = False
-LUI_model = False
+import luinet
 
 if 'semparse_thingtalk' in FLAGS.problem:
     LUI_prob = True
@@ -64,9 +57,7 @@ if LUI_prob != LUI_model:
     sys.exit(1)
 
 def main(argv):
-
     t2t_trainer.main(argv)
 
 if __name__ == "__main__":
-
   tf.app.run()
