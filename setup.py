@@ -38,7 +38,9 @@ setuptools.setup(
     python_requires='>=3.6',
     
     packages=setuptools.find_packages(exclude=['scripts', 'tests']),
-    scripts=['luinet-trainer', 'luinet-datagen'],
+    scripts=['luinet-trainer', 'luinet-datagen',
+             'luinet-evaluator', 'luinet-decoder',
+             'luinet-server'],
     
     license='GPL-3.0+',
     author="Stanford Mobisocial Lab",
