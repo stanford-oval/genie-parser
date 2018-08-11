@@ -22,7 +22,6 @@ luinet-trainer
   --model luinet_copy_transformer
   --hparams_set transformer_tiny_luinet
   --output_dir ./workdir-small/model
-  --t2t_usr_dir ./luinet
 """
 
 # Part of this code is derived from Tensor2Tensor, which is:

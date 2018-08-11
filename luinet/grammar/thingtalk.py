@@ -35,7 +35,6 @@ from orderedset import OrderedSet
 
 from . import slr
 from .shift_reduce_grammar import ShiftReduceGrammar
-from ..util.loader import load_dictionary
 from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
     adjust_predictions_labels
 
