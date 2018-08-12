@@ -116,13 +116,17 @@ class CopyTransformer(Transformer):
     def _prepare_decoder_cache(self,
                                batch_size,
                                beam_size,
+                               features,
                                cache):
         cache["logits"] = dict()
         target_modality = self._problem_hparams.target_modality
         
         for key, modality in target_modality.items():
-            cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
-            # the last dimension of all cache tensors must be defined and fixed in the loop
+            if isinstance(modality, CopyModality):
+                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, tf.shape(features["inputs"])[1]))
+            else:
+                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
+            # the last dimension of all cache tensors must be fixed in the loop
             cache["outputs_" + key] = tf.zeros((batch_size * beam_size, 0, 1), dtype=tf.int64)
 
     def _fast_decode(self, 

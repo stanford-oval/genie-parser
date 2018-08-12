@@ -24,7 +24,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.models.transformer import transformer_tiny
 
 def luinet_extra_hparams(hp):
-    hp.eval_autoregressive = True
+    hp.eval_run_autoregressive = True
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
     hp.add_hparam("pointer_layer", "decaying_attentive")

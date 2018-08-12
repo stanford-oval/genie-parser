@@ -107,11 +107,22 @@ class CopyModality(IdentitySymbolModality):
         # remove width and height
         logits = tf.squeeze(logits, axis=[2, 3])
         length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
-        padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
         
-        orig_shape = logits.shape
-        logits = tf.pad(logits, padding, mode='constant')
-        logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
+        def if_targets_longer(logits, targets):
+            padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
+            orig_shape = logits.shape
+            logits = tf.pad(logits, padding, mode='constant')
+            logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
+            return logits, targets
+        def if_logits_longer(logits, targets):
+            padding = tf.convert_to_tensor([[0, 0], [0, -length_diff]], name='padding')
+            orig_shape = targets.shape
+            targets = tf.pad(targets, padding, mode='constant')
+            targets.set_shape(tf.TensorShape([orig_shape[0], logits.shape[1]]))
+            return logits, targets
+        logits, targets = tf.cond(length_diff > 0,
+                                  lambda: if_targets_longer(logits, targets),
+                                  lambda: if_logits_longer(logits, targets))
         
         mask = tf.to_float(tf.not_equal(targets, 0))
         xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)

@@ -229,8 +229,13 @@ class Transformer(OriginalTransformer, LUINetModel):
               Contains a single key "training".
         """
         tf.logging.info("Using autoregressive decoder for evaluation")
+        self._fill_problem_hparams_features(features)
         results = self._greedy_infer(features, decode_length=decode_length)
-        return results["logits"], results["losses"]
+        
+        logits = results["logits"]
+        losses = self.loss(logits, features)
+        
+        return logits, losses
     
     def _fast_decode_tpu(self,
                          features,
@@ -272,6 +277,7 @@ class Transformer(OriginalTransformer, LUINetModel):
     def _prepare_decoder_cache(self,
                                batch_size,
                                beam_size,
+                               features,
                                cache):
         vocab_size = self._problem_hparams.target_modality.vocab_size
         cache["logits"] = tf.zeros((batch_size * beam_size, 0, 1, 1, vocab_size))
@@ -457,7 +463,7 @@ class Transformer(OriginalTransformer, LUINetModel):
             return logits, cache
     
         cache = dict()
-        self._prepare_decoder_cache(batch_size, beam_size, cache)
+        self._prepare_decoder_cache(batch_size, beam_size, features, cache)
 
         ret = fast_decode(
             encoder_output=encoder_output,
