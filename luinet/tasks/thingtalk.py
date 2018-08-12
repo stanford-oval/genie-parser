@@ -107,7 +107,7 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
                     continue
                 self._add_words_to_dictionary(tokenize(entity['name']))
         
-        with open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
+        with tf.gfile.Open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
             json.dump(output, fp, indent=2)
 
     def begin_data_generation(self, data_dir):

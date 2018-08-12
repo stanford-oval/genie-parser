@@ -4,6 +4,8 @@ Created on Apr 24, 2018
 @author: gcampagn
 '''
 
+import tensorflow as tf
+
 from .shift_reduce_grammar import ShiftReduceGrammar
 
 from collections import OrderedDict
@@ -27,7 +29,7 @@ class IFTTTGrammar(ShiftReduceGrammar):
         })
     
         self.allfunctions = set()
-        with open(filename, 'r') as fp:
+        with tf.gfile.Open(filename, 'r') as fp:
             for line in fp:
                 where, what = line.strip().split(' ')
                 if where == 'channel':

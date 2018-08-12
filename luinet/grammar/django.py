@@ -20,6 +20,7 @@ Created on May 2nd, 2018
 @author: mehrad
 '''
 
+import tensorflow as tf
 
 from .shift_reduce_grammar import ShiftReduceGrammar
 
@@ -429,7 +430,7 @@ class DjangoGrammar(ShiftReduceGrammar):
         kwlist2.add('exec')
         kwlist2.add('print')
 
-        with open(filename, 'r') as fp:
+        with tf.gfile.Open(filename, 'r') as fp:
             for line in fp:
                 for token in line.strip().split(' '):
                     if token:

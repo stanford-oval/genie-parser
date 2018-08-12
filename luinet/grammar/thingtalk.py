@@ -171,7 +171,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     def init_from_file(self, filename):
         self.reset()
 
-        with open(filename, 'r') as fp:
+        with tf.gfile.Open(filename, 'r') as fp:
             thingpedia = json.load(fp)
         
         self._devices = thingpedia['devices']
