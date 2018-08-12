@@ -143,15 +143,21 @@ class ShiftReduceGrammar(AbstractGrammar):
             yield self.dictionary[token], None
 
     def _find_span(self, input_sentence, span):
-        # add one to account for <s> at the front
-        input_position = 1 + find_substring(input_sentence, span)
-        if input_position == 0 or input_position > self._max_input_length:
-            # last position in the sentence
-            return self._max_input_length-1, self._max_input_length-1
-        else:
-            # NOTE: the boundaries are inclusive (so that we always point
-            # inside the span)
-            return input_position, input_position + len(span)-1
+        # empty strings have their own special token "",
+        # they should not appear here
+        assert len(span) > 0
+
+        input_position = find_substring(input_sentence, span)
+
+        if input_position < 0:
+            raise ValueError("Cannot find span \"%s\" in \"%s\"" % (span, input_sentence))
+
+        # NOTE: the boundaries are inclusive (so that we always point
+        # inside the span)
+        # NOTE 2: the input_position cannot be zero, because
+        # the zero-th element in input_sentence is <s>
+        # this is important because zero is used as padding/mask value
+        return input_position, input_position + len(span)-1
 
     def tokenize_to_vector(self, input_sentence, program):
         if isinstance(program, str):

@@ -536,12 +536,14 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 # forget about constituency parses, they were a bad idea
                 _id, sentence, program = line.strip().split('\t')[:3]
                 
-                vectorized = grammar.tokenize_to_vector(sentence.split(' '), program)
+                sentence = sentence.split(' ')
+                sentence.insert(0, START_TOKEN)
+
+                vectorized = grammar.tokenize_to_vector(sentence, program)
                 grammar.verify_program(vectorized)
-                
-                encoded_input: list = input_vocabulary.encode(sentence)
+
+                encoded_input: list = input_vocabulary.encode(' '.join(sentence))
                 assert text_encoder.PAD_ID not in encoded_input
-                encoded_input.insert(0, START_ID)
                 encoded_input.append(text_encoder.EOS_ID)
                 
                 yield {
