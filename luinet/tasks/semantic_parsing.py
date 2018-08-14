@@ -363,13 +363,18 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         
         # download any subclass specific data
         self.begin_data_generation(data_dir)
+        
+        # load the dataset once to build the dictionary
+        src_data_dir = FLAGS.src_data_dir or data_dir
+        self._load_words_from_files(src_data_dir)
+        
         # create and save the input dictionary
         self._create_input_vocab(data_dir)
         
         super().generate_data(data_dir, tmp_dir, task_id=task_id)
 
-    def _load_words_from_files(self, data_dir):
-        filepattern = os.path.join(data_dir, '*.tsv')
+    def _load_words_from_files(self, src_data_dir):
+        filepattern = os.path.join(src_data_dir, '*.tsv')
         for filename in tf.contrib.slim.parallel_reader.get_data_files(filepattern):
             with tf.gfile.Open(filename, 'r') as fp:
                 for line in fp:

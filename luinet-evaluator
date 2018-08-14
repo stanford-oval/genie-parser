@@ -90,9 +90,7 @@ FLAGS.data_dir = test_dir
 
 
 def main(argv):
-
     t2t_trainer.main(argv)
 
 if __name__ == "__main__":
-
   tf.app.run()
