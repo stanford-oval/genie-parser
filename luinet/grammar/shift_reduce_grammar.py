@@ -309,8 +309,8 @@ class ShiftReduceGrammar(AbstractGrammar):
             elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                 term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
                 term_id = self.dictionary[term]
-                begin_position = sequences['COPY_' + term + '_begin'][i]-1
-                end_position = sequences['COPY_' + term + '_end'][i]-1
+                begin_position = sequences['COPY_' + term + '_begin'][i]
+                end_position = sequences['COPY_' + term + '_end'][i]
                 return (slr.SHIFT_CODE, (term_id, (begin_position, end_position)))
             else:
                 term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]
