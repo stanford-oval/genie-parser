@@ -1,4 +1,5 @@
 # Copyright 2017 The Board of Trustees of the Leland Stanford Junior University
+#           2018 Google LLC
 #
 # Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
 #
@@ -19,6 +20,8 @@ Created on Nov 30, 2017
 
 @author: gcampagn
 '''
+
+import pytest
 
 from luinet.grammar.slr.generator import SLRParserGenerator
 
@@ -108,6 +111,25 @@ def do_test_with_grammar(grammar, start_symbol, test_vectors, terminals=None):
         assert expected == reconstructed
 
 
+def do_test_invalid(grammar, start_symbol, test_vectors, terminals=None):
+    generator = SLRParserGenerator(grammar, start_symbol)
+    parser = generator.build()
+    
+    for program in test_vectors:
+        tokenized = tokenize(program, generator, terminals)
+        with pytest.raises(ValueError):
+            parser.parse(tokenized)
+
+
+def do_test_invalid_tokenize(grammar, start_symbol, test_vectors, terminals=None):
+    generator = SLRParserGenerator(grammar, start_symbol)
+    
+    for program in test_vectors:
+        with pytest.raises(KeyError):
+            # force running the generator all the way to the end
+            list(tokenize(program, generator, terminals))
+
+
 def test_tiny_thingtalk():
     TEST_VECTORS = [
         ['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
@@ -117,6 +139,22 @@ def test_tiny_thingtalk():
     do_test_with_grammar(TEST_GRAMMAR, '$prog', TEST_VECTORS, TEST_TERMINALS)
 
 
+def test_invalid_tiny_thingtalk():
+    TEST_VECTORS = [
+        ['monitor', 'twitter.post', 'param:text', 'qs0'],
+        ['thermostat.get_temp', 'filter', 'notify']
+    ]
+    do_test_invalid(TEST_GRAMMAR, '$prog', TEST_VECTORS, TEST_TERMINALS)
+
+
+def test_invalid_tokenize():
+    TEST_VECTORS = [
+        ['manitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
+        ['thermostat.get_temp', 'filter', 'param:namber', '>', 'num0', 'notify']
+    ]
+    do_test_invalid_tokenize(TEST_GRAMMAR, '$prog', TEST_VECTORS, TEST_TERMINALS)
+
+
 def test_parenthesis():
     TEST_VECTORS = [
         ['(', '(', '(', 'a', ')', ')', ')'],
@@ -124,3 +162,11 @@ def test_parenthesis():
         ['(', '[', '(', 'b', ')', ']', ')']
     ]
     do_test_with_grammar(PARENTHESIS_GRAMMAR, '$S', TEST_VECTORS, terminals=None)
+    
+
+def test_invalid_parenthesis():
+    TEST_VECTORS = [
+        ['[', '[', '[', 'a', ')', ']', ']'],
+        ['(', '[', '(', 'b', ']', ')']
+    ]
+    do_test_invalid(PARENTHESIS_GRAMMAR, '$S', TEST_VECTORS, terminals=None)

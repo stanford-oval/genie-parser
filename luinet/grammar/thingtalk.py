@@ -476,7 +476,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self.construct_parser(self._grammar, copy_terminals={
             'SPAN': []
         })
-        self._span_id = self.dictionary['SPAN']
+        if self._flatten:
+            self._span_id = None
+        else:
+            self._span_id = self.dictionary['SPAN']
 
         if not self._quiet:
             print('num functions', self.num_functions)
@@ -502,27 +505,3 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')),
             "accuracy_without_parameters": accuracy_without_parameters
         }
-
-
-if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], flatten=False)
-    dictionary, _ = load_dictionary(sys.argv[2], use_types=True, grammar=grammar)
-    grammar.set_input_dictionary(dictionary)
-    #grammar.dump_tokens()
-    #grammar.normalize_all(sys.stdin)
-    for line in sys.stdin:
-        try:
-            sentence, program = line.strip().split('\t')[1:3]
-            sentence = sentence.split(' ')
-            
-            tokenized, length = grammar.tokenize_to_vector(sentence, program)
-            vector, length = grammar.vectorize_program(sentence, tokenized)
-            reconstructed = grammar.reconstruct_program(sentence, vector)
-            assert program == ' '.join(reconstructed)
-            #print()
-            #print(program)
-            #grammar.print_prediction(sentence_vector, vector)
-        except:
-            print(line.strip())
-            grammar.print_prediction(sentence, vector)
-            raise
