@@ -10,6 +10,7 @@ orderedset = "*"
 numpy = "*"
 tornado = "*"
 SQLAlchemy = "*"
+pytest = "*"
 
 [dev-packages]
 
