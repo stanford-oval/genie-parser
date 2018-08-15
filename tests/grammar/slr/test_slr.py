@@ -20,7 +20,7 @@ Created on Nov 30, 2017
 @author: gcampagn
 '''
 
-from .generator import SLRParserGenerator
+from luinet.grammar.slr.generator import SLRParserGenerator
 
 
 TEST_GRAMMAR = {
@@ -79,59 +79,48 @@ PARENTHESIS_GRAMMAR = {
 }
 
 
-if __name__ == '__main__':
-    if True:
+def tokenize(seq, generator, terminals=None):
+    for token in seq:
+        found = False
+        if terminals is not None:
+            for test_term, values in terminals.items():
+                if token in values:
+                    yield generator.dictionary[test_term], token
+                    found = True
+                    break
+        if not found:
+            yield generator.dictionary[token], token
 
-        generator = SLRParserGenerator(TEST_GRAMMAR, start_symbol='$prog')
-        #print("Action table:")
-        #for i, actions in enumerate(generator.action_table):
-        #    print(i, ":", actions)
 
-        #print()          
-        #print("Goto table:")
-        #for i, next_states in enumerate(generator.goto_table):
-        #    print(i, ":", next_states)
-        
-        parser = generator.build()
-        
-        def tokenize(seq):
-            for token in seq:
-                found = False
-                for test_term, values in TEST_TERMINALS.items():
-                    if token in values:
-                        yield generator.dictionary[test_term], token
-                        found = True
-                        break
-                if not found:
-                    yield generator.dictionary[token], token
+def reconstruct(seq):
+    for token_id, token in seq:
+        yield token
 
-        print(parser.parse(tokenize(['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'])))
-        
-        def reconstruct(seq):
-            for token_id, token in seq:
-                yield token
-        
-        TEST_VECTORS = [
-            ['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
-            ['monitor', 'thermostat.get_temp', 'filter', 'param:number', '>', 'num0', 'notify'],
-            ['thermostat.get_temp', 'filter', 'param:number', '>', 'num0', 'notify']
-        ]
-        
-        for expected in TEST_VECTORS:
-            assert expected == list(reconstruct(parser.reconstruct(parser.parse(tokenize(expected)))))
-    else:
-        generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, start_symbol='$S')
-        #print("Action table:")
-        #for i, actions in enumerate(generator.action_table):
-        #    print(i, ":", actions)
-        
-        #print()          
-        #print("Goto table:")
-        #for i, next_states in enumerate(generator.goto_table):
-        #    print(i, ":", next_states)
-        
-        parser = generator.build()
-        
-        print(parser.parse(['(', '(', '(', 'a', ')', ')', ')']))
-        print(parser.parse(['[', '[', '[', 'a', ']', ']', ']']))
-        print(parser.parse(['(', '[', '(', 'b', ')', ']', ')']))
+
+def do_test_with_grammar(grammar, start_symbol, test_vectors, terminals=None):
+    generator = SLRParserGenerator(grammar, start_symbol)
+    parser = generator.build()
+
+    for expected in test_vectors:
+        tokenized = tokenize(expected, generator, terminals)
+        parsed = parser.parse(tokenized)
+        reconstructed = list(reconstruct(parser.reconstruct(parsed)))
+        assert expected == reconstructed
+
+
+def test_tiny_thingtalk():
+    TEST_VECTORS = [
+        ['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
+        ['monitor', 'thermostat.get_temp', 'filter', 'param:number', '>', 'num0', 'notify'],
+        ['thermostat.get_temp', 'filter', 'param:number', '>', 'num0', 'notify']
+    ]
+    do_test_with_grammar(TEST_GRAMMAR, '$prog', TEST_VECTORS, TEST_TERMINALS)
+
+
+def test_parenthesis():
+    TEST_VECTORS = [
+        ['(', '(', '(', 'a', ')', ')', ')'],
+        ['[', '[', '[', 'a', ']', ']', ']'],
+        ['(', '[', '(', 'b', ')', ']', ')']
+    ]
+    do_test_with_grammar(PARENTHESIS_GRAMMAR, '$S', TEST_VECTORS, terminals=None)
