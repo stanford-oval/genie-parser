@@ -110,6 +110,36 @@ def tokenize(name):
     return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
 
 
+def find_substring(sequence, substring):
+    for i in range(len(sequence)-len(substring)+1):
+        found = True
+        for j in range(0, len(substring)):
+            if sequence[i+j] != substring[j]:
+                found = False
+                break
+        if found:
+            return i
+    return -1
+
+
+def find_span(input_sentence, span):
+    # empty strings have their own special token "",
+    # they should not appear here
+    assert len(span) > 0
+
+    input_position = find_substring(input_sentence, span)
+
+    if input_position < 0:
+        raise ValueError("Cannot find span \"%s\" in \"%s\"" % (span, input_sentence))
+
+    # NOTE: the boundaries are inclusive (so that we always point
+    # inside the span)
+    # NOTE 2: the input_position cannot be zero, because
+    # the zero-th element in input_sentence is <s>
+    # this is important because zero is used as padding/mask value
+    return input_position, input_position + len(span)-1
+
+
 class ThingTalkGrammar(ShiftReduceGrammar):
     '''
     The grammar of ThingTalk
@@ -425,7 +455,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
 
         self._grammar = GRAMMAR
 
-    def tokenize_program(self, program):
+    def tokenize_program(self, input_sentence, program):
         if isinstance(program, str):
             program = program.split(' ')
 
@@ -443,7 +473,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     string_begin = i+1
                 else:
                     string_end = i
-                    yield self._span_id, program[string_begin:string_end]
+                    span = program[string_begin:string_end]
+                    begin, end = find_span(input_sentence, span)
+                    yield self._span_id, (begin, end)
                     string_begin = None
                     string_end = None
                 yield self.dictionary[token], None

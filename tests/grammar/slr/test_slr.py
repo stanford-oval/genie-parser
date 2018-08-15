@@ -24,6 +24,7 @@ Created on Nov 30, 2017
 import pytest
 
 from luinet.grammar.slr.generator import SLRParserGenerator
+from luinet.grammar.slr import SHIFT_CODE, REDUCE_CODE
 
 
 TEST_GRAMMAR = {
@@ -95,9 +96,31 @@ def tokenize(seq, generator, terminals=None):
             yield generator.dictionary[token], token
 
 
-def reconstruct(seq):
+def reconstruct(seq, generator):
     for token_id, token in seq:
-        yield token
+        if token is not None:
+            yield token
+        else:
+            yield generator.terminals[token_id]
+
+
+def remove_shifts(sequence, generator, terminals=None):
+    for action, param in sequence:
+        if action != SHIFT_CODE:
+            yield action, param
+            continue
+        
+        token_id, payload = param
+        is_necessary = False
+        if terminals is not None:
+            # this is a "necessary" shift, because the payload
+            # is meaningful
+            # we leave it there (or we won't reconstruct the
+            # program)
+            is_necessary = generator.terminals[token_id] in terminals
+        # only gen the action if necessary
+        if is_necessary:
+            yield action, param
 
 
 def do_test_with_grammar(grammar, start_symbol, test_vectors, terminals=None):
@@ -105,10 +128,32 @@ def do_test_with_grammar(grammar, start_symbol, test_vectors, terminals=None):
     parser = generator.build()
 
     for expected in test_vectors:
-        tokenized = tokenize(expected, generator, terminals)
-        parsed = parser.parse(tokenized)
-        reconstructed = list(reconstruct(parser.reconstruct(parsed)))
+        tokenized = list(tokenize(expected, generator, terminals))
+        parsed = list(parser.parse(tokenized))
+        reconstructed = list(reconstruct(parser.reconstruct(parsed), generator))
         assert expected == reconstructed
+        
+        parsed_td = list(parser.parse_reverse(tokenized))
+        reconstructed_td = list(reconstruct(parser.reconstruct_reverse(parsed_td), generator))
+        assert expected == reconstructed_td
+        
+        assert len(parsed) == len(parsed_td)
+
+        parsed_without_shifts = remove_shifts(parsed, generator, terminals)
+        assert expected == list(reconstruct(parser.reconstruct(parsed_without_shifts), generator))
+        
+        parsed_td_without_shifts = remove_shifts(parsed_td, generator, terminals)
+        assert expected == list(reconstruct(parser.reconstruct_reverse(parsed_td_without_shifts), generator))
+
+
+def do_test_manual(grammar, start_symbol, test_vectors, parses, terminals=None):
+    generator = SLRParserGenerator(grammar, start_symbol)
+    parser = generator.build()
+
+    for program, expected_parse in zip(test_vectors, parses):
+        tokenized = list(tokenize(program, generator, terminals))
+        parsed = list(parser.parse(tokenized))
+        assert parsed == expected_parse
 
 
 def do_test_invalid(grammar, start_symbol, test_vectors, terminals=None):
@@ -162,7 +207,27 @@ def test_parenthesis():
         ['(', '[', '(', 'b', ')', ']', ')']
     ]
     do_test_with_grammar(PARENTHESIS_GRAMMAR, '$S', TEST_VECTORS, terminals=None)
+
+def test_parenthesis_manual():
+    TEST_VECTORS = [
+        ['(', '(', '(', 'a', ')', ')', ')'],
+    ]
+    TEST_EXPECTED = [
+        [(SHIFT_CODE, (3, '(')),
+         (SHIFT_CODE, (3, '(')),
+         (SHIFT_CODE, (3, '(')),
+         (SHIFT_CODE, (7, 'a')),
+         (REDUCE_CODE, 4),
+         (SHIFT_CODE, (4, ')')),
+         (REDUCE_CODE, 0),
+         (SHIFT_CODE, (4, ')')),
+         (REDUCE_CODE, 2),
+         (SHIFT_CODE, (4, ')')),
+         (REDUCE_CODE, 2)]
+    ]
+    do_test_manual(PARENTHESIS_GRAMMAR, '$S', TEST_VECTORS, TEST_EXPECTED, terminals=None)
     
+
 
 def test_invalid_parenthesis():
     TEST_VECTORS = [

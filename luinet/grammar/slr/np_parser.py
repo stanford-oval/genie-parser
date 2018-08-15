@@ -60,27 +60,25 @@ class ShiftReduceParser:
         bottom_up_sequence = self.parse(sequence)
         lens = [None] * len(bottom_up_sequence)
         children = [None] * len(bottom_up_sequence)
-        reduces = [None] * len(bottom_up_sequence)
+        tree = [None] * len(bottom_up_sequence)
         i = 0
-        for action,param in bottom_up_sequence:
-            if action == SHIFT_CODE:
-                continue
-            lhs, rhs = self.rules[param]
-            current_child = i-1
+        for action, param in bottom_up_sequence:
             my_length = 1
             my_children = []
-            for rhsitem in reversed(rhs):
-                if rhsitem.startswith('$'):
+            if action == REDUCE_CODE:
+                _, rhssize = self.rule_table[param]
+                current_child = i-1
+                for _ in range(rhssize):
                     my_children.append(current_child)
                     my_length += lens[current_child]
                     current_child -= lens[current_child]
             lens[i] = my_length
-            reduces[i] = (action,param)
+            tree[i] = (action,param)
             children[i] = tuple(reversed(my_children))
             i += 1
         reversed_sequence = []
         def write_subsequence(node, start):
-            reversed_sequence.append(reduces[node])
+            reversed_sequence.append(tree[node])
             for c in children[node]:
                 write_subsequence(c, start)
                 start += lens[c]
@@ -131,18 +129,58 @@ class ShiftReduceParser:
         output_sequence = []
         if not isinstance(sequence, list):
             sequence = list(sequence)
+        
+        # all the trickyness in this method comes
+        # from the fact that all unnecessary shifts
+        # can be omitted and we should still be able
+        # to reconstruct
+        # (this is important because letting the RNN
+        # generate unnecessary shifts is wasteful of
+        # model capacity)
+        # at the same time, whether a shift is necessary
+        # or not is decided at a higher level, so we
+        # try to accomodate all correct sequences here
+        # (and do something weird for incorrect sequences)
     
         def recurse(start_at):
             action, param = sequence[start_at]
             if action != REDUCE_CODE:
-                raise ValueError('invalid action')
+                raise ValueError('Invalid action, expected reduce')
             _, rhs = self.rules[param]
             length = 1
-            for rhsitem in rhs:
-                if rhsitem.startswith('$'):
+            for symbol in rhs:
+                if symbol.startswith('$'):
                     length += recurse(start_at + length)
                 else:
-                    output_sequence.append(rhsitem)
+                    symbol_id = self.dictionary[symbol]
+                    # check if we have a shift element as child
+                    # if so, we consume it and output it,
+                    # otherwise we output just symbol_id
+                    if start_at + length < len(sequence) and \
+                        sequence[start_at + length][0] == SHIFT_CODE:
+                        _, (token_id, payload) = sequence[start_at + length]
+                        if symbol_id != token_id:
+                            # this could happen if the rule has two
+                            # terminals in a row, and the shift for
+                            # the first one was elided by the second one
+                            # was not
+                            # in this case, we emit symbol_id as if there
+                            # was no shift here
+                            
+                            # NOTE: we rely on token_ids being elided consistently
+                            # ie, either all instances of a certain token_id are
+                            # omitted or they are present
+                            output_sequence.append((symbol_id, None))
+                            continue
+                        
+                        # append the token to the output and consume
+                        # the shift
+                        output_sequence.append((token_id, payload))
+                        length += 1
+                    else:
+                        # the shift was elided, consume nothing and output
+                        # just the symbol id
+                        output_sequence.append((symbol_id, None))
             return length
     
         recurse(0)

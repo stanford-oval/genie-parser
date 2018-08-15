@@ -91,8 +91,6 @@ HACK_REPLACEMENT = {
 
 class SemanticParsingProblem(text_problems.Text2TextProblem):
     """Tensor2Tensor problem for Grammar-Based semantic parsing."""
-    
-    grammar_direction = None
   
     def __init__(self,
                  flatten_grammar=True,
@@ -129,7 +127,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         hp = hparams
         
         hp.stop_at_eos = True
-        hp.add_hparam("grammar_direction", "bottomup")
         
         modality_name_prefix = self.name + "_"
         
@@ -151,11 +148,11 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                     model_hparams.data_dir) or None
         
         grammar = self.get_grammar(data_dir)
-        if self._flatten_grammar or hp.grammar_direction == 'linear':
-            if hp.grammar_direction == "linear":
-                tgt_vocab_size = len(grammar.tokens)
-            else:
-                tgt_vocab_size = grammar.output_size[grammar.primary_output]
+        if model_hparams.grammar_direction == "linear":
+            tgt_vocab_size = len(grammar.tokens)
+        else:
+            tgt_vocab_size = grammar.output_size[grammar.primary_output]
+        if self._flatten_grammar:
             if model_hparams.use_margin_loss:
                 hp.target_modality = ("symbol:max_margin", tgt_vocab_size)
             else:
@@ -166,9 +163,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
                     if model_hparams.use_margin_loss:
-                        hp.target_modality["targets_" + key] = ("symbol:max_margin", size)
+                        hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
                     else:
-                        hp.target_modality["targets_" + key] = ("symbol:default", size)
+                        hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
                 elif grammar.is_copy_type(key):
                     hp.target_modality["targets_" + key] = ("symbol:copy", size)
                 else:       
@@ -200,13 +197,11 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         return self._grammar
     
     def _parse_program(self, program, model_hparams, grammar):
-        our_hparams = self.get_hparams(model_hparams)
-
         def parse_program_pyfunc(program_nparray):
             # we don't need to pass the input sentence, the program
             # was tokenized already
             vectors, length = grammar.vectorize_program(None, program_nparray,
-                                                        direction=our_hparams.grammar_direction,
+                                                        direction=model_hparams.grammar_direction,
                                                         max_length=None)
             for key in vectors:
                 vectors[key] = vectors[key][:length]
@@ -214,13 +209,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         
         output_dtypes = dict()
         output_shapes = dict()
-        if our_hparams.grammar_direction == "linear":
-            output_dtypes["targets"] = tf.int32
-            output_shapes["targets"] = tf.TensorShape([None])
-        else:
-            for key in grammar.output_size:
-                output_shapes[key] = tf.TensorShape([None])
-                output_dtypes[key] = tf.int32
+        for key in grammar.output_size:
+            output_shapes[key] = tf.TensorShape([None])
+            output_dtypes[key] = tf.int32
         
         return tf.contrib.framework.py_func(parse_program_pyfunc, [program],
                                             output_shapes=output_shapes,
@@ -275,7 +266,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     def compute_predictions(self, outputs, features, model_hparams=None,
                             decode=False):
         grammar = self.get_grammar(model_hparams.data_dir)
-        our_hparams = self.get_hparams(model_hparams)
 
         sample_ids = dict()
         for key in outputs:
@@ -300,7 +290,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 
                 #grammar.print_prediction([], decoded_vectors)
                 vector = grammar.reconstruct_to_vector(decoded_vectors,
-                                                       direction=our_hparams.grammar_direction,
+                                                       direction=model_hparams.grammar_direction,
                                                        ignore_errors=True)
                 if decode:
                     vector = grammar.decode_program(input_sentence_batch[i], vector)
