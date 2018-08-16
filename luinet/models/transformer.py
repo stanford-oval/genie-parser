@@ -40,7 +40,7 @@ import tensorflow as tf
 from tensor2tensor.utils import registry
 from tensor2tensor.models.transformer import Transformer as OriginalTransformer
 from tensor2tensor.models.transformer import features_to_nonpadding, \
-    transformer_prepare_decoder
+    transformer_prepare_decoder, fast_decode
 from tensor2tensor.utils import beam_search
 from tensor2tensor.layers import common_layers, common_attention
 
@@ -407,7 +407,7 @@ class Transformer(OriginalTransformer, LUINetModel):
 
             infer_out["encoded_inputs"] = tf.reduce_sum(masked_encoded_output, axis=1)
 
-        self._prepare_decoder_cache(batch_size, beam_size, features, cache)
+        self._prepare_decoder_cache(batch_size, features, cache)
 
         ret = fast_decode(
             encoder_output=encoder_output,
@@ -423,6 +423,8 @@ class Transformer(OriginalTransformer, LUINetModel):
             force_decode_length=self._decode_hparams.force_decode_length,
             cache=cache)
         infer_out.update(ret)
+        if "cache" in ret:
+            infer_out.update(ret["cache"])
         
         if partial_targets is not None:
             if beam_size <= 1 or top_beams <= 1:

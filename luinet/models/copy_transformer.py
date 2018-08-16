@@ -105,19 +105,19 @@ class CopyTransformer(Transformer):
 
             cache["logits"][key] = tf.concat((cache["logits"][key], logits[key]), axis=1)
             if key != self._problem_hparams.primary_target_modality:
-                squeezed_logits = tf.squeeze(logits[key], axis=[1, 2, 3])
-                current_sample = tf.argmax(squeezed_logits, axis=-1)
-                current_sample = tf.expand_dims(current_sample, axis=1)
-                current_sample = tf.expand_dims(current_sample, axis=2)
-
-                cache["outputs_" + key] = tf.concat((cache["outputs_" + key], current_sample),
-                                                    axis=1)
-
+                with tf.name_scope("predict_" + key):
+                    squeezed_logits = tf.squeeze(logits[key], axis=[1,2,3])
+                    current_sample = tf.argmax(squeezed_logits, axis=-1)
+                    current_sample = tf.expand_dims(current_sample, axis=1)
+                    current_sample = tf.expand_dims(current_sample, axis=2)
+                    
+                    cache["outputs_" + key] = tf.concat((cache["outputs_" + key], current_sample),
+                                                        axis=1)
+        
         return logits[self._problem_hparams.primary_target_modality]
 
     def _prepare_decoder_cache(self,
                                batch_size,
-                               beam_size,
                                features,
                                cache):
         cache["logits"] = dict()
@@ -125,11 +125,11 @@ class CopyTransformer(Transformer):
 
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
-                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, tf.shape(features["inputs"])[1]))
+                cache["logits"][key] = tf.zeros((batch_size, 0, 1, 1, tf.shape(features["inputs"])[1]))
             else:
-                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
+                cache["logits"][key] = tf.zeros((batch_size, 0, 1, 1, modality.top_dimensionality))
             # the last dimension of all cache tensors must be fixed in the loop
-            cache["outputs_" + key] = tf.zeros((batch_size * beam_size, 0, 1), dtype=tf.int64)
+            cache["outputs_" + key] = tf.zeros((batch_size, 0, 1), dtype=tf.int64)
 
     def _fast_decode(self,
                      features,
@@ -149,9 +149,15 @@ class CopyTransformer(Transformer):
                 new_outputs[key] = ret["outputs"]
                 del ret["outputs"]
             else:
+                decoded_ids = ret["outputs_" + key]
+                if beam_size > 1:
+                    if top_beams == 1:
+                        decoded_ids = decoded_ids[:, 0, :]
+                    else:
+                        decoded_ids = decoded_ids[:, :top_beams, :]
                 # remove the extra dimension that was added to appease the shape
                 # invariants
-                new_outputs[key] = tf.squeeze(ret["outputs_" + key], axis=2)
+                new_outputs[key] = tf.squeeze(decoded_ids, axis=-1)
                 del ret["outputs_" + key]
 
         ret["outputs"] = new_outputs
