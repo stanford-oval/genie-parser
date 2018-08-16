@@ -40,6 +40,7 @@ class LearnHandler(tornado.web.RequestHandler):
         language = self.application.get_language(locale)
         target_code = self.get_argument("target")
         store = self.get_argument("store", "automatic")
+        owner = self.get_argument("owner", None) 
         #print('POST /%s/learn' % locale, target_code)
         
         grammar = language.config.grammar
@@ -71,13 +72,14 @@ class LearnHandler(tornado.web.RequestHandler):
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
-                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
+        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count, owner) " +
+                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
                                           language=language.tag,
                                           utterance=query,
                                           preprocessed=preprocessed,
                                           type=store,
-                                          target_code=target_code)
+                                          target_code=target_code,
+                                          owner=owner)
         if language.exact and store in ('online', 'online-bookkeeping'):
             language.exact.add(preprocessed, target_code)
         self.write(dict(result="Learnt successfully"))
