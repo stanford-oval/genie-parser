@@ -38,6 +38,10 @@ from .shift_reduce_grammar import ShiftReduceGrammar
 from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
     adjust_predictions_labels
 
+# import nltk
+# from nltk.translate.bleu_score import SmoothingFunction
+
+from tensor2tensor.utils.bleu_hook import *
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed', 'special:help',
@@ -537,5 +541,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             "grammar_accuracy": grammar_accuracy,
             "function_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')),
-            "accuracy_without_parameters": accuracy_without_parameters
+            "accuracy_without_parameters": accuracy_without_parameters,
+            "bleu_score": make_pyfunc_metric_fn(
+                lambda pred, label: compute_bleu([label[:,0].flatten().tolist()], [pred[:,0].flatten().tolist()]))
+
         }

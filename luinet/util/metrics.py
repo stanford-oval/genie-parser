@@ -26,7 +26,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):
+def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):  #preds (?, ?)   lables (?,?,1,1)
     batch_size = tf.shape(predictions)[0]
     
     predictions = tf.reshape(predictions, (batch_size, -1, num_elements_per_time))
@@ -46,7 +46,7 @@ def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):
     labels.set_shape((None, None, num_elements_per_time))
     return batch_size, predictions, labels
 
-def accuracy(predictions, labels, features, num_elements_per_time=3):
+def accuracy(predictions, labels, features, num_elements_per_time=3): # features (?,?,1,1)
     batch_size, predictions, labels = adjust_predictions_labels(predictions, labels,
                                                                 num_elements_per_time)
     weights = tf.ones((batch_size,), dtype=tf.float32)
