@@ -41,7 +41,7 @@ import tensorflow as tf
 from .semantic_parsing import SemanticParsingProblem
 from ..grammar.thingtalk import ThingTalkGrammar
 
-from ..util.general_utils import clean, tokenize
+from ..util.loader import clean, tokenize
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("thingpedia_snapshot", -1, "Thingpedia snapshot to use")
@@ -107,7 +107,7 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
                     continue
                 self._add_words_to_dictionary(tokenize(entity['name']))
         
-        with open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
+        with tf.gfile.Open(os.path.join(workdir, 'thingpedia.json'), 'w') as fp:
             json.dump(output, fp, indent=2)
 
     def begin_data_generation(self, data_dir):
@@ -116,6 +116,12 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
     @property
     def use_typed_embeddings(self):
         return True
+
+    @property
+    def export_assets(self):
+        assets = super().export_assets
+        assets['thingpedia.json'] = os.path.join(self._data_dir, 'thingpedia.json')
+        return assets
 
 
 @registry.register_problem("semparse_thingtalk")

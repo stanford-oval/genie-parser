@@ -41,6 +41,7 @@ flags.DEFINE_string("src_data_dir", "", "Source data directory.")
 
 
 def main(argv):
+    tf.logging.set_verbosity(tf.logging.INFO)
     t2t_datagen.main(argv)
 
 

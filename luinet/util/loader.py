@@ -20,48 +20,35 @@ Created on Mar 16, 2017
 @author: gcampagn
 '''
 
+import re
 import numpy as np
-import time
 
-from collections import namedtuple
-from .general_utils import logged_loop
 
-Dataset = namedtuple('Dataset', ('input_sequences', 'input_vectors', 'input_lengths',
-    'constituency_parse', 'label_sequences', 'label_vectors', 'label_lengths'))
-
-unknown_tokens = set()
-
-def vectorize_constituency_parse(parse, max_length, expect_length):
-    vector = np.zeros((2*max_length-1,), dtype=np.bool)
+def clean(name):
+    """Normalize argument names into English words.
     
-    # convention: false = shift, true = reduce
-    if isinstance(parse, str):
-        parse = parse.split(' ')
-    i = 0
-    for token in parse:
-        if i == 2*max_length-1:
-            break
-        if token == '(':
-            continue
-        elif token == ')': # reduce
-            vector[i] = True
-            i += 1
-        else: # shift
-            vector[i] = False
-            i += 1
-    if i <= 2*max_length-1:
-        assert i == 2*expect_length-1, (i, expect_length, parse)
-    else:
-        # we don't have space to shift/reduce the last token
-        # this means that we truncated the sentence before
-        raise ValueError('truncated constituency parse ' + str(parse))
-    return vector
+    Removes the "v_" prefix, converts camelCase to multiple words, and underscores
+    to spaces.
+    """ 
+    if name.startswith('v_'):
+        name = name[len('v_'):]
+    return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
 
-def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
-    vector = np.zeros((max_length,), dtype=np.int32)
-    assert words['</s>'] == 0
+
+def tokenize(name):
+    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
+
+
+def vectorize(sentence, words, max_length=None, add_eos=False, add_start=False):
     if isinstance(sentence, str):
         sentence = sentence.split(' ')
+    if max_length is None:
+        max_length = len(sentence)
+        if add_start:
+            max_length += 1
+        if add_eos:
+            max_length += 1
+    vector = np.zeros((max_length,), dtype=np.int32)
     if add_start:
         vector[0] = words['<s>']
         i = 1
@@ -76,8 +63,7 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
         if word in words:
             vector[i] = words[word]
         elif '<unk>' in words:
-            unknown_tokens.add(word)
-            print("sentence: ", sentence, "; word: ", word)
+            #print("sentence: ", sentence, "; word: ", word)
             vector[i] = words['<unk>']
         else:
             raise ValueError('Unknown token ' + word)
@@ -95,177 +81,3 @@ def vectorize(sentence, words, max_length, add_eos=False, add_start=False):
         if length == max_length and length < len(sentence):
             print("truncated sentence", sentence)
     return (vector, length)
-
-ENTITIES = ['DATE', 'DURATION', 'EMAIL_ADDRESS', 'HASHTAG',
-            'LOCATION', 'NUMBER', 'PHONE_NUMBER', 'QUOTED_STRING',
-            'TIME', 'URL', 'USERNAME', 'PATH_NAME', 'CURRENCY']
-MAX_ARG_VALUES = 5
-
-def load_dictionary(file, use_types=False, grammar=None):
-    print("Loading dictionary from %s..." % (file,))
-    words = dict()
-
-    # special tokens
-    words['</s>'] = len(words)
-    words['<s>'] = len(words)
-    words['<unk>'] = len(words)
-    reverse = ['</s>', '<s>', '<unk>']
-    def add_word(word):
-        if word not in words:
-            words[word] = len(words)
-            reverse.append(word)
-    
-    if use_types:
-        for i, entity in enumerate(ENTITIES):
-            for j in range(MAX_ARG_VALUES):
-                add_word(entity + '_' + str(j))
-        for i, (entity, has_ner) in enumerate(grammar.entities):
-            if not has_ner:
-                continue
-            for j in range(MAX_ARG_VALUES):
-                add_word('GENERIC_ENTITY_' + entity + '_' + str(j))
-
-    with open(file, 'r') as word_file:
-        for word in word_file:
-            word = word.strip()
-            if use_types and word[0].isupper():
-                continue
-            add_word(word)
-    return words, reverse
-
-def load_embeddings(from_file, words, use_types=False, grammar=None, embed_size=300):
-    print("Loading pretrained embeddings...", end=' ')
-    start = time.time()
-    word_vectors = {}
-    with open(from_file, 'r') as fp:
-        for line in fp:
-            sp = line.strip().split()
-            if sp[0] in words:
-                word_vectors[sp[0]] = [float(x) for x in sp[1:]]
-                if len(word_vectors[sp[0]]) > embed_size:
-                    raise ValueError("Truncated word vector for " + sp[0])
-    n_tokens = len(words)
-    
-    original_embed_size = embed_size
-    if use_types:
-        num_entities = len(ENTITIES) + len(grammar.entities)
-        embed_size += num_entities + MAX_ARG_VALUES + 2
-    else:
-        embed_size += 2
-
-    # we give <unk> tokens the fully 0 vector (which means they have no
-    # effect on the sentence)
-    # we reserve the last two features in the embedding for <s> and </s>
-    # </s> thus is a one-hot vector
-
-    embeddings_matrix = np.zeros((n_tokens, embed_size), dtype='float32')
-    embeddings_matrix[words['</s>'], embed_size-1] = 1.
-    embeddings_matrix[words['<s>'], embed_size-2] = 1.
-
-    for token, token_id in words.items():
-        if token in ('<unk>', '</s>', '<s>'):
-            continue
-        if use_types and token[0].isupper():
-            continue
-        if token in word_vectors:
-            vec = word_vectors[token]
-            embeddings_matrix[token_id, 0:len(vec)] = vec
-        else:
-            raise ValueError("missing vector for", token)
-    if use_types:
-        for i, entity in enumerate(ENTITIES):
-            for j in range(MAX_ARG_VALUES):
-                token_id = words[entity + '_' + str(j)]
-                embeddings_matrix[token_id, original_embed_size + i] = 1.
-                embeddings_matrix[token_id, original_embed_size + num_entities + j] = 1.
-        for i, (entity, has_ner) in enumerate(grammar.entities):
-            if not has_ner:
-                continue
-            for j in range(MAX_ARG_VALUES):
-                token_id = words['GENERIC_ENTITY_' + entity + '_' + str(j)]
-                embeddings_matrix[token_id, original_embed_size + len(ENTITIES) + i] = 1.
-                embeddings_matrix[token_id, original_embed_size + num_entities + j] = 1.
-    
-    print("took {:.2f} seconds".format(time.time() - start))
-    return embeddings_matrix, embed_size
-
-# A custom list-like object that can be also indexed by a numpy array
-# This object exists for compatibility with get_minibatches, for cases
-# where the full numpy array would be too heavy
-class CustomList(object):
-    __slots__ = ['_data']
-
-    def __init__(self, iterable):
-        self._data = list(iterable)
-    def __len__(self):
-        return len(self._data)
-    def __getitem__(self, key):
-        if isinstance(key, np.ndarray):
-            return CustomList(self._data[x] for x in key)
-        else:
-            return self._data[key]
-
-def load_data(from_file, input_words, grammar, max_length):
-    input_sequences = []
-    inputs = []
-    input_lengths = []
-    parses = []
-    labels = dict()
-    for key in grammar.output_size:
-        labels[key] = []
-    label_lengths = []
-    label_sequences = []
-    total_label_len = 0
-
-    N = 0
-    with open(from_file, 'r') as data:
-        for line in data:
-            N += 1
-
-        data.seek(0)
-        for line in logged_loop(data, N):
-            #print(line)
-            split = line.strip().split('\t')
-            if len(split) == 4:
-                _, sentence, label, parse = split
-            else:
-                _, sentence, label = split
-                parse = None
-
-            input_vector, in_len = vectorize(sentence, input_words, max_length, add_eos=True, add_start=True)
-            
-            sentence = sentence.split(' ')
-            input_sequences.append(sentence)
-
-            inputs.append(input_vector)
-            input_lengths.append(in_len)
-            label_sequence = label.split(' ')
-            label_vector, label_len = grammar.vectorize_program(sentence, label_sequence, max_length)
-
-            label_sequences.append(label_sequence)
-            total_label_len += label_len
-            for key in grammar.output_size:
-                labels[key].append(label_vector[key])
-            label_lengths.append(label_len)
-            if parse is not None:
-                parses.append(vectorize_constituency_parse(parse, max_length, in_len-2))
-            else:
-                parses.append(np.zeros((2*max_length-1,), dtype=np.bool))
-    print('avg label productions', total_label_len/len(inputs))
-
-    input_sequences = CustomList(input_sequences)
-    label_sequences = CustomList(label_sequences)
-    inputs = np.array(inputs)
-    input_lengths = np.array(input_lengths)
-    parses = np.array(parses)
-    for key in grammar.output_size:
-        labels[key] = np.array(labels[key])
-    label_lengths = np.array(label_lengths)
-
-    return Dataset(input_sequences=input_sequences,
-                   input_vectors=inputs,
-                   input_lengths=input_lengths,
-                   constituency_parse=parses,
-                   label_sequences=label_sequences,
-                   label_vectors=labels,
-                   label_lengths=label_lengths)

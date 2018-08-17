@@ -27,7 +27,6 @@ import tornado.concurrent
 import sys
 import datetime
 
-from util.loader import Dataset, vectorize, vectorize_constituency_parse
 
 class TokenizeHandler(tornado.web.RequestHandler):
     '''
@@ -52,12 +51,27 @@ class TokenizeHandler(tornado.web.RequestHandler):
         self.write(dict(tokens=tokenized.tokens, entities=tokenized.values))
         self.finish()
 
+
 def clean_tokens(tokens):
     for t in tokens:
         if t[0].isupper() and '*' in t:
             yield t.rsplit('*', maxsplit=1)[0]
         else:
             yield t
+
+
+def _pad_to_batch(batch):
+    max_len = max(len(tokens) for tokens in batch)
+    batch_size = len(batch)
+
+    matrix = np.empty((batch_size, max_len), dtype=np.object)
+    for i in range(batch_size):
+        item_len = len(batch[i])
+        matrix[i, :item_len] = batch[i]
+        matrix[i, item_len:] = np.zeros((max_len - item_len,),
+                                        dtype=np.str)
+    return matrix
+
 
 class QueryHandler(tornado.web.RequestHandler):
     '''
@@ -71,61 +85,49 @@ class QueryHandler(tornado.web.RequestHandler):
     @tornado.concurrent.run_on_executor
     def _do_run_query(self, language, tokenized, limit):
         tokens = list(clean_tokens(tokenized.tokens))
-        parse = tokenized.constituency_parse
+        
+        # ignore the constituency parse
+        # parse = tokenized.constituency_parse
 
+        predicted = language.predictor.predict({
+            # wrap into a batch of 1
+            "inputs/string": [tokens]
+        })
+        outputs = predicted["outputs"][0]
+        
+        if len(outputs.shape) == 1:
+            # add beam dimension if we're using greedy decoding
+            outputs = np.expand_dims(outputs, axis=0)
+            scores = [1]
+        else:
+            scores = predicted["scores"][0]
+        
         results = []
-        config = language.config
-        grammar = config.grammar
-        with language.session.as_default():
-            with language.session.graph.as_default():
-                input_vector, input_len = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
-                #print('Vectorized', input, input_len)
-                if parse:
-                    parse_vector = vectorize_constituency_parse(parse, config.max_length, input_len)
-                else:
-                    parse_vector = np.zeros((2*config.max_length-1,), dtype=np.bool)
-                data = Dataset(input_sequences=[tokens],
-                               input_vectors=[input_vector],
-                               input_lengths=[input_len],
-                               constituency_parse=[parse_vector],
-                               label_sequences=None,
-                               label_vectors=None,
-                               label_lengths=None
-                               )
-                sequences = language.model.predict_on_batch(language.session, data)
-
-                primary_sequences = sequences[grammar.primary_output]                
-                assert len(primary_sequences) == 1
-                for i in range(len(primary_sequences[0])):
-                    prediction = dict()
-                    for key in sequences:
-                        prediction[key] = sequences[key][0,i]
-
-                    decoded = grammar.reconstruct_program(tokens, prediction, ignore_errors=True)
-                    #print("Beam", i+1, decoded if decoded else 'failed to predict')
-                    if not decoded:
-                        continue
-                    json_rep = dict(code=decoded, score=1)
-                    results.append(json_rep)
-                    if limit >= 0 and len(results) >= limit:
-                        break
+        for decoded, score in zip(outputs, scores):
+            decoded = [x.decode('utf-8') for x in decoded]
+            json_rep = dict(code=decoded, score=float(score))
+            results.append(json_rep)
+            if limit >= 0 and len(results) >= limit:
+                break
         return results
     
     @tornado.concurrent.run_on_executor
     def _run_retrieval_query(self, language, tokens, choices, limit):
-        config = language.config
-        input_embed_matrix = config.input_embedding_matrix
-
-        input, _ = vectorize(tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
+        choice_list = list(choices.keys())
         
-        input_encoded = input_embed_matrix[input]
-        input_encoded = np.sum(input_encoded, axis=0)
+        predicted = language.predictor.predict({
+            # wrap into a single batch both input and choices
+            "inputs/string": _pad_to_batch([tokens] +
+                                           [choices[c_id].tokens for c_id in choice_list])
+        }, signature_key="encoded_inputs")
+        encoded = predicted["encoded_inputs"]
+
+        input_encoded = encoded[0]
         input_norm = np.linalg.norm(input_encoded, ord=2)
         
-        def try_one_choice(choice_id, choice):
-            choice_vec, _ = vectorize(choice.tokens, config.dictionary, config.max_length, add_eos=True, add_start=True)
-            choice_encoded = input_embed_matrix[choice_vec]
-            choice_encoded = np.sum(choice_encoded, axis=0)
+        def try_one_choice(i):
+            choice_id = choice_list[i]
+            choice_encoded = encoded[i+1]
             choice_norm = np.linalg.norm(choice_encoded, ord=2)
             
             choice_score = np.dot(input_encoded, choice_encoded)
@@ -134,7 +136,7 @@ class QueryHandler(tornado.web.RequestHandler):
             
             return dict(code=['bookkeeping', 'choice', str(choice_id)], score=float(choice_score))
         
-        results = [try_one_choice(choice_id, choice) for choice_id, choice in choices.items()]
+        results = [try_one_choice(i) for i in range(len(choice_list))]
         results.sort(key=lambda x: -x['score'])
         results = results[:limit]
         return results
@@ -157,16 +159,11 @@ class QueryHandler(tornado.web.RequestHandler):
         expect = self.get_query_argument('expect', default=None)
         #print('GET /%s/query' % locale, query)
 
-<<<<<<< HEAD
         tokenized = yield language.tokenizer.tokenize(query, expect)
-=======
-        tokenized = yield language.tokenizer.tokenize(query)
->>>>>>> transformer
         #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
         tokens = tokenized.tokens
-<<<<<<< HEAD
         if len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
@@ -181,12 +178,6 @@ class QueryHandler(tornado.web.RequestHandler):
             
             result = yield self._run_retrieval_query(language, tokens, choices, limit)
         elif result is None and language.exact:
-=======
-        if len(tokens) == 1 and (tokens[0].isupper() or tokens[0] in ('1', '0')):
-            # if the whole input is just an entity, return that as an answer
-            result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
-        if result is None and language.exact:
->>>>>>> transformer
             exact = language.exact.get(' '.join(tokens))
             if exact:
                 result = [dict(code=exact, score='Infinity')]
@@ -194,11 +185,7 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-<<<<<<< HEAD
         if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice':
-=======
-        if len(result) > 0 and self.application.database and store != 'no':
->>>>>>> transformer
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,

@@ -389,6 +389,15 @@ class LUINetModel(T2TModel):
             tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                 tf.estimator.export.PredictOutput(export_out)
         }
+        
+        # if the model is encoder+decoder, offer the ability to run only the
+        # encoder (this is used by the server in "retrieval mode", when
+        # dealing with MultipleChoice queries) 
+        if isinstance(infer_out, dict) and "encoded_inputs" in infer_out:
+            export_outputs["encoded_inputs"] = tf.estimator.export.PredictOutput({
+                "encoded_inputs": infer_out["encoded_inputs"]
+            })
+        
         return tf.estimator.EstimatorSpec(
             tf.estimator.ModeKeys.PREDICT,
             predictions=predictions,

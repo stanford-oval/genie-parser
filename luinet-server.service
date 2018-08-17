@@ -1,13 +1,13 @@
 [Unit]
-Description=Almond Natural Language Parser (NN based)
+Description=LUINet Semantic Parser Service
 Requires=almond-tokenizer.service
 After=almond-tokenizer.service
 
 [Service]
-ExecStart=/opt/almond-nnparser/run_server.py
+ExecStart=/opt/luinet/luinet-server
 Type=notify
-User=almond-nnparser
-WorkingDirectory=/var/lib/almond-nnparser
+User=luinet
+WorkingDirectory=/var/lib/luinet
 StandardOutput=journal
 StandardError=inherit
 

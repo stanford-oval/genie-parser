@@ -1,6 +1,5 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
-#
-# Author: Giovanni Campagna <gcampagn@cs.stanford.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,26 +13,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-Created on Jul 26, 2018
+"""Tiny wrapper for t2t-trainer that automatically loads luinet.
 
-@author: gcampagn
-'''
+Usage:
+luinet-server
 
-from tensor2tensor.utils import registry
-from tensor2tensor.models.transformer import transformer_tiny
+The server is configured using files; see data/server.conf for an example.
+"""
 
-def luinet_extra_hparams(hp):
-    hp.eval_run_autoregressive = True
-    hp.add_hparam("grammar_direction", "bottomup")
-    hp.add_hparam("use_margin_loss", False)
-    hp.add_hparam("train_input_embeddings", False)
-    hp.add_hparam("pointer_layer", "decaying_attentive")
+import tensorflow as tf
+import luinet.server.main
 
-@registry.register_hparams
-def transformer_tiny_luinet():
-    # Start with the base set
-    hp = transformer_tiny()
-    luinet_extra_hparams(hp)
-    return hp
+def main(argv):
+    luinet.server.main.main(argv)
 
+if __name__ == "__main__":
+  tf.app.run()

@@ -25,19 +25,10 @@ from collections import OrderedDict
 
 from .abstract import AbstractGrammar
 from . import slr
+from .slr import generator as slr_generator 
 
 from ..util.loader import vectorize
 
-def find_substring(sequence, substring):
-    for i in range(len(sequence)-len(substring)+1):
-        found = True
-        for j in range(0, len(substring)):
-            if sequence[i+j] != substring[j]:
-                found = False
-                break
-        if found:
-            return i
-    return -1
 
 class ShiftReduceGrammar(AbstractGrammar):
 
@@ -92,7 +83,7 @@ class ShiftReduceGrammar(AbstractGrammar):
             self._copy_terminals = list(copy_terminals.keys())
             self._copy_terminals.sort()
 
-        generator = slr.SLRParserGenerator(grammar, '$input')
+        generator = slr_generator.SLRParserGenerator(grammar, '$input')
         self._parser = generator.build()
         
         if not self._quiet:
@@ -136,22 +127,11 @@ class ShiftReduceGrammar(AbstractGrammar):
     def output_size(self):
         return self._output_size
     
-    def tokenize_program(self, program):
+    def tokenize_program(self, input_sentence, program):
         if isinstance(program, str):
             program = program.split(' ')
         for token in program:
             yield self.dictionary[token], None
-
-    def _find_span(self, input_sentence, span):
-        # add one to account for <s> at the front
-        input_position = 1 + find_substring(input_sentence, span)
-        if input_position == 0 or input_position > self._max_input_length:
-            # last position in the sentence
-            return self._max_input_length-1, self._max_input_length-1
-        else:
-            # NOTE: the boundaries are inclusive (so that we always point
-            # inside the span)
-            return input_position, input_position + len(span)-1
 
     def tokenize_to_vector(self, input_sentence, program):
         if isinstance(program, str):
@@ -159,11 +139,10 @@ class ShiftReduceGrammar(AbstractGrammar):
         max_length = len(program)
         output = np.zeros((max_length, 3), dtype=np.int32)
         
-        for i, (term_id, payload) in enumerate(self.tokenize_program(program)):
+        for i, (term_id, payload) in enumerate(self.tokenize_program(input_sentence, program)):
             assert 0 <= term_id < len(self.tokens)
             if term_id in self._copy_terminal_indices:
-                span = payload
-                begin, end = self._find_span(input_sentence, span)
+                begin, end = payload
                 output[i, 0] = term_id
                 output[i, 1] = begin
                 output[i, 2] = end
@@ -202,24 +181,53 @@ class ShiftReduceGrammar(AbstractGrammar):
         # if nothing happens, we're good
         self._parser.parse(self._np_array_tokenizer(program))
 
+    def _vectorize_linear(self, tokenizer, max_length=None):
+        token_list = list(tokenizer)
+        
+        if max_length is None:
+            max_length = len(token_list) + 1
+        vectors = dict()
+        vectors['actions'] = np.zeros((max_length,), dtype=np.int32)
+        for term in self._extensible_terminals:
+            vectors[term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+        for term in self._copy_terminals:
+            vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+        action_vector = vectors['actions']
+        
+        i = 0
+        for term_id, payload in token_list:
+            action_vector[i] = term_id
+            term = self.tokens[term_id]
+            if term_id in self._copy_terminal_indices:
+                assert isinstance(payload, tuple)
+                assert not isinstance(payload[0], str)
+                assert not isinstance(payload[1], str)
+                begin, end = payload
+                vectors['COPY_' + term + '_begin'][i] = begin
+                vectors['COPY_' + term + '_end'][i] = end
+            elif term_id in self._extensible_terminal_indices:
+                tokenid = payload
+                assert 0 <= tokenid < self._output_size[term]
+                vectors[term][i] = tokenid
+            i += 1
+        action_vector[i] = self.end # eos
+        i += 1
+        
+        return vectors, i
+
     def vectorize_program(self, input_sentence, program,
                           direction='bottomup',
                           max_length=None):
         assert direction in ('linear', 'bottomup', 'topdown')
-        
-        if direction == 'linear':
-            if isinstance(program, np.ndarray):
-                if len(program.shape) == 1:
-                    program = np.reshape(program, (-1, 3))
-                return {'actions': program}, len(program)
-            else:
-                vec, vlen = vectorize(program, self.dictionary, max_length, add_eos=True, add_start=False)
-                return {'actions': vec}, vlen
 
         if isinstance(program, np.ndarray):
             tokenizer = self._np_array_tokenizer(program)
         else:
-            tokenizer = self.tokenize_program(program)
+            tokenizer = self.tokenize_program(input_sentence, program)
+            
+        if direction == 'linear':
+            return self._vectorize_linear(tokenizer, max_length)
 
         if direction == 'topdown':
             parsed = self._parser.parse_reverse(tokenizer)
@@ -249,14 +257,10 @@ class ShiftReduceGrammar(AbstractGrammar):
                 if term_id in self._copy_terminal_indices:
                     action_vector[i] = self.num_control_tokens + self._parser.num_rules + \
                                        self._copy_terminal_indices[term_id]
-                    span = payload
-                    if isinstance(span, tuple):
-                        assert not isinstance(span[0], str)
-                        assert not isinstance(span[1], str)
-                        begin, end = span
-                    else:
-                        assert isinstance(span, list)
-                        begin, end = self._find_span(input_sentence, span)
+                    assert isinstance(payload, tuple)
+                    assert not isinstance(payload[0], str)
+                    assert not isinstance(payload[1], str)
+                    begin, end = payload
                     vectors['COPY_' + term + '_begin'][i] = begin
                     vectors['COPY_' + term + '_end'][i] = end
                 elif term_id in self._extensible_terminal_indices:
@@ -280,9 +284,34 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         return vectors, i
     
+    def _reconstruct_linear(self, vectors):
+        # -1 removes the EOS_ID at the end (assuming there is one)
+        # if the generated program is incorrect, there might not be
+        # one; this is sad and will lower the grammar accuracy; too bad
+        output = np.empty((len(vectors['actions'])-1, 3), dtype=np.int32)
+        
+        for i, term_id in enumerate(vectors['actions']):
+            if i >= len(output) or term_id <= self.end: # pad or end
+                break
+            term = self.tokens[term_id]
+            output[i, 0] = term_id
+            if term_id in self._copy_terminal_indices:
+                begin = vectors['COPY_' + term + '_begin'][i]
+                end = vectors['COPY_' + term + '_end'][i]
+                output[i, 1] = begin
+                output[i, 2] = end
+            elif term_id in self._extensible_terminal_indices:
+                tokenid = vectors[term][i]
+                output[i, 1] = tokenid
+                output[i, 2] = 0
+            else:
+                output[i, 1] = output[i, 2] = 0
+        
+        return np.reshape(output, (-1,))
+    
     def reconstruct_to_vector(self, sequences, direction='bottomup', ignore_errors=False):
         if direction == 'linear':
-            reconstructed = super().reconstruct_to_vector(sequences, direction, ignore_errors)
+            reconstructed = self._reconstruct_linear(sequences)
             try:
                 # try parsing again to check if it is correct or not
                 self.vectorize_program(None, reconstructed, direction='bottomup', max_length=60)
@@ -303,8 +332,8 @@ class ShiftReduceGrammar(AbstractGrammar):
             elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                 term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
                 term_id = self.dictionary[term]
-                begin_position = sequences['COPY_' + term + '_begin'][i]-1
-                end_position = sequences['COPY_' + term + '_end'][i]-1
+                begin_position = sequences['COPY_' + term + '_begin'][i]
+                end_position = sequences['COPY_' + term + '_end'][i]
                 return (slr.SHIFT_CODE, (term_id, (begin_position, end_position)))
             else:
                 term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]

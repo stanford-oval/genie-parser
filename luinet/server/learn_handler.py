@@ -42,12 +42,13 @@ class LearnHandler(tornado.web.RequestHandler):
         store = self.get_argument("store", "automatic")
         #print('POST /%s/learn' % locale, target_code)
         
-        grammar = language.config.grammar
+        grammar = language.predictor.problem.grammar
         
         tokenized = yield language.tokenizer.tokenize(query)
         sequence = target_code.split(' ')
         try:
-            program_vector, program_length = grammar.vectorize_program(tokenized.tokens, sequence, max_length=language.config.max_length)
+            vectorized = grammar.tokenize_to_vector(tokenized.tokens, sequence)
+            grammar.verify_program(vectorized)
         except ValueError as e:
             print(e)
             raise tornado.web.HTTPError(400, reason="Invalid ThingTalk")

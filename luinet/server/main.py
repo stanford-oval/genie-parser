@@ -24,9 +24,10 @@ Created on Jul 15, 2017
 
 import os
 import sys
+import tensorflow as tf
 import numpy as np
 import tornado.ioloop
-import configparser
+
 import ssl
 import pwd, grp
 try:
@@ -36,12 +37,14 @@ except ImportError:
 
 from concurrent.futures import ThreadPoolExecutor
 
-from server.application import Application
-from server.tokenizer import TokenizerService
-from server.config import ServerConfig
+from .application import Application
+from .tokenizer import TokenizerService
+from .config import ServerConfig
 
-def run():
+def main(argv):
+    tf.logging.set_verbosity(tf.logging.INFO)
     np.random.seed(42)
+
     config = ServerConfig.load(('./server.conf',))
     
     if sys.version_info[2] >= 6:
@@ -70,6 +73,3 @@ def run():
 
     sys.stdout.flush()
     tornado.ioloop.IOLoop.current().start()
-
-if __name__ == '__main__':
-    run()

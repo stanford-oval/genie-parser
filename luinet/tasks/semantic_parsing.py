@@ -38,15 +38,14 @@ import numpy as np
 import tensorflow as tf
 
 from tensor2tensor.utils import registry
-from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import text_encoder
-from tensor2tensor.layers import common_layers
+from tensor2tensor.data_generators import problem
+from tensor2tensor.utils import data_reader
 
 from ..layers.modalities import PretrainedEmbeddingModality, PointerModality
 from ..grammar.abstract import AbstractGrammar
-
-from tensor2tensor.data_generators import problem
+from ..tasks import base_problem
 
 
 FLAGS = tf.flags.FLAGS
@@ -89,10 +88,9 @@ HACK_REPLACEMENT = {
 }
 
 
-class SemanticParsingProblem(text_problems.Text2TextProblem):
+class SemanticParsingProblem(text_problems.Text2TextProblem,
+                             base_problem.LUINetProblem):
     """Tensor2Tensor problem for Grammar-Based semantic parsing."""
-    
-    grammar_direction = None
   
     def __init__(self,
                  flatten_grammar=True,
@@ -106,6 +104,15 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
 
     def grammar_factory(self, out_dir, **kw):
         raise NotImplementedError()
+
+    @property
+    def grammar(self):
+        """The grammar associated with this SemanticParsingProblem.
+        
+        Returns the grammar, if initialized, or None.
+        Use get_grammar() to initialize the grammar on demand instead.
+        """
+        return self._grammar
 
     @property
     def has_inputs(self):
@@ -129,7 +136,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         hp = hparams
         
         hp.stop_at_eos = True
-        hp.add_hparam("grammar_direction", "bottomup")
         
         modality_name_prefix = self.name + "_"
         
@@ -149,13 +155,14 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         
         data_dir = (model_hparams and hasattr(model_hparams, "data_dir") and
                     model_hparams.data_dir) or None
+        self._data_dir = data_dir
         
         grammar = self.get_grammar(data_dir)
-        if self._flatten_grammar or hp.grammar_direction == 'linear':
-            if hp.grammar_direction == "linear":
-                tgt_vocab_size = len(grammar.tokens)
-            else:
-                tgt_vocab_size = grammar.output_size[grammar.primary_output]
+        if model_hparams.grammar_direction == "linear":
+            tgt_vocab_size = len(grammar.tokens)
+        else:
+            tgt_vocab_size = grammar.output_size[grammar.primary_output]
+        if self._flatten_grammar:
             if model_hparams.use_margin_loss:
                 hp.target_modality = ("symbol:max_margin", tgt_vocab_size)
             else:
@@ -166,9 +173,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             for key, size in grammar.output_size.items():
                 if key == grammar.primary_output:
                     if model_hparams.use_margin_loss:
-                        hp.target_modality["targets_" + key] = ("symbol:max_margin", size)
+                        hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
                     else:
-                        hp.target_modality["targets_" + key] = ("symbol:default", size)
+                        hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
                 elif grammar.is_copy_type(key):
                     hp.target_modality["targets_" + key] = ("symbol:copy", size)
                 else:       
@@ -183,6 +190,15 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     @property
     def vocab_filename(self):
         return 'input_words.txt'
+    
+    @property
+    def export_assets(self):
+        return {'input_words.txt': os.path.join(self._data_dir, 'input_words.txt'),
+                
+                # technically, this would be exported as a Const operation in the saved model
+                # but we can't use the SavedModel directly (due to pyfuncs) so we need
+                # export this and load it later
+                'input_embeddings.npy': os.path.join(self._data_dir, 'input_embeddings.npy')}
     
     @property
     def oov_token(self):
@@ -200,13 +216,11 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         return self._grammar
     
     def _parse_program(self, program, model_hparams, grammar):
-        our_hparams = self.get_hparams(model_hparams)
-
         def parse_program_pyfunc(program_nparray):
             # we don't need to pass the input sentence, the program
             # was tokenized already
             vectors, length = grammar.vectorize_program(None, program_nparray,
-                                                        direction=our_hparams.grammar_direction,
+                                                        direction=model_hparams.grammar_direction,
                                                         max_length=None)
             for key in vectors:
                 vectors[key] = vectors[key][:length]
@@ -214,13 +228,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
         
         output_dtypes = dict()
         output_shapes = dict()
-        if our_hparams.grammar_direction == "linear":
-            output_dtypes["targets"] = tf.int32
-            output_shapes["targets"] = tf.TensorShape([None])
-        else:
-            for key in grammar.output_size:
-                output_shapes[key] = tf.TensorShape([None])
-                output_dtypes[key] = tf.int32
+        for key in grammar.output_size:
+            output_shapes[key] = tf.TensorShape([None])
+            output_dtypes[key] = tf.int32
         
         return tf.contrib.framework.py_func(parse_program_pyfunc, [program],
                                             output_shapes=output_shapes,
@@ -229,16 +239,57 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     
     def preprocess_example(self, example, mode, model_hparams):
         output_example = {
-            "inputs": example["inputs"],
-            "targets": example["targets"]
+            "inputs": example["inputs"]
         }
         
-        grammar = self.get_grammar(model_hparams.data_dir)
+        if "targets" in example:
+            output_example["targets"] = example["targets"]
         
-        parsed = self._parse_program(example["targets"], model_hparams, grammar)
-        for key, value in parsed.items():
-            output_example["targets_" + key] = value
+            grammar = self.get_grammar(model_hparams.data_dir)
+        
+            parsed = self._parse_program(example["targets"], model_hparams, grammar)
+            for key, value in parsed.items():
+                output_example["targets_" + key] = value
+        
         return output_example
+    
+    def _encode_string_input(self, features, tf_dictionary):
+        string_input = features["inputs/string"]
+        int64_input = tf_dictionary.lookup(string_input)
+        
+        return {
+            "inputs": tf.concat(([START_ID], int64_input, [text_encoder.EOS_ID]),
+                                axis=0)
+        }
+    
+    def direct_serving_input_fn(self, hparams):
+        """Input fn for serving export, starting from appropriate placeholders."""
+        mode = tf.estimator.ModeKeys.PREDICT
+        
+        placeholders = {
+            "inputs/string": tf.placeholder(shape=tf.TensorShape([None, None]),
+                                            dtype=tf.string)
+        }
+        batch_size = tf.shape(placeholders["inputs/string"], out_type=tf.int64)[0]
+        
+        data_dir = hparams.data_dir        
+        vocab_file = os.path.join(data_dir, self.vocab_filename)
+        tf_dictionary = tf.contrib.lookup.index_table_from_file(vocab_file,
+                                                                default_value=UNK_ID)
+        
+        dataset = tf.data.Dataset.from_tensor_slices(placeholders)
+        dataset = dataset.map(lambda ex: self._encode_string_input(ex, tf_dictionary))
+        dataset = dataset.map(lambda ex: self.preprocess_example(ex, mode, hparams))
+        dataset = dataset.map(self.maybe_reverse_and_copy)
+        dataset = dataset.map(data_reader.cast_ints_to_int32)
+        dataset = dataset.padded_batch(batch_size, dataset.output_shapes)
+        dataset = dataset.map(problem.standardize_shapes)
+        features = tf.contrib.data.get_single_element(dataset)
+        if self.has_inputs:
+            features.pop("targets", None)
+    
+        return tf.estimator.export.ServingInputReceiver(
+            features=features, receiver_tensors=placeholders)
     
     def eval_metrics(self):
         grammar = self.get_grammar()
@@ -275,7 +326,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
     def compute_predictions(self, outputs, features, model_hparams=None,
                             decode=False):
         grammar = self.get_grammar(model_hparams.data_dir)
-        our_hparams = self.get_hparams(model_hparams)
 
         sample_ids = dict()
         for key in outputs:
@@ -300,7 +350,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 
                 #grammar.print_prediction([], decoded_vectors)
                 vector = grammar.reconstruct_to_vector(decoded_vectors,
-                                                       direction=our_hparams.grammar_direction,
+                                                       direction=model_hparams.grammar_direction,
                                                        ignore_errors=True)
                 if decode:
                     vector = grammar.decode_program(input_sentence_batch[i], vector)
@@ -342,6 +392,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
             if word[0].isupper():
                 continue
             self._building_dictionary.add(word)
+
     @property
     def dataset_splits(self):
         """Splits of data to produce and number of output shards for each."""
@@ -536,12 +587,14 @@ class SemanticParsingProblem(text_problems.Text2TextProblem):
                 # forget about constituency parses, they were a bad idea
                 _id, sentence, program = line.strip().split('\t')[:3]
                 
-                vectorized = grammar.tokenize_to_vector(sentence.split(' '), program)
+                sentence = sentence.split(' ')
+                sentence.insert(0, START_TOKEN)
+
+                vectorized = grammar.tokenize_to_vector(sentence, program)
                 grammar.verify_program(vectorized)
-                
-                encoded_input: list = input_vocabulary.encode(sentence)
+
+                encoded_input: list = input_vocabulary.encode(' '.join(sentence))
                 assert text_encoder.PAD_ID not in encoded_input
-                encoded_input.insert(0, START_ID)
                 encoded_input.append(text_encoder.EOS_ID)
                 
                 yield {
