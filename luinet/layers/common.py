@@ -233,15 +233,16 @@ class AttentivePointerLayer(tf.layers.Layer):
 
         original_shape = common_layers.shape_list(inputs)
         flattened_inputs = common_layers.flatten4d3d(inputs)
-        
-        projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
-                                           use_bias=False)
-        enc_time = tf.shape(self._enc_hidden_states)[1]
-        
-        score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
-        score *= tf.rsqrt(tf.to_float(self._num_units))
-        
-        return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, enc_length)
+
+        with tf.name_scope('AttentivePointerLayer', (inputs,)):
+            projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
+                                               use_bias=False)
+            enc_time = tf.shape(self._enc_hidden_states)[1]
+
+            score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
+            score *= tf.rsqrt(tf.to_float(self._num_units))
+
+        return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1].concatenate(tf.TensorShape([self._enc_hidden_states.shape[1]]))
@@ -267,34 +268,28 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
     def _matmul(self, a, b): # (?, m, n) @ (n, p) -- > (?, m, p)
         return tf.reshape(tf.reshape(a, [-1, tf.shape(a)[-1]]) @ b, [-1, tf.shape(a)[1], tf.shape(b)[-1]])
 
-    def inc_normalize(self, tensor):
-        assert len(tensor.shape) == 3
-        inp = tensor
-        for i in range(1, inp.shape[1]):
-            inp[:, i, :] = inp[:, i, :] / np.sum(inp[:, :i, :], axis=1)
-
-        return inp
-
     def call(self, decode_list):
         inputs = decode_list
 
         original_shape = common_layers.shape_list(inputs)
         inputs = common_layers.flatten4d3d(inputs) # (?, ?, 1, 128) -- > (?, ?, 128)
 
-        #time = tf.shape(inputs)[1]
-
         with tf.name_scope('ImprovedAttentivePointerLayer', (inputs,)):
             e_ti = tf.matmul(self._matmul(inputs, self.kernel_encode), self._enc_hidden_states, transpose_b=True) # (batch, dec_length, enc_length)
             e_ti_exp = tf.exp(e_ti)
 
+            cum_sum_ = tf.cumsum(e_ti_exp, axis=1)
 
-            e_ti_prime = tf.py_func(self.inc_normalize, [e_ti_exp], e_ti_exp.dtype)
+            w = tf.tile(tf.expand_dims(tf.ones(tf.shape(cum_sum_)[-1]), axis=0), [tf.shape(inputs)[0], 1])
+            cum_sum = tf.concat([tf.expand_dims(w, axis=1), cum_sum_[:,1:,:]], axis=1)
+
+            e_ti_prime = tf.truediv(e_ti_exp, cum_sum)
 
             sum_e_prime = tf.reduce_sum(e_ti_prime, axis=2, keepdims=True)
             alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_length)
 
             enc_time = tf.shape(self._enc_hidden_states)[1]
-            return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
+        return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
 
     def compute_output_shape(self, input_shape):
