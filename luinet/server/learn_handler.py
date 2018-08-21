@@ -40,7 +40,7 @@ class LearnHandler(tornado.web.RequestHandler):
         language = self.application.get_language(locale)
         target_code = self.get_argument("target")
         store = self.get_argument("store", "automatic")
-        owner = self.get_argument("owner", None) 
+        owner = self.get_argument("owner", None) or None
         #print('POST /%s/learn' % locale, target_code)
         
         grammar = language.predictor.problem.grammar
