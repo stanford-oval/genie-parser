@@ -31,7 +31,7 @@ class ExactMatcher():
         n = 0
         for row in self._database.execute("""
 select preprocessed,target_code from example_utterances
-where language =  %(language)s and type in ('online', 'online-bookkeeping')
+where language =  %(language)s and type in ('online', 'online-bookkeeping', 'commandpedia')
 and preprocessed <> ''""",
                                           language=self._language):
             self._dict[row['preprocessed']] = row['target_code'].split(' ')
