@@ -175,7 +175,9 @@ class LUINetModel(T2TModel):
                 assert "targets" in target_modality, (
                     "model_body returned single logits so 'targets' must be a key "
                     "since problem_hparams.target_modality is a dict.")
-            target_modality = target_modality["targets"]
+                target_modality = target_modality["targets"]
+            else:
+                target_modality = target_modality
             return self._loss_single(logits, target_modality, features["targets"])
 
     def optimize(self, loss, num_async_replicas=1):

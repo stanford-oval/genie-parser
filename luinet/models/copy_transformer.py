@@ -191,7 +191,14 @@ class CopyTransformer(Transformer):
             targets = features["targets"]
 
         targets_shape = common_layers.shape_list(targets)
+
+        # if len(targets_shape) == 2:
+        #     targets = tf.reshape(targets, [targets_shape[0], -1, 1, 1])
+        #     targets = tf.cast(targets, dtype=tf.float32)
+        #     targets_shape = targets_shape + [1, hparams.hidden_size]
+
         targets = common_layers.flatten4d3d(targets)
+
 
         decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
             targets, hparams, features=features)
@@ -220,18 +227,21 @@ class CopyTransformer(Transformer):
             if self._problem_hparams else {"targets": None}
 
         assert hparams.pointer_layer in ("attentive", "decaying_attentive")
-        for key, modality in target_modality.items():
-            if isinstance(modality, CopyModality):
-                with tf.variable_scope("copy_layer/" + key):
-                    if hparams.pointer_layer == "decaying_attentive":
-                        output_layer = DecayingAttentivePointerLayer(encoder_output, task)
-                    else:
-                        output_layer = AttentivePointerLayer(encoder_output)
-                    scores = output_layer(decoder_output)
-                    scores += encoder_decoder_attention_bias
-                    body_output[key] = scores
-            else:
-                body_output[key] = decoder_output
+        if isinstance(target_modality, dict):
+            for key, modality in target_modality.items():
+                if isinstance(modality, CopyModality):
+                    with tf.variable_scope("copy_layer/" + key):
+                        if hparams.pointer_layer == "decaying_attentive":
+                            output_layer = DecayingAttentivePointerLayer(encoder_output, task)
+                        else:
+                            output_layer = AttentivePointerLayer(encoder_output)
+                        scores = output_layer(decoder_output)
+                        scores += encoder_decoder_attention_bias
+                        body_output[key] = scores
+                else:
+                    body_output[key] = decoder_output
+        else:
+            body_output = decoder_output
 
         if losses:
             return body_output, {"extra_loss": tf.add_n(losses)}
