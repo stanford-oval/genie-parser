@@ -288,8 +288,12 @@ class ShiftReduceGrammar(AbstractGrammar):
         # -1 removes the EOS_ID at the end (assuming there is one)
         # if the generated program is incorrect, there might not be
         # one; this is sad and will lower the grammar accuracy; too bad
-        output = np.empty((len(vectors['actions'])-1, 3), dtype=np.int32)
-        
+        if self.end in vectors['actions'].tolist():
+            idx = vectors['actions'].tolist().index(self.end)
+        else:
+            idx = len(vectors['actions'])-1
+        output = np.empty((idx, 3), dtype=np.int32)
+
         for i, term_id in enumerate(vectors['actions']):
             if i >= len(output) or term_id <= self.end: # pad or end
                 break
