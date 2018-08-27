@@ -22,8 +22,6 @@ import sys
 import os
 import re
 import argparse
-from luinet.grammar.thingtalk import ThingTalkGrammar
-
 
 parser = argparse.ArgumentParser()
 
@@ -33,12 +31,6 @@ parser.add_argument('--predicted_program', default='./workdir/decoded_results.lu
 parser.add_argument('--output_file', default='./workdir/out_file', type=str)
 
 args = parser.parse_args()
-
-grammar = ThingTalkGrammar()
-
-# output_file_full_path = os.path.abspath(args.output_file)
-# if not os.path.exists(output_file_full_path):
-#     os.mkdir(output_file_full_path)
 
 def compute_accuracy(pred, gold):
     return pred == gold
