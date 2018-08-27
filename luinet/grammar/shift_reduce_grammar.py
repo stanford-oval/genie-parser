@@ -316,7 +316,7 @@ class ShiftReduceGrammar(AbstractGrammar):
                 # try parsing again to check if it is correct or not
                 self.vectorize_program(None, reconstructed, direction='bottomup', max_length=60)
                 return reconstructed
-            except ValueError:
+            except (IndexError, ValueError):
                 if ignore_errors: 
                     return []
                 else:
