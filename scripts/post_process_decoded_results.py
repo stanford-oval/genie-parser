@@ -98,8 +98,8 @@ with open(args.input_sentences, 'r') as input_file,\
                   + str(accuracy) + ' || '
                   + str(gramar_accuracy) + '_grammar' + ' || '
                   + str(function_correctness) + '_function')
-        if correct_quotes:
+        if correct_quotes != False:
             out.write(' || ' + str(correct_quotes) + '%_correct_quotes')
-        if correct_tokens:
+        if correct_tokens != False:
             out.write(' || ' + str(correct_tokens) + '%_correct_tokens')
         out.write('\n')
