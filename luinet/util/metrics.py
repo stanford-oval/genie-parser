@@ -24,9 +24,11 @@ Created on Jul 30, 2018
 
 import numpy as np
 import tensorflow as tf
+import collections
 
 
-def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):
+
+def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):  #preds (?, ?)   lables (?,?,1,1)
     batch_size = tf.shape(predictions)[0]
     
     predictions = tf.reshape(predictions, (batch_size, -1, num_elements_per_time))
@@ -46,7 +48,7 @@ def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):
     labels.set_shape((None, None, num_elements_per_time))
     return batch_size, predictions, labels
 
-def accuracy(predictions, labels, features, num_elements_per_time=3):
+def accuracy(predictions, labels, features, num_elements_per_time=3): # features (?,?,1,1)
     batch_size, predictions, labels = adjust_predictions_labels(predictions, labels,
                                                                 num_elements_per_time)
     weights = tf.ones((batch_size,), dtype=tf.float32)
@@ -61,6 +63,19 @@ def grammar_accuracy(predictions, labels, features, num_elements_per_time=3):
     return tf.cond(tf.shape(predictions)[1] > 0,
                    lambda: tf.to_float(predictions[:,0,0] > 0),
                    lambda: tf.zeros_like(weights)), weights
+
+
+def compute_f1_score(prediction, label):
+    prediction_tokens = prediction
+    ground_truth_tokens = label
+    common = collections.Counter(prediction_tokens) & collections.Counter(ground_truth_tokens)
+    num_same = sum(common.values())
+    if num_same == 0:
+        return 0
+    precision = 1.0 * num_same / len(prediction_tokens)
+    recall = 1.0 * num_same / len(ground_truth_tokens)
+    f1 = (2 * precision * recall) / (precision + recall)
+    return f1
 
 
 def make_pyfunc_metric_fn(per_element_pyfunc, num_elements_per_time=3):

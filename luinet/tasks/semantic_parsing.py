@@ -64,7 +64,7 @@ class IdentityEncoder(object):
         return x
     
     def decode(self, x):
-        return ' '.join(map(lambda x: x.decode('utf-8'), x)).strip()
+        return ' '.join(filter(lambda y: y not in ['<s>', ' 0PAD'], (map(lambda x: x.decode('utf-8'), x))))
 
 
 def _make_pointer_modality(name):

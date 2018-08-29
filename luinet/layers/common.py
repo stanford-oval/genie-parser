@@ -27,6 +27,7 @@ from tensor2tensor.layers import common_layers
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
 from collections import namedtuple
+import numpy as np
 
 StackRNNState = namedtuple('StackRNNState', ('hidden_state', 'stacks'))
 
@@ -230,15 +231,16 @@ class AttentivePointerLayer(tf.layers.Layer):
     def call(self, inputs):
         original_shape = common_layers.shape_list(inputs)
         flattened_inputs = common_layers.flatten4d3d(inputs)
-        
-        projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
-                                           use_bias=False)
-        enc_time = tf.shape(self._enc_hidden_states)[1]
-        
-        score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
-        score *= tf.rsqrt(tf.to_float(self._num_units))
-        
-        return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, enc_length)
+
+        with tf.name_scope('AttentivePointerLayer', (inputs,)):
+            projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
+                                               use_bias=False)
+            enc_time = tf.shape(self._enc_hidden_states)[1]
+
+            score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
+            score *= tf.rsqrt(tf.to_float(self._num_units))
+
+        return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1].concatenate(tf.TensorShape([self._enc_hidden_states.shape[1]]))
@@ -248,46 +250,40 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
     """
     A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
     """
-
     def __init__(self, enc_hidden_states):
         super().__init__()
 
         self._enc_hidden_states = enc_hidden_states # (?, ?, 128)
         self.enc_num_units = enc_hidden_states.shape[-1]
 
-
     def build(self, input_shape):
         input_shape = tf.TensorShape(input_shape)
         self.dec_num_units = input_shape[-1]
         self.kernel_encode = self.add_variable('kernel_encode', (self.dec_num_units, self.enc_num_units), dtype=self.dtype)
-        self.kernel_decode = self.add_variable('kernel_decode', (self.dec_num_units, self.dec_num_units), dtype=self.dtype)
         self.built = True
 
-    def _matmul(self, a, b):
+    def _matmul(self, a, b): # (?, m, n) @ (n, p) -- > (?, m, p)
         return tf.reshape(tf.reshape(a, [-1, tf.shape(a)[-1]]) @ b, [-1, tf.shape(a)[1], tf.shape(b)[-1]])
 
-    def call(self, inputs):
+    def call(self, decode_list):
+        inputs = decode_list
+
         original_shape = common_layers.shape_list(inputs)
-        inputs = common_layers.flatten4d3d(inputs) # # (?, ?, 1, 128) -- > (?, ?, 128)
+        inputs = common_layers.flatten4d3d(inputs) # (?, ?, 1, 128) -- > (?, ?, 128)
 
-        time = tf.shape(inputs)[1]
+        e_ti = tf.matmul(self._matmul(inputs, self.kernel_encode), self._enc_hidden_states, transpose_b=True) # (batch, dec_length, enc_length)
 
-        with tf.name_scope('ImprovedAttentivePointerLayer', (inputs,)):
-            e_ti = tf.matmul(self._matmul(inputs, self.kernel_encode), self._enc_hidden_states, transpose_b=True)
-            e_ti_exp = tf.exp(e_ti)
+        e_ti_max = tf.reduce_max(e_ti, axis=1, keepdims=True)
+        cum_sum_ = tf.cumsum(tf.exp(e_ti - e_ti_max), axis=1)
 
-            if time == 0:
-                e_ti_prime = e_ti_exp
-            else:
-                sum_e = tf.reduce_sum(e_ti_exp, axis=0, keepdims=True)
-                e_ti_prime = tf.divide(e_ti_exp, sum_e)
+        w = tf.tile(tf.expand_dims(tf.ones(tf.shape(cum_sum_)[-1]), axis=0), [tf.shape(inputs)[0], 1])
+        cum_sum = tf.concat([tf.expand_dims(w, axis=1), cum_sum_[:,:-1,:]], axis=1)
 
-            sum_e_prime = tf.reduce_sum(e_ti_prime, axis=1, keepdims=True)
-            alpha_ti_encode = tf.divide(e_ti_prime, sum_e_prime) # (batch, dec_length, enc_len)
+        log_e_ti_prime = e_ti - (e_ti_max + tf.log(cum_sum + 1e-8))
+        alpha_ti_encode = tf.nn.softmax(log_e_ti_prime, axis=2)
 
-            enc_time = tf.shape(self._enc_hidden_states)[1]
-            return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_len)
-
+        enc_time = tf.shape(self._enc_hidden_states)[1]
+        return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1].concatenate(tf.TensorShape([self._enc_hidden_states.shape[1]]))
@@ -382,7 +378,7 @@ class InputIgnoringCellWrapper(tf.contrib.rnn.RNNCell):
     @property
     def state_size(self):
         return self._wrapped.state_size
-    
+
 def unify_encoder_decoder(cell_dec, enc_hidden_states, enc_final_state):
     encoder_hidden_size = int(enc_hidden_states.get_shape()[-1])
     decoder_hidden_size = int(cell_dec.output_size)

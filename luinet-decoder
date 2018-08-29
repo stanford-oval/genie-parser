@@ -23,6 +23,8 @@ luinet-decoder
 --hparams_set transformer_tiny_luinet
 --decode_hparams 'beam_size=1,alpha=0.6'
 --output_dir ./workdir/model
+--decode_to_file ./workdir/decoded_results
+--eval_use_test_set
 """
 
 # Part of this code is derived from Tensor2Tensor, which is:
