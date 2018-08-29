@@ -549,6 +549,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 lambda pred, label: compute_bleu([get_tokens(pred)], [get_tokens(label)])),
             "num_function_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: len(get_functions(pred, 'p')) == len(get_functions(label, 'l'))),
-            "function_f1_accuracy": make_pyfunc_metric_fn(
+            "token_f1_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: compute_f1_score(get_tokens(pred), get_tokens(label)))
         }
