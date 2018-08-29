@@ -529,7 +529,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         def get_tokens(program):
             return [self.tokens[x] for x in program[:, 0].flatten().tolist()]
 
-        def get_functions(program, what=None):
+        def get_functions(program):
             return [x for x in program[:, 0] if self.tokens[x].startswith('@')]
         
         def accuracy_without_parameters(predictions, labels, features):
@@ -543,12 +543,12 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             "accuracy": accuracy,
             "grammar_accuracy": grammar_accuracy,
             "function_accuracy": make_pyfunc_metric_fn(
-                lambda pred, label: get_functions(pred, 'p') == get_functions(label, 'l')),
+                lambda pred, label: get_functions(pred) == get_functions(label)),
             "accuracy_without_parameters": accuracy_without_parameters,
             "bleu_score": make_pyfunc_metric_fn(
                 lambda pred, label: compute_bleu([get_tokens(pred)], [get_tokens(label)])),
             "num_function_accuracy": make_pyfunc_metric_fn(
-                lambda pred, label: len(get_functions(pred, 'p')) == len(get_functions(label, 'l'))),
+                lambda pred, label: len(get_functions(pred)) == len(get_functions(label))),
             "token_f1_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: compute_f1_score(get_tokens(pred), get_tokens(label)))
         }
