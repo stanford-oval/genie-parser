@@ -72,7 +72,7 @@ class CopyTransformer(Transformer):
                 self.hparams,
                 cache,
                 nonpadding=features_to_nonpadding(features, "targets"))
-        task = 'test'
+
         logits = dict()
         target_modality = self._problem_hparams.target_modality
 
@@ -81,7 +81,7 @@ class CopyTransformer(Transformer):
         def copy_sharded(decoder_output):
             encoder_output = cache.get("encoder_output")
             if self.hparams.pointer_layer == "decaying_attentive":
-                output_layer = DecayingAttentivePointerLayer(encoder_output, task)
+                output_layer = DecayingAttentivePointerLayer(encoder_output)
                 scores = output_layer(decoder_output)
             else:
                 output_layer = AttentivePointerLayer(encoder_output)
@@ -172,7 +172,6 @@ class CopyTransformer(Transformer):
         Returns:
           Final decoder representation. [batch_size, decoder_length, hidden_dim]
         """
-        task = 'train'
         hparams = self._hparams
 
         losses = []
@@ -224,7 +223,7 @@ class CopyTransformer(Transformer):
             if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
                     if hparams.pointer_layer == "decaying_attentive":
-                        output_layer = DecayingAttentivePointerLayer(encoder_output, task)
+                        output_layer = DecayingAttentivePointerLayer(encoder_output)
                     else:
                         output_layer = AttentivePointerLayer(encoder_output)
                     scores = output_layer(decoder_output)

@@ -178,7 +178,7 @@ class LUINetModel(T2TModel):
             target_modality = target_modality["targets"]
             return self._loss_single(logits, target_modality, features["targets"])
 
-    def optimize(self, loss, num_async_replicas=1):
+    def optimize(self, loss, num_async_replicas=1, use_tpu=False):
         """Return a training op minimizing loss."""
         hparams = self.hparams
         
@@ -286,7 +286,7 @@ class LUINetModel(T2TModel):
         hparams = self.hparams
     
         problem = hparams.problem
-        if common_layers.is_on_tpu():
+        if common_layers.is_xla_compiled():
             raise NotImplementedError("TPU usage is not supported")
       
         outputs = tf.contrib.framework.nest.map_structure(lambda x: tf.squeeze(tf.argmax(x, axis=-1), axis=[2, 3]),
