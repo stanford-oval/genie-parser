@@ -76,7 +76,7 @@ def test_direct_string_to_string(thingtalk_grammar):
 
 
 def test_noquotes_direct_string_to_string(noquotes_thingtalk_grammar):
-    test_vector_file = os.path.join(os.path.dirname(__file__), '../dataset/train.tsv')
+    test_vector_file = os.path.join(os.path.dirname(__file__), '../dataset/semparse_thingtalk_noquote/train.tsv')
     with open(test_vector_file, 'r') as fp:
         for line in fp:
             line = line.strip()
@@ -105,7 +105,7 @@ def test_tokenize_and_parse(thingtalk_grammar):
 
 
 def test_noquotes_tokenized_and_parse(noquotes_thingtalk_grammar):
-    test_vector_file = os.path.join(os.path.dirname(__file__), '../dataset/train.tsv')
+    test_vector_file = os.path.join(os.path.dirname(__file__), '../dataset/semparse_thingtalk_noquote/train.tsv')
     with open(test_vector_file, 'r') as fp:
         for line in fp:
             line = line.strip()
