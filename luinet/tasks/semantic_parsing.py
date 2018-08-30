@@ -134,6 +134,10 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         # do not chain up! we have different features and modalities
         # than Text2TextProblem
         hp = hparams
+
+        hparams_overrides_str = FLAGS.hparams
+        if hparams_overrides_str:
+            model_hparams = model_hparams.parse(hparams_overrides_str)
         
         hp.stop_at_eos = True
         

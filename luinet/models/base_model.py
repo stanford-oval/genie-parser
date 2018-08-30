@@ -297,7 +297,7 @@ class LUINetModel(T2TModel):
                                                       decode=False)
         else:
             predictions = outputs
-        
+
         problem_metrics = problem.eval_metrics()
         if isinstance(problem_metrics, list):
             eval_metrics = metrics.create_evaluation_metrics([problem], hparams)
