@@ -232,13 +232,12 @@ class AttentivePointerLayer(tf.layers.Layer):
         original_shape = common_layers.shape_list(inputs)
         flattened_inputs = common_layers.flatten4d3d(inputs)
 
-        with tf.name_scope('AttentivePointerLayer', (inputs,)):
-            projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
-                                               use_bias=False)
-            enc_time = tf.shape(self._enc_hidden_states)[1]
+        projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
+                                           use_bias=False)
+        enc_time = tf.shape(self._enc_hidden_states)[1]
 
-            score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
-            score *= tf.rsqrt(tf.to_float(self._num_units))
+        score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
+        score *= tf.rsqrt(tf.to_float(self._num_units))
 
         return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 

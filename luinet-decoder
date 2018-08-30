@@ -66,5 +66,4 @@ def main(argv):
     t2t_decoder.main(argv)
 
 if __name__ == "__main__":
-
   tf.app.run()
