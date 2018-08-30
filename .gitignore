@@ -6,7 +6,8 @@ workdir/*
 .idea/workspace.xml
 transformer_output.txt
 time.txt
-
+post_process_stats_v2.py
+glove.42B.300d.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

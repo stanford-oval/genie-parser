@@ -28,7 +28,7 @@ def luinet_extra_hparams(hp):
     hp.add_hparam("grammar_direction", "bottomup")
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
-    hp.add_hparam("pointer_layer", "decaying_attentive")
+    hp.add_hparam("pointer_layer", "attentive")
 
 @registry.register_hparams
 def transformer_tiny_luinet():

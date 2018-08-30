@@ -228,19 +228,16 @@ class AttentivePointerLayer(tf.layers.Layer):
         self._enc_hidden_states = enc_hidden_states
         self._num_units = enc_hidden_states.shape[-1]
 
-    def call(self, decode_list):
-        inputs = decode_list
-
+    def call(self, inputs):
         original_shape = common_layers.shape_list(inputs)
         flattened_inputs = common_layers.flatten4d3d(inputs)
 
-        with tf.name_scope('AttentivePointerLayer', (inputs,)):
-            projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
-                                               use_bias=False)
-            enc_time = tf.shape(self._enc_hidden_states)[1]
+        projected_inputs = tf.layers.dense(flattened_inputs, self._num_units,
+                                           use_bias=False)
+        enc_time = tf.shape(self._enc_hidden_states)[1]
 
-            score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
-            score *= tf.rsqrt(tf.to_float(self._num_units))
+        score = tf.matmul(projected_inputs, self._enc_hidden_states, transpose_b=True)
+        score *= tf.rsqrt(tf.to_float(self._num_units))
 
         return tf.reshape(score, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
@@ -252,12 +249,11 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
     """
     A pointer layer that chooses from the encoding of the inputs, using Luong (multiplicative) Attention
     """
-    def __init__(self, enc_hidden_states, task):
+    def __init__(self, enc_hidden_states):
         super().__init__()
 
         self._enc_hidden_states = enc_hidden_states # (?, ?, 128)
         self.enc_num_units = enc_hidden_states.shape[-1]
-        self.task = task
 
     def build(self, input_shape):
         input_shape = tf.TensorShape(input_shape)
@@ -274,20 +270,18 @@ class DecayingAttentivePointerLayer(tf.layers.Layer):
         original_shape = common_layers.shape_list(inputs)
         inputs = common_layers.flatten4d3d(inputs) # (?, ?, 1, 128) -- > (?, ?, 128)
 
-        with tf.name_scope('DecayingAttentivePointerLayer', (inputs,)):
-            eps = 1e-8
-            e_ti = tf.matmul(self._matmul(inputs, self.kernel_encode), self._enc_hidden_states, transpose_b=True) # (batch, dec_length, enc_length)
-            e_ti_max = tf.reduce_max(e_ti, axis=1, keepdims=True)
+        e_ti = tf.matmul(self._matmul(inputs, self.kernel_encode), self._enc_hidden_states, transpose_b=True) # (batch, dec_length, enc_length)
 
-            cum_sum_ = tf.cumsum(tf.exp(e_ti - e_ti_max), axis=1)
+        e_ti_max = tf.reduce_max(e_ti, axis=1, keepdims=True)
+        cum_sum_ = tf.cumsum(tf.exp(e_ti - e_ti_max), axis=1)
 
-            w = tf.tile(tf.expand_dims(tf.ones(tf.shape(cum_sum_)[-1]), axis=0), [tf.shape(inputs)[0], 1])
-            cum_sum = tf.concat([tf.expand_dims(w, axis=1), cum_sum_[:,:-1,:]], axis=1)
+        w = tf.tile(tf.expand_dims(tf.ones(tf.shape(cum_sum_)[-1]), axis=0), [tf.shape(inputs)[0], 1])
+        cum_sum = tf.concat([tf.expand_dims(w, axis=1), cum_sum_[:,:-1,:]], axis=1)
 
-            log_e_ti_prime = e_ti - (e_ti_max + tf.log(cum_sum + eps))
-            alpha_ti_encode = tf.nn.softmax(log_e_ti_prime, axis=2)
+        log_e_ti_prime = e_ti - (e_ti_max + tf.log(cum_sum + 1e-8))
+        alpha_ti_encode = tf.nn.softmax(log_e_ti_prime, axis=2)
 
-            enc_time = tf.shape(self._enc_hidden_states)[1]
+        enc_time = tf.shape(self._enc_hidden_states)[1]
         return tf.reshape(alpha_ti_encode, original_shape[:-1] + [enc_time]) # (batch, dec_length, 1, enc_length)
 
     def compute_output_shape(self, input_shape):

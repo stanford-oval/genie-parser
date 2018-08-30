@@ -28,17 +28,20 @@ from tensor2tensor.utils import registry
 from tensor2tensor.layers.modalities import IdentitySymbolModality,\
     SymbolModality
 
-from .common import EmbeddingPointerLayer
-
-
-def pad_to_length(logits, targets):
-    length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
+def if_targets_longer(logits, targets, length_diff):
     padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
-    
     orig_shape = logits.shape
     logits = tf.pad(logits, padding, mode='constant')
     logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
-    return logits
+    return logits, targets
+
+def if_logits_longer(logits, targets, length_diff):
+    padding = tf.convert_to_tensor([[0, 0], [0, -length_diff]], name='padding')
+    orig_shape = targets.shape
+    targets = tf.pad(targets, padding, mode='constant')
+    targets.set_shape(tf.TensorShape([orig_shape[0], logits.shape[1]]))
+    return logits, targets
+
 
 @registry.register_symbol_modality("max_margin")
 class MaxMarginModality(SymbolModality):
@@ -51,8 +54,12 @@ class MaxMarginModality(SymbolModality):
         # (to support videos)
         # remove width and height
         logits = tf.squeeze(logits, axis=[2, 3])
+        length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
 
-        logits = pad_to_length(logits, targets)
+        logits, targets = tf.cond(length_diff > 0,
+                                  lambda: if_targets_longer(logits, targets, length_diff),
+                                  lambda: if_logits_longer(logits, targets, length_diff))
+
         batch_size, max_length, num_classes = common_layers.shape_list(logits)
 
         targets_mask = tf.to_float(tf.not_equal(targets, 0))
@@ -75,7 +82,7 @@ class MaxMarginModality(SymbolModality):
             gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
             margin = max_margin - gold_score
 
-            return tf.reduce_sum(margin * flat_mask), tf.reduce_sum(flat_mask)
+            return tf.reduce_sum(margin * flat_mask), tf.reduce_sum(flat_mask) + 1e-8
 
 
 @registry.register_symbol_modality("copy")
@@ -107,23 +114,11 @@ class CopyModality(IdentitySymbolModality):
         # remove width and height
         logits = tf.squeeze(logits, axis=[2, 3])
         length_diff = tf.shape(targets)[1] - tf.shape(logits)[1]
-        
-        def if_targets_longer(logits, targets):
-            padding = tf.convert_to_tensor([[0, 0], [0, length_diff], [0, 0]], name='padding')
-            orig_shape = logits.shape
-            logits = tf.pad(logits, padding, mode='constant')
-            logits.set_shape(tf.TensorShape([orig_shape[0], targets.shape[1], orig_shape[2]]))
-            return logits, targets
-        def if_logits_longer(logits, targets):
-            padding = tf.convert_to_tensor([[0, 0], [0, -length_diff]], name='padding')
-            orig_shape = targets.shape
-            targets = tf.pad(targets, padding, mode='constant')
-            targets.set_shape(tf.TensorShape([orig_shape[0], logits.shape[1]]))
-            return logits, targets
+
         logits, targets = tf.cond(length_diff > 0,
-                                  lambda: if_targets_longer(logits, targets),
-                                  lambda: if_logits_longer(logits, targets))
-        
+                                  lambda: if_targets_longer(logits, targets, length_diff),
+                                  lambda: if_logits_longer(logits, targets, length_diff))
+
         mask = tf.to_float(tf.not_equal(targets, 0))
         xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
         
