@@ -23,6 +23,8 @@ Created on Dec 22, 2017
 import tensorflow as tf
 from tensorflow.python.util import nest
 from tensor2tensor.layers import common_layers
+from tensor2tensor.layers import common_attention
+from tensor2tensor.utils import beam_search
 
 from tensorflow.contrib.seq2seq import LuongAttention, AttentionWrapper
 
@@ -494,3 +496,120 @@ def apply_attention(cell_dec, enc_hidden_states, enc_final_state, input_length, 
     cell_dec = NotBrokenDropoutWrapper(cell_dec, output_keep_prob=dropout)
 
     return cell_dec, enc_final_state
+
+
+def fast_decode(symbols_to_logits_fn,
+                hparams,
+                decode_length,
+                vocab_size,
+                beam_size=1,
+                top_beams=1,
+                alpha=1.0,
+                eos_id=beam_search.EOS_ID,
+                batch_size=None,
+                force_decode_length=False,
+                cache=None):
+    """Given encoder output and a symbols to logits function, does fast decoding.
+
+    Implements both greedy and beam search decoding, uses beam search iff
+    beam_size > 1, otherwise beam search related arguments are ignored.
+
+    Args:
+        encoder_output: Output from encoder.
+        encoder_decoder_attention_bias: a bias tensor for use in encoder-decoder
+          attention
+        symbols_to_logits_fn: Incremental decoding; function mapping triple
+          `(ids, step, cache)` to symbol logits.
+        hparams: run hyperparameters
+        decode_length: an integer.  How many additional timesteps to decode.
+        vocab_size: Output vocabulary size.
+        beam_size: number of beams.
+        top_beams: an integer. How many of the beams to return.
+        alpha: Float that controls the length penalty. larger the alpha, stronger
+          the preference for longer translations.
+        eos_id: End-of-sequence symbol in beam search.
+        batch_size: an integer scalar - must be passed if there is no input
+        force_decode_length: bool, whether to force the full decode length, or if
+          False, stop when all beams hit eos_id.
+
+    Returns:
+        A dict of decoding results {
+          "outputs": integer `Tensor` of decoded ids of shape
+              [batch_size, <= decode_length] if top_beams == 1 or
+              [batch_size, top_beams, <= decode_length] otherwise
+          "scores": decoding log probs from the beam search,
+              None if using greedy decoding (beam_size=1)
+        }
+
+    Raises:
+      NotImplementedError: If beam size > 1 with partial targets.
+    """
+
+    if beam_size > 1:  # Beam Search
+        initial_ids = tf.zeros([batch_size], dtype=tf.int32)
+        decoded_ids, scores = beam_search.beam_search(
+            symbols_to_logits_fn,
+            initial_ids,
+            beam_size,
+            decode_length,
+            vocab_size,
+            alpha,
+            states=cache,
+            eos_id=eos_id,
+            stop_early=(top_beams == 1))
+
+        if top_beams == 1:
+            decoded_ids = decoded_ids[:, 0, 1:]
+            scores = scores[:, 0]
+        else:
+            decoded_ids = decoded_ids[:, :top_beams, 1:]
+            scores = scores[:, :top_beams]
+            
+    else:  # Greedy
+        def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
+            """One step of greedy decoding."""
+            logits, cache = symbols_to_logits_fn(next_id, i, cache)
+            log_probs = common_layers.log_prob_from_logits(logits)
+            temperature = (0.0 if hparams.sampling_method == "argmax" else
+                           hparams.sampling_temp)
+            next_id = common_layers.sample_with_temperature(logits, temperature)
+            hit_eos |= tf.equal(next_id, eos_id)
+
+            log_prob_indices = tf.stack(
+                [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
+            log_prob += tf.gather_nd(log_probs, log_prob_indices)
+
+            next_id = tf.expand_dims(next_id, axis=1)
+            decoded_ids = tf.concat([decoded_ids, next_id], axis=1)
+            return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
+
+        def is_not_finished(i, hit_eos, *_):
+            finished = i >= decode_length
+            if not force_decode_length:
+                finished |= tf.reduce_all(hit_eos)
+            return tf.logical_not(finished)
+
+        decoded_ids = tf.zeros([batch_size, 0], dtype=tf.int64)
+        hit_eos = tf.fill([batch_size], False)
+        next_id = tf.zeros([batch_size, 1], dtype=tf.int64)
+        initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
+        _, _, _, decoded_ids, cache, log_prob = tf.while_loop(
+            is_not_finished,
+            inner_loop, [
+                tf.constant(0), hit_eos, next_id, decoded_ids, cache,
+                initial_log_prob
+            ],
+            shape_invariants=[
+                tf.TensorShape([]),
+                tf.TensorShape([None]),
+                tf.TensorShape([None, None]),
+                tf.TensorShape([None, None]),
+                tf.contrib.framework.nest.map_structure(beam_search.get_state_shape_invariants, cache),
+                tf.TensorShape([None]),
+            ])
+        scores = log_prob
+
+    cache["outputs"] = decoded_ids
+    cache["scores"] = scores
+
+    return cache

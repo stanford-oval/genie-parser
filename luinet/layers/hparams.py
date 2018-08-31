@@ -22,6 +22,7 @@ Created on Jul 26, 2018
 
 from tensor2tensor.utils import registry
 from tensor2tensor.models.transformer import transformer_tiny
+from tensor2tensor.models.lstm import lstm_luong_attention
 
 def luinet_extra_hparams(hp):
     hp.eval_run_autoregressive = True
@@ -37,3 +38,8 @@ def transformer_tiny_luinet():
     luinet_extra_hparams(hp)
     return hp
 
+@registry.register_hparams
+def lstm_luinet():
+    hp = lstm_luong_attention()
+    luinet_extra_hparams(hp)
+    return hp

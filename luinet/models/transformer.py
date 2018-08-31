@@ -45,6 +45,7 @@ from tensor2tensor.utils import beam_search
 from tensor2tensor.layers import common_layers, common_attention
 
 from .base_model import LUINetModel
+from ..layers import common
 
 def fast_decode(encoder_output,
                 encoder_decoder_attention_bias,
@@ -134,74 +135,10 @@ def fast_decode(encoder_output,
         cache["encoder_output"] = encoder_output
         cache["encoder_decoder_attention_bias"] = encoder_decoder_attention_bias
 
-    if beam_size > 1:  # Beam Search
-        initial_ids = tf.zeros([batch_size], dtype=tf.int32)
-        decoded_ids, scores = beam_search.beam_search(
-            symbols_to_logits_fn,
-            initial_ids,
-            beam_size,
-            decode_length,
-            vocab_size,
-            alpha,
-            states=cache,
-            eos_id=eos_id,
-            stop_early=(top_beams == 1))
-
-        if top_beams == 1:
-            decoded_ids = decoded_ids[:, 0, 1:]
-            scores = scores[:, 0]
-        else:
-            decoded_ids = decoded_ids[:, :top_beams, 1:]
-            scores = scores[:, :top_beams]
-            
-    else:  # Greedy
-        def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
-            """One step of greedy decoding."""
-            logits, cache = symbols_to_logits_fn(next_id, i, cache)
-            log_probs = common_layers.log_prob_from_logits(logits)
-            temperature = (0.0 if hparams.sampling_method == "argmax" else
-                           hparams.sampling_temp)
-            next_id = common_layers.sample_with_temperature(logits, temperature)
-            hit_eos |= tf.equal(next_id, eos_id)
-
-            log_prob_indices = tf.stack(
-                [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
-            log_prob += tf.gather_nd(log_probs, log_prob_indices)
-
-            next_id = tf.expand_dims(next_id, axis=1)
-            decoded_ids = tf.concat([decoded_ids, next_id], axis=1)
-            return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
-
-        def is_not_finished(i, hit_eos, *_):
-            finished = i >= decode_length
-            if not force_decode_length:
-                finished |= tf.reduce_all(hit_eos)
-            return tf.logical_not(finished)
-
-        decoded_ids = tf.zeros([batch_size, 0], dtype=tf.int64)
-        hit_eos = tf.fill([batch_size], False)
-        next_id = tf.zeros([batch_size, 1], dtype=tf.int64)
-        initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
-        _, _, _, decoded_ids, cache, log_prob = tf.while_loop(
-            is_not_finished,
-            inner_loop, [
-                tf.constant(0), hit_eos, next_id, decoded_ids, cache,
-                initial_log_prob
-            ],
-            shape_invariants=[
-                tf.TensorShape([]),
-                tf.TensorShape([None]),
-                tf.TensorShape([None, None]),
-                tf.TensorShape([None, None]),
-                tf.contrib.framework.nest.map_structure(beam_search.get_state_shape_invariants, cache),
-                tf.TensorShape([None]),
-            ])
-        scores = log_prob
-
-    cache["outputs"] = decoded_ids
-    cache["scores"] = scores
-
-    return cache
+    return common.fast_decode(symbols_to_logits_fn, hparams, decode_length,
+                              vocab_size, beam_size, top_beams,
+                              alpha, eos_id, batch_size,
+                              force_decode_length, cache)
 
 
 @registry.register_model("luinet_transformer")

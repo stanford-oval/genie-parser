@@ -18,3 +18,4 @@
 # imports to force registration with t2t
 from . import copy_transformer
 from . import transformer
+from . import copy_seq2seq
