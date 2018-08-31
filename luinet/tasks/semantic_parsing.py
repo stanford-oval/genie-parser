@@ -135,6 +135,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         # than Text2TextProblem
         hp = hparams
 
+        #FIXME
         hparams_overrides_str = FLAGS.hparams
         if hparams_overrides_str:
             model_hparams = model_hparams.parse(hparams_overrides_str)
@@ -166,27 +167,22 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             tgt_vocab_size = len(grammar.tokens)
         else:
             tgt_vocab_size = grammar.output_size[grammar.primary_output]
-        if self._flatten_grammar:
-            if model_hparams.use_margin_loss:
-                hp.target_modality = ("symbol:max_margin", tgt_vocab_size)
+
+        hp.target_modality = {}
+        hp.add_hparam("primary_target_modality", "targets_" + grammar.primary_output)
+        for key, size in grammar.output_size.items():
+            if key == grammar.primary_output:
+                if model_hparams.use_margin_loss:
+                    hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
+                else:
+                    hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
+            elif grammar.is_copy_type(key):
+                hp.target_modality["targets_" + key] = ("symbol:copy", size)
             else:
-                hp.target_modality = ("symbol:default", tgt_vocab_size)
-        else:
-            hp.target_modality = {}
-            hp.add_hparam("primary_target_modality", "targets_" + grammar.primary_output)
-            for key, size in grammar.output_size.items():
-                if key == grammar.primary_output:
-                    if model_hparams.use_margin_loss:
-                        hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
-                    else:
-                        hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
-                elif grammar.is_copy_type(key):
-                    hp.target_modality["targets_" + key] = ("symbol:copy", size)
-                else:       
-                    modality_name = modality_name_prefix + "pointer_" + key
-                    registry.register_symbol_modality(modality_name)(_make_pointer_modality(modality_name))
-                    hp.target_modality["targets_" + key] = ("symbol:" + modality_name, size)
-  
+                modality_name = modality_name_prefix + "pointer_" + key
+                registry.register_symbol_modality(modality_name)(_make_pointer_modality(modality_name))
+                hp.target_modality["targets_" + key] = ("symbol:" + modality_name, size)
+
     @property
     def is_generate_per_split(self):
         return True
@@ -351,7 +347,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 for key in grammar.output_size:
                     assert decoded_vectors[key].shape == decoded_vectors["actions"].shape, \
                         (key, decoded_vectors[key].shape)
-                
+
                 #grammar.print_prediction([], decoded_vectors)
                 vector = grammar.reconstruct_to_vector(decoded_vectors,
                                                        direction=model_hparams.grammar_direction,

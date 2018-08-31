@@ -12,7 +12,7 @@ GLOVE=${GLOVE:-glove.42B.300d.txt}
 test -f $GLOVE || ( wget https://nlp.stanford.edu/data/glove.42B.300d.zip ; unzip glove.42B.300d.zip ; rm glove.42B.300d.zip )
 export GLOVE
 
-for problem in semparse_thingtalk_noquote ; do
+for problem in semparse_thingtalk_noquote semparse_thingtalk ; do
     workdir=`mktemp -d -p . luinet-tests-XXXXXX`
     pipenv run $SRCDIR/../luinet-datagen --problem $problem --src_data_dir $SRCDIR/dataset/$problem --data_dir $workdir --thingpedia_snapshot 6
 

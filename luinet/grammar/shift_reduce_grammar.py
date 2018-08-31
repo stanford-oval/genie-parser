@@ -288,6 +288,8 @@ class ShiftReduceGrammar(AbstractGrammar):
         # -1 removes the EOS_ID at the end (assuming there is one)
         # if the generated program is incorrect, there might not be
         # one; this is sad and will lower the grammar accuracy; too bad
+
+        # cut the output after seeing the first eos token
         if self.end in vectors['actions'].tolist():
             idx = vectors['actions'].tolist().index(self.end)
         else:

@@ -190,7 +190,9 @@ class CopyTransformer(Transformer):
             targets = features["targets"]
 
         targets_shape = common_layers.shape_list(targets)
+
         targets = common_layers.flatten4d3d(targets)
+
 
         decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
             targets, hparams, features=features)
@@ -219,6 +221,7 @@ class CopyTransformer(Transformer):
             if self._problem_hparams else {"targets": None}
 
         assert hparams.pointer_layer in ("attentive", "decaying_attentive")
+
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
                 with tf.variable_scope("copy_layer/" + key):
