@@ -1,0 +1,23 @@
+[Unit]
+Description=LUINet Semantic Parser Service
+Requires=almond-tokenizer.service
+After=almond-tokenizer.service
+
+[Service]
+ExecStart=/opt/luinet/luinet-server
+Type=notify
+User=luinet
+WorkingDirectory=/var/lib/luinet
+StandardOutput=journal
+StandardError=inherit
+
+# reduce the CPU load we get
+CPUAccounting=true
+CPUShares=512
+
+ProtectHome=true
+ProtectSystem=full
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID
+
+[Install]
+WantedBy=multi-user.target

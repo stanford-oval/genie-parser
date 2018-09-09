@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University 
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""Tiny wrapper for t2t-trainer that automatically loads luinet.
+
+Usage:
+luinet-decoder
+--data_dir workdir/
+--problem semparse_thingtalk_noquote
+--model luinet_copy_transformer
+--hparams_set transformer_tiny_luinet
+--decode_hparams 'beam_size=1,alpha=0.6'
+--output_dir ./workdir/model
+--decode_to_file ./workdir/decoded_results
+--eval_use_test_set
+"""
+
+# Part of this code is derived from Tensor2Tensor, which is:
+# Copyright 2018 The Tensor2Tensor Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+from tensor2tensor.bin import t2t_decoder
+import tensorflow as tf
+
+import luinet
+
+flags = tf.flags
+FLAGS = flags.FLAGS
+
+LUI_prob = False
+LUI_model = False
+
+if 'semparse_thingtalk' in FLAGS.problem:
+    LUI_prob = True
+if "luinet" in FLAGS.model:
+    LUI_model = True
+if LUI_prob != LUI_model:
+    tf.logging.error('** Be advised that LUINetProblems should use LUINetModels while regular t2t.Problems should use t2t.Models **')
+    sys.exit(1)
+
+def main(argv):
+    t2t_decoder.main(argv)
+
+if __name__ == "__main__":
+  tf.app.run()

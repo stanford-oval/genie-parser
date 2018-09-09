@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tensorflow = "~=1.9.0"
+"tensor2tensor" = "*"
+orderedset = "*"
+numpy = "*"
+tornado = "*"
+SQLAlchemy = "*"
+pytest = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"

@@ -1,0 +1,5 @@
+1625839	whenever the stock price for GENERIC_ENTITY_tt:stock_id_0 changes , turn on the heat	monitor ( @com.yahoo.finance.get_stock_quote param:stock_id:Entity(tt:stock_id) = GENERIC_ENTITY_tt:stock_id_0 ) => @thermostat.set_hvac_mode param:mode:Enum(heat,cool,heat_cool,off) = enum:heat
+1634635	create a new file named PATH_NAME_0 on my google drive	now => @com.google.drive.create_new_drive_file param:file_name:Entity(tt:path_name) = PATH_NAME_0
+1621046	if something changes on my icalendar then get my latest instagram images	( monitor ( @org.thingpedia.icalendar.list_events ) ) join ( @com.instagram.get_pictures ) => notify
+1624016	text QUOTED_STRING_0 via sms message to PHONE_NUMBER_0	now => @org.thingpedia.builtin.thingengine.phone.send_sms param:message:String = QUOTED_STRING_0 param:to:Entity(tt:phone_number) = PHONE_NUMBER_0
+1626907	tell me if there are updates in omlet messages	monitor ( @org.thingpedia.builtin.omlet.messages ) => notify
