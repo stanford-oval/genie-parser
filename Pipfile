@@ -5,14 +5,14 @@ name = "pypi"
 
 [packages]
 tensorflow = "~=1.9.0"
-"tensor2tensor" = "*"
 orderedset = "*"
 numpy = "*"
 tornado = "*"
 SQLAlchemy = "*"
-pytest = "*"
+"tensor2tensor" = {editable = true, ref = "master", git = "https://github.com/Stanford-Mobisocial-IoT-Lab/tensor2tensor.git"}
 
 [dev-packages]
+pytest = "*"
 
 [requires]
 python_version = "3.6"
