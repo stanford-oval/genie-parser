@@ -42,6 +42,7 @@ from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import problem
 from tensor2tensor.utils import data_reader
+from tensor2tensor.layers import common_layers
 
 from ..layers.modalities import PretrainedEmbeddingModality, PointerModality
 from ..grammar.abstract import AbstractGrammar
@@ -328,9 +329,29 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             sample_ids[grammar_key] = outputs[key]
         input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
         
+        beam_size = None
+        batch_size = None
+        time = None
+        if len(sample_ids[grammar.primary_output].shape) > 2:
+            # beam search is active, merge the beam and batch dimensions
+            # and tile the input sentence appropriately
+            batch_size, beam_size, time = common_layers.shape_list(sample_ids[grammar.primary_output])
+            input_sentence = tf.tile(tf.expand_dims(input_sentence, axis=1), [1, beam_size, 1])
+            input_sentence = tf.reshape(input_sentence, [batch_size * beam_size, tf.shape(input_sentence)[2]])
+            for key in grammar.output_size:
+                sample_ids[key] = tf.reshape(sample_ids[key], [batch_size * beam_size, time])
+        
         def compute_prediction_pyfunc(sample_ids, input_sentence_batch):
             batch_size = len(sample_ids[grammar.primary_output])
             
+            # each value in sample_ids should be [batch, time] or
+            # [batch * beam, time]
+            assert len(sample_ids[grammar.primary_output].shape) == 2
+            for key in grammar.output_size:
+                assert sample_ids[key].shape == sample_ids["actions"].shape, \
+                    (key, sample_ids[key].shape)
+            assert len(input_sentence_batch) == batch_size
+
             outputs = []
             output_len = None
             for i in range(batch_size):
@@ -338,16 +359,13 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 for key in grammar.output_size:
                     decoded_vectors[key] = sample_ids[key][i]
                     
-                for key in grammar.output_size:
-                    assert decoded_vectors[key].shape == decoded_vectors["actions"].shape, \
-                        (key, decoded_vectors[key].shape)
-
                 #grammar.print_prediction([], decoded_vectors)
                 vector = grammar.reconstruct_to_vector(decoded_vectors,
                                                        direction=model_hparams.grammar_direction,
                                                        ignore_errors=True)
                 if decode:
                     vector = grammar.decode_program(input_sentence_batch[i], vector)
+                    #print(input_sentence_batch[i], vector)
                 outputs.append(vector)
                 if output_len is None or len(vector) > output_len:
                     output_len = len(vector)
@@ -362,11 +380,15 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 
             return output_matrix
         
-        return tf.contrib.framework.py_func(compute_prediction_pyfunc,
-                                            [sample_ids, input_sentence],
-                                            output_shapes=tf.TensorShape([None, None]),
-                                            output_types=(tf.string if decode else tf.int32),
-                                            stateful=False)
+        predictions = tf.contrib.framework.py_func(compute_prediction_pyfunc,
+                                                   [sample_ids, input_sentence],
+                                                   output_shapes=tf.TensorShape([None, None]),
+                                                   output_types=(tf.string if decode else tf.int32),
+                                                   stateful=False)
+        if beam_size is not None:
+            # beam search is active, resplit the batch and beam dimensions
+            predictions = tf.reshape(predictions, [batch_size, beam_size, tf.shape(predictions)[1]])
+        return predictions
     
     def begin_data_generation(self, data_dir):
         # nothing to do
