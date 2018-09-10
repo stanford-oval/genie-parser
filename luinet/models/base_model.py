@@ -39,6 +39,7 @@ import copy
 import tensorflow as tf
 
 from tensor2tensor.utils import metrics
+from tensor2tensor.utils import registry
 from tensor2tensor.utils.t2t_model import T2TModel
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import learning_rate
@@ -62,6 +63,58 @@ class LUINetModel(T2TModel):
         target_modality = self._problem_hparams.target_modality
         return not isinstance(target_modality, dict) and \
              target_modality.name.startswith("real_")
+
+    def _create_modalities(self, problem_hparams, hparams):
+        """Construct modalities in problem_hparams."""
+
+        input_modality_overrides = {}
+        for override_str in hparams.input_modalities.split(";"):
+           if override_str != "default":
+               parts = override_str.split(":")
+               feature_name = parts[0]
+               modality_name = ":".join(parts[1:])
+               input_modality_overrides[feature_name] = modality_name
+
+        target_modality_name = None
+        if hparams.target_modality and hparams.target_modality != "default":
+            target_modality_name = hparams.target_modality
+
+        input_modality = {}
+        for f, modality_spec in problem_hparams.input_modality.items():
+            if f in input_modality_overrides:
+                _warn_changed_modality_type(input_modality_overrides[f],
+                                            modality_spec[0], f)
+                modality_spec = (input_modality_overrides[f], modality_spec[1])
+            if isinstance(modality_spec, tuple):
+                input_modality[f] = registry.create_modality(modality_spec, hparams)
+            else:
+                input_modality[f] = modality_spec(hparams)
+        problem_hparams.input_modality = input_modality
+
+        if isinstance(problem_hparams.target_modality, dict):
+            target_modality = {}
+            for f, modality_spec in problem_hparams.target_modality.items():
+                # TODO(lukaszkaiser): allow overriding other target modalities.
+                if target_modality_name and f == "targets":
+                    _warn_changed_modality_type(target_modality_name, modality_spec[0],
+                                                "target_modality/%s" % f)
+                    modality_spec = (target_modality_name, modality_spec[1])
+                if isinstance(modality_spec, tuple):
+                    target_modality[f] = registry.create_modality(modality_spec, hparams)
+                else:
+                    target_modality[f] = modality_spec
+        else:
+            target_modality_spec = problem_hparams.target_modality
+            if target_modality_name:
+                _warn_changed_modality_type(target_modality_name,
+                                            target_modality_spec[0], "target")
+                target_modality_spec = (target_modality_name, target_modality_spec[1])
+
+            if isinstance(modality_spec, tuple):
+                target_modality = registry.create_modality(target_modality_spec, hparams)
+            else:
+                target_modality = modality_spec(hparams)
+        problem_hparams.target_modality = target_modality
     
     def infer(self, 
         features=None, 

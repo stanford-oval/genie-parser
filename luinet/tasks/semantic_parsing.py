@@ -68,8 +68,8 @@ class IdentityEncoder(object):
         return ' '.join(filter(lambda y: y not in ['<s>', ' 0PAD'], (map(lambda x: x.decode('utf-8'), x))))
 
 
-def _make_pointer_modality(name):
-    return lambda model_hparams, vocab_size=None: \
+def _make_pointer_modality(name, vocab_size):
+    return lambda model_hparams: \
         PointerModality(name, model_hparams, vocab_size=vocab_size)
 
 
@@ -144,13 +144,11 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         with tf.gfile.Open(os.path.join(model_hparams.data_dir,
                                         "input_embeddings.npy"), "rb") as fp:
             pretrained_input_embeddings = np.load(fp)
-        pretrained_modality = lambda model_hparams, vocab_size=None: \
+        pretrained_modality = lambda model_hparams: \
             PretrainedEmbeddingModality("inputs", pretrained_input_embeddings,
                                         model_hparams)
-        registry.register_symbol_modality(modality_name_prefix + "pretrained_inputs")(pretrained_modality)
         hp.input_modality = {
-            "inputs": ("symbol:" + modality_name_prefix + "pretrained_inputs",
-                       source_vocab_size)
+            "inputs": pretrained_modality
         }
         
         data_dir = (model_hparams and hasattr(model_hparams, "data_dir") and
@@ -175,8 +173,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 hp.target_modality["targets_" + key] = ("symbol:copy", size)
             else:
                 modality_name = modality_name_prefix + "pointer_" + key
-                registry.register_symbol_modality(modality_name)(_make_pointer_modality(modality_name))
-                hp.target_modality["targets_" + key] = ("symbol:" + modality_name, size)
+                hp.target_modality["targets_" + key] = _make_pointer_modality(modality_name, size)
 
     @property
     def is_generate_per_split(self):
