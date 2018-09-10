@@ -104,6 +104,9 @@ class QueryHandler(tornado.web.RequestHandler):
         
         results = []
         for decoded, score in zip(outputs, scores):
+            if len(decoded) == 0:
+                # grammar error, skip
+                continue
             decoded = [x.decode('utf-8') for x in decoded]
             json_rep = dict(code=decoded, score=float(score))
             results.append(json_rep)
