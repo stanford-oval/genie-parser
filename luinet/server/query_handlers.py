@@ -104,10 +104,10 @@ class QueryHandler(tornado.web.RequestHandler):
         
         results = []
         for decoded, score in zip(outputs, scores):
+            decoded = [x.decode('utf-8') for x in decoded if x != b'']
             if len(decoded) == 0:
                 # grammar error, skip
                 continue
-            decoded = [x.decode('utf-8') for x in decoded]
             json_rep = dict(code=decoded, score=float(score))
             results.append(json_rep)
             if limit >= 0 and len(results) >= limit:
