@@ -34,11 +34,11 @@ class TokenizeHandler(tornado.web.RequestHandler):
     '''
 
     @tornado.gen.coroutine
-    def get(self, locale='en-US', **kw):
+    def get(self, locale='en-US', model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
 
         query = self.get_query_argument("q")
-        language = self.application.get_language(locale)
+        language = self.application.get_language(locale, model_tag)
         
         #print('GET /%s/tokenize' % locale, query)
         tokenized = yield language.tokenizer.tokenize(query)
@@ -146,13 +146,13 @@ class QueryHandler(tornado.web.RequestHandler):
 
 
     @tornado.gen.coroutine
-    def get(self, **kw):
+    def get(self, model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
 
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         store = self.get_query_argument("store", "yes")
-        language = self.application.get_language(locale)
+        language = self.application.get_language(locale, model_tag)
         try:
             limit = int(self.get_query_argument("limit", default=5))
         except ValueError:

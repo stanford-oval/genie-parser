@@ -20,14 +20,22 @@ Created on Nov 6, 2017
 @author: gcampagn
 '''
 
+import tensorflow as tf
+
 class ExactMatcher():
-    def __init__(self, database, language):
+    def __init__(self, database, language, model_tag):
         self._database = database
         self._language = language
+        self._model_tag = model_tag
         
         self._dict = dict() 
     
     def load(self):
+        if self._model_tag is not None:
+            # FIXME
+            tf.logging.info('Skipping exact matcher for non-default model @%s', self._model_tag)
+            return
+        
         n = 0
         for row in self._database.execute("""
 select preprocessed,target_code from example_utterances
@@ -36,7 +44,7 @@ and preprocessed <> ''""",
                                           language=self._language):
             self._dict[row['preprocessed']] = row['target_code'].split(' ')
             n += 1
-        print('Loaded %d exact matches for language %s' % (n, self._language))
+        tf.logging.info('Loaded %d exact matches for language %s', n, self._language)
             
     def add(self, utterance, target_json):
         self._dict[utterance] = target_json.split(' ')
