@@ -38,8 +38,10 @@ from .predictor import Predictor
 
 
 class LanguageContext(object):
-    def __init__(self, tag, tokenizer, predictor):
+    def __init__(self, tag, language_tag, model_tag, tokenizer, predictor):
         self.tag = tag
+        self.language_tag = language_tag
+        self.model_tag = model_tag
         self.tokenizer = tokenizer
         self.predictor = predictor
 
@@ -52,7 +54,11 @@ class Application(tornado.web.Application):
             (r"/(?P<locale>[a-zA-Z-]+)/tokenize", TokenizeHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
-            (r"/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
+            (r"/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/tokenize", TokenizeHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
         ])
     
         if config.db_url:
@@ -64,46 +70,83 @@ class Application(tornado.web.Application):
         self.thread_pool = thread_pool
         self._tokenizer = tokenizer_service
         
-    def _load_language(self, tag, model_dir):
+    def _load_language(self, language_tag, model_tag, model_dir):
         with tf.gfile.Open(os.path.join(model_dir, "model.json")) as fp:
             config = json.load(fp)
 
-        tokenizer = Tokenizer(self._tokenizer, tag)
+        tokenizer = Tokenizer(self._tokenizer, language_tag)
         predictor = Predictor(model_dir, config)
+
+        if model_tag is not None:
+            tag = '@%s/%s' % (model_tag, language_tag)
+        else:
+            tag = language_tag
         
-        language = LanguageContext(tag, tokenizer, predictor)
+        language = LanguageContext(tag, language_tag, model_tag, tokenizer, predictor)
         self._languages[tag] = language
         if self.database:
-            language.exact = ExactMatcher(self.database, tag)
+            language.exact = ExactMatcher(self.database, language_tag, model_tag)
             language.exact.load()
         else:
             language.exact = None
-        tf.logging.info('Loaded language ' + tag)
+        if model_tag is not None:
+            tf.logging.info('Loaded model @%s/%s', model_tag, language_tag)
+        else:
+            tf.logging.info('Loaded model @default/%s', language_tag)
             
     def load_all_languages(self):
         for tag in self.config.languages:
-            self._load_language(tag, self.config.get_model_directory(tag))
+            if tag.startswith('@'):
+                model_tag, language_tag = tag.split('/')
+                model_tag = model_tag[1:]
+            else:
+                language_tag = tag
+                model_tag = None
+            self._load_language(language_tag, model_tag, self.config.get_model_directory(tag))
     
-    def reload_language(self, tag):
-        tf.logging.info('Reloading language ' + tag)
-        self._load_language(tag, self.config.get_model_directory(tag))
+    def reload_language(self, language_tag, model_tag=None):
+        if model_tag is not None:
+            tag = '@%s/%s' % (model_tag, language_tag)
+            tf.logging.info('Reloading model @%s/%s', model_tag, language_tag)
+        else:
+            tag = language_tag
+            tf.logging.info('Reloading model @default/%s', language_tag) 
+        self._load_language(language_tag, model_tag, self.config.get_model_directory(tag))
     
-    def get_language(self, locale):
+    def get_language(self, locale, model_tag=None):
         '''
         Convert a locale tag into a preloaded language
         '''
+
+        if model_tag == 'default':
+            model_tag = None
         
         split_tag = re.split("[_\\.\\-]", locale)
+        
         # try with language and country
         language = None
         if len(split_tag) >= 2:
-            language = self._languages.get(split_tag[0] + "-" + split_tag[1], None)
+            key = split_tag[0] + "-" + split_tag[1]
+            if model_tag is not None:
+                key = '@' + model_tag + '/' + key
+            language = self._languages.get(key, None)
         if language is None and len(split_tag) >= 1:
-            language = self._languages.get(split_tag[0], None)
+            key = split_tag[0]
+            if model_tag is not None:
+                key = '@' + model_tag + '/' + key
+            language = self._languages.get(key, None)
 
         # fallback to english if the language is not recognized or
         # locale was not specified
         if language:
             return language
         else:
+            if model_tag is not None:
+                key = '@' + model_tag + '/' + self.config.default_language
+                language = self._languages.get(key, None)
+                if language is not None:
+                    return language
+                else:
+                    tf.logging.warning("Ignored model tag " + model_tag)
+            
             return self._languages[self.config.default_language]

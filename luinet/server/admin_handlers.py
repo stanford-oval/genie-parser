@@ -34,9 +34,9 @@ class BaseAdminHandler(tornado.web.RequestHandler):
 
 
 class ReloadHandler(BaseAdminHandler):
-    def post(self, locale='en-US', **kw):
+    def post(self, locale='en-US', model_tag=None, **kw):
         self.check_authenticated()
-        language = self.application.get_language(locale)
-        self.application.reload_language(language.tag)
+        language = self.application.get_language(locale, model_tag)
+        self.application.reload_language(language.language_tag, language.model_tag)
         self.write(dict(result='ok'))
         self.finish()

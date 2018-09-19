@@ -33,18 +33,22 @@ def check_program_entities(program, entities):
 
 class LearnHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
-    def post(self, locale='en-US', **kw):
+    def post(self, locale='en-US', model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
 
         query = self.get_argument("q")
-        language = self.application.get_language(locale)
+        language = self.application.get_language(locale, model_tag)
         target_code = self.get_argument("target")
         store = self.get_argument("store", "automatic")
+        owner = self.get_argument("owner", None) or None
         #print('POST /%s/learn' % locale, target_code)
         
         grammar = language.predictor.problem.grammar
         
         tokenized = yield language.tokenizer.tokenize(query)
+        if len(tokenized.tokens) == 0:
+            raise tornado.web.HTTPError(400, reason="Refusing to learn an empty sentence")
+
         sequence = target_code.split(' ')
         try:
             vectorized = grammar.tokenize_to_vector(tokenized.tokens, sequence)
@@ -62,20 +66,21 @@ class LearnHandler(tornado.web.RequestHandler):
             self.finish(dict(result="Learnt successfully"))
             return
         
-        if not store in ('automatic', 'online'):
+        if not store in ('automatic', 'online', 'commandpedia'):
             raise tornado.web.HTTPError(400, reason="Invalid store parameter")
         if store == 'online' and sequence[0] == 'bookkeeping':
             store = 'online-bookkeeping'
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
-                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, -1)",
+        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count, owner) " +
+                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
                                           language=language.tag,
                                           utterance=query,
                                           preprocessed=preprocessed,
                                           type=store,
-                                          target_code=target_code)
+                                          target_code=target_code,
+                                          owner=owner)
         if language.exact and store in ('online', 'online-bookkeeping'):
             language.exact.add(preprocessed, target_code)
         self.write(dict(result="Learnt successfully"))

@@ -41,11 +41,14 @@ from .application import Application
 from .tokenizer import TokenizerService
 from .config import ServerConfig
 
+FLAGS = tf.flags.FLAGS
+tf.flags.DEFINE_string("config_file", "/var/lib/luinet/server.conf", "Configuration file to use")
+
 def main(argv):
     tf.logging.set_verbosity(tf.logging.INFO)
     np.random.seed(42)
 
-    config = ServerConfig.load(('./server.conf',))
+    config = ServerConfig.load((FLAGS.config_file,))
     
     if sys.version_info[2] >= 6:
         thread_pool = ThreadPoolExecutor(thread_name_prefix='query-thread-')

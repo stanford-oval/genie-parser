@@ -34,11 +34,11 @@ class TokenizeHandler(tornado.web.RequestHandler):
     '''
 
     @tornado.gen.coroutine
-    def get(self, locale='en-US', **kw):
+    def get(self, locale='en-US', model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
 
         query = self.get_query_argument("q")
-        language = self.application.get_language(locale)
+        language = self.application.get_language(locale, model_tag)
         
         #print('GET /%s/tokenize' % locale, query)
         tokenized = yield language.tokenizer.tokenize(query)
@@ -104,7 +104,10 @@ class QueryHandler(tornado.web.RequestHandler):
         
         results = []
         for decoded, score in zip(outputs, scores):
-            decoded = [x.decode('utf-8') for x in decoded]
+            decoded = [x.decode('utf-8') for x in decoded if x != b'']
+            if len(decoded) == 0:
+                # grammar error, skip
+                continue
             json_rep = dict(code=decoded, score=float(score))
             results.append(json_rep)
             if limit >= 0 and len(results) >= limit:
@@ -143,13 +146,13 @@ class QueryHandler(tornado.web.RequestHandler):
 
 
     @tornado.gen.coroutine
-    def get(self, **kw):
+    def get(self, model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
 
         query = self.get_query_argument("q")
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         store = self.get_query_argument("store", "yes")
-        language = self.application.get_language(locale)
+        language = self.application.get_language(locale, model_tag)
         try:
             limit = int(self.get_query_argument("limit", default=5))
         except ValueError:
@@ -164,10 +167,12 @@ class QueryHandler(tornado.web.RequestHandler):
         
         result = None
         tokens = tokenized.tokens
-        if len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
+        if len(tokens) == 0:
+            result = [dict(code=['bookkeeping', 'special', 'special:failed'], score='Infinity')]
+        elif len(tokens) == 1 and (tokens[0][0].isupper() or tokens[0] in ('1', '0')):
             # if the whole input is just an entity, return that as an answer
             result = [dict(code=['bookkeeping', 'answer', tokens[0]], score='Infinity')]
-        if expect == 'MultipleChoice':
+        elif expect == 'MultipleChoice':
             choices = dict()
             for arg in self.request.query_arguments:
                 if arg == 'choices[]':
@@ -185,7 +190,7 @@ class QueryHandler(tornado.web.RequestHandler):
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice':
+        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice' and len(tokens) > 0:
             self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
                                               "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
                                               language=language.tag,
@@ -193,8 +198,9 @@ class QueryHandler(tornado.web.RequestHandler):
                                               target_code=' '.join(result[0]['code']))
         
         sys.stdout.flush()
-        cache_time = 3600
-        self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
-        self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
+        #cache_time = 3600
+        #self.set_header("Expires", datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
+        #self.set_header("Cache-Control", "public,max-age=" + str(cache_time))
+        self.set_header("Cache-Control", "no-store,must-revalidate")
         self.write(dict(candidates=result, tokens=tokens, entities=tokenized.values))
         self.finish()

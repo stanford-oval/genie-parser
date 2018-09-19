@@ -19,6 +19,13 @@ PORT = 8888
 
 TokenizerResult = namedtuple('TokenizerResult', ('tokens', 'values', 'constituency_parse'))
 
+def clean_tokens(tokens):
+    for t in tokens:
+        if t[0].isupper() and '*' in t:
+            yield t.rsplit('*', maxsplit=1)[0]
+        else:
+            yield t
+
 class TokenizerService(object):
     '''
     Wraps the IPC to the Java TokenizerService (which runs tokenization and named
@@ -44,7 +51,7 @@ class TokenizerService(object):
             response = json.loads(str(response, encoding='utf-8'))
             
             id = int(response['req'])
-            result = TokenizerResult(tokens=response['tokens'],
+            result = TokenizerResult(tokens=list(clean_tokens(response['tokens'])),
                                      values=response['values'],
                                      constituency_parse=response['constituencyParse'])
             self._requests[id].set_result(result)
