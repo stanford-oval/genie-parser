@@ -174,7 +174,17 @@ def do_test_invalid_tokenize(grammar, start_symbol, test_vectors, terminals=None
             # force running the generator all the way to the end
             list(tokenize(program, generator, terminals))
 
+            
+def test_invalid_reconstruct():            
+    generator = SLRParserGenerator(PARENTHESIS_GRAMMAR, '$S')
+    parser = generator.build()
+    
+    with pytest.raises(ValueError):
+        parser.reconstruct([])
+    with pytest.raises(ValueError):
+        parser.reconstruct([(SHIFT_CODE, (3, '(')), (SHIFT_CODE, (3, '('))])
 
+        
 def test_tiny_thingtalk():
     TEST_VECTORS = [
         ['monitor', 'thermostat.get_temp', 'twitter.post', 'param:text', 'qs0'],
