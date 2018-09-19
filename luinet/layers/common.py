@@ -547,7 +547,7 @@ def fast_decode(symbols_to_logits_fn,
 
     if beam_size > 1:  # Beam Search
         initial_ids = tf.zeros([batch_size], dtype=tf.int32)
-        decoded_ids, scores = beam_search.beam_search(
+        decoded_ids, scores, cache = beam_search.beam_search(
             symbols_to_logits_fn,
             initial_ids,
             beam_size,

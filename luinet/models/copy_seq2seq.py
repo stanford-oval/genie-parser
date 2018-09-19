@@ -241,11 +241,11 @@ class CopySeq2SeqModel(LUINetModel):
 
         for key, modality in target_modality.items():
             if isinstance(modality, CopyModality):
-                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, tf.shape(features["inputs"])[1]))
+                cache["logits"][key] = tf.zeros((batch_size, 0, 1, 1, tf.shape(features["inputs"])[1]))
             else:
-                cache["logits"][key] = tf.zeros((batch_size * beam_size, 0, 1, 1, modality.top_dimensionality))
+                cache["logits"][key] = tf.zeros((batch_size, 0, 1, 1, modality.top_dimensionality))
             # the last dimension of all cache tensors must be fixed in the loop
-            cache["outputs_" + key] = tf.zeros((batch_size * beam_size, 0, 1), dtype=tf.int64)
+            cache["outputs_" + key] = tf.zeros((batch_size, 0, 1), dtype=tf.int64)
 
     def _symbols_to_logits_fn(self,
                               targets,
@@ -415,9 +415,38 @@ class CopySeq2SeqModel(LUINetModel):
         hparams_decoder.hidden_size = 2 * self._hparams.hidden_size
         
         def dp_initial_state(encoder_output, input_length, final_encoder_state):
-            decoder_cell = construct_decoder_cell(hparams_decoder, encoder_output, input_length)
-            initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(
-                cell_state=final_encoder_state)
+            if beam_size > 1:
+                tiled_encoder_output = tf.contrib.seq2seq.tile_batch(encoder_output,
+                                                                     beam_size)
+                tiled_input_length = tf.contrib.seq2seq.tile_batch(input_length,
+                                                                   beam_size)
+                tiled_final_encoder_state = tf.contrib.seq2seq.tile_batch(final_encoder_state,
+                                                                          beam_size)
+            else:
+                tiled_encoder_output = encoder_output
+                tiled_input_length = input_length
+                tiled_final_encoder_state = final_encoder_state
+            decoder_cell = construct_decoder_cell(hparams_decoder, tiled_encoder_output, tiled_input_length)
+
+            initial_state = decoder_cell.zero_state(batch_size * beam_size, tf.float32).clone(
+                cell_state=tiled_final_encoder_state)
+            
+            # HACK: expand_dims on the time dimension to appease the t2t beam_search
+            # code (which does not deal with scalars well)
+            # the time dimension is only used to write TensorArrays, which we don't
+            # need
+            initial_state = initial_state._replace(time=tf.zeros((batch_size * beam_size,), dtype=tf.int32))
+            
+            # HACK: t2t's beam_search expects everything to be untiled initially,
+            # will tile and then leave everything tiled
+            # contrib.seq2seq's beam search instead expects everything tiled
+            # from the beginning
+            # we just created the fully tiled initial state, so now we "untile"
+            # it by taking the first beam of each batch element
+            # this is ok because all beams have the same value initially
+            initial_state = tf.contrib.framework.nest.map_structure(lambda x: x[::beam_size],
+                                                                    initial_state)
+            
             return decoder_cell, initial_state
         
         with tf.variable_scope("body"):
@@ -467,9 +496,15 @@ class CopySeq2SeqModel(LUINetModel):
                 new_outputs[key] = infer_out["outputs"]
                 del infer_out["outputs"]
             else:
+                decoded_ids = ret["outputs_" + key]
+                if beam_size > 1:
+                    if top_beams == 1:
+                        decoded_ids = decoded_ids[:, 0, :]
+                    else:
+                        decoded_ids = decoded_ids[:, :top_beams, :]
                 # remove the extra dimension that was added to appease the shape
                 # invariants
-                new_outputs[key] = tf.squeeze(infer_out["outputs_" + key], axis=2)
+                new_outputs[key] = tf.squeeze(decoded_ids, axis=-1)
                 del infer_out["outputs_" + key]
 
         infer_out["outputs"] = new_outputs
