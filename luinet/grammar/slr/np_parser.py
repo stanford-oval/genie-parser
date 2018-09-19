@@ -241,7 +241,8 @@ class ShiftReduceParser:
                     stack.append(new_prog)
                     #print(stack)
         #print("Stack", stack)
-        if len(self.terminals) + top_stack_id != self._start_symbol or \
+        if top_stack_id is None or \
+            len(self.terminals) + top_stack_id != self._start_symbol or \
             len(stack) != 1:
             raise ValueError("Invalid sequence")
         
