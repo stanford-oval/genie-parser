@@ -451,11 +451,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     if param_direction == 'in':
                         if param_type == 'Any':
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_String'))
-                        elif param_type != 'Boolean':
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_' + param_type))
-                        else:
+                        elif param_type.startswith('Array('):
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_Array'))
+                        elif param_type == 'Boolean':
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'true'))
                             GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'false'))
+                        else:
+                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_' + param_type))
 
         self._grammar = GRAMMAR
 
