@@ -4,6 +4,8 @@ branches:
 language: python
 python:
 - '3.6'
+before_install:
+- openssl aes-256-cbc -K $encrypted_8d12f199dec1_key -iv $encrypted_8d12f199dec1_iv -in travis/id_rsa.autodeploy.enc -out travis/id_rsa.autodeploy -d
 install:
 - pip install pipenv
 - pipenv install --dev
@@ -13,4 +15,8 @@ script:
 notifications:
   slack:
     secure: w4jyIgNqO0TFNpVtLYOhXNg5S5q6PLMZshBrwEZl8ldMty7RfVamq48TfSj9/sWO+cWzOBiZxAKX1s243k36FvjoKKgeTBFyvZTlXJr8setuI+gZzFESrVfyaTKJ4IbFkuY9AbAvggMaf816gDRH3s0hHCPnIjRHH0IrofmhxkStK0cULdpICDcIef0VyQ5k7eI9CAeBXX41C34Qe3hseurMnlZfJL7vqtE48FDyhuJ2FIqKmRoqAWh8ef8ogppo2rcwvIZM9ZyYLG1Z9upc29dNjF3lAKFPSVtYDg6YX8wlUhMZPHMtHG6/ENbFJ4+FL95zpG0giPTXCEwl+JE/ynzpzhB+usu0qEB+XYU4jwzNyG1hzxAe5ki3s+aUZXCRHDma/lyer4XBGO45Wv6Sao9epyTA+9UfDg7Q+E6kv4vyBOWfZI3pFm2KuiWHpjts7XwU/MB4Q8d2ZKQhgWeEoqFWYUNb7UulSRlAVBT8IHFNW6SiHlJ6inRfNmo4MOw6PipnJBYmGNoiwdCPNQgVuHOIYqkEOQ4r6y7mQgbJrOn1CO5o9jCJ+gSyKaDTcD8/jZE0vISXezPCeFgbzVdGxzAw1/VkgfweUohvhYk1zEuwAiPXJwLqL0dpiRmuYM1YDrECtBRAa5mxi3QZ2kjTJHTI0GGEvY6W0VyP3xm/gOg=
-
+deploy:
+  provider: script
+  script: travis/deploy.sh
+  on:
+    branch: production
