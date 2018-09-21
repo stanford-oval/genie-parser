@@ -1,3 +1,7 @@
+addons:
+  ssh_known_hosts:
+  - almond-nl.stanford.edu
+  - parmesan.stanford.edu
 branches:
   except:
   - "/^wip/"
