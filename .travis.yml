@@ -10,6 +10,7 @@ python:
 - '3.6'
 before_install:
 - openssl aes-256-cbc -K $encrypted_8d12f199dec1_key -iv $encrypted_8d12f199dec1_iv -in travis/id_rsa.autodeploy.enc -out travis/id_rsa.autodeploy -d
+- chmod 0600 travis/id_rsa.autoreploy
 install:
 - pip install pipenv
 - pipenv install --dev
