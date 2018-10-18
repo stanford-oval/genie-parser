@@ -17,7 +17,8 @@ model_hparams[luinet_copy_transformer]=transformer_luinet
 model_hparams[luinet_copy_seq2seq]=lstm_luinet
 
 for problem in semparse_thingtalk_noquote semparse_thingtalk ; do
-    workdir=`mktemp -d -p . luinet-tests-XXXXXX`
+    TMPDIR=`pwd`
+    workdir=`mktemp -d $TMPDIR/luinet-tests-XXXXXX`
     pipenv run $SRCDIR/../luinet-datagen --problem $problem --src_data_dir $SRCDIR/dataset/$problem --data_dir $workdir --thingpedia_snapshot 6
 
     i=0
