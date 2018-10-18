@@ -13,7 +13,7 @@ test -f $GLOVE || ( wget --no-verbose https://nlp.stanford.edu/data/glove.42B.30
 export GLOVE
 
 declare -A model_hparams
-model_hparams[luinet_copy_transformer]=transformer_tiny_luinet
+model_hparams[luinet_copy_transformer]=transformer_luinet
 model_hparams[luinet_copy_seq2seq]=lstm_luinet
 
 for problem in semparse_thingtalk_noquote semparse_thingtalk ; do

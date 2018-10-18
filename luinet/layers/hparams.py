@@ -17,11 +17,11 @@
 '''
 Created on Jul 26, 2018
 
-@author: gcampagn
+@author: gcampagn, mehrad
 '''
 
 from tensor2tensor.utils import registry
-from tensor2tensor.models.transformer import transformer_tiny
+from tensor2tensor.models.transformer import transformer_tiny, transformer_base
 from tensor2tensor.models.lstm import lstm_luong_attention
 
 def luinet_extra_hparams(hp):
@@ -30,11 +30,16 @@ def luinet_extra_hparams(hp):
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
     hp.add_hparam("pointer_layer", "attentive")
+    hp.add_hparam("num_hidden_layers", 2)
+    hp.add_hparam("hidden_size", 128)
+    hp.add_hparam("filter_size", 512)
+    hp.add_hparam("num_heads", 4)
 
 @registry.register_hparams
-def transformer_tiny_luinet():
+def transformer_luinet():
     # Start with the base set
-    hp = transformer_tiny()
+    # default is transformer_tiny
+    hp = transformer_base()
     luinet_extra_hparams(hp)
     return hp
 
