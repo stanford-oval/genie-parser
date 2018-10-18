@@ -30,10 +30,10 @@ def luinet_extra_hparams(hp):
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
     hp.add_hparam("pointer_layer", "attentive")
-    hp.add_hparam("num_hidden_layers", 2)
-    hp.add_hparam("hidden_size", 128)
-    hp.add_hparam("filter_size", 512)
-    hp.add_hparam("num_heads", 4)
+    hp.set_hparam("num_hidden_layers", 2)
+    hp.set_hparam("hidden_size", 128)
+    hp.set_hparam("filter_size", 512)
+    hp.set_hparam("num_heads", 4)
 
 @registry.register_hparams
 def transformer_luinet():
