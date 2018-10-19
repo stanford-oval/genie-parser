@@ -17,127 +17,117 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 '''
-Created on Apr 12, 2017
+Created on Oct 18, 2018
 
-@author: gcampagn
+@author: mehrad
 '''
 
 import os
-import sys
 import numpy as np
+import argparse
+import pickle
 import tensorflow as tf
 
-from util.seq2seq import Seq2SeqEvaluator
-from util.trainer import Trainer
 
-from util.loader import load_dictionary, load_embeddings
-from util.loader import unknown_tokens, load_data
-from thingtalk.grammar import ThingtalkGrammar
+from utils.loader import load_dictionary, load_embeddings
+from utils.loader import unknown_tokens, load_data
+from luinet.grammar.thingtalk import ThingTalkGrammar
 
-def run():
-    if len(sys.argv) < 5:
-        print("** Usage: python " + sys.argv[0] + " <<Input Vocab>> <<Word Embeddings>> <<Train Set> <<Test Set>>")
-        sys.exit(1)
 
-    np.random.seed(42)
-    
-    words, reverse = load_dictionary(sys.argv[1], 'tt')
+def run(args):
+    cached_grammar = args.cached_grammar
+
+    if args.load_grammar:
+        with tf.gfile.Open(cached_grammar, 'rb') as fr:
+            grammar = pickle.load(fr)
+        words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
+    else:
+        grammar = ThingTalkGrammar(args.thingpedia_snapshot, flatten=False)
+        words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
+        grammar.set_input_dictionary(words)
+        with tf.gfile.Open(cached_grammar, 'wb') as fw:
+            pickle.dump(grammar, fw, pickle.HIGHEST_PROTOCOL)
+
+
     print("%d words in dictionary" % (len(words),))
-    embeddings_matrix = load_embeddings(sys.argv[2], words, embed_size=300)
+    glove = os.getenv('GLOVE', args.word_embedding)
+    if args.load_embeddings:
+        with tf.gfile.Open(args.cached_embeddings, "rb") as fr:
+            embeddings_matrix = np.load(fr)
+    else:
+        embeddings_matrix, embed_size = load_embeddings(glove, words, embed_size=300)
+        with tf.gfile.Open(args.cached_embeddings, "wb") as fw:
+            np.save(fw, embeddings_matrix)
     max_length = 60
-    
-    grammar = ThingtalkGrammar()
-    
-    train_data = load_data(sys.argv[3], words, grammar.dictionary,
-                           reverse, grammar.tokens,
-                           max_length)
-    test_data = load_data(sys.argv[4], words, grammar.dictionary,
-                             reverse, grammar.tokens,
-                             max_length)
+
+    grammar.dictionary['<unk>'] = len(grammar.dictionary)
+
+
+    train_data = load_data(args.train_set, words, grammar, max_length)
+    test_data = load_data(args.test_set, words, grammar, max_length)
     print("unknown", unknown_tokens)
 
-    # Tell TensorFlow that the model will be built into the default Graph.
-    # (not required but good practice)
-    with tf.Graph().as_default():
-        # Create a session for running Ops in the Graph
-        with tf.Session() as sess:
-            input_embed_matrix = tf.constant(embeddings_matrix)
-            train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[0]))
-            train_encoded = tf.reduce_sum(train_inputs, axis=1)
-            #print train_encoded.eval()
-            train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
+    with tf.Session() as sess:
+        input_embed_matrix = tf.constant(embeddings_matrix)
 
-            test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[0]))
-            test_encoded = tf.reduce_sum(test_inputs, axis=1)
-            test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
-            #print test_encoded.eval()
+        train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[1]))
+        train_encoded = tf.reduce_sum(train_inputs, axis=1)
+        train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
 
-            #print (train_encoded - test_encoded).eval()
-        
-            distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
-            distances /= tf.reshape(train_norm, (1, -1))
-            distances /= tf.reshape(test_norm, (-1, 1))
-            #print distances.eval()
-            indices = tf.argmax(distances, axis=1)
-            #print indices.eval()
+        test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[1]))
+        test_encoded = tf.reduce_sum(test_inputs, axis=1)
+        test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
 
-            ok_0 = 0
-            ok_ch = 0
-            ok_fn = 0
-            ok_full = 0
-            correct_programs = set()
-            gold_programs = set()
-            for gold in test_data[2]:
-                try:
-                    gold = gold[:list(gold).index(grammar.end)]
-                except ValueError:
-                    pass
-                gold_programs.add(tuple(gold))
+        distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
+        distances /= tf.reshape(train_norm, (1, -1))
+        distances /= tf.reshape(test_norm, (-1, 1))
 
-            indices = indices.eval(session=sess)
-            print(indices.shape)
-            
-            for test_i, train_i in enumerate(indices):
-                gold = list(test_data[2][test_i])
-                decoded = list(train_data[2][train_i])
-                try:
-                    decoded = decoded[:decoded.index(grammar.end)]
-                except ValueError:
-                    pass
-                decoded_tuple = tuple(decoded)
-                
-                try:
-                    gold = gold[:gold.index(grammar.end)]
-                except ValueError:
-                    pass
-                
-                #print "GOLD:", ' '.join(grammar.tokens[l] for l in gold)
-                #print "DECODED:", ' '.join(grammar.tokens[l] for l in decoded)
+        indices = tf.argmax(distances, axis=1)
+        indices = indices.eval(session=sess)
 
-                if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0]:
-                    ok_0 += 1
 
-                def get_functions(seq):
-                    return set([x for x in [grammar.tokens[x] for x in seq] if x.startswith('tt:') and not x.startswith('tt:param.')])
-                gold_functions = get_functions(gold)
-                decoded_functions = get_functions(decoded)
-                gold_channels = set([x[x.index('.')+1:] for x in gold_functions])
-                decoded_channels = set([x[x.index('.')+1:] for x in decoded_functions])
-                if len(decoded) > 0 and len(gold) > 0 and decoded[0] == gold[0] and gold_functions == decoded_functions:
-                    ok_fn += 1
-                if gold_channels == decoded_channels:
-                    ok_ch += 1
-                if grammar.compare(gold, decoded):
-                    correct_programs.add(decoded_tuple)
-                    ok_full += 1
-        
-        print("ok 0:", float(ok_0)/len(test_data[0]))
-        print("ok channel:", float(ok_ch)/len(test_data[0]))
-        print("ok function:", float(ok_fn)/len(test_data[0]))
-        print("ok full:", float(ok_full)/len(test_data[0]))
-        print("recall:", float(len(correct_programs))/len(gold_programs))
+        gold = tf.stack(list(test_data[5].values()), axis=-1)
+        gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
+        gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
 
+        decoded = tf.stack(list(train_data[5].values()), axis=-1)
+        decoded = tf.gather(decoded, indices, axis=0)
+        decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
+
+        metrics = grammar.eval_metrics()
+        eval_metrics = {}
+
+        for metric_key, metric_fn in metrics.items():
+            metric_name = "metrics-{}".format(metric_key)
+            first, second = metric_fn(decoded, gold, None)
+
+            scores, weights = first, second
+            eval_metrics[metric_name] = tf.metrics.mean(scores, weights)
+
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+
+        for metric_key, metric_val in eval_metrics.items():
+            #mean_val = metric_val[0]
+            metric_val = sess.run(metric_val)
+            mean_val = metric_val[0]
+            print(metric_key, ":", mean_val)
 
 
 if __name__ == "__main__":
-    run()
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--input_vocab', default='./workdir/t2t_copy_data_generated/input_words.txt', type=str)
+    parser.add_argument('--word_embedding', default='./workdir/t2t_copy_data_generated/glove.42B.300d.txt', type=str)
+    parser.add_argument('--thingpedia_snapshot', default='./workdir/t2t_copy_data_generated/thingpedia.json', type=str)
+    parser.add_argument('--train_set', default='./dataset/t2t_copy_data/train.tsv', type=str)
+    parser.add_argument('--test_set', default='./dataset/t2t_copy_data/test.tsv', type=str)
+    parser.add_argument('--load_grammar', default=False, type=bool)
+    parser.add_argument('--cached_grammar', default='./workdir/cached_grammar.pkl', type=str)
+    parser.add_argument('--load_embeddings', default=False, type=bool)
+    parser.add_argument('--cached_embeddings', default='./workdir/input_embeddings.npy', type=str)
+
+    args = parser.parse_args()
+
+    run(args)

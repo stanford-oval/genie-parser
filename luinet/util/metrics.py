@@ -27,7 +27,6 @@ import tensorflow as tf
 import collections
 
 
-
 def adjust_predictions_labels(predictions, labels, num_elements_per_time=3):  #preds (?, ?)   lables (?,?,1,1)
     batch_size = tf.shape(predictions)[0]
     
