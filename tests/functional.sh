@@ -16,9 +16,12 @@ declare -A model_hparams
 model_hparams[luinet_copy_transformer]=transformer_tiny_luinet
 model_hparams[luinet_copy_seq2seq]=lstm_luinet
 
+
+
 for problem in semparse_thingtalk_noquote semparse_thingtalk ; do
     workdir=`mktemp -d -p . luinet-tests-XXXXXX`
     pipenv run $SRCDIR/../luinet-datagen --problem $problem --src_data_dir $SRCDIR/dataset/$problem --data_dir $workdir --thingpedia_snapshot 6
+    pipenv run python3 $SRCDIR/../luinet/scripts/retrieval.py --input_vocab $workdir/input_words.txt --thingpedia_snapshot $workdir/thingpedia.json --train_set $SRCDIR/dataset/$problem/train.tsv --test_set $SRCDIR/dataset/$problem/dev.tsv --cached_grammar $workdir/cached_grammar.pkl --cached_embeddings $workdir/input_embeddings.npy
 
     i=0
     for model in luinet_copy_seq2seq luinet_copy_transformer ; do
@@ -40,6 +43,6 @@ for problem in semparse_thingtalk_noquote semparse_thingtalk ; do
             done
         done
     done
-
     rm -fr $workdir
+
 done

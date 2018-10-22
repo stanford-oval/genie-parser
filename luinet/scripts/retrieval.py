@@ -19,19 +19,21 @@
 '''
 Created on Oct 18, 2018
 
-@author: mehrad
+@author: mehrad, gcampagn
 '''
-
 import os
+import sys
+
+# workaround to import modules from parent directory
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+
 import numpy as np
 import argparse
 import pickle
 import tensorflow as tf
-
-
-from utils.loader import load_dictionary, load_embeddings
-from utils.loader import unknown_tokens, load_data
+from luinet.scripts.utils.loader import load_dictionary, load_embeddings, load_data, unknown_tokens
 from luinet.grammar.thingtalk import ThingTalkGrammar
+
 
 
 def run(args):
@@ -60,64 +62,64 @@ def run(args):
             np.save(fw, embeddings_matrix)
     max_length = 60
 
-    grammar.dictionary['<unk>'] = len(grammar.dictionary)
-
+    #grammar.dictionary['<unk>'] = len(grammar.dictionary)
 
     train_data = load_data(args.train_set, words, grammar, max_length)
     test_data = load_data(args.test_set, words, grammar, max_length)
     print("unknown", unknown_tokens)
 
-    with tf.Session() as sess:
-        input_embed_matrix = tf.constant(embeddings_matrix)
 
-        train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[1]))
-        train_encoded = tf.reduce_sum(train_inputs, axis=1)
-        train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
+    with tf.Graph().as_default():
+        # use cpu which potentially has more memory
+        with tf.device('/cpu:0'):
+            with tf.Session() as sess:
+                input_embed_matrix = tf.constant(embeddings_matrix)
 
-        test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[1]))
-        test_encoded = tf.reduce_sum(test_inputs, axis=1)
-        test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
+                train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[1]))
+                train_encoded = tf.reduce_sum(train_inputs, axis=1)
+                train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
 
-        distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
-        distances /= tf.reshape(train_norm, (1, -1))
-        distances /= tf.reshape(test_norm, (-1, 1))
+                test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[1]))
+                test_encoded = tf.reduce_sum(test_inputs, axis=1)
+                test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
 
-        indices = tf.argmax(distances, axis=1)
-        indices = indices.eval(session=sess)
+                distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
+                distances /= tf.reshape(train_norm, (1, -1))
+                distances /= tf.reshape(test_norm, (-1, 1))
+
+                indices = tf.argmax(distances, axis=1)
+                indices = indices.eval(session=sess)
 
 
-        gold = tf.stack(list(test_data[5].values()), axis=-1)
-        gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
-        gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
+                gold = tf.stack(list(test_data[5].values()), axis=-1)
+                gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
+                gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
 
-        decoded = tf.stack(list(train_data[5].values()), axis=-1)
-        decoded = tf.gather(decoded, indices, axis=0)
-        decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
+                decoded = tf.stack(list(train_data[5].values()), axis=-1)
+                decoded = tf.gather(decoded, indices, axis=0)
+                decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
 
-        metrics = grammar.eval_metrics()
-        eval_metrics = {}
+                metrics = grammar.eval_metrics()
+                eval_metrics = {}
 
-        for metric_key, metric_fn in metrics.items():
-            metric_name = "metrics-{}".format(metric_key)
-            first, second = metric_fn(decoded, gold, None)
+                for metric_key, metric_fn in metrics.items():
+                    metric_name = "metrics-{}".format(metric_key)
+                    first, second = metric_fn(decoded, gold, None)
 
-            scores, weights = first, second
-            eval_metrics[metric_name] = tf.metrics.mean(scores, weights)
+                    scores, weights = first, second
+                    eval_metrics[metric_name] = tf.metrics.mean(scores, weights, name=metric_name)
 
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-
-        for metric_key, metric_val in eval_metrics.items():
-            #mean_val = metric_val[0]
-            metric_val = sess.run(metric_val)
-            mean_val = metric_val[0]
-            print(metric_key, ":", mean_val)
+                for metric_key, metric_val in eval_metrics.items():
+                    tf_metric, tf_metric_update = metric_val
+                    sess.run(tf.local_variables_initializer())
+                    sess.run(tf_metric_update)
+                    metric_val = sess.run(tf_metric)
+                    print(metric_key, ":", metric_val)
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--input_vocab', default='./workdir/t2t_copy_data_generated/input_words.txt', type=str)
     parser.add_argument('--word_embedding', default='./workdir/t2t_copy_data_generated/glove.42B.300d.txt', type=str)
     parser.add_argument('--thingpedia_snapshot', default='./workdir/t2t_copy_data_generated/thingpedia.json', type=str)

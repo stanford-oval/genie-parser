@@ -22,3 +22,4 @@ from . import util
 from . import layers
 from . import models
 from . import tasks
+from . import scripts
