@@ -43,13 +43,13 @@ class ExactMatcher():
         n = 0
         for row in self._database.execute("""
 select preprocessed,target_code from example_utterances
-where language =  %(language)s and type in ('online', 'online-bookkeeping', 'commandpedia')
+where language =  %(language)s and type in ('online', 'online-bookkeeping', 'commandpedia', 'thingpedia') and not is_base
 and preprocessed <> ''""",
                                           language=self._language):
             self.add(row['preprocessed'], row['target_code'])
             n += 1
         tf.logging.info('Loaded %d exact matches for language %s', n, self._language)
-            
+    
     def add(self, utterance, target_code):
         utterance = utterance.split(' ') 
         target_code = target_code.split(' ')
