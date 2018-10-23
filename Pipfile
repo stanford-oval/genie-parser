@@ -10,6 +10,7 @@ numpy = "*"
 tornado = "*"
 SQLAlchemy = "*"
 "tensor2tensor" = {editable = true, ref = "master", git = "https://github.com/Stanford-Mobisocial-IoT-Lab/tensor2tensor.git"}
+semver = "*"
 
 [dev-packages]
 pytest = "*"
