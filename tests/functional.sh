@@ -9,7 +9,7 @@ SRCDIR=`dirname $0`
 # create a workdir and train a model
 
 GLOVE=${GLOVE:-glove.42B.300d.txt}
-test -f $GLOVE || ( wget --no-verbose https://nlp.stanford.edu/data/glove.42B.300d.zip ; unzip glove.42B.300d.zip ; rm glove.42B.300d.zip )
+test -f $GLOVE || ( wget --no-verbose https://parmesan.stanford.edu/glove/glove.42B.300d.zip ; unzip glove.42B.300d.zip ; rm glove.42B.300d.zip )
 export GLOVE
 
 declare -A model_hparams
