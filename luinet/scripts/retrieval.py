@@ -30,6 +30,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import numpy as np
 import argparse
 import pickle
+import math
 import tensorflow as tf
 from luinet.scripts.utils.loader import load_dictionary, load_embeddings, load_data, unknown_tokens
 from luinet.grammar.thingtalk import ThingTalkGrammar
@@ -50,7 +51,6 @@ def run(args):
         with tf.gfile.Open(cached_grammar, 'wb') as fw:
             pickle.dump(grammar, fw, pickle.HIGHEST_PROTOCOL)
 
-
     print("%d words in dictionary" % (len(words),))
     glove = os.getenv('GLOVE', args.word_embedding)
     if args.load_embeddings:
@@ -62,59 +62,70 @@ def run(args):
             np.save(fw, embeddings_matrix)
     max_length = 60
 
-    #grammar.dictionary['<unk>'] = len(grammar.dictionary)
-
     train_data = load_data(args.train_set, words, grammar, max_length)
     test_data = load_data(args.test_set, words, grammar, max_length)
-    print("unknown", unknown_tokens)
-
+    N = test_data[1].shape[0]
+    batch_size = args.batch_size
+    n_batches = math.ceil(N // batch_size)
 
     with tf.Graph().as_default():
-        # use cpu which potentially has more memory
-        with tf.device('/cpu:0'):
-            with tf.Session() as sess:
-                input_embed_matrix = tf.constant(embeddings_matrix)
+        # define placeholders
+        test_data_placeholder_sentences = tf.placeholder(dtype=tf.int32, shape=[None, max_length])
+        test_data_placeholder_programs = tf.placeholder(dtype=tf.int32, shape=[None, max_length, 3])
 
-                train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[1]))
-                train_encoded = tf.reduce_sum(train_inputs, axis=1)
-                train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
+        # Dataset
+        dataset = tf.data.Dataset.from_tensor_slices((test_data_placeholder_sentences, test_data_placeholder_programs))
+        batched_dataset = dataset.batch(batch_size)
 
-                test_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(test_data[1]))
-                test_encoded = tf.reduce_sum(test_inputs, axis=1)
-                test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
+        iterator = batched_dataset.make_initializable_iterator()
+        sentences, programs = iterator.get_next()
 
-                distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
-                distances /= tf.reshape(train_norm, (1, -1))
-                distances /= tf.reshape(test_norm, (-1, 1))
+        input_embed_matrix = tf.constant(embeddings_matrix)
 
-                indices = tf.argmax(distances, axis=1)
-                indices = indices.eval(session=sess)
+        train_inputs = tf.nn.embedding_lookup([input_embed_matrix], np.array(train_data[1]))
+        train_encoded = tf.reduce_sum(train_inputs, axis=1)
+        train_norm = tf.sqrt(tf.reduce_sum(train_encoded * train_encoded, axis=1))
 
+        test_inputs = tf.nn.embedding_lookup([input_embed_matrix], sentences)
+        test_encoded = tf.reduce_sum(test_inputs, axis=1)
+        test_norm = tf.sqrt(tf.reduce_sum(test_encoded * test_encoded, axis=1))
 
-                gold = tf.stack(list(test_data[5].values()), axis=-1)
-                gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
-                gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
+        distances = tf.matmul(test_encoded, tf.transpose(train_encoded))
+        distances /= tf.reshape(train_norm, (1, -1))
+        distances /= tf.reshape(test_norm, (-1, 1))
 
-                decoded = tf.stack(list(train_data[5].values()), axis=-1)
-                decoded = tf.gather(decoded, indices, axis=0)
-                decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
+        indices = tf.argmax(distances, axis=1)
 
-                metrics = grammar.eval_metrics()
-                eval_metrics = {}
+        gold = programs
+        gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
+        gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
 
-                for metric_key, metric_fn in metrics.items():
-                    metric_name = "metrics-{}".format(metric_key)
-                    first, second = metric_fn(decoded, gold, None)
+        decoded = tf.stack(list(train_data[5].values()), axis=-1)
+        decoded = tf.gather(decoded, indices, axis=0)
+        decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
 
-                    scores, weights = first, second
-                    eval_metrics[metric_name] = tf.metrics.mean(scores, weights, name=metric_name)
+        metrics = grammar.eval_metrics()
+        eval_metrics = {}
 
-                for metric_key, metric_val in eval_metrics.items():
-                    tf_metric, tf_metric_update = metric_val
-                    sess.run(tf.local_variables_initializer())
-                    sess.run(tf_metric_update)
-                    metric_val = sess.run(tf_metric)
-                    print(metric_key, ":", metric_val)
+        for metric_key, metric_fn in metrics.items():
+            metric_name = "metrics-{}".format(metric_key)
+            first, second = metric_fn(decoded, gold, None)
+
+            scores, weights = first, second
+            eval_metrics[metric_name] = tf.metrics.mean(scores, weights, name=metric_name)
+
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            sess.run(iterator.initializer, feed_dict={test_data_placeholder_sentences: np.array(test_data[1]),
+                                                      test_data_placeholder_programs: np.stack(list(test_data[5].values()), axis=-1)})
+            sess.run(tf.local_variables_initializer())
+
+            for i in range(n_batches):
+                sess.run([metric_val[1] for metric_key, metric_val in eval_metrics.items()])
+
+            metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
+            for j, (metric_key, _) in enumerate(eval_metrics.items()):
+                print(metric_key, ":", metric_val[j])
 
 
 if __name__ == "__main__":
@@ -129,6 +140,7 @@ if __name__ == "__main__":
     parser.add_argument('--cached_grammar', default='./workdir/cached_grammar.pkl', type=str)
     parser.add_argument('--load_embeddings', default=False, type=bool)
     parser.add_argument('--cached_embeddings', default='./workdir/input_embeddings.npy', type=str)
+    parser.add_argument('--batch_size', default=100, type=int)
 
     args = parser.parse_args()
 
