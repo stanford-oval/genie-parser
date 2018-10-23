@@ -26,7 +26,9 @@ import tornado.gen
 import tornado.concurrent
 import sys
 import datetime
+import semver
 
+from .constants import LATEST_THINGTALK_VERSION, DEFAULT_THINGTALK_VERSION
 
 class TokenizeHandler(tornado.web.RequestHandler):
     '''
@@ -144,6 +146,36 @@ class QueryHandler(tornado.web.RequestHandler):
         results = results[:limit]
         return results
 
+    def _apply_compatibility(self, results, thingtalk_version):
+        if semver.match(thingtalk_version, "<1.3.0"):
+            # convert stream-join "=>" to "join" 
+            
+            for result in results:
+                code = result['code']
+                if len(code) == 0 or code[0] == 'policy':
+                    continue
+                
+                start = 0
+                if code[0] == 'executor':
+                    while code[start] != ':':
+                        start += 1
+                    start += 1
+                
+                has_now = code[start] == 'now'
+                if has_now:
+                    start += 2 # "now" & "=>"
+
+                last_arrow = None
+                for i in range(len(code)-1, start, -1):
+                    if code[i] == '=>':
+                        last_arrow = i
+                        break
+                if last_arrow is None:
+                    continue
+                
+                for i in range(start, last_arrow):
+                    if code[i] == '=>':
+                        code[i] = 'join'
 
     @tornado.gen.coroutine
     def get(self, model_tag=None, **kw):
@@ -153,6 +185,8 @@ class QueryHandler(tornado.web.RequestHandler):
         locale = kw.get('locale', None) or self.get_query_argument("locale", default="en-US")
         store = self.get_query_argument("store", "yes")
         language = self.application.get_language(locale, model_tag)
+        thingtalk_version = self.get_argument("thingtalk_version",
+                                              DEFAULT_THINGTALK_VERSION)
         try:
             limit = int(self.get_query_argument("limit", default=5))
         except ValueError:
@@ -196,6 +230,8 @@ class QueryHandler(tornado.web.RequestHandler):
                                               language=language.tag,
                                               preprocessed=' '.join(tokens),
                                               target_code=' '.join(result[0]['code']))
+        
+        self._apply_compatibility(result, thingtalk_version)
         
         sys.stdout.flush()
         #cache_time = 3600

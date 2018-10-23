@@ -23,6 +23,8 @@ Created on Aug 2, 2017
 import tornado.web
 import re
 
+from .constants import LATEST_THINGTALK_VERSION, DEFAULT_THINGTALK_VERSION
+
 entity_re = re.compile('^[A-Z_]+_[0-9]')
 def check_program_entities(program, entities):
     for token in program:
@@ -41,6 +43,8 @@ class LearnHandler(tornado.web.RequestHandler):
         target_code = self.get_argument("target")
         store = self.get_argument("store", "automatic")
         owner = self.get_argument("owner", None) or None
+        thingtalk_version = self.get_argument("thingtalk_version",
+                                              DEFAULT_THINGTALK_VERSION)
         #print('POST /%s/learn' % locale, target_code)
         
         grammar = language.predictor.problem.grammar
@@ -48,6 +52,14 @@ class LearnHandler(tornado.web.RequestHandler):
         tokenized = yield language.tokenizer.tokenize(query)
         if len(tokenized.tokens) == 0:
             raise tornado.web.HTTPError(400, reason="Refusing to learn an empty sentence")
+
+        # if the client is out of date, don't even try to parse the code
+        # (as it might have changed meaning in the newer version of ThingTalk
+        # anyway)
+        if thingtalk_version != LATEST_THINGTALK_VERSION:
+            self.write(dict(result="Ignored request from older ThingTalk"))
+            self.finish()
+            return
 
         sequence = target_code.split(' ')
         try:
