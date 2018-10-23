@@ -22,6 +22,8 @@ Created on Mar 1, 2018
 
 import tornado.web
 
+import tensorflow as tf
+
 
 class BaseAdminHandler(tornado.web.RequestHandler):
     def check_authenticated(self):
@@ -38,5 +40,15 @@ class ReloadHandler(BaseAdminHandler):
         self.check_authenticated()
         language = self.application.get_language(locale, model_tag)
         self.application.reload_language(language.language_tag, language.model_tag)
+        self.write(dict(result='ok'))
+        self.finish()
+
+
+class ExactMatcherReload(BaseAdminHandler):
+    def post(self, locale='en-US', model_tag=None, **kw):
+        self.check_authenticated()
+        language = self.application.get_language(locale, model_tag)
+        tf.logging.info('Reloading exact matches for %s', language.tag)
+        language.exact.load()
         self.write(dict(result='ok'))
         self.finish()
