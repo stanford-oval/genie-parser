@@ -32,19 +32,26 @@ import argparse
 import pickle
 import math
 import tensorflow as tf
-from luinet.scripts.utils.loader import load_dictionary, load_embeddings, load_data, unknown_tokens
+from luinet.scripts.utils.loader import load_dictionary, load_embeddings, load_data
 from luinet.grammar.thingtalk import ThingTalkGrammar
 
 
 
 def run(args):
     cached_grammar = args.cached_grammar
+    load_grammar = args.load_grammar
+    if load_grammar:
+        if not os.path.exists(cached_grammar):
+            print('** Grammar file doesn\'t exist **')
+            load_grammar = False
+        else:
+            print('Loading grammar from file...')
+            with tf.gfile.Open(cached_grammar, 'rb') as fr:
+                grammar = pickle.load(fr)
+            words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
 
-    if args.load_grammar:
-        with tf.gfile.Open(cached_grammar, 'rb') as fr:
-            grammar = pickle.load(fr)
-        words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
-    else:
+    if not load_grammar:
+        print('Building grammar file...')
         grammar = ThingTalkGrammar(args.thingpedia_snapshot, flatten=False)
         words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
         grammar.set_input_dictionary(words)

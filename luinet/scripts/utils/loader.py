@@ -409,8 +409,6 @@ def load_data(from_file, input_words, grammar, max_length):
     input_lengths = []
     parses = []
     labels = defaultdict(list)
-    # for key in grammar.output_size:
-    #     labels[key] = []
     label_lengths = []
     label_sequences = []
     total_label_len = 0
