@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+import code
 '''
 Created on Nov 6, 2017
 
@@ -22,46 +23,8 @@ Created on Nov 6, 2017
 
 import tensorflow as tf
 
-
-class TrieNode:
-    def __init__(self):
-        self.value = None
-        self.children = dict()
-
-    def set_value(self, value):
-        self.value = value
-
-    def add_child(self, key):
-        child = TrieNode()
-        self.children[key] = child
-        return child
-    
-    def get_child(self, key):
-        return self.children.get(key, None)
-
-
-class Trie:
-    def __init__(self):
-        self.root = TrieNode()
-    
-    def insert(self, sequence, value):
-        node = self.root
-        for key in sequence:
-            child = node.get_child(key)
-            if child is None:
-                child = node.add_child(key)
-            node = child
-        node.set_value(value)
-    
-    def search(self, sequence):
-        node = self.root
-        for key in sequence:
-            child = node.get_child(key)
-            if child is None:
-                return None
-            node = child
-        return node.value
-
+from ..util.strings import find_span
+from ..util.trie import Trie, WILDCARD
 
 class ExactMatcher():
     def __init__(self, database, language, model_tag):
@@ -87,8 +50,39 @@ and preprocessed <> ''""",
             n += 1
         tf.logging.info('Loaded %d exact matches for language %s', n, self._language)
             
-    def add(self, utterance, target_json):
-        self._trie.insert(utterance.split(' '), target_json.split(' '))
+    def add(self, utterance, target_code):
+        utterance = utterance.split(' ') 
+        target_code = target_code.split(' ')
+
+        in_string = False
+        span_begin = None
+        for i, token in enumerate(target_code):
+            if token != '"':
+                continue
+            in_string = not in_string
+            if in_string:
+                span_begin = i+1
+            else:
+                span_end = i
+                span = target_code[span_begin:span_end]
+                begin_index, end_index = find_span(utterance, span)
+
+                # find_span returns inclusive indices (because the NN likes those better)
+                for j in range(begin_index, end_index + 1):
+                    utterance[j] = WILDCARD
+                for j in range(span_begin, span_end):
+                    target_code[j] = begin_index + j - span_begin
+        
+        self._trie.insert(utterance, target_code)
         
     def get(self, utterance):
-        return self._trie.search(utterance.split(' '))
+        utterance = utterance.split(' ')
+        
+        code = self._trie.search(utterance)
+        if code is None:
+            return code
+        code = list(code)
+        for i, token in enumerate(code):
+            if isinstance(token, int):
+                code[i] = utterance[token]
+        return code

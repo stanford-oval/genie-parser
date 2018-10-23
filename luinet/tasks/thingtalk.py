@@ -41,7 +41,7 @@ import tensorflow as tf
 from .semantic_parsing import SemanticParsingProblem
 from ..grammar.thingtalk import ThingTalkGrammar
 
-from ..util.loader import clean, tokenize
+from ..util.strings import clean, tokenize
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("thingpedia_snapshot", -1, "Thingpedia snapshot to use")

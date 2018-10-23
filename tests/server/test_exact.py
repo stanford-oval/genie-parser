@@ -22,6 +22,7 @@ Created on Oct 23, 2018
 
 from luinet.server.exact import ExactMatcher
 
+
 def test_exact_basic():
     matcher = ExactMatcher(None, 'en', 'default')
     
@@ -33,5 +34,35 @@ def test_exact_basic():
     assert matcher.get('post on twitter saying foo') == ('now => @com.twitter.post param:status:String = " foo "'.split(' '))
     
     assert matcher.get('post on facebook') == None
-    assert matcher.get('post on twitter saying lol') == None
+    assert matcher.get('post on twitter with lol') == None
+    assert matcher.get('post on') == None
+    
+
+def test_exact_quote_free():
+    matcher = ExactMatcher(None, 'en', 'default')
+    
+    matcher.add('get xkcd', 'now => @com.xkcd.get => notify')
+    matcher.add('post on twitter', 'now => @com.twitter.post')
+    matcher.add('post on twitter saying foo', 'now => @com.twitter.post param:status:String = " foo "')
+    matcher.add('post abc on twitter', 'now => @com.twitter.post param:status:String = " abc "')
+    matcher.add('post abc def on twitter', 'now => @com.twitter.post param:status:String = " abc def "')
+    matcher.add('post abc on facebook', 'now => @com.facebook.post param:status:String = " abc "')
+    matcher.add('post websites on twitter', 'now => @com.bing.search => @com.twitter.post')
+    
+    
+    assert matcher.get('post on twitter') == ('now => @com.twitter.post'.split(' '))
+    assert matcher.get('post on twitter saying foo') == ('now => @com.twitter.post param:status:String = " foo "'.split(' '))
+    assert matcher.get('post on twitter saying lol') == ('now => @com.twitter.post param:status:String = " lol "'.split(' '))
+    
+    assert matcher.get('post abc on twitter') == ('now => @com.twitter.post param:status:String = " abc "'.split(' '))
+    assert matcher.get('post def on twitter') == ('now => @com.twitter.post param:status:String = " def "'.split(' '))
+    assert matcher.get('post def ghi on twitter') == ('now => @com.twitter.post param:status:String = " def ghi "'.split(' '))
+    assert matcher.get('post abc on facebook') == ('now => @com.facebook.post param:status:String = " abc "'.split(' '))
+    
+    assert matcher.get('post websites on twitter') == ('now => @com.bing.search => @com.twitter.post'.split(' '))
+    
+    assert matcher.get('post on facebook') == None
+    assert matcher.get('post on twitter with lol') == None
+    assert matcher.get('post abc on linkedin') == None
+    assert matcher.get('post abc def ghi on twitter') == None
     assert matcher.get('post on') == None
