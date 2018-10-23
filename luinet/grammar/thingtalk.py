@@ -199,7 +199,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     def _process_entities(self, entities):
         for entity in entities:
             if entity['is_well_known'] == 1:
-                    continue
+                continue
             self.entities.append((entity['type'], entity['has_ner_support']))
     
     def init_from_file(self, filename):
@@ -285,7 +285,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ('edge', '(', '$stream', ')', 'on', 'true'),
                         #('$stream_join',)
                         ],
-            '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
+            '$stream_join': [('(', '$stream', ')', '=>', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
             '$action': [('notify',),
                         ('return',),

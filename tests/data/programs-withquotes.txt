@@ -2,10 +2,10 @@ edge ( monitor ( @com.bodytrace.scale.get ) ) on param:value:Measure(kg) <= NUMB
 edge ( monitor ( @com.phdcomics.get_post ) ) on param:updated_time:Date == now - DURATION_0 => notify
 edge ( monitor ( @com.phdcomics.get_post ) ) on param:updated_time:Date == start_of unit:week - 1 unit:week => @org.thingpedia.builtin.thingengine.builtin.say param:message:String = QUOTED_STRING_0
 edge ( monitor ( @gov.nasa.asteroid ) ) on param:estimated_diameter_max:Measure(m) == NUMBER_0 unit:in => @org.thingpedia.builtin.thingengine.builtin.say param:message:String = QUOTED_STRING_0
-( edge ( monitor ( @org.thingpedia.builtin.thingengine.phone.get_gps ) ) on not param:location:Location == location:current_location ) join ( @org.thingpedia.builtin.thingengine.builtin.get_date ) => notify
+( edge ( monitor ( @org.thingpedia.builtin.thingengine.phone.get_gps ) ) on not param:location:Location == location:current_location ) => ( @org.thingpedia.builtin.thingengine.builtin.get_date ) => notify
 edge ( monitor ( @org.thingpedia.builtin.thingengine.phone.get_gps ) ) on param:speed:Measure(mps) <= NUMBER_0 unit:kmph => notify
 edge ( monitor ( @security-camera.current_event ) ) on param:start_time:Date >= end_of unit:mon => notify
-( monitor ( @com.gmail.inbox ) on new param:email_id:Entity(com.gmail:email_id) ) join ( @org.thingpedia.builtin.thingengine.builtin.get_time ) => notify
+( monitor ( @com.gmail.inbox ) on new param:email_id:Entity(com.gmail:email_id) ) => ( @org.thingpedia.builtin.thingengine.builtin.get_time ) => notify
 monitor ( ( @com.live.onedrive.list_files param:order_by:Enum(created_time_increasing,created_time_decreasing,modified_time_increasing,modified_time_decreasing,name_increasing,name_decreasing) = enum:created_time_decreasing ) filter param:created_time:Date >= start_of unit:week and param:modified_time:Date == start_of unit:week - DURATION_0 ) => notify
 monitor ( ( @com.nytimes.get_front_page ) filter param:title:String == QUOTED_STRING_0 and param:updated:Date >= start_of unit:day ) => notify
 monitor ( ( @com.nytimes.get_front_page ) filter param:updated:Date == end_of unit:mon + DURATION_0 ) => notify
@@ -13,14 +13,14 @@ monitor ( ( @com.nytimes.get_front_page ) filter param:updated:Date == start_of 
 monitor ( @com.phdcomics.get_post ) => @com.lg.tv.webos2.play_url on param:url:Entity(tt:url) = param:link:Entity(tt:url)
 monitor ( @com.phdcomics.get_post ) => @org.thingpedia.demo.coffee.order param:beverage:Enum(drip_coffee,espresso,latte,flat_white,mocha,caramel_mocha,white_mocha,macchiato,caramel_macchiato,cappuccino,americano) = enum:caramel_mocha param:extras:Enum(none,milk,sugar,both) = enum:none
 monitor ( ( @com.reddit.frontpage.get ) filter param:category:String == QUOTED_STRING_0 and param:updated:Date == DATE_0 ) => notify
-( monitor ( @com.twitter.home_timeline ) ) join ( @com.washingtonpost.get_blog_post param:section:Enum(the_fix,politics,powerpost,fact_checker,world_views,compost,the_plum_line,post_partisan,post_everything,right_turn,capital_weather_gang,morning_mix,wonkblog) = enum:the_plum_line ) => notify
+( monitor ( @com.twitter.home_timeline ) ) => ( @com.washingtonpost.get_blog_post param:section:Enum(the_fix,politics,powerpost,fact_checker,world_views,compost,the_plum_line,post_partisan,post_everything,right_turn,capital_weather_gang,morning_mix,wonkblog) = enum:the_plum_line ) => notify
 monitor ( ( @com.twitter.search ) filter param:author:Entity(tt:username) == USERNAME_0 and param:text:String =~ QUOTED_STRING_0 ) => notify
 monitor ( @com.uber.time_estimate param:start:Location = location:home ) => notify
 monitor ( ( @com.washingtonpost.get_article param:section:Enum(politics,opinions,local,sports,national,world,business,lifestyle) = enum:politics ) filter param:title:String == QUOTED_STRING_1 ) => @org.thingpedia.builtin.thingengine.builtin.say param:message:String = QUOTED_STRING_0
 monitor ( @com.wsj.get ) => @com.twitter.post on param:status:String = event
 monitor ( @com.wsj.get param:section:Enum(opinions,world_news,us_business,markets,technology,lifestyle) = enum:markets ) on new param:title:String => notify
 monitor ( ( @com.wsj.get param:section:Enum(opinions,world_news,us_business,markets,technology,lifestyle) = enum:technology ) filter not param:title:String =~ QUOTED_STRING_1 ) => @org.thingpedia.builtin.thingengine.builtin.say param:message:String = QUOTED_STRING_0
-( monitor ( @com.wsj.get param:section:Enum(opinions,world_news,us_business,markets,technology,lifestyle) = enum:us_business ) ) join ( @org.thingpedia.weather.sunrise param:date:Date = start_of unit:week - DURATION_0 param:location:Location = location:current_location ) => notify
+( monitor ( @com.wsj.get param:section:Enum(opinions,world_news,us_business,markets,technology,lifestyle) = enum:us_business ) ) => ( @org.thingpedia.weather.sunrise param:date:Date = start_of unit:week - DURATION_0 param:location:Location = location:current_location ) => notify
 monitor ( @com.xkcd.what_if ) => @thermostat.set_hvac_mode param:mode:Enum(heat,cool,heat_cool,off) = enum:heat
 monitor ( @edu.stanford.rakeshr1.fitbit.getbody ) on new param:weight:Measure(kg) => @org.thingpedia.bluetooth.speaker.a2dp.set_sink
 monitor ( @gov.nasa.apod ) => @tumblr-blog.post_picture on param:caption:String = param:description:String
@@ -28,7 +28,7 @@ monitor ( ( @gov.nasa.asteroid ) filter param:is_dangerous:Boolean == true ) => 
 monitor ( @org.thingpedia.builtin.thingengine.phone.get_gps ) on new param:altitude:Measure(m) => notify
 monitor ( @org.thingpedia.builtin.thingengine.phone.sms ) on new param:date:Date => notify
 monitor ( ( @security-camera.current_event ) filter param:has_person:Boolean == true ) => @tumblr-blog.post_picture on param:picture_url:Entity(tt:picture) = param:picture_url:Entity(tt:picture)
-( monitor ( @security-camera.current_event ) ) join ( @com.washingtonpost.get_article param:section:Enum(politics,opinions,local,sports,national,world,business,lifestyle) = enum:lifestyle ) => notify
+( monitor ( @security-camera.current_event ) ) => ( @com.washingtonpost.get_article param:section:Enum(politics,opinions,local,sports,national,world,business,lifestyle) = enum:lifestyle ) => notify
 now => ( ( @com.google.drive.list_drive_files param:order_by:Enum(created_time_increasing,created_time_decreasing,modified_time_increasing,modified_time_decreasing,name_increasing,name_decreasing) = enum:created_time_decreasing ) filter param:created_time:Date >= start_of unit:week ) join ( @com.dropbox.list_folder param:order_by:Enum(modified_time_decreasing,modified_time_increasing,name_decreasing,name_increasing) = enum:modified_time_decreasing ) on param:folder_name:Entity(tt:path_name) = param:file_name:Entity(tt:path_name) => notify
 now => ( @com.live.onedrive.list_files param:order_by:Enum(created_time_increasing,created_time_decreasing,modified_time_increasing,modified_time_decreasing,name_increasing,name_decreasing) = enum:created_time_increasing ) filter param:modified_time:Date == start_of unit:year + DURATION_0 => notify
 now => ( @com.nytimes.get_front_page ) filter param:updated:Date >= start_of unit:day => @com.gmail.send_email param:to:Entity(tt:email_address) = EMAIL_ADDRESS_0 on param:message:String = param:description:String
@@ -46,5 +46,5 @@ now => @org.thingpedia.demo.coffee.order param:beverage:Enum(drip_coffee,espress
 now => ( @org.thingpedia.icalendar.list_events ) filter param:start_date:Date == start_of unit:year => notify
 now => ( @org.thingpedia.icalendar.list_events ) join ( @com.imgflip.generate param:template:Entity(imgflip:meme_id) = GENERIC_ENTITY_imgflip:meme_id_0 param:text_bottom:String = "" ) on param:text_top:String = param:description:String => notify
 now => @org.thingpedia.icalendar.list_events => @org.thingpedia.builtin.thingengine.phone.send_sms param:to:Entity(tt:phone_number) = PHONE_NUMBER_0 on param:message:String = event
-( timer base = now , interval = 1 unit:day ) join ( @com.washingtonpost.get_blog_post param:section:Enum(the_fix,politics,powerpost,fact_checker,world_views,compost,the_plum_line,post_partisan,post_everything,right_turn,capital_weather_gang,morning_mix,wonkblog) = enum:right_turn ) => notify
-( timer base = now , interval = 1 unit:mon ) join ( ( @com.gmail.inbox ) filter param:date:Date >= start_of unit:day ) => notify
+( timer base = now , interval = 1 unit:day ) => ( @com.washingtonpost.get_blog_post param:section:Enum(the_fix,politics,powerpost,fact_checker,world_views,compost,the_plum_line,post_partisan,post_everything,right_turn,capital_weather_gang,morning_mix,wonkblog) = enum:right_turn ) => notify
+( timer base = now , interval = 1 unit:mon ) => ( ( @com.gmail.inbox ) filter param:date:Date >= start_of unit:day ) => notify
