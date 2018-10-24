@@ -28,8 +28,11 @@ class TrieNode:
         self.value = None
         self.children = dict()
 
-    def set_value(self, value):
-        self.value = value
+    def add_value(self, value, limit):
+        if self.value is None:
+            self.value = []
+        self.value.insert(0, value)
+        self.value = self.value[:limit]
 
     def add_child(self, key):
         child = TrieNode()
@@ -49,14 +52,14 @@ class Trie:
     def __init__(self):
         self.root = TrieNode()
     
-    def insert(self, sequence, value):
+    def insert(self, sequence, value, limit):
         node = self.root
         for key in sequence:
             child = node.get_child(key)
             if child is None:
                 child = node.add_child(key)
             node = child
-        node.set_value(value)
+        node.add_value(value, limit)
     
     def search(self, sequence):
         node = self.root

@@ -30,8 +30,8 @@ def test_exact_basic():
     matcher.add('post on twitter', 'now => @com.twitter.post')
     matcher.add('post on twitter saying foo', 'now => @com.twitter.post param:status:String = " foo "')
     
-    assert matcher.get('post on twitter') == ('now => @com.twitter.post'.split(' '))
-    assert matcher.get('post on twitter saying foo') == ('now => @com.twitter.post param:status:String = " foo "'.split(' '))
+    assert matcher.get('post on twitter') == [('now => @com.twitter.post'.split(' '))]
+    assert matcher.get('post on twitter saying foo') == [('now => @com.twitter.post param:status:String = " foo "'.split(' '))]
     
     assert matcher.get('post on facebook') == None
     assert matcher.get('post on twitter with lol') == None
@@ -50,19 +50,36 @@ def test_exact_quote_free():
     matcher.add('post websites on twitter', 'now => @com.bing.search => @com.twitter.post')
     
     
-    assert matcher.get('post on twitter') == ('now => @com.twitter.post'.split(' '))
-    assert matcher.get('post on twitter saying foo') == ('now => @com.twitter.post param:status:String = " foo "'.split(' '))
-    assert matcher.get('post on twitter saying lol') == ('now => @com.twitter.post param:status:String = " lol "'.split(' '))
+    assert matcher.get('post on twitter') == [('now => @com.twitter.post'.split(' '))]
+    assert matcher.get('post on twitter saying foo') == [('now => @com.twitter.post param:status:String = " foo "'.split(' '))]
+    assert matcher.get('post on twitter saying lol') == [('now => @com.twitter.post param:status:String = " lol "'.split(' '))]
     
-    assert matcher.get('post abc on twitter') == ('now => @com.twitter.post param:status:String = " abc "'.split(' '))
-    assert matcher.get('post def on twitter') == ('now => @com.twitter.post param:status:String = " def "'.split(' '))
-    assert matcher.get('post def ghi on twitter') == ('now => @com.twitter.post param:status:String = " def ghi "'.split(' '))
-    assert matcher.get('post abc on facebook') == ('now => @com.facebook.post param:status:String = " abc "'.split(' '))
+    assert matcher.get('post abc on twitter') == [('now => @com.twitter.post param:status:String = " abc "'.split(' '))]
+    assert matcher.get('post def on twitter') == [('now => @com.twitter.post param:status:String = " def "'.split(' '))]
+    assert matcher.get('post def ghi on twitter') == [('now => @com.twitter.post param:status:String = " def ghi "'.split(' '))]
+    assert matcher.get('post abc on facebook') == [('now => @com.facebook.post param:status:String = " abc "'.split(' '))]
     
-    assert matcher.get('post websites on twitter') == ('now => @com.bing.search => @com.twitter.post'.split(' '))
+    assert matcher.get('post websites on twitter') == [('now => @com.bing.search => @com.twitter.post'.split(' '))]
     
     assert matcher.get('post on facebook') == None
     assert matcher.get('post on twitter with lol') == None
     assert matcher.get('post abc on linkedin') == None
     assert matcher.get('post abc def ghi on twitter') == None
     assert matcher.get('post on') == None
+    
+def test_exact_ambiguous():
+    matcher = ExactMatcher(None, 'en', 'default')
+    
+    matcher.add('get a cat', 'now => @com.thecatapi.get => notify')
+    matcher.add('get a cat', 'now => @com.thecatapi2.get => notify')
+    matcher.add('get a cat', 'now => @com.thecatapi3.get => notify')
+    matcher.add('get a dog', 'now => @uk.co.thedogapi.get => notify')
+    
+    # later calls to add() should "win" - be sorted first in the result
+    assert matcher.get('get a cat') == [
+        'now => @com.thecatapi3.get => notify'.split(' '),
+        'now => @com.thecatapi2.get => notify'.split(' '),
+        'now => @com.thecatapi.get => notify'.split(' '),
+    ]
+    
+    assert matcher.get('get a dog') == ['now => @uk.co.thedogapi.get => notify'.split(' ')]

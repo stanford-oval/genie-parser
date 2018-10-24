@@ -44,7 +44,7 @@ class ExactMatcher():
         for row in self._database.execute("""
 select preprocessed,target_code from example_utterances use index (language_flags)
 where language =  %(language)s and find_in_set('exact', flags) and not is_base and preprocessed <> ''
-order by type asc, id desc""",
+order by type asc, id asc""",
                                           language=self._language):
             self.add(row['preprocessed'], row['target_code'])
             n += 1
@@ -73,16 +73,19 @@ order by type asc, id desc""",
                 for j in range(span_begin, span_end):
                     target_code[j] = begin_index + j - span_begin
         
-        self._trie.insert(utterance, target_code)
+        self._trie.insert(utterance, target_code, limit=20)
         
     def get(self, utterance):
         utterance = utterance.split(' ')
         
-        code = self._trie.search(utterance)
-        if code is None:
-            return code
-        code = list(code)
-        for i, token in enumerate(code):
-            if isinstance(token, int):
-                code[i] = utterance[token]
-        return code
+        results = self._trie.search(utterance)
+        if results is None:
+            return results
+        results = list(results)
+        for i, code in enumerate(results):
+            clone = list(code)
+            results[i] = clone
+            for j, token in enumerate(clone):
+                if isinstance(token, int):
+                    clone[j] = utterance[token]
+        return results

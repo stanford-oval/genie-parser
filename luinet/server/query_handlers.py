@@ -218,8 +218,8 @@ class QueryHandler(tornado.web.RequestHandler):
             result = yield self._run_retrieval_query(language, tokens, choices, limit)
         elif result is None and language.exact:
             exact = language.exact.get(' '.join(tokens))
-            if exact:
-                result = [dict(code=exact, score='Infinity')]
+            if exact is not None:
+                result = [dict(code=x, score='Infinity') for x in exact]
                 
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
