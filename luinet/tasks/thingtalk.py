@@ -93,7 +93,7 @@ class AbstractThingTalkProblem(SemanticParsingProblem):
                                 self._add_words_to_dictionary(argcanonical.lower())
                             else:
                                 self._add_words_to_dictionary(clean(argname))
-                        for argtype in function['schema']:
+                        for argtype in (function['types'] if 'types' in function else function['schema']):
                             if not argtype.startswith('Enum('):
                                 continue
                             enum_entries = argtype[len('Enum('):-1].split(',')

@@ -139,7 +139,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     self.functions[function_type][function_name] = paramlist
                     self.allfunctions.append(function_name)
                     for argname, argtype, is_input in zip(function['args'],
-                                                          function['schema'],
+                                                          function['types'] if 'types' in function else function['schema'],
                                                           function['is_input']):
                         direction = 'in' if is_input else 'out'                    
                         paramlist.append((argname, argtype, direction))
