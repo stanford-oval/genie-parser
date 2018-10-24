@@ -85,12 +85,13 @@ class LearnHandler(tornado.web.RequestHandler):
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count, owner) " +
-                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
+        self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
+                                          "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
                                           language=language.tag,
                                           utterance=query,
                                           preprocessed=preprocessed,
                                           type=store,
+                                          flags=('training' if store != 'automatic' else ''),
                                           target_code=target_code,
                                           owner=owner)
         if language.exact and store in ('online', 'online-bookkeeping'):
