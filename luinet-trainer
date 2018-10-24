@@ -39,13 +39,23 @@ luinet-trainer
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
 from tensor2tensor.bin import t2t_trainer
-
 import tensorflow as tf
+from luinet.scripts import avg_checkpoints
+
 flags = tf.flags
-FLAGS = flags.FLAGS
+FLAGS = tf.app.flags.FLAGS
 
 import luinet
+
+LUI_prob = False
+LUI_model = False
+
+flags.DEFINE_bool("perturb_training", False, "training trick")
+flags.DEFINE_integer("num_loops", 3, "training trick")
+
 
 if 'semparse_thingtalk' in FLAGS.problem:
     LUI_prob = True
@@ -56,7 +66,23 @@ if LUI_prob != LUI_model:
     sys.exit(1)
 
 def main(argv):
+    output_dir = FLAGS.output_dir
     t2t_trainer.main(argv)
 
+    if FLAGS.perturb_training:
+        tf.logging.info('Continue training...')
+
+        for i in range(FLAGS.num_loops):
+            FLAGS.num_last_checkpoints = FLAGS.num_last_checkpoints if FLAGS.num_last_checkpoints else 1
+            FLAGS.prefix = os.path.join(FLAGS.output_dir, 'model.ckpt')
+            FLAGS.output_path = os.path.join(output_dir, 'averaged_{}/model.ckpt'.format(i))
+            avg_checkpoints.main(argv)
+            FLAGS.output_dir = os.path.join(output_dir, 'averaged_{}'.format(i))
+            if FLAGS.hparams[-1] == ',':
+                FLAGS.hparams = FLAGS.hparams[:-1]
+            t2t_trainer.main(argv)
+
+        tf.logging.info("Done training!")
+
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()
