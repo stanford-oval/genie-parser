@@ -42,9 +42,9 @@ class ExactMatcher():
         
         n = 0
         for row in self._database.execute("""
-select preprocessed,target_code from example_utterances
-where language =  %(language)s and type in ('online', 'online-bookkeeping', 'commandpedia', 'thingpedia') and not is_base
-and preprocessed <> ''""",
+select preprocessed,target_code from example_utterances use index (language_flags)
+where language =  %(language)s and find_in_set('exact', flags) and not is_base and preprocessed <> ''
+order by type asc, id desc""",
                                           language=self._language):
             self.add(row['preprocessed'], row['target_code'])
             n += 1
