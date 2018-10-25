@@ -62,6 +62,7 @@ def main(_):
         -FLAGS.num_last_checkpoints:]
 
   checkpoints = [c for c in checkpoints if checkpoint_exists(c)]
+  steps = [int(os.path.basename(ckpt).split('-')[1]) for ckpt in checkpoints]
   if not checkpoints:
     if FLAGS.checkpoints:
       raise ValueError(
@@ -88,8 +89,6 @@ def main(_):
     tf.logging.info("Read from checkpoint %s", checkpoint)
   for name in var_values:  # Average.
     var_values[name] /= len(checkpoints)
-  tf.get_variable_scope().reuse_variables()
-  # tf.reset_default_graph()
   with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
       tf_vars = [
           tf.get_variable(v, shape=var_values[v].shape, dtype=var_dtypes[v])
@@ -97,8 +96,9 @@ def main(_):
       ]
   placeholders = [tf.placeholder(v.dtype, shape=v.shape) for v in tf_vars]
   assign_ops = [tf.assign(v, p) for (v, p) in zip(tf_vars, placeholders)]
+  initial_global_step = int(sum(steps) // 2*len(steps))
   global_step = tf.Variable(
-      0, name="global_step", trainable=False, dtype=tf.int64)
+      initial_global_step, name="global_step", trainable=False, dtype=tf.int64)
   saver = tf.train.Saver(tf.all_variables())
 
   # Build a model consisting only of variables, set them to the average values.
