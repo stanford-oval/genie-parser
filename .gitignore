@@ -7,7 +7,8 @@ workdir/*
 transformer_output.txt
 time.txt
 post_process_stats_v2.py
-glove.42B.300d.txt
+glove.42B.300d.*
+luinet-tests-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

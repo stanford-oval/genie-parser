@@ -25,7 +25,7 @@ from tensor2tensor.models.transformer import transformer_base
 from tensor2tensor.models.lstm import lstm_attention_base
 
 def common_luinet_extra_hparams(hp):
-    hp.eval_run_autoregressive = True
+    hp.set_hparam('eval_run_autoregressive', True)
     hp.add_hparam("grammar_direction", "bottomup")
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
@@ -43,7 +43,6 @@ def seq2seq_luinet_extra_hparams(hp):
     hp.set_hparam("hidden_size", 128)
     hp.set_hparam("num_heads", 1)
     hp.set_hparam("output_attention", True)
-
 
 
 @registry.register_hparams
