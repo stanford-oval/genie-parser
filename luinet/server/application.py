@@ -59,7 +59,8 @@ class Application(tornado.web.Application):
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/tokenize", TokenizeHandler),
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
-            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/exact/reload", ExactMatcherReload),
         ])
     
         if config.db_url:
