@@ -225,8 +225,8 @@ class QueryHandler(tornado.web.RequestHandler):
             result = yield self._do_run_query(language, tokenized, limit)
         
         if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice' and len(tokens) > 0:
-            self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count) " +
-                                              "values (0, %(language)s, 'log', '', %(preprocessed)s, '', %(target_code)s, -1)",
+            self.application.database.execute("insert into utterance_log (language, preprocessed, target_code) " +
+                                              "values (%(language)s, %(preprocessed)s, %(target_code)s)",
                                               language=language.tag,
                                               preprocessed=' '.join(tokens),
                                               target_code=' '.join(result[0]['code']))
