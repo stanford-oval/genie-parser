@@ -182,7 +182,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     self.functions[function_type][function_name] = paramlist
                     self.allfunctions.append(function_name)
                     for argname, argtype, is_input in zip(function['args'],
-                                                          function['schema'],
+                                                          function['types'] if 'types' in function else function['schema'],
                                                           function['is_input']):
                         direction = 'in' if is_input else 'out'                    
                         paramlist.append((argname, argtype, direction))
@@ -199,7 +199,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     def _process_entities(self, entities):
         for entity in entities:
             if entity['is_well_known'] == 1:
-                    continue
+                continue
             self.entities.append((entity['type'], entity['has_ner_support']))
     
     def init_from_file(self, filename):

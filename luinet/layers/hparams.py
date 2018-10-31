@@ -17,29 +17,48 @@
 '''
 Created on Jul 26, 2018
 
-@author: gcampagn
+@author: gcampagn, mehrad
 '''
 
 from tensor2tensor.utils import registry
-from tensor2tensor.models.transformer import transformer_tiny
-from tensor2tensor.models.lstm import lstm_luong_attention
+from tensor2tensor.models.transformer import transformer_base
+from tensor2tensor.models.lstm import lstm_attention_base
 
-def luinet_extra_hparams(hp):
-    hp.eval_run_autoregressive = True
+def common_luinet_extra_hparams(hp):
+    hp.set_hparam('eval_run_autoregressive', True)
     hp.add_hparam("grammar_direction", "bottomup")
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
     hp.add_hparam("pointer_layer", "attentive")
 
+def transformer_luinet_extra_hparams(hp):
+    hp.set_hparam("num_hidden_layers", 2)
+    hp.set_hparam("hidden_size", 128)
+    hp.set_hparam("filter_size", 512)
+    hp.set_hparam("num_heads", 4)
+
+def seq2seq_luinet_extra_hparams(hp):
+    hp.add_hparam("attention_mechanism", "luong")
+    hp.set_hparam("num_hidden_layers", 2)
+    hp.set_hparam("hidden_size", 128)
+    hp.set_hparam("num_heads", 1)
+    hp.set_hparam("output_attention", True)
+
+
 @registry.register_hparams
-def transformer_tiny_luinet():
+def transformer_luinet():
     # Start with the base set
-    hp = transformer_tiny()
-    luinet_extra_hparams(hp)
+    # default is transformer_tiny
+    hp = transformer_base()
+    common_luinet_extra_hparams(hp)
+    transformer_luinet_extra_hparams(hp)
     return hp
 
 @registry.register_hparams
 def lstm_luinet():
-    hp = lstm_luong_attention()
-    luinet_extra_hparams(hp)
+    # Start with the base set
+    # default is lstm_luong_attention
+    hp = lstm_attention_base()
+    common_luinet_extra_hparams(hp)
+    seq2seq_luinet_extra_hparams(hp)
     return hp

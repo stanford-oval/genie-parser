@@ -39,36 +39,51 @@ from luinet.grammar.thingtalk import ThingTalkGrammar
 
 
 def run(args):
+    max_length = 60
+
+    if 'noquote' in args.problem:
+        flatten = False
+    else:
+        flatten = True
     cached_grammar = args.cached_grammar
     load_grammar = args.load_grammar
+
+    cached_embedding = args.cached_embeddings
+    load_embedding = args.load_embeddings
     if load_grammar:
         if not os.path.exists(cached_grammar):
             print('** Grammar file doesn\'t exist **')
             load_grammar = False
         else:
             print('Loading grammar from file...')
-            with tf.gfile.Open(cached_grammar, 'rb') as fr:
+            with open(cached_grammar, 'rb') as fr:
                 grammar = pickle.load(fr)
             words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
 
     if not load_grammar:
         print('Building grammar file...')
-        grammar = ThingTalkGrammar(args.thingpedia_snapshot, flatten=False)
+        grammar = ThingTalkGrammar(args.thingpedia_snapshot, flatten=flatten)
         words, reverse = load_dictionary(args.input_vocab, 'tt', grammar)
         grammar.set_input_dictionary(words)
-        with tf.gfile.Open(cached_grammar, 'wb') as fw:
+        with open(cached_grammar, 'wb') as fw:
             pickle.dump(grammar, fw, pickle.HIGHEST_PROTOCOL)
 
     print("%d words in dictionary" % (len(words),))
     glove = os.getenv('GLOVE', args.word_embedding)
-    if args.load_embeddings:
-        with tf.gfile.Open(args.cached_embeddings, "rb") as fr:
-            embeddings_matrix = np.load(fr)
-    else:
+    if load_embedding:
+        if not os.path.exists(cached_embedding):
+            print('** Embedding file doesn\'t exist **')
+            load_embedding = False
+        else:
+            print('Loading embeddings from file...')
+            with open(cached_embedding, "rb") as fr:
+                embeddings_matrix = np.load(fr)
+    if not load_embedding:
+        print('Building embedding matrix...')
         embeddings_matrix, embed_size = load_embeddings(glove, words, embed_size=300)
-        with tf.gfile.Open(args.cached_embeddings, "wb") as fw:
+        with open(cached_embedding, "wb") as fw:
             np.save(fw, embeddings_matrix)
-    max_length = 60
+
 
     train_data = load_data(args.train_set, words, grammar, max_length)
     test_data = load_data(args.test_set, words, grammar, max_length)
@@ -79,9 +94,9 @@ def run(args):
     with tf.Graph().as_default():
         # define placeholders
         train_data_placeholder_sentences = tf.placeholder(dtype=tf.int32, shape=[None, max_length], name='train_s')
-        train_data_placeholder_programs = tf.placeholder(dtype=tf.int32, shape=[None, max_length, 3], name='train_p')
+        train_data_placeholder_programs = tf.placeholder(dtype=tf.int32, shape=[None, max_length, None], name='train_p')
         test_data_placeholder_sentences = tf.placeholder(dtype=tf.int32, shape=[None, max_length], name='test_s')
-        test_data_placeholder_programs = tf.placeholder(dtype=tf.int32, shape=[None, max_length, 3], name='test_p')
+        test_data_placeholder_programs = tf.placeholder(dtype=tf.int32, shape=[None, max_length, None], name='test_p')
 
         # Dataset
         train_dataset = tf.data.Dataset.from_tensor_slices((train_data_placeholder_sentences, train_data_placeholder_programs))
@@ -125,14 +140,14 @@ def run(args):
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             sess.run([train_iterator.initializer], feed_dict={train_data_placeholder_sentences: np.array(train_data[1]),
-                                                             train_data_placeholder_programs: np.stack(list(train_data[5].values()), axis=-1),
+                                                             train_data_placeholder_programs: np.stack(list(train_data[4].values()), axis=-1),
                                                              test_data_placeholder_sentences: np.array(test_data[1]),
-                                                             test_data_placeholder_programs: np.stack(list(test_data[5].values()), axis=-1)})
+                                                             test_data_placeholder_programs: np.stack(list(test_data[4].values()), axis=-1)})
             sess.run(tf.local_variables_initializer())
 
             for i in range(1, train_n_batches+1):
                 sess.run([metric_val[1] for metric_key, metric_val in eval_metrics.items()], feed_dict={test_data_placeholder_sentences: np.array(test_data[1]),
-                                                             test_data_placeholder_programs: np.stack(list(test_data[5].values()), axis=-1)})
+                                                             test_data_placeholder_programs: np.stack(list(test_data[4].values()), axis=-1)})
                 print("iteration- {} / {}".format(i, train_n_batches))
                 if not i%20:
                     metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
@@ -147,17 +162,17 @@ def run(args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_vocab', default='./workdir/t2t_copy_data_generated/input_words.txt', type=str)
+    parser.add_argument('--input_vocab', default='./workdir/t2t_copy_data_generated/test_withquote/input_words.txt', type=str)
     parser.add_argument('--word_embedding', default='./workdir/t2t_copy_data_generated/glove.42B.300d.txt', type=str)
-    parser.add_argument('--thingpedia_snapshot', default='./workdir/t2t_copy_data_generated/thingpedia.json', type=str)
-    parser.add_argument('--train_set', default='./dataset/t2t_copy_data/train.tsv', type=str)
-    parser.add_argument('--test_set', default='./dataset/t2t_copy_data/test.tsv', type=str)
+    parser.add_argument('--thingpedia_snapshot', default='./workdir/t2t_copy_data_generated/test_withquote/thingpedia.json', type=str)
+    parser.add_argument('--train_set', default='./almond-nnparser-private/tests/dataset/semparse_thingtalk/train.tsv', type=str)
+    parser.add_argument('--test_set', default='./almond-nnparser-private/tests/dataset/semparse_thingtalk/eval.tsv', type=str)
     parser.add_argument('--load_grammar', default=False, type=bool)
-    parser.add_argument('--cached_grammar', default='./workdir/cached_grammar.pkl', type=str)
+    parser.add_argument('--cached_grammar', default='./workdir/t2t_copy_data_generated/test_withquote/cached_grammar.pkl', type=str)
     parser.add_argument('--load_embeddings', default=False, type=bool)
-    parser.add_argument('--cached_embeddings', default='./workdir/input_embeddings.npy', type=str)
+    parser.add_argument('--cached_embeddings', default='./workdir/t2t_copy_data_generated/test_withquote/input_embeddings.npy', type=str)
     parser.add_argument('--train_batch_size', default=100, type=int)
-    parser.add_argument('--test_batch_size', default=100, type=int)
+    parser.add_argument('--problem', default='semparse_thingtalk', type=str)
 
     args = parser.parse_args()
 

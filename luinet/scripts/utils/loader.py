@@ -29,7 +29,7 @@ import tensorflow as tf
 import numpy as np
 
 Dataset = namedtuple('Dataset', ('input_sequences', 'input_vectors', 'input_lengths',
-                                 'constituency_parse', 'label_sequences', 'label_vectors', 'label_lengths'))
+                                 'label_sequences', 'label_vectors', 'label_lengths'))
 
 unknown_tokens = set()
 
@@ -407,7 +407,7 @@ def load_data(from_file, input_words, grammar, max_length):
     input_sequences = []
     inputs = []
     input_lengths = []
-    parses = []
+    # parses = []
     labels = defaultdict(list)
     label_lengths = []
     label_sequences = []
@@ -426,7 +426,7 @@ def load_data(from_file, input_words, grammar, max_length):
                 _, sentence, label, parse = split
             else:
                 _, sentence, label = split
-                parse = None
+                # parse = None
 
             input_vector, in_len = vectorize(sentence, input_words, max_length, add_eos=False, add_start=False)
 
@@ -448,17 +448,17 @@ def load_data(from_file, input_words, grammar, max_length):
             for i, key in enumerate(grammar.output_size):
                 labels[key].append(label_vector[:, i])
             label_lengths.append(label_len)
-            if parse is not None:
-                parses.append(vectorize_constituency_parse(parse, max_length, in_len - 2))
-            else:
-                parses.append(np.zeros((2 * max_length - 1,), dtype=np.bool))
+            # if parse is not None:
+            #     parses.append(vectorize_constituency_parse(parse, max_length, in_len - 2))
+            # else:
+            #     parses.append(np.zeros((2 * max_length - 1,), dtype=np.bool))
     print('avg label productions', total_label_len / len(inputs))
 
     input_sequences = CustomList(input_sequences)
     label_sequences = CustomList(label_sequences)
     inputs = np.array(inputs)
     input_lengths = np.array(input_lengths)
-    parses = np.array(parses)
+    # parses = np.array(parses)
     for key in grammar.output_size:
         labels[key] = np.array(labels[key])
     label_lengths = np.array(label_lengths)
@@ -466,7 +466,7 @@ def load_data(from_file, input_words, grammar, max_length):
     return Dataset(input_sequences=input_sequences,
                    input_vectors=inputs,
                    input_lengths=input_lengths,
-                   constituency_parse=parses,
+                   # constituency_parse=parses,
                    label_sequences=label_sequences,
                    label_vectors=labels,
                    label_lengths=label_lengths)

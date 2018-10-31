@@ -4,7 +4,7 @@ addons:
   - parmesan.stanford.edu
 branches:
   except:
-  - "/^wip/"
+  - "/^wip(?!.mehrad)/"
 language: python
 python:
 - '3.6'
