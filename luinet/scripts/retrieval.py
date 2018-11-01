@@ -37,14 +37,15 @@ from luinet.scripts.utils.loader import load_dictionary, load_embeddings, load_d
 from luinet.grammar.thingtalk import ThingTalkGrammar
 
 
-
 def run(args):
     max_length = 60
 
     if 'noquote' in args.problem:
         flatten = False
+        decode_length = 3*max_length
     else:
         flatten = True
+        decode_length = max_length
     cached_grammar = args.cached_grammar
     load_grammar = args.load_grammar
 
@@ -120,14 +121,31 @@ def run(args):
         distances /= tf.reshape(test_norm, (-1, 1))
 
         indices = tf.argmax(distances, axis=1)
-
-        gold = test_data_placeholder_programs
-        gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
-        gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
+        sim_scores = tf.reduce_max(distances, axis=1)
 
         decoded = train_programs
         decoded = tf.gather(decoded, indices, axis=0)
         decoded = tf.reshape(decoded, [tf.shape(decoded)[0], -1])
+
+        with tf.variable_scope("scores", reuse=tf.AUTO_REUSE):
+            best_sim_scores = tf.get_variable("best_sim_scores", dtype=tf.float32,
+                                              initializer=tf.constant(-1.0, shape=[N_test]))
+            best_decoded = tf.get_variable("best_decoded", shape=[N_test, decode_length], dtype=tf.int32,
+                                              initializer=tf.zeros_initializer)
+
+        decoded = tf.where(sim_scores > best_sim_scores, decoded, best_decoded)
+        sim_maximum = tf.maximum(sim_scores, best_sim_scores)
+
+        with tf.control_dependencies([decoded, sim_maximum]):
+            assign_op1 = tf.assign(best_decoded, decoded)
+        with tf.control_dependencies([assign_op1]):
+            assign_op2 = tf.assign(best_sim_scores, sim_maximum)
+        with tf.control_dependencies([assign_op2]):
+            best_sim_scores = tf.identity(best_sim_scores)
+
+        gold = test_data_placeholder_programs
+        gold = tf.reshape(gold, [tf.shape(gold)[0], -1])
+        gold = tf.expand_dims(tf.expand_dims(gold, axis=-1), axis=-1)
 
         metrics = grammar.eval_metrics()
         eval_metrics = {}
@@ -136,7 +154,7 @@ def run(args):
             metric_name = "metrics-{}".format(metric_key)
             first, second = metric_fn(decoded, gold, None)
             scores, weights = first, second
-            eval_metrics[metric_name] = tf.contrib.metrics.streaming_concat(tf.reshape(scores * weights, [N_test, 1]), axis=1)
+            eval_metrics[metric_name] = tf.reduce_mean(scores*weights)
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -147,17 +165,13 @@ def run(args):
             sess.run(tf.local_variables_initializer())
 
             for i in range(1, train_n_batches+1):
-                sess.run([metric_val[1] for metric_key, metric_val in eval_metrics.items()], feed_dict={test_data_placeholder_sentences: np.array(test_data[1]),
+                indices_np, decoded_np, sim_scores_np, best_sim_scores_np, metric_val = sess.run([indices, decoded, sim_scores, best_sim_scores, [metric_val for metric_key, metric_val in eval_metrics.items()]], feed_dict={test_data_placeholder_sentences: np.array(test_data[1]),
                                                              test_data_placeholder_programs: np.stack(list(test_data[4].values()), axis=-1)})
-                print("iteration- {} / {}".format(i, train_n_batches))
-                if not i%20:
-                    metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
-                    for k, (metric_key, _) in enumerate(eval_metrics.items()):
-                        print("value of " + metric_key + " for iteration-{}".format(i), ":", np.mean(np.max(metric_val[k], axis=1)))
 
-            metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
-            for k, (metric_key, _) in enumerate(eval_metrics.items()):
-                print(metric_key, ":", np.mean(np.max(metric_val[k], axis=1)))
+                print("iteration- {} / {}".format(i, train_n_batches))
+                if not i % 20 or i == train_n_batches:
+                    for k, (metric_key, _) in enumerate(eval_metrics.items()):
+                        print("value of " + metric_key.split('-')[1] + " for iteration-{}".format(i), ":", metric_val[k])
 
 
 if __name__ == "__main__":
