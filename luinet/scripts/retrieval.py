@@ -88,6 +88,7 @@ def run(args):
     train_data = load_data(args.train_set, words, grammar, max_length)
     test_data = load_data(args.test_set, words, grammar, max_length)
     N_train = train_data[1].shape[0]
+    N_test = test_data[1].shape[0]
     train_batch_size = args.train_batch_size
     train_n_batches = math.ceil(N_train / train_batch_size)
 
@@ -135,7 +136,7 @@ def run(args):
             metric_name = "metrics-{}".format(metric_key)
             first, second = metric_fn(decoded, gold, None)
             scores, weights = first, second
-            eval_metrics[metric_name] = tf.contrib.metrics.streaming_concat(tf.reduce_mean(scores*weights, axis=0, keepdims=True))
+            eval_metrics[metric_name] = tf.contrib.metrics.streaming_concat(tf.reshape(scores * weights, [N_test, 1]), axis=1)
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -152,27 +153,27 @@ def run(args):
                 if not i%20:
                     metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
                     for k, (metric_key, _) in enumerate(eval_metrics.items()):
-                        print("value of " + metric_key + " for iteration-{}".format(i), ":", max(metric_val[k]))
+                        print("value of " + metric_key + " for iteration-{}".format(i), ":", np.mean(np.max(metric_val[k], axis=1)))
 
             metric_val = sess.run([metric_val[0] for metric_key, metric_val in eval_metrics.items()])
             for k, (metric_key, _) in enumerate(eval_metrics.items()):
-                print(metric_key, ":", max(metric_val[k]))
+                print(metric_key, ":", np.mean(np.max(metric_val[k], axis=1)))
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_vocab', default='./workdir/t2t_copy_data_generated/test_withquote/input_words.txt', type=str)
-    parser.add_argument('--word_embedding', default='./workdir/t2t_copy_data_generated/glove.42B.300d.txt', type=str)
-    parser.add_argument('--thingpedia_snapshot', default='./workdir/t2t_copy_data_generated/test_withquote/thingpedia.json', type=str)
-    parser.add_argument('--train_set', default='./almond-nnparser-private/tests/dataset/semparse_thingtalk/train.tsv', type=str)
-    parser.add_argument('--test_set', default='./almond-nnparser-private/tests/dataset/semparse_thingtalk/eval.tsv', type=str)
+    parser.add_argument('--input_vocab', type=str)
+    parser.add_argument('--word_embedding', type=str)
+    parser.add_argument('--thingpedia_snapshot', type=str)
+    parser.add_argument('--train_set', type=str)
+    parser.add_argument('--test_set', type=str)
     parser.add_argument('--load_grammar', default=False, type=bool)
-    parser.add_argument('--cached_grammar', default='./workdir/t2t_copy_data_generated/test_withquote/cached_grammar.pkl', type=str)
+    parser.add_argument('--cached_grammar', type=str)
     parser.add_argument('--load_embeddings', default=False, type=bool)
-    parser.add_argument('--cached_embeddings', default='./workdir/t2t_copy_data_generated/test_withquote/input_embeddings.npy', type=str)
+    parser.add_argument('--cached_embeddings', type=str)
     parser.add_argument('--train_batch_size', default=100, type=int)
-    parser.add_argument('--problem', default='semparse_thingtalk', type=str)
+    parser.add_argument('--problem', default='semparse_thingtalk_noquote', type=str)
 
     args = parser.parse_args()
 
