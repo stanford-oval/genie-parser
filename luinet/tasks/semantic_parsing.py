@@ -178,8 +178,6 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                     hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
                 else:
                     hp.target_modality["targets_" + key] = ("symbol:softmax", tgt_vocab_size)
-                # else:
-                #     hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
             elif grammar.is_copy_type(key):
                 hp.target_modality["targets_" + key] = ("symbol:copy", size)
             else:
