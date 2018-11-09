@@ -56,6 +56,9 @@ LUI_model = False
 flags.DEFINE_bool("perturb_training", False, "apply training trick")
 flags.DEFINE_integer("num_loops", 2, "number of training loops")
 
+# modify loss according to the class (Synthetic, Paraphrase, Augmented) each sentence belongs to
+flags.DEFINE_bool("curriculum", False, "use curriculum learning")
+
 
 if 'semparse_thingtalk' in FLAGS.problem:
     LUI_prob = True

@@ -43,13 +43,36 @@ def if_logits_longer(logits, targets, length_diff):
     return logits, targets
 
 
+
+@registry.register_symbol_modality("softmax")
+class SoftmaxSymbolModality(SymbolModality):
+    def loss(self, top_out, targets, weights_fn=None, features=None, curriculum=False):
+        """Compute loss numerator and denominator for one shard of output."""
+        logits = top_out
+        if weights_fn is None:
+            weights_fn = self.targets_weights_fn
+
+        if curriculum:
+            scaled_weights_fn = lambda *args: (
+                    weights_fn(args) * (features['weight'] if features is not None else 1.0))
+        else:
+            scaled_weights_fn = weights_fn
+
+        return common_layers.padded_cross_entropy(
+            logits,
+            targets,
+            self._model_hparams.label_smoothing,
+            weights_fn=scaled_weights_fn)
+
+
+
 @registry.register_symbol_modality("max_margin")
 class MaxMarginModality(SymbolModality):
     @property
     def name(self):
         return super().name + "_maxmargin"
     
-    def loss(self, logits, targets):
+    def loss(self, logits, targets, features=None, curriculum=False):
         # top_out is [batch, time, width, height, depth]
         # (to support videos)
         # remove width and height
@@ -82,7 +105,17 @@ class MaxMarginModality(SymbolModality):
             gold_score = tf.gather_nd(flat_preds, flat_gold_indices)
             margin = max_margin - gold_score
 
-            return tf.reduce_sum(margin * flat_mask), tf.reduce_sum(flat_mask) + 1e-8
+            if curriculum:
+                weight = features['weight'] if features is not None else tf.expand_dims(tf.expand_dims(1.0, axis=0), axis=0)
+                margin *= flat_mask
+                margin = tf.reshape(margin, (batch_size, max_length))
+                margin *= weight
+                margin = tf.reshape(margin, (-1,))
+                return tf.reduce_sum(margin), tf.reduce_sum(flat_mask) + 1e-8
+
+            else:
+                return tf.reduce_sum(margin * flat_mask), tf.reduce_sum(flat_mask) + 1e-8
+
 
 
 @registry.register_symbol_modality("copy")
@@ -103,12 +136,12 @@ class CopyModality(IdentitySymbolModality):
         # IdentitySymbolModality sets top_is_pointwise to False
         # for generality, but CopyModality fits the bill
         return True
-    
+
     def top(self, body_output, _):
         # expand the dimensions to be compatible with top_is_pointwise
         return tf.expand_dims(body_output, 3)
 
-    def loss(self, logits, targets):
+    def loss(self, logits, targets, features=None, curriculum=False):
         # top_out is [batch, time, width, height, depth]
         # (to support videos)
         # remove width and height
@@ -121,16 +154,22 @@ class CopyModality(IdentitySymbolModality):
 
         mask = tf.to_float(tf.not_equal(targets, 0))
         xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
-        
+
+        if curriculum:
+
+            weight = features['weight'] if features is not None else tf.expand_dims(tf.expand_dims(1.0, axis=0), axis=0)
+            xent *= weight
+
         # add a small amount to the denominator to avoid 0/0 division
         # if there is nothing to copy
         return tf.reduce_sum(xent * mask), tf.reduce_sum(mask) + 1e-8
 
 
+
 # do not register this one, it is registered on demand by
 # tasks.SemanticParsing; this is so multiple inputs/outputs
 # can use the same class, but have different embedding matrices
-class PretrainedEmbeddingModality(SymbolModality):
+class PretrainedEmbeddingModality(SoftmaxSymbolModality):
     def __init__(self, name, pretrained_embeddings, model_hparams,
                  vocab_size=None):
         super().__init__(model_hparams, vocab_size)
@@ -168,10 +207,11 @@ class PretrainedEmbeddingModality(SymbolModality):
         return y
 
 
+
 # do not register this one, it is registered on demand by
 # tasks.SemanticParsing; this is so multiple inputs/outputs
 # can use the same class, but have different parameter vectors
-class PointerModality(SymbolModality):
+class PointerModality(SoftmaxSymbolModality):
     def __init__(self, name, hparams, vocab_size=None):
         super().__init__(hparams, vocab_size)
         self._name = name

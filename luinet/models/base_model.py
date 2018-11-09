@@ -49,6 +49,8 @@ from tensor2tensor.utils.optimize import log_variable_sizes, \
 from tensor2tensor.utils.t2t_model import _remove_summaries, \
     log_info, log_warn, set_custom_getter_compose
 
+FLAGS = tf.flags.FLAGS
+
 class LUINetModel(T2TModel):
     '''
     A base model, similar to T2TModel, that overrides some of the
@@ -202,7 +204,10 @@ class LUINetModel(T2TModel):
                         losses["training"] = training_loss
     
             return logits, losses
-        
+
+
+
+
     def loss(self, logits, features):
         if isinstance(logits, dict):
             if self._problem_hparams:
@@ -213,10 +218,13 @@ class LUINetModel(T2TModel):
                 assert k in target_modality.keys(), (
                     "The key %s of model_body's returned logits dict must be in "
                     "problem_hparams.target_modality's dict." % k)
+
             losses = {}
             for k, v in logits.items():
-                n, d = self._loss_single(v, target_modality[k], features[k])
+                n, d = target_modality[k].loss(v, targets=features[k], features=features, curriculum=FLAGS.curriculum)
+                n *= self._problem_hparams.loss_multiplier
                 losses[k] = n / d
+
             losses["training"] = tf.add_n(list(losses.values()))
             return losses
         else:
@@ -229,7 +237,7 @@ class LUINetModel(T2TModel):
                     "model_body returned single logits so 'targets' must be a key "
                     "since problem_hparams.target_modality is a dict.")
             target_modality = target_modality["targets"]
-            return self._loss_single(logits, target_modality, features["targets"])
+            return self._loss_single(logits, target_modality, features["targets"]) * features["weight"]
 
     def optimize(self, loss, num_async_replicas=1, use_tpu=False):
         """Return a training op minimizing loss."""

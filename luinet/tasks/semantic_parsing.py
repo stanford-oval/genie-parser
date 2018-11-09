@@ -130,7 +130,16 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         # note: this mostly does not matter, because we override
         # preprocess_example later
         return encoders
-  
+
+    def example_reading_spec(self):
+        data_fields = {
+            "type": tf.VarLenFeature(tf.int64),
+            "inputs": tf.VarLenFeature(tf.int64),
+            "targets": tf.VarLenFeature(tf.int64)
+        }
+        data_items_to_decoders = None
+        return (data_fields, data_items_to_decoders)
+
     def hparams(self, hparams, model_hparams):
         # do not chain up! we have different features and modalities
         # than Text2TextProblem
@@ -168,7 +177,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 if model_hparams.use_margin_loss:
                     hp.target_modality["targets_" + key] = ("symbol:max_margin", tgt_vocab_size)
                 else:
-                    hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
+                    hp.target_modality["targets_" + key] = ("symbol:softmax", tgt_vocab_size)
+                # else:
+                #     hp.target_modality["targets_" + key] = ("symbol:default", tgt_vocab_size)
             elif grammar.is_copy_type(key):
                 hp.target_modality["targets_" + key] = ("symbol:copy", size)
             else:
@@ -230,8 +241,18 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                                             stateful=False)
     
     def preprocess_example(self, example, mode, model_hparams):
+        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+            global_step = tf.train.get_or_create_global_step()
+        schedule = tf.exp(tf.cast(-global_step, dtype=tf.float32) / float(FLAGS.train_steps))
+        _type = tf.reshape(example["type"], ())
+        zeros = tf.zeros_like(_type, dtype=tf.float32)
+        synth_weight = tf.where(tf.equal(_type, 0), 0.1 + 0.9 * schedule, zeros)
+        para_weight = tf.where(tf.equal(_type, 1), 0.6 + (1 - schedule), zeros)
+        aug_weight = tf.where(tf.equal(_type, 2), 0.3 + (1 - schedule), zeros)
+
         output_example = {
-            "inputs": example["inputs"]
+            "inputs": example["inputs"],
+            "weight": tf.expand_dims(synth_weight + para_weight + aug_weight, axis=0)
         }
         
         if "targets" in example:
@@ -599,6 +620,14 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             for line in fp:
                 # forget about constituency parses, they were a bad idea
                 _id, sentence, program = line.strip().split('\t')[:3]
+
+                _type = 0
+                if 'S' in _id:
+                    _type = 0
+                elif 'P' in _id:
+                    _type = 1
+                else:
+                    _type = 2
                 
                 sentence = sentence.split(' ')
                 sentence.insert(0, START_TOKEN)
@@ -611,6 +640,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 encoded_input.append(text_encoder.EOS_ID)
                 
                 yield {
+                    "type": [_type],
+
                     "inputs": encoded_input,
                     
                     # t2t explicitly wants a list of python integers, just to convert

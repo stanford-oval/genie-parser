@@ -42,11 +42,12 @@ if os.path.exists(args.output_file):
 if __name__ == '__main__':
 
     csvRow = ['Device', 'Accuracy', 'Accuracy w/o params', 'BLEU', 'Function', 'Grammar', 'Prim/Compound', 'Token F1']
-    with open(args.output_file, "a") as fp:
+    with open(args.output_file, "w") as fp:
         wr = csv.writer(fp, dialect='excel')
         wr.writerow(csvRow)
 
         for file in os.listdir(args.workdir):
+            print(file)
             if file.startswith('.'):
                 continue
             max_accuracy = 0.0
@@ -55,11 +56,10 @@ if __name__ == '__main__':
                 for line in log:
                     if line.startswith('INFO:tensorflow:Saving dict for global step'):
                         acc = float(re.findall('/accuracy = (\d+\.\d*)', line)[0])
-                        if acc > max_accuracy:
+                        if acc >= max_accuracy:
                             max_accuracy = acc
                             max_line = line
             # extract metrics
-            print(file)
             accuracy = float(re.findall('/accuracy = (\d+\.\d*)', max_line)[0])
             accuracy_without_parameters = float(re.findall('/accuracy_without_parameters = (\d+\.\d*)', max_line)[0])
             bleu_score = float(re.findall('/bleu_score = (\d+\.\d*)', max_line)[0])
@@ -69,3 +69,19 @@ if __name__ == '__main__':
             token_f1_accuracy = float(re.findall('/token_f1_accuracy = (\d+\.\d*)', max_line)[0])
 
             wr.writerow([file, "{0:.2%}".format(accuracy), "{0:.2%}".format(accuracy_without_parameters), "{0:.2%}".format(bleu_score), "{0:.2%}".format(function_accuracy), "{0:.2%}".format(grammar_accuracy), "{0:.2%}".format(num_function_accuracy), "{0:.2%}".format(token_f1_accuracy)])
+
+    # sort csv file by device name
+    with open(args.output_file) as csvfile:
+        reader = csv.DictReader(csvfile)
+        sortedlist = sorted(reader, key=lambda row: row['Device'], reverse=False)
+
+    with open(os.path.join(os.path.dirname(args.output_file), 'sorted_{}.csv'.format(os.path.basename(args.output_file).split('_')[-1][:-len('.csv')])), 'w') as f:
+        fieldnames = ['Device', 'Accuracy', 'Accuracy w/o params', 'BLEU', 'Function', 'Grammar', 'Prim/Compound', 'Token F1']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in sortedlist:
+            writer.writerow(row)
+            writer.writerow({k: '' for k in row.keys()})
+            writer.writerow({k: '' for k in row.keys()})
+
+
