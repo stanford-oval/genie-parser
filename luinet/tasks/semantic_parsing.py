@@ -23,21 +23,15 @@ Created on Jul 24, 2018
 '''
 
 import os
-import sys
-import json
 import urllib.request
-import ssl
 import zipfile
 import re
 import tempfile
 import shutil
-import numpy as np
-import configparser
 
 import numpy as np
 import tensorflow as tf
 
-from tensor2tensor.utils import registry
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import problem
@@ -245,8 +239,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         _type = tf.reshape(example["type"], ())
         zeros = tf.zeros_like(_type, dtype=tf.float32)
         synth_weight = tf.where(tf.equal(_type, 0), 0.1 + 0.9 * schedule, zeros)
-        para_weight = tf.where(tf.equal(_type, 1), 0.6 + (1 - schedule), zeros)
-        aug_weight = tf.where(tf.equal(_type, 2), 0.3 + (1 - schedule), zeros)
+        para_weight = tf.where(tf.equal(_type, 1), 0.6 * (1 - schedule), zeros)
+        aug_weight = tf.where(tf.equal(_type, 2), 0.3 * (1 - schedule), zeros)
 
         output_example = {
             "inputs": example["inputs"],

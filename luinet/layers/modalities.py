@@ -156,7 +156,6 @@ class CopyModality(IdentitySymbolModality):
         xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
 
         if curriculum:
-
             weight = features['weight'] if features is not None else tf.expand_dims(tf.expand_dims(1.0, axis=0), axis=0)
             xent *= weight
 
