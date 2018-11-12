@@ -149,10 +149,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None, split_device=False, **kw):
+    def __init__(self, filename=None, **kw):
         super().__init__(**kw)
         self._input_dictionary = None
-        self._split_device = split_device
         if filename is not None:
             self.init_from_file(filename)
         
@@ -378,27 +377,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         param_types['source'] = OrderedSet()
         param_types['source'].add(('Entity(tt:contact)', 'out'))
         
-        if self._split_device:
-            GRAMMAR['$thingpedia_device_name'] = []
-            for function_type in ('queries', 'actions'):
-                GRAMMAR['$thingpedia_' + function_type].append(('$thingpedia_device_name', '$thingpedia_' + function_type + '_name',))
-                GRAMMAR['$thingpedia_' + function_type + '_name'] = []
-            for device in self._devices:
-                if device['kind_type'] in ('global', 'discovery', 'category'):
-                    continue
-                kind = device['kind']
-                if kind == 'org.thingpedia.builtin.test':
-                    continue
-                
-                GRAMMAR['$thingpedia_device_name'].append(('@@' + kind,))
-                for function_type in ('queries', 'actions'):
-                    for name, function in device[function_type].items():
-                        function_name = '@' + kind + '.' + name
-                        GRAMMAR['$thingpedia_' + function_type + '_name'].append((function_name,))
-        else:
-            for function_type in ('queries', 'actions'):
-                for function_name, params in self.functions[function_type].items():
-                    GRAMMAR['$thingpedia_' + function_type].append((function_name,))
+        for function_type in ('queries', 'actions'):
+            for function_name, params in self.functions[function_type].items():
+                GRAMMAR['$thingpedia_' + function_type].append((function_name,))
 
         for function_type in ('queries', 'actions'):
             for function_name, params in self.functions[function_type].items():
