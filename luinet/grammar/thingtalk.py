@@ -455,7 +455,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         string_end = None
         for i, token in enumerate(program):
             if self._flatten:
-                yield self.dictionary[token], None
+                if self._grammar_include_types:
+                    yield self.dictionary[token], None
+                else:
+                    yield self.dictionary_no_type[token], None
                 continue
 
             if token == '"':
@@ -470,7 +473,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         yield self._span_id, (begin, end)
                     string_begin = None
                     string_end = None
-                yield self.dictionary[token], None
+                if self._grammar_include_types:
+                    yield self.dictionary[token], None
+                else:
+                    yield self.dictionary_no_type[token], None
             elif in_string:
                 if not self._use_span:
                     yield self._word_id, (i, i)
@@ -479,9 +485,11 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             elif token not in self.dictionary:
                 raise ValueError("Invalid token " + token)
             elif (not self._grammar_include_types) and token.startswith('param:'):
-                yield ('param:' + token.split(':')[1]), None
-            else:
+                yield self.dictionary_no_type['param:' + token.split(':')[1]], None
+            elif self._grammar_include_types:
                 yield self.dictionary[token], None
+            else:
+                yield self.dictionary_no_type[token], None
 
     def decode_program(self, input_sentence, tokenized_program):
         program = []
@@ -524,6 +532,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             assert direction == 'linear'
             return self._reconstruct_linear(sequences)
     
+    def verify_program(self, program):
+        assert isinstance(program, np.ndarray)
+        if self._grammar_include_types:
+            return super().verify_program(program)
+        else:
+            return
+
     def set_input_dictionary(self, input_dictionary):
         #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
         self._input_dictionary = input_dictionary
