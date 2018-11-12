@@ -149,10 +149,11 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None, grammar_include_types=True, **kw):
+    def __init__(self, filename=None, grammar_include_types=True, use_span=True, **kw):
         super().__init__(**kw)
         self._input_dictionary = None
         self._grammar_include_types = grammar_include_types
+        self._use_span = use_span
         
         if filename is not None:
             self.init_from_file(filename)
@@ -313,11 +314,12 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             '$constant_array_values': [('$constant_Any',),
                                        ('$constant_array_values', ',', '$constant_Any')],
             '$constant_Any': OrderedSet(),
-
-            '$word_list': [('SPAN',),],
-                           #('WORD',),
-                           #('$word_list', 'WORD',)]
         })
+        if self._use_span:
+            GRAMMAR['$word_list'] = [('SPAN',),]
+        else:
+            GRAMMAR['$word_list'] = [('WORD',),
+                                     ('$word_list', 'WORD')]
         
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
@@ -462,14 +464,18 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     string_begin = i+1
                 else:
                     string_end = i
-                    span = program[string_begin:string_end]
-                    begin, end = find_span(input_sentence, span)
-                    yield self._span_id, (begin, end)
+                    if self._use_span:
+                        span = program[string_begin:string_end]
+                        begin, end = find_span(input_sentence, span)
+                        yield self._span_id, (begin, end)
                     string_begin = None
                     string_end = None
                 yield self.dictionary[token], None
             elif in_string:
-                continue
+                if not self._use_span:
+                    yield self._word_id, (i, i)
+                else:
+                    pass
             elif token not in self.dictionary:
                 raise ValueError("Invalid token " + token)
             elif (not self._grammar_include_types) and token.startswith('param:'):
@@ -485,7 +491,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             token = tokenized_program[i, 0]
             if token == slr.EOF_ID:
                 break
-            if token == self._span_id:
+            if token in (self._span_id, self._word_id):
                 begin_position = tokenized_program[i, 1]
                 end_position = tokenized_program[i, 2]
                 input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
@@ -523,7 +529,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self._input_dictionary = input_dictionary
         
         self.construct_parser(self._grammar, copy_terminals={
-            'SPAN': []
+            ('SPAN' if self._use_span else 'WORD'): []
         })
         if not self._grammar_include_types:
             self.tokens_no_type = list(set(('param:' + x.split(':')[1] if x.startswith('param:') else x) for x in self.tokens))
@@ -532,10 +538,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 k: i for i, k in enumerate(self.tokens_no_type)
             }
         
-        if self._flatten:
-            self._span_id = None
-        else:
-            self._span_id = self.dictionary['SPAN']
+        self._span_id = None
+        self._word_id = None
+        if not self._flatten:
+            if self._use_span:
+                self._span_id = self.dictionary['SPAN']
+            else:
+                self._word_id = self.dictionary['WORD']
 
         if not self._quiet:
             print('num functions', self.num_functions)
