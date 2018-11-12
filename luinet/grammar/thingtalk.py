@@ -467,10 +467,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                     string_begin = i+1
                 else:
                     string_end = i
+                    span = program[string_begin:string_end]
+                    begin, end = find_span(input_sentence, span)
                     if self._use_span:
-                        span = program[string_begin:string_end]
-                        begin, end = find_span(input_sentence, span)
                         yield self._span_id, (begin, end)
+                    else:
+                        for j in range(begin, end+1):
+                            yield self._word_id, (j, j)
                     string_begin = None
                     string_end = None
                 if self._grammar_include_types:
@@ -478,10 +481,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 else:
                     yield self.dictionary_no_type[token], None
             elif in_string:
-                if not self._use_span:
-                    yield self._word_id, (i, i)
-                else:
-                    pass
+                pass
             elif token not in self.dictionary:
                 raise ValueError("Invalid token " + token)
             elif (not self._grammar_include_types) and token.startswith('param:'):
