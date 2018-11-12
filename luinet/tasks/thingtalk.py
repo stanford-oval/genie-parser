@@ -145,3 +145,15 @@ class QuoteFreeThingTalkProblem(AbstractThingTalkProblem):
     def grammar_factory(self, out_dir, **kw):
         return ThingTalkGrammar(os.path.join(out_dir, 'thingpedia.json'),
                                 flatten=False)
+
+@registry.register_problem("semparse_thingtalk_noquote_notype")
+class TypelessQuoteFreeThingTalkProblem(AbstractThingTalkProblem):
+    def __init__(self, was_reversed, was_copy):
+        super().__init__(flatten_grammar=False,
+                         was_reversed=was_reversed,
+                         was_copy=was_copy)
+        
+    def grammar_factory(self, out_dir, **kw):
+        return ThingTalkGrammar(os.path.join(out_dir, 'thingpedia.json'),
+                                grammar_include_types=False,
+                                flatten=False)

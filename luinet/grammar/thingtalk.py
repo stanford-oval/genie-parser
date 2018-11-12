@@ -149,9 +149,11 @@ class ThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None, **kw):
+    def __init__(self, filename=None, grammar_include_types=True, **kw):
         super().__init__(**kw)
         self._input_dictionary = None
+        self._grammar_include_types = grammar_include_types
+        
         if filename is not None:
             self.init_from_file(filename)
         
@@ -470,6 +472,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 continue
             elif token not in self.dictionary:
                 raise ValueError("Invalid token " + token)
+            elif (not self._grammar_include_types) and token.startswith('param:'):
+                yield ('param:' + token.split(':')[1]), None
             else:
                 yield self.dictionary[token], None
 
@@ -487,9 +491,33 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
                 program.extend(input_span)
             else:
-                program.append(self.tokens[token])
+                if self._grammar_include_types:
+                    program.append(self.tokens[token])
+                else:
+                    program.append(self.tokens_no_type[token])
         return program
 
+    def vectorize_program(self, input_sentence, program,
+                          direction='bottomup',
+                          max_length=None):
+        if self._grammar_include_types:
+            return super().vectorize_program(input_sentence, program, direction, max_length)
+        else:
+            if isinstance(program, np.ndarray):
+                tokenizer = self._np_array_tokenizer(program)
+            else:
+                tokenizer = self.tokenize_program(input_sentence, program)
+            
+            assert direction == 'linear'
+            return self._vectorize_linear(tokenizer, max_length, tokens=self.tokens_no_type)
+        
+    def reconstruct_to_vector(self, sequences, direction='bottomup', ignore_errors=False):
+        if self._grammar_include_types:
+            return super().reconstruct_to_vector(sequences, direction, ignore_errors)
+        else:
+            assert direction == 'linear'
+            return self._reconstruct_linear(sequences)
+    
     def set_input_dictionary(self, input_dictionary):
         #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
         self._input_dictionary = input_dictionary
@@ -497,6 +525,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         self.construct_parser(self._grammar, copy_terminals={
             'SPAN': []
         })
+        if not self._grammar_include_types:
+            self.tokens_no_type = list(set(('param:' + x.split(':')[1] if x.startswith('param:') else x) for x in self.tokens))
+            self.tokens_no_type.sort()
+            self.dictionary_no_type = {
+                k: i for i, k in enumerate(self.tokens_no_type)
+            }
+        
         if self._flatten:
             self._span_id = None
         else:
@@ -535,3 +570,9 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             "token_f1_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: compute_f1_score(get_tokens(pred), get_tokens(label)))
         }
+        
+if __name__ == '__main__':
+    grammar = ThingTalkGrammar(sys.argv[1], flatten=False, grammar_include_types=False)
+    grammar.set_input_dictionary(None)
+    for t in grammar.tokens_no_type:
+        print(t)

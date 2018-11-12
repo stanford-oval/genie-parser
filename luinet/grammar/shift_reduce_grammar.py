@@ -181,7 +181,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         # if nothing happens, we're good
         self._parser.parse(self._np_array_tokenizer(program))
 
-    def _vectorize_linear(self, tokenizer, max_length=None):
+    def _vectorize_linear(self, tokenizer, max_length=None, tokens=None):
         token_list = list(tokenizer)
         
         if max_length is None:
@@ -195,10 +195,13 @@ class ShiftReduceGrammar(AbstractGrammar):
             vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         action_vector = vectors['actions']
         
+        if tokens is None:
+            tokens = self.tokens
+        
         i = 0
         for term_id, payload in token_list:
             action_vector[i] = term_id
-            term = self.tokens[term_id]
+            term = tokens[term_id]
             if term_id in self._copy_terminal_indices:
                 assert isinstance(payload, tuple)
                 assert not isinstance(payload[0], str)
@@ -284,7 +287,7 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         return vectors, i
     
-    def _reconstruct_linear(self, vectors):
+    def _reconstruct_linear(self, vectors, tokens=None):
         # -1 removes the EOS_ID at the end (assuming there is one)
         # if the generated program is incorrect, there might not be
         # one; this is sad and will lower the grammar accuracy; too bad
@@ -295,11 +298,14 @@ class ShiftReduceGrammar(AbstractGrammar):
         else:
             idx = len(vectors['actions'])-1
         output = np.empty((idx, 3), dtype=np.int32)
+        
+        if tokens is None:
+            tokens = self.tokens
 
         for i, term_id in enumerate(vectors['actions']):
             if i >= len(output) or term_id <= self.end: # pad or end
                 break
-            term = self.tokens[term_id]
+            term = tokens[term_id]
             output[i, 0] = term_id
             if term_id in self._copy_terminal_indices:
                 begin = vectors['COPY_' + term + '_begin'][i]
