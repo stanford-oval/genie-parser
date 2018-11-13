@@ -541,7 +541,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             if vector is not None:
                 embedding_matrix[word_id, :original_embed_size] = vector
             else:
-                tf.logging.warn("missing word from GloVe: %s", word)
+                #tf.logging.warn("missing word from GloVe: %s", word)
                 embedding_matrix[word_id, :original_embed_size] = np.random.normal(0, 0.9, (original_embed_size,))
         del trimmed_glove
         

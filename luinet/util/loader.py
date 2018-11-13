@@ -24,21 +24,6 @@ import re
 import numpy as np
 
 
-def clean(name):
-    """Normalize argument names into English words.
-    
-    Removes the "v_" prefix, converts camelCase to multiple words, and underscores
-    to spaces.
-    """ 
-    if name.startswith('v_'):
-        name = name[len('v_'):]
-    return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
-
-
-def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', re.sub('[()]', '', name.lower()))
-
-
 def vectorize(sentence, words, max_length=None, add_eos=False, add_start=False):
     if isinstance(sentence, str):
         sentence = sentence.split(' ')
