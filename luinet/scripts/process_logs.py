@@ -75,7 +75,7 @@ if __name__ == '__main__':
         reader = csv.DictReader(csvfile)
         sortedlist = sorted(reader, key=lambda row: row['Device'], reverse=False)
 
-    with open(os.path.join(os.path.dirname(args.output_file), 'sorted_{}.csv'.format(os.path.basename(args.output_file).split('_')[-1][:-len('.csv')])), 'w') as f:
+    with open(os.path.join(os.path.dirname(args.output_file), 'sorted_{}.csv'.format(os.path.basename(args.output_file).split('_', 1)[1][:-len('.csv')])), 'w') as f:
         fieldnames = ['Device', 'Accuracy', 'Accuracy w/o params', 'BLEU', 'Function', 'Grammar', 'Prim/Compound', 'Token F1']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -83,5 +83,4 @@ if __name__ == '__main__':
             writer.writerow(row)
             writer.writerow({k: '' for k in row.keys()})
             writer.writerow({k: '' for k in row.keys()})
-
 

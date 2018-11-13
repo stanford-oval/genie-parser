@@ -23,6 +23,8 @@ Created on Aug 2, 2017
 import tornado.web
 import re
 
+from .constants import LATEST_THINGTALK_VERSION, DEFAULT_THINGTALK_VERSION
+
 entity_re = re.compile('^[A-Z_]+_[0-9]')
 def check_program_entities(program, entities):
     for token in program:
@@ -41,6 +43,8 @@ class LearnHandler(tornado.web.RequestHandler):
         target_code = self.get_argument("target")
         store = self.get_argument("store", "automatic")
         owner = self.get_argument("owner", None) or None
+        thingtalk_version = self.get_argument("thingtalk_version",
+                                              DEFAULT_THINGTALK_VERSION)
         #print('POST /%s/learn' % locale, target_code)
         
         grammar = language.predictor.problem.grammar
@@ -48,6 +52,14 @@ class LearnHandler(tornado.web.RequestHandler):
         tokenized = yield language.tokenizer.tokenize(query)
         if len(tokenized.tokens) == 0:
             raise tornado.web.HTTPError(400, reason="Refusing to learn an empty sentence")
+
+        # if the client is out of date, don't even try to parse the code
+        # (as it might have changed meaning in the newer version of ThingTalk
+        # anyway)
+        if thingtalk_version != LATEST_THINGTALK_VERSION:
+            self.write(dict(result="Ignored request from older ThingTalk"))
+            self.finish()
+            return
 
         sequence = target_code.split(' ')
         try:
@@ -71,17 +83,32 @@ class LearnHandler(tornado.web.RequestHandler):
         if store == 'online' and sequence[0] == 'bookkeeping':
             store = 'online-bookkeeping'
         
+        training_flag = store in ('online', 'online-bookkeeping')
+        
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, utterance, preprocessed, target_json, target_code, click_count, owner) " +
-                                          "values (0, %(language)s, %(type)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
+        self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
+                                          "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
                                           language=language.tag,
                                           utterance=query,
                                           preprocessed=preprocessed,
                                           type=store,
+                                          flags=('training,exact' if training_flag else ''),
                                           target_code=target_code,
                                           owner=owner)
-        if language.exact and store in ('online', 'online-bookkeeping'):
+        if training_flag:
+            # insert a second copy of the sentence with the "replaced" flag
+            self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
+                                              "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
+                                              language=language.tag,
+                                              utterance=query,
+                                              preprocessed=preprocessed,
+                                              type=store,
+                                              flags='training,replaced',
+                                              target_code=target_code,
+                                              owner=owner)
+
+        if language.exact and training_flag:
             language.exact.add(preprocessed, target_code)
         self.write(dict(result="Learnt successfully"))
         self.finish()

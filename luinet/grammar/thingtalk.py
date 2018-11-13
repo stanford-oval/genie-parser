@@ -24,11 +24,6 @@ import json
 import os
 import urllib.request
 import ssl
-import re
-import sys
-
-import numpy as np
-import tensorflow as tf
 
 from collections import OrderedDict
 from orderedset import OrderedSet
@@ -37,6 +32,8 @@ from . import slr
 from .shift_reduce_grammar import ShiftReduceGrammar
 from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
     adjust_predictions_labels, compute_f1_score
+    
+from ..util.strings import find_span
 
 # import nltk
 # from nltk.translate.bleu_score import SmoothingFunction
@@ -102,46 +99,6 @@ UNITS = dict(C=["C", "F"],
 
 MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
-
-
-def clean(name):
-    if name.startswith('v_'):
-        name = name[len('v_'):]
-    return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
-
-
-def tokenize(name):
-    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
-
-
-def find_substring(sequence, substring):
-    for i in range(len(sequence)-len(substring)+1):
-        found = True
-        for j in range(0, len(substring)):
-            if sequence[i+j] != substring[j]:
-                found = False
-                break
-        if found:
-            return i
-    return -1
-
-
-def find_span(input_sentence, span):
-    # empty strings have their own special token "",
-    # they should not appear here
-    assert len(span) > 0
-
-    input_position = find_substring(input_sentence, span)
-
-    if input_position < 0:
-        raise ValueError("Cannot find span \"%s\" in \"%s\"" % (span, input_sentence))
-
-    # NOTE: the boundaries are inclusive (so that we always point
-    # inside the span)
-    # NOTE 2: the input_position cannot be zero, because
-    # the zero-th element in input_sentence is <s>
-    # this is important because zero is used as padding/mask value
-    return input_position, input_position + len(span)-1
 
 
 class ThingTalkGrammar(ShiftReduceGrammar):
@@ -285,7 +242,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                         ('edge', '(', '$stream', ')', 'on', 'true'),
                         #('$stream_join',)
                         ],
-            '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
+            '$stream_join': [('(', '$stream', ')', '=>', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
             '$action': [('notify',),
                         ('return',),
