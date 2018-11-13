@@ -31,7 +31,7 @@ import tensorflow as tf
 
 from .query_handlers import QueryHandler, TokenizeHandler
 from .learn_handler import LearnHandler
-from .admin_handlers import ReloadHandler
+from .admin_handlers import ReloadHandler, ExactMatcherReload
 from .exact import ExactMatcher
 from .tokenizer import Tokenizer
 from .predictor import Predictor
@@ -55,10 +55,12 @@ class Application(tornado.web.Application):
             (r"/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
             (r"/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler),
+            (r"/(?P<locale>[a-zA-Z-]+)/admin/exact/reload", ExactMatcherReload),
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/tokenize", TokenizeHandler),
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/query", QueryHandler),
             (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/learn", LearnHandler),
-            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler)
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/reload", ReloadHandler),
+            (r"/@(?P<model_tag>[a-zA-Z0-9_\.-]+)/(?P<locale>[a-zA-Z-]+)/admin/exact/reload", ExactMatcherReload),
         ])
     
         if config.db_url:
