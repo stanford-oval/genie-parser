@@ -40,6 +40,7 @@ import tensorflow as tf
 
 from .semantic_parsing import SemanticParsingProblem
 from ..grammar.thingtalk import ThingTalkGrammar
+from ..grammar.posthingtalk import PosThingTalkGrammar
 
 from ..util.strings import clean, tokenize
 
@@ -182,3 +183,27 @@ class TypelessWordpointerQuoteFreeThingTalkProblem(AbstractThingTalkProblem):
                                 use_span=False,
                                 grammar_include_types=False,
                                 flatten=False)
+
+@registry.register_problem("semparse_posthingtalk_noquote")
+class QuoteFreePositionalThingTalkProblem(AbstractThingTalkProblem):
+    def __init__(self, was_reversed, was_copy):
+        super().__init__(flatten_grammar=False,
+                         was_reversed=was_reversed,
+                         was_copy=was_copy)
+        
+    def grammar_factory(self, out_dir, **kw):
+        return PosThingTalkGrammar(os.path.join(out_dir, 'thingpedia.json'),
+                                   flatten=False)
+
+@registry.register_problem("semparse_posthingtalk_noquote_nospan_notype")
+class QuoteFreePositionalThingTalkProblem(AbstractThingTalkProblem):
+    def __init__(self, was_reversed, was_copy):
+        super().__init__(flatten_grammar=False,
+                         was_reversed=was_reversed,
+                         was_copy=was_copy)
+        
+    def grammar_factory(self, out_dir, **kw):
+        return PosThingTalkGrammar(os.path.join(out_dir, 'thingpedia.json'),
+                                   use_span=False,
+                                   grammar_include_types=False,
+                                   flatten=False)
