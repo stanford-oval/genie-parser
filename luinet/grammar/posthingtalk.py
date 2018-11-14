@@ -37,6 +37,8 @@ from . import slr
 from .shift_reduce_grammar import ShiftReduceGrammar
 from ..util.metrics import make_pyfunc_metric_fn, accuracy, grammar_accuracy, \
     adjust_predictions_labels, compute_f1_score
+    
+from ..util.strings import find_span
 
 # import nltk
 # from nltk.translate.bleu_score import SmoothingFunction
@@ -148,10 +150,12 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
     The grammar of ThingTalk
     '''
     
-    def __init__(self, filename=None, split_device=False, **kw):
+    def __init__(self, filename=None, grammar_include_types=True, use_span=True, **kw):
         super().__init__(**kw)
         self._input_dictionary = None
-        self._split_device = split_device
+        self._grammar_include_types = grammar_include_types
+        self._use_span = use_span
+        
         if filename is not None:
             self.init_from_file(filename)
         
@@ -319,11 +323,12 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
             '$constant_array_values': [('$constant_Any',),
                                        ('$constant_array_values', ',', '$constant_Any')],
             '$constant_Any': OrderedSet(),
-
-            '$word_list': [('SPAN',),],
-                           #('WORD',),
-                           #('$word_list', 'WORD',)]
         })
+        if self._use_span:
+            GRAMMAR['$word_list'] = [('SPAN',),]
+        else:
+            GRAMMAR['$word_list'] = [('WORD',),
+                                     ('$word_list', 'WORD')]
         
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
@@ -383,27 +388,9 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
         param_types['source'] = OrderedSet()
         param_types['source'].add(('Entity(tt:contact)', 'out'))
         
-        if self._split_device:
-            GRAMMAR['$thingpedia_device_name'] = []
-            for function_type in ('queries', 'actions'):
-                GRAMMAR['$thingpedia_' + function_type].append(('$thingpedia_device_name', '$thingpedia_' + function_type + '_name',))
-                GRAMMAR['$thingpedia_' + function_type + '_name'] = []
-            for device in self._devices:
-                if device['kind_type'] in ('global', 'discovery', 'category'):
-                    continue
-                kind = device['kind']
-                if kind == 'org.thingpedia.builtin.test':
-                    continue
-                
-                GRAMMAR['$thingpedia_device_name'].append(('@@' + kind,))
-                for function_type in ('queries', 'actions'):
-                    for name, function in device[function_type].items():
-                        function_name = '@' + kind + '.' + name
-                        GRAMMAR['$thingpedia_' + function_type + '_name'].append((function_name,))
-        else:
-            for function_type in ('queries', 'actions'):
-                for function_name, params in self.functions[function_type].items():
-                    GRAMMAR['$thingpedia_' + function_type].append((function_name,))
+        for function_type in ('queries', 'actions'):
+            for function_name, params in self.functions[function_type].items():
+                GRAMMAR['$thingpedia_' + function_type].append((function_name,))
 
         for function_type in ('queries', 'actions'):
             for function_name, params in self.functions[function_type].items():
@@ -463,7 +450,10 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
         string_end = None
         for i, token in enumerate(program):
             if self._flatten:
-                yield self.dictionary[token], None
+                if self._grammar_include_types:
+                    yield self.dictionary[token], None
+                else:
+                    yield self.dictionary_no_type[token], None
                 continue
 
             if token == '"':
@@ -474,16 +464,27 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
                     string_end = i
                     span = program[string_begin:string_end]
                     begin, end = find_span(input_sentence, span)
-                    yield self._span_id, (begin, end)
+                    if self._use_span:
+                        yield self._span_id, (begin, end)
+                    else:
+                        for j in range(begin, end+1):
+                            yield self._word_id, (j, j)
                     string_begin = None
                     string_end = None
-                yield self.dictionary[token], None
+                if self._grammar_include_types:
+                    yield self.dictionary[token], None
+                else:
+                    yield self.dictionary_no_type[token], None
             elif in_string:
-                continue
+                pass
             elif token not in self.dictionary:
                 raise ValueError("Invalid token " + token)
-            else:
+            elif (not self._grammar_include_types) and token.startswith('param:'):
+                yield self.dictionary_no_type['param:' + token.split(':')[1]], None
+            elif self._grammar_include_types:
                 yield self.dictionary[token], None
+            else:
+                yield self.dictionary_no_type[token], None
 
     def decode_program(self, input_sentence, tokenized_program):
         program = []
@@ -493,26 +494,67 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
             token = tokenized_program[i, 0]
             if token == slr.EOF_ID:
                 break
-            if token == self._span_id:
+            if token in (self._span_id, self._word_id):
                 begin_position = tokenized_program[i, 1]
                 end_position = tokenized_program[i, 2]
                 input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
                 program.extend(input_span)
             else:
-                program.append(self.tokens[token])
+                if self._grammar_include_types:
+                    program.append(self.tokens[token])
+                else:
+                    program.append(self.tokens_no_type[token])
         return program
+
+    def vectorize_program(self, input_sentence, program,
+                          direction='bottomup',
+                          max_length=None):
+        if self._grammar_include_types:
+            return super().vectorize_program(input_sentence, program, direction, max_length)
+        else:
+            if isinstance(program, np.ndarray):
+                tokenizer = self._np_array_tokenizer(program)
+            else:
+                tokenizer = self.tokenize_program(input_sentence, program)
+            
+            assert direction == 'linear'
+            return self._vectorize_linear(tokenizer, max_length, tokens=self.tokens_no_type)
+        
+    def reconstruct_to_vector(self, sequences, direction='bottomup', ignore_errors=False):
+        if self._grammar_include_types:
+            return super().reconstruct_to_vector(sequences, direction, ignore_errors)
+        else:
+            assert direction == 'linear'
+            return self._reconstruct_linear(sequences)
+    
+    def verify_program(self, program):
+        assert isinstance(program, np.ndarray)
+        if self._grammar_include_types:
+            return super().verify_program(program)
+        else:
+            return
 
     def set_input_dictionary(self, input_dictionary):
         #non_entity_words = [x for x in input_dictionary if not x[0].isupper() and x != '$']
         self._input_dictionary = input_dictionary
         
         self.construct_parser(self._grammar, copy_terminals={
-            'SPAN': []
+            ('SPAN' if self._use_span else 'WORD'): []
         })
-        if self._flatten:
-            self._span_id = None
-        else:
-            self._span_id = self.dictionary['SPAN']
+        if not self._grammar_include_types:
+            self.tokens_no_type = list(set(('param:' + x.split(':')[1] if x.startswith('param:') else x) for x in self.tokens))
+            self.tokens_no_type.sort()
+            self.dictionary_no_type = {
+                k: i for i, k in enumerate(self.tokens_no_type)
+            }
+        
+        self._span_id = None
+        self._word_id = None
+        if not self._flatten:
+            if self._use_span:
+                self._span_id = self.dictionary['SPAN']
+            else:
+                self._word_id = self.dictionary['WORD']
 
         if not self._quiet:
             print('num functions', self.num_functions)
