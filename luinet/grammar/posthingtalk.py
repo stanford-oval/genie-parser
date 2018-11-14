@@ -288,7 +288,7 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
                         ('edge', '(', '$stream', ')', 'on', 'true'),
                         #('$stream_join',)
                         ],
-            '$stream_join': [('(', '$stream', ')', 'join', '(', '$table', ')'),
+            '$stream_join': [('(', '$stream', ')', '=>', '(', '$table', ')'),
                              ('$stream_join', 'on', '$param_passing')],
             '$action': [('notify',),
                         ('return',),
