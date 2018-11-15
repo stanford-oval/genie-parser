@@ -568,6 +568,9 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
 
         def get_functions(program):
             return [x for x in program[:, 0] if self.tokens[x].startswith('@')]
+
+        def get_devices(program):
+            return [self.tokens[x].rsplit('.', 1)[0] for x in program[:, 0] if self.tokens[x].startswith('@')]
         
         def accuracy_without_parameters(predictions, labels, features):
             batch_size, predictions, labels = adjust_predictions_labels(predictions, labels,
@@ -579,6 +582,8 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
         return {
             "accuracy": accuracy,
             "grammar_accuracy": grammar_accuracy,
+            "device_accuracy": make_pyfunc_metric_fn(
+                lambda pred, label: get_devices(pred) == get_devices(label)),
             "function_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: get_functions(pred) == get_functions(label)),
             "accuracy_without_parameters": accuracy_without_parameters,
@@ -589,3 +594,5 @@ class PosThingTalkGrammar(ShiftReduceGrammar):
             "token_f1_accuracy": make_pyfunc_metric_fn(
                 lambda pred, label: compute_f1_score(get_tokens(pred), get_tokens(label)))
         }
+        
+
