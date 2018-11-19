@@ -77,7 +77,7 @@ order by type asc, id asc""",
         
     def get(self, utterance):
         utterance = utterance.split(' ')
-        
+
         results = self._trie.search(utterance)
         if results is None:
             return results
