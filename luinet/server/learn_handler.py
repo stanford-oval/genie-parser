@@ -83,12 +83,12 @@ class LearnHandler(tornado.web.RequestHandler):
         if store == 'online' and sequence[0] == 'bookkeeping':
             store = 'online-bookkeeping'
         
-        training_flag = store in ('online', 'online-bookkeeping')
+        training_flag = store in ('online', 'online-bookkeeping', 'commandpedia')
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
         self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
-                                          "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
+                                          "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 10, %(owner)s)",
                                           language=language.tag,
                                           utterance=query,
                                           preprocessed=preprocessed,
