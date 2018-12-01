@@ -98,15 +98,13 @@ class LearnHandler(tornado.web.RequestHandler):
                                           owner=owner)
         if training_flag:
             # insert a second copy of the sentence with the "replaced" flag
-            self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
-                                              "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 0, %(owner)s)",
+            self.application.database.execute("insert into replaced_example_utterances (language, type, flags, preprocessed, target_code) " +
+                                              "values (%(language)s, %(type)s, %(flags)s, %(preprocessed)s, %(target_code)s)",
                                               language=language.tag,
-                                              utterance=query,
                                               preprocessed=preprocessed,
                                               type=store,
-                                              flags='training,replaced',
-                                              target_code=target_code,
-                                              owner=owner)
+                                              flags='training,exact',
+                                              target_code=target_code)
 
         if language.exact and training_flag:
             language.exact.add(preprocessed, target_code)
