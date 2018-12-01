@@ -200,6 +200,7 @@ class QueryHandler(tornado.web.RequestHandler):
         #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
+        exact = None
         tokens = tokenized.tokens
         if len(tokens) == 0:
             result = [dict(code=['bookkeeping', 'special', 'special:failed'], score='Infinity')]
@@ -218,18 +219,19 @@ class QueryHandler(tornado.web.RequestHandler):
             result = yield self._run_retrieval_query(language, tokens, choices, limit)
         elif result is None and language.exact:
             exact = language.exact.get(' '.join(tokens))
-            if exact is not None:
-                result = [dict(code=x, score='Infinity') for x in exact]
                 
         if result is None:
             result = yield self._do_run_query(language, tokenized, limit)
         
-        if len(result) > 0 and self.application.database and store != 'no' and expect != 'MultipleChoice' and len(tokens) > 0:
+        if self.application.database and store != 'no' and expect != 'MultipleChoice' and len(tokens) > 0:
             self.application.database.execute("insert into utterance_log (language, preprocessed, target_code) " +
                                               "values (%(language)s, %(preprocessed)s, %(target_code)s)",
                                               language=language.tag,
                                               preprocessed=' '.join(tokens),
-                                              target_code=' '.join(result[0]['code']))
+                                              target_code=' '.join(result[0]['code'] if len(result) > 0 else []))
+
+        if exact is not None:
+            result = [dict(code=x, score='Infinity') for x in exact] + result
         
         self._apply_compatibility(result, thingtalk_version)
         
