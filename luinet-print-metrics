@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+import tensorflow as tf
+
+flags = tf.flags
+FLAGS = tf.app.flags.FLAGS
+
+flags.DEFINE_string("output_dir", '', "output directory (containing tfevents files and eval/ folder)")
+flags.DEFINE_string("eval_early_stopping_metric", 'loss', "early stopping metric (to select the best model)")
+flags.DEFINE_bool("eval_early_stopping_metric_minimize", True, "choose model with minimum early stopping metric (use --noeval_early_stopping_metric_minimize to choose model with maximum metric instrad)")
+
+def main(argv):
+    event_files = os.path.join(FLAGS.output_dir, 'eval/*.tfevents.*')
+    metric = FLAGS.eval_early_stopping_metric
+    metric_minimize = FLAGS.eval_early_stopping_metric_minimize
+    metric_prefix = metric.split('/')[0]
+
+    event_eval_result = None
+    eval_step = None
+
+    for event_file in tf.gfile.Glob(os.path.join(event_files)):
+        for event in tf.train.summary_iterator(event_file):
+            if event.HasField('summary') and (eval_step is None or event.step > eval_step):
+                eval_step = event.step
+                new_event_eval_result = {}
+                for value in event.summary.value:
+                    if value.HasField('simple_value'):
+                        new_event_eval_result[value.tag] = value.simple_value
+                if event_eval_result is None or \
+                    (event_eval_result[metric] > new_event_eval_result[metric] if metric_minimize
+                    else event_eval_result[metric] < new_event_eval_result[metric]):
+                    event_eval_result = new_event_eval_result
+
+    if event_eval_result is None:
+        print('error: no evaluation result found', file=sys.stderr)
+        sys.exit(1)
+
+    for m in event_eval_result:
+        print(m, '=', event_eval_result[m])
+
+tf.app.run()
+

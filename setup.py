@@ -40,7 +40,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['scripts', 'tests']),
     scripts=['luinet-trainer', 'luinet-datagen',
              'luinet-evaluator', 'luinet-decoder',
-             'luinet-server'],
+             'luinet-server', 'luinet-print-metrics'],
     
     license='GPL-3.0+',
     author="Stanford Mobisocial Lab",

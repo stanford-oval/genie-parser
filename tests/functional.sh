@@ -61,6 +61,9 @@ for problem in semparse_thingtalk semparse_thingtalk_noquote  ; do
                 # beam search decode
                 pipenv run $SRCDIR/../luinet-decoder --problem $problem --data_dir $workdir --output_dir $workdir/model.$i --model $model --hparams_set ${model_hparams[$model]} --hparams "grammar_direction=$grammar,$options" --decode_hparams 'beam_size=4,alpha=0.6'
 
+                # test reading the metrics from tfevent files
+                pipenv run $SRCDIR/../luinet-print-metrics --output_dir $workdir/model.$i --eval_early_stopping_metric "metrics-$problem/accuracy" --noeval_early_stopping_minimize
+
                 # we cannot test this until the t2t patch is merged
                 #test -d $workdir/model.$i/export/best/*
                 #test -f $workdir/model.$i/export/best/*/variables
