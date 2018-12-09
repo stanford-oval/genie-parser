@@ -33,7 +33,38 @@ def check_program_entities(program, entities):
                 return False
     return True
 
+TRAINABLE_TYPES = ('online', 'online-bookkeeping', 'commandpedia')
+
 class LearnHandler(tornado.web.RequestHandler):
+    @tornado.concurrent.run_on_executor
+    def _save_to_db(self, languageTag, utterance, preprocessed, target_code, store, owner):
+        training_flag = store in TRAINABLE_TYPES
+        
+        with self.application.database.begin() as conn:
+            result = conn.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner, like_count) " +
+                                  "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 1, %(owner)d, %(like_count)d)",
+                                  language=languageTag,
+                                  utterance=utterance,
+                                  preprocessed=preprocessed,
+                                  type=store,
+                                  flags=('training,exact' if training_flag else ''),
+                                  target_code=target_code,
+                                  owner=owner,
+                                  like_count=1 if store == 'commandpedia' else 0)
+            if training_flag:
+                # insert a second copy of the sentence with the "replaced" flag
+                conn.execute("insert into replaced_example_utterances (language, type, flags, preprocessed, target_code) " +
+                             "values (%(language)s, %(type)s, %(flags)s, %(preprocessed)s, %(target_code)s)",
+                             language=languageTag,
+                             preprocessed=preprocessed,
+                             type=store,
+                             flags='training,exact',
+                             target_code=target_code)
+            if store == 'commandpedia':
+                conn.execute("insert into example_likes(example_id, user_id) values (%(example_id)d, %(user_id)d)",
+                             example_id=result.lastrowid,
+                             user_id=owner)
+    
     @tornado.gen.coroutine
     def post(self, locale='en-US', model_tag=None, **kw):
         self.set_header('Access-Control-Allow-Origin', '*')
@@ -82,29 +113,15 @@ class LearnHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(400, reason="Invalid store parameter")
         if store == 'online' and sequence[0] == 'bookkeeping':
             store = 'online-bookkeeping'
+        if store == 'commandpedia' and owner is None:
+            raise tornado.web.HTTPError(400, reason="Missing owner for commandpedia command")
         
-        training_flag = store in ('online', 'online-bookkeeping', 'commandpedia')
+        training_flag = store in TRAINABLE_TYPES
         
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
-        self.application.database.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner) " +
-                                          "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 10, %(owner)s)",
-                                          language=language.tag,
-                                          utterance=query,
-                                          preprocessed=preprocessed,
-                                          type=store,
-                                          flags=('training,exact' if training_flag else ''),
-                                          target_code=target_code,
-                                          owner=owner)
-        if training_flag:
-            # insert a second copy of the sentence with the "replaced" flag
-            self.application.database.execute("insert into replaced_example_utterances (language, type, flags, preprocessed, target_code) " +
-                                              "values (%(language)s, %(type)s, %(flags)s, %(preprocessed)s, %(target_code)s)",
-                                              language=language.tag,
-                                              preprocessed=preprocessed,
-                                              type=store,
-                                              flags='training,exact',
-                                              target_code=target_code)
+        
+        yield self._save_to_db(language.tag, query, preprocessed, target_code, store, owner)
 
         if language.exact and training_flag:
             language.exact.add(preprocessed, target_code)
