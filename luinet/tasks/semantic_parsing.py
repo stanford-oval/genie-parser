@@ -76,10 +76,6 @@ MAX_ARG_VALUES = 5
 HACK_REPLACEMENT = {
     # onedrive is the new name of skydrive
     'onedrive': 'skydrive',
-
-    # imgflip is kind of the same as imgur (or 9gag)
-    # until we have either in thingpedia, it's fine to reuse the word vector
-    'imgflip': 'imgur'
 }
 
 
