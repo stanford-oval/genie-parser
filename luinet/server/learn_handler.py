@@ -41,6 +41,17 @@ class LearnHandler(tornado.web.RequestHandler):
         training_flag = store in TRAINABLE_TYPES
         
         with self.application.database.begin() as conn:
+            if len(owner) == 8:
+                lookup_result = conn.execute("select id from users where cloud_id = %(cloud_id)s", cloud_id=owner).first()
+                if lookup_result is None:
+                    raise tornado.web.HTTPError(400, reason="Invalid command owner")
+                owner_id = lookup_result['id']
+            else:
+                try:
+                    owner_id = int(owner)
+                except:
+                    raise tornado.web.HTTPError(400, reason="Invalid command owner")
+            
             result = conn.execute("insert into example_utterances (is_base, language, type, flags, utterance, preprocessed, target_json, target_code, click_count, owner, like_count) " +
                                   "values (0, %(language)s, %(type)s, %(flags)s, %(utterance)s, %(preprocessed)s, '', %(target_code)s, 1, %(owner)d, %(like_count)d)",
                                   language=languageTag,
@@ -49,8 +60,9 @@ class LearnHandler(tornado.web.RequestHandler):
                                   type=store,
                                   flags=('training,exact' if training_flag else ''),
                                   target_code=target_code,
-                                  owner=owner,
+                                  owner=owner_id,
                                   like_count=1 if store == 'commandpedia' else 0)
+            example_id = result.lastrowid
             if training_flag:
                 # insert a second copy of the sentence with the "replaced" flag
                 conn.execute("insert into replaced_example_utterances (language, type, flags, preprocessed, target_code) " +
@@ -62,8 +74,9 @@ class LearnHandler(tornado.web.RequestHandler):
                              target_code=target_code)
             if store == 'commandpedia':
                 conn.execute("insert into example_likes(example_id, user_id) values (%(example_id)d, %(user_id)d)",
-                             example_id=result.lastrowid,
-                             user_id=owner)
+                             example_id=example_id,
+                             user_id=owner_id)
+            return example_id
     
     @tornado.gen.coroutine
     def post(self, locale='en-US', model_tag=None, **kw):
@@ -121,9 +134,9 @@ class LearnHandler(tornado.web.RequestHandler):
         if not self.application.database:
             raise tornado.web.HTTPError(500, "Server not configured for online learning")
         
-        yield self._save_to_db(language.tag, query, preprocessed, target_code, store, owner)
+        example_id = yield self._save_to_db(language.tag, query, preprocessed, target_code, store, owner)
 
         if language.exact and training_flag:
             language.exact.add(preprocessed, target_code)
-        self.write(dict(result="Learnt successfully"))
+        self.write(dict(result="Learnt successfully", example_id=example_id))
         self.finish()
