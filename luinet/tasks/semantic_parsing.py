@@ -28,6 +28,7 @@ import zipfile
 import re
 import tempfile
 import shutil
+import collections
 
 import numpy as np
 import tensorflow as tf
@@ -43,6 +44,8 @@ from ..grammar.abstract import AbstractGrammar
 from ..tasks import base_problem
 
 
+tf.flags.DEFINE_integer("semparse_unk_threshold", 50, "Minimum number of occurrency of a word to receive a non-unk vector",
+                        lower_bound=1)
 FLAGS = tf.flags.FLAGS
 
 START_TOKEN = '<s>'
@@ -414,7 +417,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 continue
             if word[0].isupper():
                 continue
-            self._building_dictionary.add(word)
+            self._building_dictionary[word] += 1
 
     @property
     def dataset_splits(self):
@@ -433,7 +436,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
     def generate_data(self, data_dir, tmp_dir, task_id=-1):
         # override to call begin_data_generation and build the dictionary
         
-        self._building_dictionary = set()
+        self._building_dictionary = collections.Counter()
         
         # download any subclass specific data
         self.begin_data_generation(data_dir)
@@ -492,7 +495,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         # we also use all-one for <unk>
         embedding_matrix[text_encoder.EOS_ID, embed_size-1] = 1.
         embedding_matrix[START_ID, embed_size-2] = 1.
-        embedding_matrix[3, :original_embed_size] = np.ones((original_embed_size,))
+        
+        unk_vector = np.ones((original_embed_size,))
+        embedding_matrix[3, :original_embed_size] = unk_vector
 
         trimmed_glove = dict()
         hack_values = HACK_REPLACEMENT.values()
@@ -511,12 +516,16 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             assert isinstance(word, str), (word, word_id)
             if self.use_typed_embeddings and word[0].isupper():
                 continue
+            if not word or re.match('\s+', word):
+                raise ValueError('Invalid word "%s"' % (word,))
+            
             if word in trimmed_glove:
                 embedding_matrix[word_id, :original_embed_size] = trimmed_glove[word]
                 continue
+            if self._building_dictionary[word] < FLAGS.semparse_unk_threshold:
+                embedding_matrix[word_id, :original_embed_size] = unk_vector
+                continue
             
-            if not word or re.match('\s+', word):
-                raise ValueError('Invalid word "%s"' % (word,))
             vector = None
             if BLANK.match(word):
                 # normalize blanks
