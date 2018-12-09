@@ -451,7 +451,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             else:
                 yield self.dictionary[token], None
 
-    def decode_program(self, input_sentence, tokenized_program):
+    def decode_program(self, input_sentence, tokenized_program, decode_sentence=True):
         program = []
         tokenized_program = np.reshape(tokenized_program, (-1, 3))
         
@@ -464,7 +464,10 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 end_position = tokenized_program[i, 2]
                 if end_position < begin_position:
                     end_position = begin_position
-                input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
+                if decode_sentence:
+                    input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
+                else:
+                    input_span = input_sentence[begin_position:end_position+1]
                 program.extend(input_span)
             else:
                 program.append(self.tokens[token])

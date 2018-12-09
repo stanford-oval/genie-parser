@@ -245,6 +245,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             "inputs": example["inputs"],
             "weight": tf.expand_dims(synth_weight + para_weight + aug_weight, axis=0)
         }
+        if "inputs/string" in example:
+            output_example['inputs/string']
         
         if "targets" in example:
             output_example["targets"] = example["targets"]
@@ -263,6 +265,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         
         return {
             "type": 2, # paraphrase
+            "inputs/string": string_input,
             "inputs": tf.concat(([START_ID], int64_input, [text_encoder.EOS_ID]),
                                 axis=0)
         }
@@ -303,14 +306,20 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
     def decode_targets(self, targets, features, model_hparams=None):
         grammar = self.get_grammar(model_hparams.data_dir)
         targets = tf.squeeze(targets, axis=[2, 3])
-        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+        if "inputs/string" in features:
+            input_sentence = tf.squeeze(features["inputs/string"], axis=[2, 3])
+            decode_sentence = False
+        else:
+            input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+            decode_sentence = True
         
         def decode_pyfunc(program_batch, input_sentence_batch):
             batch_size = len(program_batch)
             output_len = None
             outputs = []
             for i in range(batch_size):
-                vector = grammar.decode_program(input_sentence_batch[i], program_batch[i])
+                vector = grammar.decode_program(input_sentence_batch[i], program_batch[i],
+                                                decode_sentence=decode_sentence)
                 outputs.append(vector)
                 if output_len is None or len(vector) > output_len:
                     output_len = len(vector)
@@ -337,7 +346,12 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             assert key.startswith("targets_")
             grammar_key = key[len("targets_"):]
             sample_ids[grammar_key] = outputs[key]
-        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+        if "inputs/string" in features:
+            input_sentence = tf.squeeze(features["inputs/string"], axis=[2, 3])
+            decode_sentence = False
+        else:
+            input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+            decode_sentence = True
         
         beam_size = None
         batch_size = None
@@ -374,7 +388,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                                                        direction=model_hparams.grammar_direction,
                                                        ignore_errors=True)
                 if decode:
-                    vector = grammar.decode_program(input_sentence_batch[i], vector)
+                    vector = grammar.decode_program(input_sentence_batch[i], vector,
+                                                    decode_sentence=decode_sentence)
                     #print(input_sentence_batch[i], vector)
                 outputs.append(vector)
                 if output_len is None or len(vector) > output_len:

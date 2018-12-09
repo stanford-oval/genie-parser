@@ -369,14 +369,15 @@ class ShiftReduceGrammar(AbstractGrammar):
                     vector[i, 1] = payload
         return np.reshape(vector, (-1,))
         
-    def decode_program(self, input_sentence, tokenized_program):
+    def decode_program(self, input_sentence, tokenized_program, decode_sentence=True):
         return [self.tokens[x] for x in tokenized_program[::3]]
 
     def reconstruct_program(self, input_sentence, sequences,
                             direction='bottomup',
-                            ignore_errors=False):
+                            ignore_errors=False,
+                            decode_sentence=True):
         tokenized_program = self.reconstruct_to_vector(sequences, direction, ignore_errors)
-        return self.decode_program(input_sentence, tokenized_program)
+        return self.decode_program(input_sentence, tokenized_program, decode_sentence=decode_sentence)
 
     def print_all_actions(self):
         print(0, 'pad')
