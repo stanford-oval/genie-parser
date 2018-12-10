@@ -307,7 +307,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         grammar = self.get_grammar(model_hparams.data_dir)
         targets = tf.squeeze(targets, axis=[2, 3])
         if "inputs/string" in features:
-            input_sentence = tf.squeeze(features["inputs/string"], axis=[2, 3])
+            input_sentence = features["inputs/string"]
             decode_sentence = False
         else:
             input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
@@ -347,7 +347,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             grammar_key = key[len("targets_"):]
             sample_ids[grammar_key] = outputs[key]
         if "inputs/string" in features:
-            input_sentence = tf.squeeze(features["inputs/string"], axis=[2, 3])
+            input_sentence = features["inputs/string"]
             decode_sentence = False
         else:
             input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
