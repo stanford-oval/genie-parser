@@ -246,7 +246,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             "weight": tf.expand_dims(synth_weight + para_weight + aug_weight, axis=0)
         }
         if "inputs/string" in example:
-            output_example['inputs/string']
+            output_example['inputs/string'] = example['inputs/string']
         
         if "targets" in example:
             output_example["targets"] = example["targets"]
