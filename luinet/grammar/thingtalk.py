@@ -24,6 +24,8 @@ import json
 import os
 import urllib.request
 import ssl
+import numpy as np
+import tensorflow as tf
 
 from collections import OrderedDict
 from orderedset import OrderedSet
@@ -38,7 +40,7 @@ from ..util.strings import find_span
 # import nltk
 # from nltk.translate.bleu_score import SmoothingFunction
 
-from tensor2tensor.utils.bleu_hook import *
+from tensor2tensor.utils.bleu_hook import compute_bleu
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed', 'special:help',
@@ -449,7 +451,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             else:
                 yield self.dictionary[token], None
 
-    def decode_program(self, input_sentence, tokenized_program):
+    def decode_program(self, input_sentence, tokenized_program, decode_sentence=True):
         program = []
         tokenized_program = np.reshape(tokenized_program, (-1, 3))
         
@@ -460,7 +462,12 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             if token == self._span_id:
                 begin_position = tokenized_program[i, 1]
                 end_position = tokenized_program[i, 2]
-                input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
+                if end_position < begin_position:
+                    end_position = begin_position
+                if decode_sentence:
+                    input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
+                else:
+                    input_span = input_sentence[begin_position:end_position+1]
                 program.extend(input_span)
             else:
                 program.append(self.tokens[token])

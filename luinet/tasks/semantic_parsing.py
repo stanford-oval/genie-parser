@@ -28,6 +28,7 @@ import zipfile
 import re
 import tempfile
 import shutil
+import collections
 
 import numpy as np
 import tensorflow as tf
@@ -43,6 +44,8 @@ from ..grammar.abstract import AbstractGrammar
 from ..tasks import base_problem
 
 
+tf.flags.DEFINE_integer("semparse_unk_threshold", 50, "Minimum number of occurrency of a word to receive a non-unk vector",
+                        lower_bound=1)
 FLAGS = tf.flags.FLAGS
 
 START_TOKEN = '<s>'
@@ -76,10 +79,6 @@ MAX_ARG_VALUES = 5
 HACK_REPLACEMENT = {
     # onedrive is the new name of skydrive
     'onedrive': 'skydrive',
-
-    # imgflip is kind of the same as imgur (or 9gag)
-    # until we have either in thingpedia, it's fine to reuse the word vector
-    'imgflip': 'imgur'
 }
 
 
@@ -246,6 +245,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             "inputs": example["inputs"],
             "weight": tf.expand_dims(synth_weight + para_weight + aug_weight, axis=0)
         }
+        if "inputs/string" in example:
+            output_example['inputs/string'] = example['inputs/string']
         
         if "targets" in example:
             output_example["targets"] = example["targets"]
@@ -264,6 +265,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         
         return {
             "type": 2, # paraphrase
+            "inputs/string": string_input,
             "inputs": tf.concat(([START_ID], int64_input, [text_encoder.EOS_ID]),
                                 axis=0)
         }
@@ -304,14 +306,20 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
     def decode_targets(self, targets, features, model_hparams=None):
         grammar = self.get_grammar(model_hparams.data_dir)
         targets = tf.squeeze(targets, axis=[2, 3])
-        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+        if "inputs/string" in features:
+            input_sentence = features["inputs/string"]
+            decode_sentence = False
+        else:
+            input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+            decode_sentence = True
         
         def decode_pyfunc(program_batch, input_sentence_batch):
             batch_size = len(program_batch)
             output_len = None
             outputs = []
             for i in range(batch_size):
-                vector = grammar.decode_program(input_sentence_batch[i], program_batch[i])
+                vector = grammar.decode_program(input_sentence_batch[i], program_batch[i],
+                                                decode_sentence=decode_sentence)
                 outputs.append(vector)
                 if output_len is None or len(vector) > output_len:
                     output_len = len(vector)
@@ -338,7 +346,12 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             assert key.startswith("targets_")
             grammar_key = key[len("targets_"):]
             sample_ids[grammar_key] = outputs[key]
-        input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+        if "inputs/string" in features:
+            input_sentence = features["inputs/string"]
+            decode_sentence = False
+        else:
+            input_sentence = tf.squeeze(features["inputs"], axis=[2, 3])
+            decode_sentence = True
         
         beam_size = None
         batch_size = None
@@ -375,7 +388,8 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                                                        direction=model_hparams.grammar_direction,
                                                        ignore_errors=True)
                 if decode:
-                    vector = grammar.decode_program(input_sentence_batch[i], vector)
+                    vector = grammar.decode_program(input_sentence_batch[i], vector,
+                                                    decode_sentence=decode_sentence)
                     #print(input_sentence_batch[i], vector)
                 outputs.append(vector)
                 if output_len is None or len(vector) > output_len:
@@ -418,7 +432,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 continue
             if word[0].isupper():
                 continue
-            self._building_dictionary.add(word)
+            self._building_dictionary[word] += 1
 
     @property
     def dataset_splits(self):
@@ -437,7 +451,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
     def generate_data(self, data_dir, tmp_dir, task_id=-1):
         # override to call begin_data_generation and build the dictionary
         
-        self._building_dictionary = set()
+        self._building_dictionary = collections.Counter()
         
         # download any subclass specific data
         self.begin_data_generation(data_dir)
@@ -496,7 +510,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         # we also use all-one for <unk>
         embedding_matrix[text_encoder.EOS_ID, embed_size-1] = 1.
         embedding_matrix[START_ID, embed_size-2] = 1.
-        embedding_matrix[3, :original_embed_size] = np.ones((original_embed_size,))
+        
+        unk_vector = np.ones((original_embed_size,))
+        embedding_matrix[3, :original_embed_size] = unk_vector
 
         trimmed_glove = dict()
         hack_values = HACK_REPLACEMENT.values()
@@ -515,12 +531,16 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             assert isinstance(word, str), (word, word_id)
             if self.use_typed_embeddings and word[0].isupper():
                 continue
+            if not word or re.match('\s+', word):
+                raise ValueError('Invalid word "%s"' % (word,))
+            
             if word in trimmed_glove:
                 embedding_matrix[word_id, :original_embed_size] = trimmed_glove[word]
                 continue
+            if self._building_dictionary[word] < FLAGS.semparse_unk_threshold:
+                embedding_matrix[word_id, :original_embed_size] = unk_vector
+                continue
             
-            if not word or re.match('\s+', word):
-                raise ValueError('Invalid word "%s"' % (word,))
             vector = None
             if BLANK.match(word):
                 # normalize blanks
