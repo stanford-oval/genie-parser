@@ -17,7 +17,7 @@ from collections import namedtuple
 
 PORT = 8888
 
-TokenizerResult = namedtuple('TokenizerResult', ('tokens', 'values', 'constituency_parse'))
+TokenizerResult = namedtuple('TokenizerResult', ('tokens', 'values', 'constituency_parse', 'raw_tokens', 'sentiment', 'pos_tags'))
 
 def clean_tokens(tokens):
     for t in tokens:
@@ -53,7 +53,10 @@ class TokenizerService(object):
             id = int(response['req'])
             result = TokenizerResult(tokens=list(clean_tokens(response['tokens'])),
                                      values=response['values'],
-                                     constituency_parse=response['constituencyParse'])
+                                     constituency_parse=response['constituencyParse'],
+                                     pos_tags=response['pos'],
+                                     raw_tokens=response['rawTokens'],
+                                     sentiment=response['sentiment'])
             self._requests[id].set_result(result)
             del self._requests[id]
         
