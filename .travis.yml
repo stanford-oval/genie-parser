@@ -9,7 +9,8 @@ language: python
 python:
 - '3.6'
 before_install:
-- openssl aes-256-cbc -K $encrypted_8d12f199dec1_key -iv $encrypted_8d12f199dec1_iv -in travis/id_rsa.autodeploy.enc -out travis/id_rsa.autodeploy -d
+- openssl aes-256-cbc -K $encrypted_8d12f199dec1_key -iv $encrypted_8d12f199dec1_iv
+  -in travis/id_rsa.autodeploy.enc -out travis/id_rsa.autodeploy -d
 - chmod 0600 travis/id_rsa.autodeploy
 install:
 - pip install pipenv
@@ -19,7 +20,7 @@ script:
 - "./tests/functional.sh"
 notifications:
   slack:
-    secure: w4jyIgNqO0TFNpVtLYOhXNg5S5q6PLMZshBrwEZl8ldMty7RfVamq48TfSj9/sWO+cWzOBiZxAKX1s243k36FvjoKKgeTBFyvZTlXJr8setuI+gZzFESrVfyaTKJ4IbFkuY9AbAvggMaf816gDRH3s0hHCPnIjRHH0IrofmhxkStK0cULdpICDcIef0VyQ5k7eI9CAeBXX41C34Qe3hseurMnlZfJL7vqtE48FDyhuJ2FIqKmRoqAWh8ef8ogppo2rcwvIZM9ZyYLG1Z9upc29dNjF3lAKFPSVtYDg6YX8wlUhMZPHMtHG6/ENbFJ4+FL95zpG0giPTXCEwl+JE/ynzpzhB+usu0qEB+XYU4jwzNyG1hzxAe5ki3s+aUZXCRHDma/lyer4XBGO45Wv6Sao9epyTA+9UfDg7Q+E6kv4vyBOWfZI3pFm2KuiWHpjts7XwU/MB4Q8d2ZKQhgWeEoqFWYUNb7UulSRlAVBT8IHFNW6SiHlJ6inRfNmo4MOw6PipnJBYmGNoiwdCPNQgVuHOIYqkEOQ4r6y7mQgbJrOn1CO5o9jCJ+gSyKaDTcD8/jZE0vISXezPCeFgbzVdGxzAw1/VkgfweUohvhYk1zEuwAiPXJwLqL0dpiRmuYM1YDrECtBRAa5mxi3QZ2kjTJHTI0GGEvY6W0VyP3xm/gOg=
+    secure: wV1+oE7KnfWgIFMVCgJqscssw9dt1pri1f9StK3B2Bc5zrF6DVkS0SkUv9YXjPTXnYndf3ZhIyFaduAzi5GJoOxNtWIT4dl4tDV9javbKSQ5vdkcrTgU+7egPcKIuBu7S50lfm0PK4mVkt+8weJz5zXBQANQBd5SIGJTbdwMj/ImmMo6HdBK90Nq8lAbi1O4M6tvDN0onoNAQ/V2rE3o1vtNhSe9N9wrYR4dcmbQjztoSTIs2x460XZlAre0y5GHqbKQ4338aoZYv9G3kyH/11/44+hZ2lFXGbPf+3DiIfeTqSa1sZQmg07b4XAyCGV+hRMhoRA6zuoKuFQaIDxsM8tQu/0gBdSxEHhv0GowZdJwxZbQfUSpcrbAUkYGgobJ+vmSxIG6ePxLTYVB1DIjHlPKNHCK7yY4o6QhsbEVcoTopE9mEU3MZcxQNi4wd/AtaG5l4lW8B6bykuKE2PcMQPOoHj1fHazDOvCHhGXpBcJt9rAL9AHapEw5pNQLWWkSlYj4iaK7CmEPb7hE4/IbgnTwQqLgimcQsdyty1KVvBbnsXVXow68/B6ACDYl1cJC2h2NhBcstA8A0MgnuKv0qtsBQJuJ7NSuuOhEIVBczrvpgpcHKPVO/B7v2ISUOlbQpGPBsyLFiXXGlbWfAqhJL86YdHLPjdSbwgnYdCkqeeU=
 deploy:
   provider: script
   skip_cleanup: true
