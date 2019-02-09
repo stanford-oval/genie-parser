@@ -101,8 +101,11 @@ class ShiftReduceGrammar(AbstractGrammar):
             # copy terminals don't need 1 to account for pad_id
             # because we already consider <s> at the beginning
             # of the sentence
-            self._output_size['COPY_' + term + '_begin'] = self._max_input_length
-            self._output_size['COPY_' + term + '_end'] = self._max_input_length
+            if term == 'SPAN':
+                self._output_size['COPY_' + term + '_begin'] = self._max_input_length
+                self._output_size['COPY_' + term + '_end'] = self._max_input_length
+            else:
+                self._output_size['COPY_' + term] = self._max_input_length
         
         self.dictionary = generator.dictionary
         # add synonyms that AbstractGrammar likes
@@ -181,7 +184,7 @@ class ShiftReduceGrammar(AbstractGrammar):
         # if nothing happens, we're good
         self._parser.parse(self._np_array_tokenizer(program))
 
-    def _vectorize_linear(self, tokenizer, max_length=None):
+    def _vectorize_linear(self, tokenizer, max_length=None, tokens=None):
         token_list = list(tokenizer)
         
         if max_length is None:
@@ -191,21 +194,30 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._extensible_terminals:
             vectors[term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         for term in self._copy_terminals:
-            vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
-            vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            if term == 'SPAN':
+                vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+                vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            else:
+                vectors['COPY_' + term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         action_vector = vectors['actions']
+        
+        if tokens is None:
+            tokens = self.tokens
         
         i = 0
         for term_id, payload in token_list:
             action_vector[i] = term_id
-            term = self.tokens[term_id]
+            term = tokens[term_id]
             if term_id in self._copy_terminal_indices:
                 assert isinstance(payload, tuple)
                 assert not isinstance(payload[0], str)
                 assert not isinstance(payload[1], str)
                 begin, end = payload
-                vectors['COPY_' + term + '_begin'][i] = begin
-                vectors['COPY_' + term + '_end'][i] = end
+                if term == 'SPAN':
+                    vectors['COPY_' + term + '_begin'][i] = begin
+                    vectors['COPY_' + term + '_end'][i] = end
+                else:
+                    vectors['COPY_' + term][i] = begin
             elif term_id in self._extensible_terminal_indices:
                 tokenid = payload
                 assert 0 <= tokenid < self._output_size[term]
@@ -244,8 +256,11 @@ class ShiftReduceGrammar(AbstractGrammar):
         for term in self._extensible_terminals:
             vectors[term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         for term in self._copy_terminals:
-            vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
-            vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            if term == 'SPAN':
+                vectors['COPY_' + term + '_begin'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+                vectors['COPY_' + term + '_end'] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
+            else:
+                vectors['COPY_' + term] = np.full((max_length,), slr.PAD_ID, dtype=np.int32)
         action_vector = vectors['actions']
         i = 0
 
@@ -261,8 +276,11 @@ class ShiftReduceGrammar(AbstractGrammar):
                     assert not isinstance(payload[0], str)
                     assert not isinstance(payload[1], str)
                     begin, end = payload
-                    vectors['COPY_' + term + '_begin'][i] = begin
-                    vectors['COPY_' + term + '_end'][i] = end
+                    if term == 'SPAN':
+                        vectors['COPY_' + term + '_begin'][i] = begin
+                        vectors['COPY_' + term + '_end'][i] = end
+                    else:
+                        vectors['COPY_' + term][i] = begin
                 elif term_id in self._extensible_terminal_indices:
                     tokenid = payload
                     assert 0 <= tokenid < self._output_size[term]
@@ -284,7 +302,7 @@ class ShiftReduceGrammar(AbstractGrammar):
 
         return vectors, i
     
-    def _reconstruct_linear(self, vectors):
+    def _reconstruct_linear(self, vectors, tokens=None):
         # -1 removes the EOS_ID at the end (assuming there is one)
         # if the generated program is incorrect, there might not be
         # one; this is sad and will lower the grammar accuracy; too bad
@@ -295,15 +313,21 @@ class ShiftReduceGrammar(AbstractGrammar):
         else:
             idx = len(vectors['actions'])-1
         output = np.empty((idx, 3), dtype=np.int32)
+        
+        if tokens is None:
+            tokens = self.tokens
 
         for i, term_id in enumerate(vectors['actions']):
             if i >= len(output) or term_id <= self.end: # pad or end
                 break
-            term = self.tokens[term_id]
+            term = tokens[term_id]
             output[i, 0] = term_id
             if term_id in self._copy_terminal_indices:
-                begin = vectors['COPY_' + term + '_begin'][i]
-                end = vectors['COPY_' + term + '_end'][i]
+                if term == 'SPAN':
+                    begin = vectors['COPY_' + term + '_begin'][i]
+                    end = vectors['COPY_' + term + '_end'][i]
+                else:
+                    begin = end = vectors['COPY_' + term][i]
                 output[i, 1] = begin
                 output[i, 2] = end
             elif term_id in self._extensible_terminal_indices:
@@ -338,8 +362,11 @@ class ShiftReduceGrammar(AbstractGrammar):
             elif x < self.num_control_tokens + self._parser.num_rules + len(self._copy_terminals):
                 term = self._copy_terminals[x - self.num_control_tokens - self._parser.num_rules]
                 term_id = self.dictionary[term]
-                begin_position = sequences['COPY_' + term + '_begin'][i]
-                end_position = sequences['COPY_' + term + '_end'][i]
+                if term == 'SPAN':
+                    begin_position = sequences['COPY_' + term + '_begin'][i]
+                    end_position = sequences['COPY_' + term + '_end'][i]
+                else:
+                    begin_position = end_position = sequences['COPY_' + term][i]
                 return (slr.SHIFT_CODE, (term_id, (begin_position, end_position)))
             else:
                 term = self._extensible_terminals[x - self.num_control_tokens - len(self._copy_terminals) - self._parser.num_rules]

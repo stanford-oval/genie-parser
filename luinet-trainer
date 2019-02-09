@@ -60,7 +60,7 @@ flags.DEFINE_integer("num_loops", 2, "number of training loops")
 flags.DEFINE_bool("curriculum", False, "use curriculum learning")
 
 
-if 'semparse_thingtalk' in FLAGS.problem:
+if 'semparse_thingtalk' in FLAGS.problem or 'semparse_posthingtalk' in FLAGS.problem:
     LUI_prob = True
 
 if "luinet" in FLAGS.model:

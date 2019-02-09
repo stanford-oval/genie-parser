@@ -24,6 +24,9 @@ import json
 import os
 import urllib.request
 import ssl
+import re
+import sys
+
 import numpy as np
 import tensorflow as tf
 
@@ -40,7 +43,7 @@ from ..util.strings import find_span
 # import nltk
 # from nltk.translate.bleu_score import SmoothingFunction
 
-from tensor2tensor.utils.bleu_hook import compute_bleu
+from tensor2tensor.utils.bleu_hook import *
 
 SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:makerule', 'special:failed', 'special:help',
@@ -48,8 +51,8 @@ SPECIAL_TOKENS = ['special:yes', 'special:no', 'special:nevermind',
                   'special:sorry', 'special:cool', 'special:wakeup']
 TYPES = {
     'Location': (['=='], ['LOCATION', 'location:current_location', 'location:work', 'location:home']),
-    'Boolean':  ([], []), # booleans are handled per-parameter, like enums
-    'String': (['==', '=~', '~=', 'starts_with', 'ends_with'], ['""', ('"', '$word_list', '"'), 'QUOTED_STRING']),
+    'Boolean':  ([], ['true', 'false']), # booleans are handled per-parameter, like enums
+    'String': (['==', '=~', '~=', 'starts_with', 'ends_with'], ['""', ('"', '$word_list', '"'), 'QUOTED_STRING', 'event']),
     'Date': (['==', '>=', '<='], [
         'DATE',
         'now',
@@ -65,18 +68,17 @@ TYPES = {
         ('end_of', 'unit:year'),
         ('$constant_Date', '+', '$constant_Measure(ms)'),
         ('$constant_Date', '-', '$constant_Measure(ms)'),
-        ('$constant_Time',),
         ]),
     'Time': (['=='], ['TIME']),
     'Currency': (['==', '>=', '<='], ['CURRENCY']),
     'Number': (['==', '>=', '<='], ['NUMBER', '1', '0']),
-    'Entity(tt:username)': (['=='], ['USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
-    'Entity(tt:contact)': (['=='], [('$constant_Entity(tt:username)',) ]),
-    'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('"', '$word_list', '"', '^^tt:hashtag'), ('$constant_String',) ]),
-    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER', 'USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
-    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS', 'USERNAME', ('"', '$word_list', '"', '^^tt:username'), ('$constant_String',) ]),
-    'Entity(tt:url)': (['=='], ['URL', ('$constant_String',) ]),
-    'Entity(tt:path_name)': (['=='], ['PATH_NAME', ('$constant_String',) ]),
+    'Entity(tt:username)': (['=='], ['USERNAME', ('"', '$word_list', '"', '^^tt:username')]),
+    'Entity(tt:contact)': (['=='], []),
+    'Entity(tt:hashtag)': (['=='], ['HASHTAG', ('"', '$word_list', '"', '^^tt:hashtag')]),
+    'Entity(tt:phone_number)': (['=='], ['PHONE_NUMBER']),
+    'Entity(tt:email_address)': (['=='], ['EMAIL_ADDRESS']),
+    'Entity(tt:url)': (['=='], ['URL']),
+    'Entity(tt:path_name)': (['=='], ['PATH_NAME']),
     'Entity(tt:picture)': (['=='], []),
     'Entity(tt:program)': (['=='], [])
 }
@@ -103,7 +105,47 @@ MAX_ARG_VALUES = 4
 MAX_STRING_ARG_VALUES = 5
 
 
-class ThingTalkGrammar(ShiftReduceGrammar):
+def clean(name):
+    if name.startswith('v_'):
+        name = name[len('v_'):]
+    return re.sub('([^A-Z])([A-Z])', '$1 $2', re.sub('_', ' ', name)).lower()
+
+
+def tokenize(name):
+    return re.split(r'\s+|[,\.\"\'!\?]', name.lower())
+
+
+def find_substring(sequence, substring):
+    for i in range(len(sequence)-len(substring)+1):
+        found = True
+        for j in range(0, len(substring)):
+            if sequence[i+j] != substring[j]:
+                found = False
+                break
+        if found:
+            return i
+    return -1
+
+
+def find_span(input_sentence, span):
+    # empty strings have their own special token "",
+    # they should not appear here
+    assert len(span) > 0
+
+    input_position = find_substring(input_sentence, span)
+
+    if input_position < 0:
+        raise ValueError("Cannot find span \"%s\" in \"%s\"" % (span, input_sentence))
+
+    # NOTE: the boundaries are inclusive (so that we always point
+    # inside the span)
+    # NOTE 2: the input_position cannot be zero, because
+    # the zero-th element in input_sentence is <s>
+    # this is important because zero is used as padding/mask value
+    return input_position, input_position + len(span)-1
+
+
+class PosThingTalkGrammar(ShiftReduceGrammar):
     '''
     The grammar of ThingTalk
     '''
@@ -214,13 +256,13 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                              ('$policy_query', '=>', '$policy_action')],
             '$policy_query': [('*',),
                               #('$thingpedia_device_star'),
-                              ('$thingpedia_queries',),
-                              ('$thingpedia_queries', 'filter', '$filter')],
+                              ('$thingpedia_query_call',),
+                              ('$thingpedia_query_call', 'filter', '$filter')],
             '$policy_action': [('*',),
                                #('$thingpedia_device_star'),
-                               ('$thingpedia_actions',),
-                               ('$thingpedia_actions', 'filter', '$filter')],
-            '$table': [('$thingpedia_queries',),
+                               ('$thingpedia_action_call',),
+                               ('$thingpedia_action_call', 'filter', '$filter')],
+            '$table': [('$thingpedia_query_call',),
                        ('(', '$table', ')', 'filter', '$filter'),
                        ('aggregate', 'min', '$out_param_Any', 'of', '(', '$table', ')'),
                        ('aggregate', 'max', '$out_param_Any', 'of', '(', '$table', ')'),
@@ -250,11 +292,19 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                              ('$stream_join', 'on', '$param_passing')],
             '$action': [('notify',),
                         ('return',),
-                        ('$thingpedia_actions',)],
-            '$thingpedia_queries': [('$thingpedia_queries', '$const_param')],
-            '$thingpedia_actions': [('$thingpedia_actions', '$const_param')],
+                        ('$thingpedia_action_call',)],
+            '$thingpedia_queries': [],
+            '$thingpedia_actions': [],
+            '$thingpedia_query_call': [('$thingpedia_queries', '(', '$param_list', ')'),
+                                       ('$thingpedia_queries', '(', ')')],
+            '$thingpedia_action_call': [('$thingpedia_actions', '(', '$param_list', ')'),
+                                        ('$thingpedia_actions', '(', ')')],
+            '$param_list': [('$input_param',),
+                            ('$param_list', ',', '$input_param')],
+            '$input_param': [('undefined',),
+                             ('$out_param_Any',),
+                             ('$constant_Any',)],
             '$param_passing': [],
-            '$const_param': [],
             '$out_param_Any': [],
             '$out_param_Array(Any)': [],
             '$out_param_list': [('$out_param_Any',),
@@ -283,8 +333,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         def add_type(type, value_rules, operators):
             assert all(isinstance(x, tuple) for x in value_rules)
             GRAMMAR['$constant_' + type] = value_rules
-            if not type.startswith('Entity(') and type != 'Time':
-                GRAMMAR['$constant_Any'].add(('$constant_' + type,))
+            GRAMMAR['$constant_Any'].add(('$constant_' + type,))
             for op in operators:
                 GRAMMAR['$atom_filter'].append(('$out_param_' + type, op, '$constant_' + type))
                 # FIXME reenable some day
@@ -327,7 +376,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
         for generic_entity, has_ner in self.entities:
             if has_ner:
                 value_rules = [('GENERIC_ENTITY_' + generic_entity + "_" + str(i), ) for i in range(MAX_ARG_VALUES)]
-                value_rules.append(('$constant_String',))
                 value_rules.append(('"', '$word_list', '"', '^^' + generic_entity,))
             else:
                 value_rules = []
@@ -366,10 +414,8 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 if param_type.startswith('Enum('):
                     enum_type = self._enum_types[param_type]
                     for enum in enum_type:
-                        #GRAMMAR['$atom_filter'].add(('$out_param', '==', 'enum:' + enum))
-                        if param_direction == 'in':
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'enum:' + enum))
-                        else:
+                        GRAMMAR['$constant_Any'].add(('enum:'+  enum,))
+                        if param_direction == 'out':
                             # NOTE: enum filters don't follow the usual convention for filters
                             # this is because, linguistically, it does not make much sense to go
                             # through $out_param: enum parameters are often implicit
@@ -392,16 +438,6 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_String'))
                         else:
                             GRAMMAR['$param_passing'].append(('param:' + param_name + ':' + param_type, '=', '$out_param_' + param_type))
-                    if param_direction == 'in':
-                        if param_type == 'Any':
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_String'))
-                        elif param_type.startswith('Array('):
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_Array'))
-                        elif param_type == 'Boolean':
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'true'))
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', 'false'))
-                        else:
-                            GRAMMAR['$const_param'].append(('param:' + param_name + ':' + param_type, '=', '$constant_' + param_type))
 
         self._grammar = GRAMMAR
 
@@ -450,7 +486,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             else:
                 yield self.dictionary_no_type[token], None
 
-    def decode_program(self, input_sentence, tokenized_program, decode_sentence=True):
+    def decode_program(self, input_sentence, tokenized_program):
         program = []
         tokenized_program = np.reshape(tokenized_program, (-1, 3))
         
@@ -461,12 +497,7 @@ class ThingTalkGrammar(ShiftReduceGrammar):
             if token in (self._span_id, self._word_id):
                 begin_position = tokenized_program[i, 1]
                 end_position = tokenized_program[i, 2]
-                if end_position < begin_position:
-                    end_position = begin_position
-                if decode_sentence:
-                    input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
-                else:
-                    input_span = input_sentence[begin_position:end_position+1]
+                input_span = self._input_dictionary.decode_list(input_sentence[begin_position:end_position+1])
                 program.extend(input_span)
             else:
                 if self._grammar_include_types:
@@ -564,8 +595,4 @@ class ThingTalkGrammar(ShiftReduceGrammar):
                 lambda pred, label: compute_f1_score(get_tokens(pred), get_tokens(label)))
         }
         
-if __name__ == '__main__':
-    grammar = ThingTalkGrammar(sys.argv[1], flatten=False, grammar_include_types=False)
-    grammar.set_input_dictionary(None)
-    for t in grammar.tokens_no_type:
-        print(t)
+

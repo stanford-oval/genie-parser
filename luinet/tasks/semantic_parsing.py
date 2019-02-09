@@ -142,7 +142,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         modality_name_prefix = self.name + "_"
         
         source_vocab_size = self._encoders["inputs"].vocab_size
-        
+
         with tf.gfile.Open(os.path.join(model_hparams.data_dir,
                                         "input_embeddings.npy"), "rb") as fp:
             pretrained_input_embeddings = np.load(fp)
@@ -584,6 +584,9 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
             np.save(fp, embedding_matrix)
     
     def _create_input_vocab(self, data_dir):
+        if tf.gfile.Exists(os.path.join(data_dir, "input_embeddings.npy")):
+            return
+
         dictionary = dict()
         grammar = self.get_grammar(data_dir)
         
@@ -645,8 +648,12 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
                 sentence = sentence.split(' ')
                 sentence.insert(0, START_TOKEN)
 
-                vectorized = grammar.tokenize_to_vector(sentence, program)
-                grammar.verify_program(vectorized)
+                try:
+                    vectorized = grammar.tokenize_to_vector(sentence, program)
+                    grammar.verify_program(vectorized)
+                except:
+                    print('Program', _id, 'failed to tokenize or verify:', program)
+                    raise
 
                 encoded_input: list = input_vocabulary.encode(' '.join(sentence))
                 assert text_encoder.PAD_ID not in encoded_input
