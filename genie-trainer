@@ -13,14 +13,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tiny wrapper for t2t-trainer that automatically loads luinet.
+"""Tiny wrapper for t2t-trainer that automatically loads genie.
 
 Usage:
 genie-trainer
   --data_dir ./workdir
   --problem semparse_thingtalk_noquote
-  --model luinet_copy_transformer
-  --hparams_set transformer_tiny_luinet
+  --model genie_copy_transformer
+  --hparams_set transformer_tiny_genie
   --output_dir ./workdir-small/model
 """
 
@@ -63,7 +63,7 @@ flags.DEFINE_bool("curriculum", False, "use curriculum learning")
 if 'semparse_thingtalk' in FLAGS.problem or 'semparse_posthingtalk' in FLAGS.problem:
     LUI_prob = True
 
-if "luinet" in FLAGS.model:
+if "genie" in FLAGS.model:
     LUI_model = True
 if LUI_prob != LUI_model:
     tf.logging.error('** Be advised that LUINetProblems should use LUINetModels while regular t2t.Problems should use t2t.Models **')

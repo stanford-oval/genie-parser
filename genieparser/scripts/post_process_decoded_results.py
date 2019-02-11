@@ -31,9 +31,9 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--input_sentences', default='./workdir/decoded_results.luinet_copy_transformer.transformer_tiny_luinet.semparse_thingtalk_noquote.beam1.alpha0.6.inputs', type=str)
-parser.add_argument('--gold_program', default='./workdir/decoded_results.luinet_copy_transformer.transformer_tiny_luinet.semparse_thingtalk_noquote.beam1.alpha0.6.targets', type=str)
-parser.add_argument('--predicted_program', default='./workdir/decoded_results.luinet_copy_transformer.transformer_tiny_luinet.semparse_thingtalk_noquote.beam1.alpha0.6.decodes', type=str)
+parser.add_argument('--input_sentences', default='./workdir/decoded_results.genie_copy_transformer.transformer_tiny_genie.semparse_thingtalk_noquote.beam1.alpha0.6.inputs', type=str)
+parser.add_argument('--gold_program', default='./workdir/decoded_results.genie_copy_transformer.transformer_tiny_genie.semparse_thingtalk_noquote.beam1.alpha0.6.targets', type=str)
+parser.add_argument('--predicted_program', default='./workdir/decoded_results.genie_copy_transformer.transformer_tiny_genie.semparse_thingtalk_noquote.beam1.alpha0.6.decodes', type=str)
 parser.add_argument('--output_file', default='./workdir/out_file', type=str)
 
 args = parser.parse_args()

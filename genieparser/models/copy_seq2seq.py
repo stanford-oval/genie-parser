@@ -86,7 +86,7 @@ def construct_decoder_cell(hparams, encoder_outputs, encoder_output_length):
     return cell
 
 
-@registry.register_model("luinet_copy_seq2seq")
+@registry.register_model("genie_copy_seq2seq")
 class CopySeq2SeqModel(LUINetModel):
     '''
     A model that implements Seq2Seq with an extensible (pointer-based) grammar:

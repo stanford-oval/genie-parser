@@ -51,7 +51,7 @@ from ..layers.common import AttentivePointerLayer, \
 from .transformer import Transformer
 
 
-@registry.register_model("luinet_copy_transformer")
+@registry.register_model("genie_copy_transformer")
 class CopyTransformer(Transformer):
     '''
     A Transformer subclass that supports copying from the inputs.

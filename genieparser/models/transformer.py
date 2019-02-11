@@ -141,7 +141,7 @@ def fast_decode(encoder_output,
                               force_decode_length, cache)
 
 
-@registry.register_model("luinet_transformer")
+@registry.register_model("genie_transformer")
 class Transformer(OriginalTransformer, LUINetModel):
     '''
     The standard TransformerModel, but also inherits

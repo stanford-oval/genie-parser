@@ -4,10 +4,10 @@ Requires=almond-tokenizer.service
 After=almond-tokenizer.service
 
 [Service]
-ExecStart=/opt/luinet/luinet-server
+ExecStart=/opt/genie/genie-server
 Type=notify
-User=luinet
-WorkingDirectory=/var/lib/luinet
+User=genie
+WorkingDirectory=/var/lib/genie
 StandardOutput=journal
 StandardError=inherit
 
