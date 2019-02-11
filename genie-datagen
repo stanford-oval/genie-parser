@@ -18,7 +18,7 @@ Tiny wrapper for t2t-datagen that allows some
 extra flags to be passed.
 
 Usage:
-luinet-datagen
+genie-datagen
   --src_data_dir ./dataset/
   --data_dir ./workdir
   --problem semparse_thingtalk_noquote
@@ -34,7 +34,7 @@ Created on Jul 24, 2018
 from tensor2tensor.bin import t2t_datagen
 import tensorflow as tf
 
-import luinet
+import genieparser
 
 flags = tf.flags
 flags.DEFINE_string("src_data_dir", "", "Source data directory.")

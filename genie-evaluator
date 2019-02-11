@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 Google LLC
+# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,12 +16,18 @@
 """Tiny wrapper for t2t-trainer that automatically loads luinet.
 
 Usage:
-luinet-trainer
+genie-evaluator
   --data_dir ./workdir
   --problem semparse_thingtalk_noquote
   --model luinet_copy_transformer
   --hparams_set transformer_tiny_luinet
   --output_dir ./workdir-small/model
+  --t2t_usr_dir ./luinet
+  --eval_steps 10000000
+  --eval_run_autoregressive
+  --schedule evaluate
+  --eval_on_test_data
+
 """
 
 # Part of this code is derived from Tensor2Tensor, which is:
@@ -39,55 +45,52 @@ luinet-trainer
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
-import tensorflow as tf
+import os
+import fnmatch
+
 from tensor2tensor.bin import t2t_trainer
-from luinet.scripts import avg_checkpoints
+import tensorflow as tf
+
+import genieparser
 
 flags = tf.flags
-FLAGS = tf.app.flags.FLAGS
-
-import luinet
+FLAGS = flags.FLAGS
 
 LUI_prob = False
 LUI_model = False
 
-flags.DEFINE_bool("perturb_training", False, "apply training trick")
-flags.DEFINE_integer("num_loops", 2, "number of training loops")
-
-# modify loss according to the class (Synthetic, Paraphrase, Augmented) each sentence belongs to
-flags.DEFINE_bool("curriculum", False, "use curriculum learning")
-
-
-if 'semparse_thingtalk' in FLAGS.problem or 'semparse_posthingtalk' in FLAGS.problem:
+if 'semparse_thingtalk' in FLAGS.problem:
     LUI_prob = True
-
 if "luinet" in FLAGS.model:
     LUI_model = True
 if LUI_prob != LUI_model:
     tf.logging.error('** Be advised that LUINetProblems should use LUINetModels while regular t2t.Problems should use t2t.Models **')
     sys.exit(1)
 
+data_path = os.path.expanduser(FLAGS.data_dir)
+test_dir = os.path.join(data_path, 'test_data')
+if not os.path.exists(test_dir):
+    os.makedirs(test_dir)
+
+test_file = []
+for file in os.listdir(data_path):
+    if fnmatch.fnmatch(file, FLAGS.problem + '-' + 'test' + '*'):
+        test_file.append(file)
+if len(test_file) != 1:
+    tf.logging.error('** Only having 1 test shard is allowed **')
+    sys.exit(1)
+
+try:
+    os.rename(os.path.join(data_path, test_file[0]), os.path.join(test_dir, test_file[0].replace('test', 'dev')))
+except OSError:
+    pass
+
+FLAGS.data_dir = test_dir
+
+
 def main(argv):
-    # strip off commas to avoid hparams parsing issues
-    FLAGS.hparams = FLAGS.hparams.strip(',')
-    output_dir = FLAGS.output_dir
     t2t_trainer.main(argv)
 
-    if FLAGS.perturb_training:
-        tf.logging.info('Continue training...')
-
-        for i in range(FLAGS.num_loops):
-            FLAGS.num_last_checkpoints = FLAGS.num_last_checkpoints if FLAGS.num_last_checkpoints > 0 else 3
-            FLAGS.prefix = os.path.join(FLAGS.output_dir, 'model.ckpt')
-            FLAGS.output_path = os.path.join(output_dir, 'averaged_{}/model.ckpt'.format(i))
-            avg_checkpoints.main(argv)
-            FLAGS.output_dir = os.path.join(output_dir, 'averaged_{}'.format(i))
-            FLAGS.hparams = FLAGS.hparams.strip(',')
-            t2t_trainer.main(argv)
-
-        tf.logging.info("Done training!")
-
 if __name__ == "__main__":
-    tf.app.run()
+  tf.app.run()
