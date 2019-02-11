@@ -20,7 +20,7 @@ Created on Oct 23, 2018
 @author: gcampagn
 '''
 
-from luinet.server.exact import ExactMatcher
+from genieparser.server.exact import ExactMatcher
 
 
 def test_exact_basic():

@@ -23,8 +23,8 @@ Created on Nov 30, 2017
 
 import pytest
 
-from luinet.grammar.slr.generator import SLRParserGenerator
-from luinet.grammar.slr import SHIFT_CODE, REDUCE_CODE
+from genieparser.grammar.slr.generator import SLRParserGenerator
+from genieparser.grammar.slr import SHIFT_CODE, REDUCE_CODE
 
 
 TEST_GRAMMAR = {

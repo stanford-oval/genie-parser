@@ -22,10 +22,10 @@ The server is configured using files; see data/server.conf for an example.
 """
 
 import tensorflow as tf
-import luinet.server.main
+import genieparser.server.main
 
 def main(argv):
-    luinet.server.main.main(argv)
+    genieparser.server.main.main(argv)
 
 if __name__ == "__main__":
   tf.app.run()

@@ -27,7 +27,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='luinet',
+    name='genie-parser',
     version='0.1dev',
     
     # python 3.6 makes dictionary ordered by default
@@ -38,14 +38,14 @@ setuptools.setup(
     python_requires='>=3.6',
     
     packages=setuptools.find_packages(exclude=['scripts', 'tests']),
-    scripts=['luinet-trainer', 'luinet-datagen',
-             'luinet-evaluator', 'luinet-decoder',
-             'luinet-server'],
+    scripts=['genie-trainer', 'genie-datagen',
+             'genie-evaluator', 'genie-decoder',
+             'genie-server', 'genie-print-metrics'],
     
     license='GPL-3.0+',
     author="Stanford Mobisocial Lab",
     author_email="mobisocial@lists.stanford.edu",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Stanford-Mobisocial-IoT-Lab/almond-nnparser",
+    url="https://github.com/Stanford-Mobisocial-IoT-Lab/genie-parser",
 )

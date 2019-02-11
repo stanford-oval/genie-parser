@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 The Board of Trustees of the Leland Stanford Junior University 
+# Copyright 2018 Google LLC
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,12 @@
 """Tiny wrapper for t2t-trainer that automatically loads luinet.
 
 Usage:
-luinet-decoder
---data_dir workdir/
---problem semparse_thingtalk_noquote
---model luinet_copy_transformer
---hparams_set transformer_tiny_luinet
---decode_hparams 'beam_size=1,alpha=0.6'
---output_dir ./workdir/model
---decode_to_file ./workdir/decoded_results
---eval_use_test_set
+genie-trainer
+  --data_dir ./workdir
+  --problem semparse_thingtalk_noquote
+  --model luinet_copy_transformer
+  --hparams_set transformer_tiny_luinet
+  --output_dir ./workdir-small/model
 """
 
 # Part of this code is derived from Tensor2Tensor, which is:
@@ -42,20 +39,30 @@ luinet-decoder
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
-from tensor2tensor.bin import t2t_decoder
 import tensorflow as tf
-
-import luinet
+from tensor2tensor.bin import t2t_trainer
+from genieparser.scripts import avg_checkpoints
 
 flags = tf.flags
-FLAGS = flags.FLAGS
+FLAGS = tf.app.flags.FLAGS
+
+import genieparser
 
 LUI_prob = False
 LUI_model = False
 
-if 'semparse_thingtalk' in FLAGS.problem:
+flags.DEFINE_bool("perturb_training", False, "apply training trick")
+flags.DEFINE_integer("num_loops", 2, "number of training loops")
+
+# modify loss according to the class (Synthetic, Paraphrase, Augmented) each sentence belongs to
+flags.DEFINE_bool("curriculum", False, "use curriculum learning")
+
+
+if 'semparse_thingtalk' in FLAGS.problem or 'semparse_posthingtalk' in FLAGS.problem:
     LUI_prob = True
+
 if "luinet" in FLAGS.model:
     LUI_model = True
 if LUI_prob != LUI_model:
@@ -63,7 +70,24 @@ if LUI_prob != LUI_model:
     sys.exit(1)
 
 def main(argv):
-    t2t_decoder.main(argv)
+    # strip off commas to avoid hparams parsing issues
+    FLAGS.hparams = FLAGS.hparams.strip(',')
+    output_dir = FLAGS.output_dir
+    t2t_trainer.main(argv)
+
+    if FLAGS.perturb_training:
+        tf.logging.info('Continue training...')
+
+        for i in range(FLAGS.num_loops):
+            FLAGS.num_last_checkpoints = FLAGS.num_last_checkpoints if FLAGS.num_last_checkpoints > 0 else 3
+            FLAGS.prefix = os.path.join(FLAGS.output_dir, 'model.ckpt')
+            FLAGS.output_path = os.path.join(output_dir, 'averaged_{}/model.ckpt'.format(i))
+            avg_checkpoints.main(argv)
+            FLAGS.output_dir = os.path.join(output_dir, 'averaged_{}'.format(i))
+            FLAGS.hparams = FLAGS.hparams.strip(',')
+            t2t_trainer.main(argv)
+
+        tf.logging.info("Done training!")
 
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()

@@ -25,7 +25,7 @@ import numpy as np
 
 import pytest
 
-from luinet.grammar.thingtalk import ThingTalkGrammar
+from genieparser.grammar.thingtalk import ThingTalkGrammar
 
 class IdentityTextEncoder():
     def decode_list(self, x):
