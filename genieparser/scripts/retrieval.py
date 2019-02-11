@@ -33,8 +33,8 @@ import argparse
 import pickle
 import math
 import tensorflow as tf
-from genie.scripts.utils.loader import load_dictionary, load_embeddings, load_data
-from genie.grammar.thingtalk import ThingTalkGrammar
+from genieparser.scripts.utils.loader import load_dictionary, load_embeddings, load_data
+from genieparser.grammar.thingtalk import ThingTalkGrammar
 
 
 def run(args):
