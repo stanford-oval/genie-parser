@@ -4,6 +4,8 @@
 workdir/*
 .idea/
 .idea/workspace.xml
+.project
+.pydevproject
 transformer_output.txt
 time.txt
 post_process_stats_v2.py
