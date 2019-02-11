@@ -24,20 +24,20 @@ from tensor2tensor.utils import registry
 from tensor2tensor.models.transformer import transformer_base
 from tensor2tensor.models.lstm import lstm_attention_base
 
-def common_luinet_extra_hparams(hp):
+def common_genie_extra_hparams(hp):
     hp.set_hparam('eval_run_autoregressive', True)
     hp.add_hparam("grammar_direction", "bottomup")
     hp.add_hparam("use_margin_loss", False)
     hp.add_hparam("train_input_embeddings", False)
     hp.add_hparam("pointer_layer", "attentive")
 
-def transformer_luinet_extra_hparams(hp):
+def transformer_genie_extra_hparams(hp):
     hp.set_hparam("num_hidden_layers", 2)
     hp.set_hparam("hidden_size", 128)
     hp.set_hparam("filter_size", 512)
     hp.set_hparam("num_heads", 4)
 
-def seq2seq_luinet_extra_hparams(hp):
+def seq2seq_genie_extra_hparams(hp):
     hp.add_hparam("attention_mechanism", "luong")
     hp.set_hparam("num_hidden_layers", 2)
     hp.set_hparam("hidden_size", 128)
@@ -46,19 +46,19 @@ def seq2seq_luinet_extra_hparams(hp):
 
 
 @registry.register_hparams
-def transformer_luinet():
+def transformer_genie():
     # Start with the base set
     # default is transformer_tiny
     hp = transformer_base()
-    common_luinet_extra_hparams(hp)
-    transformer_luinet_extra_hparams(hp)
+    common_genie_extra_hparams(hp)
+    transformer_genie_extra_hparams(hp)
     return hp
 
 @registry.register_hparams
-def lstm_luinet():
+def lstm_genie():
     # Start with the base set
     # default is lstm_luong_attention
     hp = lstm_attention_base()
-    common_luinet_extra_hparams(hp)
-    seq2seq_luinet_extra_hparams(hp)
+    common_genie_extra_hparams(hp)
+    seq2seq_genie_extra_hparams(hp)
     return hp

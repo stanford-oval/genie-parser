@@ -10,7 +10,7 @@ transformer_output.txt
 time.txt
 post_process_stats_v2.py
 glove.42B.300d.*
-luinet-tests-*
+genie-tests-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

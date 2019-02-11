@@ -42,7 +42,7 @@ from .tokenizer import TokenizerService
 from .config import ServerConfig
 
 FLAGS = tf.flags.FLAGS
-tf.flags.DEFINE_string("config_file", "/var/lib/luinet/server.conf", "Configuration file to use")
+tf.flags.DEFINE_string("config_file", "/var/lib/genie/server.conf", "Configuration file to use")
 
 def main(argv):
     tf.logging.set_verbosity(tf.logging.INFO)

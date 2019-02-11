@@ -27,9 +27,9 @@ from tensor2tensor.utils import data_reader
 
 
 class LUINetProblem(problem.Problem):
-    """Base class for luinet problems.
+    """Base class for genie problems.
     
-    All problems in luinet should inherit from this class
+    All problems in genie should inherit from this class
     rather than (or in addition to) classes in t2t.data_generators.
     """
     
