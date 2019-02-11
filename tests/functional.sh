@@ -22,7 +22,7 @@ for problem in semparse_thingtalk semparse_thingtalk_noquote  ; do
     workdir=`mktemp -d $TMPDIR/genie-tests-XXXXXX`
     pipenv run $SRCDIR/../genie-datagen --problem $problem --src_data_dir $SRCDIR/dataset/$problem --data_dir $workdir --thingpedia_snapshot 6
     # retrieval model
-    pipenv run python3 $SRCDIR/../genie/scripts/retrieval.py --input_vocab $workdir/input_words.txt --thingpedia_snapshot $workdir/thingpedia.json --problem $problem --train_set $SRCDIR/dataset/$problem/train.tsv --test_set $SRCDIR/dataset/$problem/eval.tsv --cached_grammar $workdir/cached_grammar.pkl --cached_embeddings $workdir/input_embeddings.npy --train_batch_size 4
+    pipenv run python3 $SRCDIR/../genieparser/scripts/retrieval.py --input_vocab $workdir/input_words.txt --thingpedia_snapshot $workdir/thingpedia.json --problem $problem --train_set $SRCDIR/dataset/$problem/train.tsv --test_set $SRCDIR/dataset/$problem/eval.tsv --cached_grammar $workdir/cached_grammar.pkl --cached_embeddings $workdir/input_embeddings.npy --train_batch_size 4
 
     i=0
     
