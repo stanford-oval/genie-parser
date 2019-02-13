@@ -14,7 +14,7 @@ before_install:
 install:
 - pip install pipenv
 - pipenv install --dev
-- travis_wait wget --no-verbose https://parmesan.stanford.edu/glove/glove.42B.300d.zip ; unzip glove.42B.300d.zip ; rm glove.42B.300d.zip
+- travis_wait wget --no-verbose https://oval.cs.stanford.edu/data/glove/glove.42B.300d.zip ; unzip glove.42B.300d.zip ; rm glove.42B.300d.zip
 - export GLOVE=`pwd`/glove.42B.300d.txt
 script:
 - pytest

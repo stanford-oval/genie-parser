@@ -1,0 +1,7 @@
+tensorflow
+orderedset
+numpy
+tornado
+SQLAlchemy
+semver
+git+https://github.com/Stanford-Mobisocial-IoT-Lab/tensor2tensor#egg=tensor2tensor
