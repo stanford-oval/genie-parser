@@ -485,7 +485,7 @@
         "tensor2tensor": {
             "editable": true,
             "git": "https://github.com/Stanford-Mobisocial-IoT-Lab/tensor2tensor.git",
-            "ref": "279a66d1bb2fbf168da08f1d60827985c822f4db"
+            "ref": "6b79c871f3761ccb55efb5ab3a6fe839160b99d9"
         },
         "tensorboard": {
             "hashes": [
