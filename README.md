@@ -42,30 +42,6 @@ compatible with Tensorflow, so you will need to install python 3.6 separately.
 It is also possible to use the [pipenv](https://pipenv.readthedocs.io/en/latest/)
 tool to set up a virtualenv and install the dependencies inside it.
 
-## Running a pre-trained model
-
-A pretrained model, associated with the Genie paper mentioned above, is available for download
-from <https://oval.cs.stanford.edu/models/pldi19-new-combinations.tar.xz>.
-
-You should unpack the tarball. After doing so, you can run the server using the pretrained model
-by writing a configuration file `server.conf` containing:
-```
-[models]
-en=<path-to-unpacked-tarball>
-```
-
-Run the server with:
-```
-genie-server -f <path-to-server.conf>
-```
-
-By default, the server runs at port 8400. You can change that by editing the server.conf file.
-An the example server.conf file is provided in the `data` folder, which describes all available
-options, including SSL and privilege separation.
-
-The server expects to connect to a TokenizerService (provided by [Almond Tokenizer](https://github.com/Stanford-Mobisocial-IoT-Lab/almond-tokenizer)) on
-localhost, port 8888.
-
 ## Training
 
 To train a new model, you should do the follow:
@@ -145,4 +121,22 @@ To train a new model, you should do the follow:
    You can also evaluate on a specific saved model (such as the best model according to the metric
    on the validation set) using the flag `--checkpoint_path ./workdir/model/export/best/.../variables/variables`
     
-6. To deploy the model, point the server to a saved model directory from `workdir/model/export/best`.
+6. To deploy the model, point the server to a saved model directory from `workdir/model/export/best`,
+   by writing a configuration file `server.conf` containing:
+   ```
+   [models]
+   en=<path-to-saved-model>
+   ```
+
+   Run the server with:
+   ```
+   genie-server --config-file <path-to-server.conf>
+   ```
+
+   By default, the server runs at port 8400. You can change that by editing the server.conf file.
+   An the example server.conf file is provided in the `data` folder, which describes all available
+   options, including SSL and privilege separation.
+
+   The server expects to connect to a TokenizerService (provided by [Almond Tokenizer](https://github.com/Stanford-Mobisocial-IoT-Lab/almond-tokenizer)) on
+   localhost, port 8888.
+
