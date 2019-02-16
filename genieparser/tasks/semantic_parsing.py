@@ -263,6 +263,7 @@ class SemanticParsingProblem(text_problems.Text2TextProblem,
         int64_input = tf_dictionary.lookup(string_input)
         
         return {
+            "type": tf.constant(2),
             "inputs": tf.concat(([START_ID], int64_input, [text_encoder.EOS_ID]),
                                 axis=0)
         }
