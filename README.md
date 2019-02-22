@@ -8,7 +8,7 @@ Genie was described in the paper:
 
 _Genie: A Generator of Natural Language Parsers for Compositional Virtual Assistants_  
 Giovanni Campagna (\*), Silei Xu (\*), Mehrad Moradshahi, and Monica S. Lam  
-To appear in _Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation_ (PLDI 2019), Phoenix, AZ, June 2019.
+Conditionally accepted to _Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation_ (PLDI 2019), Phoenix, AZ, June 2019.
 
 Genie-parser is part of Almond, a research project of the Mobile and Social
 Computing Lab at Stanford University.  You can find more
