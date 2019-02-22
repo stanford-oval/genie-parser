@@ -28,7 +28,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='genie-parser',
-    version='0.1dev',
+    version='0.1.0',
     
     # python 3.6 makes dictionary ordered by default
     # and, while I try not to rely on it, in the past
