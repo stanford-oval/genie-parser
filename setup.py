@@ -36,8 +36,17 @@ setuptools.setup(
     # to just use the latest version
     # also, no python 2 - that's obsolete 
     python_requires='>=3.6',
+    install_requires=[
+        'tensorflow>=1.12.0',
+        'tensor2tensor',
+        'orderedset',
+        'numpy'
+        'tornado'
+        'SQLAlchemy'
+        'semver'
+    ],
     
-    packages=setuptools.find_packages(exclude=['scripts', 'tests']),
+    packages=setuptools.find_packages(exclude=['scripts', 'tests', 'tests.*']),
     scripts=['genie-trainer', 'genie-datagen',
              'genie-evaluator', 'genie-decoder',
              'genie-server', 'genie-print-metrics'],
