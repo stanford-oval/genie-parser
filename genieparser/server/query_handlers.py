@@ -29,6 +29,7 @@ import datetime
 import semver
 
 from .constants import LATEST_THINGTALK_VERSION, DEFAULT_THINGTALK_VERSION
+from .tokenizer import TokenizerResult
 
 class TokenizeHandler(tornado.web.RequestHandler):
     '''
@@ -198,9 +199,15 @@ class QueryHandler(tornado.web.RequestHandler):
         if store not in ('yes','no'):
             raise tornado.web.HTTPError(400, reason='Invalid store argument')
         expect = self.get_query_argument('expect', default=None)
+        is_tokenized = bool(self.get_query_argument("tokenized", None))
         #print('GET /%s/query' % locale, query)
 
-        tokenized = yield language.tokenizer.tokenize(query, expect)
+        if is_tokenized:
+            tokenized = TokenizerResult(tokens=query.split(' '), values=dict(),
+                                        constituency_parse=None, raw_tokens=query.split(' '),
+                                        sentiment='neutral', pos_tags=[])
+        else:
+            tokenized = yield language.tokenizer.tokenize(query, expect)
         #print("Tokenized", tokenized.tokens, tokenized.values)
         
         result = None
