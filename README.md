@@ -1,3 +1,10 @@
+**This repository is obsolete**
+
+It was used in the submission, *only the submission*, of the paper: _Genie: A Generator of Natural Language Semantic Parsers for Virtual Assistants Commands_.
+The model used in the final version lives instead in [genie-toolkit](https://github.com/stanford-oval/genie-toolkit) and [decaNLP](https://github.com/stanford-oval/genie-toolkit).
+
+The original README follows.
+
 # Genie-parser
 
 A neural-network based semantic parser, designed to be used in conjuction with
